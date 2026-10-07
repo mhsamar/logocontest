@@ -42,9 +42,12 @@ Fee tier timing: the rate is decided by the designer's count of completed wins a
 
 Low-entry rule **[CONFIRM]**: because there are no refunds, if a contest ends with fewer than 5 active (not rejected) entries it is extended free by 5 days, once.
 
-No-pick rule: if the client does not pick a winner within 5 days of the contest ending, the highest-rated entry wins automatically (admin decides when there are no ratings).
+No-result rule (owner, 2026-10-07): the contest ends with **no result** when the client stays silent in either of these cases:
 
-Silent client rule **[CONFIRM]** (owner, 2026-10-07): "If the client does nothing, everyone who entered gets paid; designers with better ratings get more, the others get less." Open points before milestone 6: which silence triggers it (no winner picked, or no response to delivered files, or both); how shares are weighted, and what unrated entries get when the client gave no ratings; whether shares are per designer or per entry; the designer fee on each share; and who delivers files and transfers copyright. Until settled, the no-pick rule above applies.
+1. No winner is picked within 5 days of the contest ending (or within 3 days of a missed file deadline).
+2. The winner submits the final files and the client neither approves nor requests a change within 5 days.
+
+Then the prize is shared **equally per designer** (not per entry; ratings do not matter) among every designer with at least one active entry. Designers whose entries were all rejected or removed, and a winner who missed the file deadline, get no share. No final files are delivered, no copyright is transferred, and files already uploaded in case 2 are not released to the client. The contest page shows "No result". A share is not a win: `wins_count` does not change. See §7.5 for the money.
 
 ## 3. Roles
 
@@ -74,7 +77,7 @@ One account has one role. One mobile number can hold one account.
 
 All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned integers in taka.
 
-**users**: role (client/designer/admin), name, username (designers, unique), mobile (unique), mobile_verified_at, email (nullable), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
+**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at, email (nullable), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
@@ -88,13 +91,13 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 **entry_comments**: entry_id, user_id, body, parent_id (nullable), is_blocked (bool)
 
-**handovers**: contest_id, entry_id, status (awaiting_files/submitted/revision_requested/approved/auto_approved/cancelled), fee_rate (locked when the winner is picked), revision_count, fonts_note, agreement_accepted_at, due_at, approved_at, client_rating (1–5), client_feedback (max 120 words)
+**handovers**: contest_id, entry_id, status (awaiting_files/submitted/revision_requested/approved/cancelled/no_result), fee_rate (locked when the winner is picked), revision_count, fonts_note, agreement_accepted_at, due_at, approved_at, client_rating (1–5), client_feedback (max 120 words)
 
 **handover_files**: handover_id, file_type (ai/eps/svg/pdf/png/jpg), path
 
 **payments**: contest_id, client_id, gateway, gateway_txn_id, amount, status (initiated/paid/failed), paid_at, raw_response (json)
 
-**wallet_transactions**: designer_id, type (prize_credit/withdrawal/adjustment/bonus), amount (signed), contest_id (nullable), fee_rate, fee_amount, balance_after, note
+**wallet_transactions**: designer_id, type (prize_credit/split_share/withdrawal/adjustment/bonus), amount (signed), contest_id (nullable), fee_rate, fee_amount, balance_after, note
 
 **withdrawals**: designer_id, payout_method_id, amount, status (requested/paid/rejected), paid_txn_id, processed_by, processed_at
 
@@ -116,6 +119,8 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 ```
 draft → pending_payment → open → judging → winner_selected → handover → completed
+                                    judging → no_result (client picked no winner, §2)
+                                    handover → no_result (client silent 5 days after files, §2)
                                     ↘ extended (back to open, once)
 handover → judging (winner missed the 3-day file deadline; win cancelled)
 any state → cancelled (admin only)
@@ -126,14 +131,15 @@ any state → cancelled (admin only)
 | draft | Wizard not finished or not paid | Client reaches payment |
 | pending_payment | Checkout started | Gateway confirms payment |
 | open | Live, accepting entries | `ends_at` passes |
-| judging | No new entries; client decides | Winner picked, or 5 days pass (then the highest-rated entry wins) |
+| judging | No new entries; client decides | Winner picked, or 5 days pass (→ no_result) |
 | winner_selected | Winner chosen | Handover record created (immediate) |
-| handover | Designer uploads files, client reviews | Client approves (rating + feedback), or 5 days after files are submitted **[CONFIRM]**, see the silent client rule in §2, or the designer misses the upload deadline (→ judging) |
+| handover | Designer uploads files, client reviews | Client approves (rating + feedback), or the client is silent 5 days after files are submitted (→ no_result), or the designer misses the upload deadline (→ judging) |
 | completed | Wallet credited | — |
+| no_result | Prize shared equally among designers (§2, §7.5) | — |
 
-Timers (all in settings): duration 5/7/10 days (default 7); judging window 5 days; after a missed file deadline the client gets 3 days to pick again; designer must upload files within 3 days; client auto-approves after 5 days (the 5 days restart each time files are re-submitted); max 2 revision requests.
+Timers (all in settings): duration 5/7/10 days (default 7); judging window 5 days; after a missed file deadline the client gets 3 days to pick again; designer must upload files within 3 days; the client must approve or request a change within 5 days of files being submitted, or the contest ends with no result (the 5 days restart each time files are re-submitted); max 2 revision requests.
 
-Missed file deadline: the winning entry becomes `forfeited`, the handover `cancelled`, and the contest returns to `judging` for 3 days. The client picks another entry (the forfeited one cannot be picked again). If they do not, the highest-rated remaining entry wins (admin decides when there are no ratings). The designer gets no automatic strike; the client may give one (§10).
+Missed file deadline: the winning entry becomes `forfeited`, the handover `cancelled`, and the contest returns to `judging` for 3 days. The client picks another entry (the forfeited one cannot be picked again). If they do not, the contest ends with no result (§2). The designer gets no automatic strike; the client may give one (§10).
 
 A scheduled command runs every 15 minutes to move contests between states and send reminders.
 
@@ -169,7 +175,7 @@ A win only counts toward the tier and the leaderboard **[CONFIRM]** when prize �
 ### 7.3 Wallet
 
 - The wallet is a ledger. Never store a balance without a matching `wallet_transactions` row.
-- Credit happens once, inside a database transaction, when the handover becomes approved or auto-approved.
+- Credit happens once, inside a database transaction, when the handover becomes approved (or, for a no-result contest, once per designer share, §7.5).
 - Withdrawal: minimum 500; the request deducts the balance immediately; admin pays out manually by bKash or bank and records the transaction ID. A rejected withdrawal returns the amount.
 
 ### 7.4 Upgrades (prices in settings)
@@ -179,6 +185,18 @@ A win only counts toward the tier and the leaderboard **[CONFIRM]** when prize �
 | Blind | Only the client sees the entries; each designer sees only their own. Nobody else ever sees them, even after completion, except that after completion the client may choose to make the winning logo public, shown with the designer's name | 500 |
 | Private | Login required to view the brief, `noindex`, hidden from winners gallery and designer portfolios | 500 |
 | Promoted | Flag for admin to post it on the Facebook page/group; shown first in lists | 500 |
+
+### 7.5 No-result split
+
+```
+designers = distinct designers with ≥1 active entry (excluding a forfeited winner)
+share     = floor(prize / count(designers))
+leftover  = prize - share * count(designers)   → 1 taka each to the designers who entered first
+fee       = round(share * rate)                 [CONFIRM] rate = each designer's normal tier (§7.2)
+credit    = share - fee                         → one `split_share` wallet transaction per designer
+```
+
+Credits happen once, inside one database transaction. If no designer qualifies, an admin decides.
 
 ## 8. Client flow
 
@@ -210,13 +228,17 @@ A logged-in client uses **Create Contest** from the dashboard: steps 1–8, then
 - Handover view: download files, Request revision (max 2), or Approve. Approving requires a 1–5 star rating and feedback (max 120 words); only then is the designer paid
 - Blind contests, after completion: a switch to make the winning logo public
 - Payments list and total spent
-- Profile: name, business name, photo, mobile, email, password, and **Total spent** (sum of paid payments). Clients have no public profile, so only the client and admins see it
+- Profile: name, business name, photo, mobile, email, password, and **Total spent** (sum of paid payments). Total spent is also shown on the client's public profile (§8.4)
 
 ### 8.3 Reject
 
 Reasons: Looks AI-generated / Looks copied / Doesn't match the brief / Low quality / Other (short note).
 
 On reject: the entry disappears from the contest for everyone except the client's Rejected tab and the designer's own list; the designer is notified with the reason. Reasons "AI" and "copied" also create a report for admin. Strikes are never automatic; see §10 for who can give one. Only an admin can ban.
+
+### 8.4 Client public profile (`/c/{username}`)
+
+Shows only: photo, business name (or name if none), member since, **total spent** (sum of paid payments, including private contests), number of contests, and their non-private contests with status and prize. Completed contests show the winning logo (blind contests only if the client made it public). No contact details anywhere.
 
 ## 9. Designer flow
 
@@ -248,7 +270,7 @@ The winner uploads AI, EPS, SVG, PDF, transparent PNG and JPG files plus font na
 
 ### 9.4 Public profile (`/d/{username}`)
 
-Shows only: name, bio, photo, badges, win count, **total earned** (public: sum of `prize_credit` and `bonus` wallet transactions, after fees), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
+Shows only: name, bio, photo, badges, win count, **total earned** (public: sum of `prize_credit`, `split_share` and `bonus` wallet transactions, after fees), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
 
 ### 9.5 Wallet page
 
@@ -307,6 +329,7 @@ Channels: in-app for everything, plus SMS and email where marked.
 | You won | Designer | Yes |
 | Files submitted / revision requested | Client / Designer | Yes |
 | Wallet credited | Designer | Yes |
+| No result: prize shared (with the amount) | Client and every designer who gets a share | Yes |
 | Withdrawal paid | Designer | Yes |
 | Strike, suspension or ban | User | Yes |
 | Monthly Champion announced | All designers | Email |
@@ -340,7 +363,7 @@ Channels: in-app for everything, plus SMS and email where marked.
 6. Q&A
 7. Footer: Terms, Privacy, Payment & No-Refund Policy, Designer Rules, Contact
 
-Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`, `/winners`, `/d/{username}`, `/how-it-works`, `/designers` (designer landing + signup), `/faq`, legal pages.
+Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`, `/winners`, `/d/{username}`, `/c/{username}`, `/how-it-works`, `/designers` (designer landing + signup), `/faq`, legal pages.
 
 ## 15. Non-functional requirements
 
@@ -350,7 +373,7 @@ Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`,
 - Original files are served only through signed, expiring URLs
 - Rate-limit OTP, login, comments and uploads
 - Verify payment gateway callbacks server-side before marking anything paid
-- Feature tests are required for: fee calculation, tier changes at 5 and 10 wins, contest state transitions (including the missed file deadline), wallet credit happening exactly once, the contact filter, blind-contest visibility
+- Feature tests are required for: fee calculation, tier changes at 5 and 10 wins, contest state transitions (including the missed file deadline and both no-result cases), the no-result split (equal shares, exclusions, rounding), wallet credit happening exactly once, the contact filter, blind-contest visibility
 
 ## 16. Build milestones
 
@@ -361,11 +384,11 @@ Finish, test and commit each milestone before starting the next.
 3. **Browse and contest pages:** `/contests`, contest detail, home page with live data
 4. **Designer side:** signup, payout method, entry upload with slots, watermarking, declarations, blind/open visibility rules
 5. **Client review:** ratings, shortlist, reject with reasons, comment threads, contact filter, report button, designer copy flags with evidence
-6. **Lifecycle engine:** scheduler, judging, low-entry extension, pick winner, auto-award
-7. **Handover and wallet:** file delivery, missed-deadline cancellation, approval with rating and feedback, auto-approval, fee tiers, wallet ledger, withdrawals
+6. **Lifecycle engine:** scheduler, judging, low-entry extension, pick winner, no-result when the client is silent
+7. **Handover and wallet:** file delivery, missed-deadline cancellation, approval with rating and feedback, no-result split payout, fee tiers, wallet ledger, withdrawals
 8. **Admin panel:** everything in section 13
 9. **Real integrations:** payment gateway driver, SMS provider, email, S3 storage
-10. **Profiles and gamification:** public designer profile with QR, badges, leaderboard, monthly winner
+10. **Profiles and gamification:** public designer profile with QR and total earned, public client profile with total spent, badges, leaderboard, monthly winner
 11. **Launch polish:** Bangla translations, SEO basics (titles, sitemap, `noindex` for private contests), legal pages, performance pass, backups
 
 ## 17. Out of scope for now
@@ -374,7 +397,7 @@ Direct messaging, refunds, NID verification, international payments, design cate
 
 ## 18. Things the owner still needs to settle
 
-1. The **[CONFIRM]** items: low-entry extension, the silent client rule (§2) and how it relates to auto-approval after 5 days. (Settled: entries per designer unlimited; fee rate locked at winner pick; no-pick auto-award after 5 days; 3-day re-pick after a missed deadline.)
+1. The **[CONFIRM]** items: low-entry extension; the designer fee on no-result shares (§7.5). (Settled: entries per designer unlimited; fee rate locked at winner pick; no-result rule; 3-day re-pick after a missed deadline.)
 2. Upgrade prices (Blind, Private, Promoted)
 3. Monthly Champion prize amount
 4. Which payment gateway to apply to, and its merchant documents

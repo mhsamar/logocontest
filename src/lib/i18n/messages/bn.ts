@@ -59,6 +59,7 @@ const bn: Messages = {
     winner_selected: "বিজয়ী নির্বাচিত",
     handover: "হস্তান্তর",
     completed: "সম্পন্ন",
+    no_result: "কোনো ফলাফল নেই",
     cancelled: "বাতিল",
     rejected: "প্রত্যাখ্যাত",
   },

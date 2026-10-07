@@ -40,7 +40,7 @@ describe("BLUEPRINT defaults", () => {
     expect(d("timers.repick_window_days")).toBe(3);
     expect(d("timers.judging_reminder_days")).toEqual([1, 3, 5]);
     expect(d("timers.designer_file_upload_days")).toBe(3);
-    expect(d("timers.client_auto_approve_days")).toBe(5);
+    expect(d("timers.client_response_days")).toBe(5);
     expect(d("limits.max_revision_requests")).toBe(2);
     expect(d("limits.withdrawal_min")).toBe(500);
     expect([d("limits.entry_min_images"), d("limits.entry_max_images")]).toEqual([5, 10]);

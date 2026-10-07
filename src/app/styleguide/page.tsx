@@ -10,7 +10,7 @@ import { ModalDemo, ToastDemo } from "./demo";
 
 export const metadata: Metadata = { robots: { index: false } };
 
-const STATUSES: ChipStatus[] = ["draft", "pending_payment", "open", "judging", "winner_selected", "handover", "completed", "cancelled", "rejected"];
+const STATUSES: ChipStatus[] = ["draft", "pending_payment", "open", "judging", "winner_selected", "handover", "completed", "no_result", "cancelled", "rejected"];
 const SWATCHES = ["primary", "primary-dark", "accent", "ink", "muted", "line", "surface", "canvas", "success", "danger", "warning", "info"];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

@@ -57,6 +57,7 @@ const en = {
     winner_selected: "Winner picked",
     handover: "Handover",
     completed: "Completed",
+    no_result: "No result",
     cancelled: "Cancelled",
     rejected: "Rejected",
   },

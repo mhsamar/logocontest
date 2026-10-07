@@ -9,6 +9,7 @@ export type ChipStatus =
   | "winner_selected"
   | "handover"
   | "completed"
+  | "no_result"
   | "cancelled"
   | "rejected";
 
@@ -20,6 +21,7 @@ const STYLES: Record<ChipStatus, string> = {
   winner_selected: "bg-info/10 text-info",
   handover: "bg-info/10 text-info",
   completed: "bg-primary/10 text-primary",
+  no_result: "bg-muted/15 text-muted",
   cancelled: "bg-danger/10 text-danger",
   rejected: "bg-danger/10 text-danger",
 };

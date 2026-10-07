@@ -44,7 +44,7 @@ Clean, light, trustworthy, with lots of white space so the logos are the colourf
 | Stepper | Thin progress bar + "Step 3 of 11" text |
 | Contest card | Brand name, business type, prize in amber, entries count, designers count, time left pill, badges (Blind, Private, Promoted) |
 | Entry card | Square watermarked preview, entry number, designer name (hidden from other designers in Blind), stars, state chip |
-| Status chip | Contest: Draft (grey), Awaiting payment (grey), Live (green), Judging (amber), Winner picked (blue), Handover (blue), Completed (teal), Cancelled (red). Entry: Rejected (red) |
+| Status chip | Contest: Draft (grey), Awaiting payment (grey), Live (green), Judging (amber), Winner picked (blue), Handover (blue), Completed (teal), No result (grey), Cancelled (red). Entry: Rejected (red) |
 | Price summary | Prize, service fee 20%, upgrades, total. Sticky bottom bar on mobile, right sidebar on desktop |
 | Star rating | 5 tappable stars, large enough for thumbs |
 | Modal / bottom sheet | Modal on desktop, bottom sheet on mobile |
@@ -115,7 +115,7 @@ Mobile: a sticky bottom button **Start a Contest** appears after the hero scroll
 
 ### P-03 Contest detail
 
-Header block: brand name, business type, status chip, prize in large amber text, countdown pill, entries and designers counts, badges.
+Header block: brand name, business type, "by [client]" linking to `P-12`, status chip, prize in large amber text, countdown pill, entries and designers counts, badges.
 
 Two tabs:
 
@@ -143,6 +143,10 @@ Masonry-style grid of winning logos with business-type filter chips. Tile tap op
 ### P-06 Designer public profile
 
 Top: photo, name, badges (Top Designer, Monthly Champion with month), bio, "12 wins · 87 designs · ৳45,000 earned" (total earned is public). A **Share profile** button opens a sheet with the QR code (downloadable) and a copy-link button. Tabs: **Winning logos** | **All designs** (each with its stars). No contact details and no message button anywhere.
+
+### P-12 Client public profile
+
+Top: photo, business name (or name), "Member since [month year]", stats "৳18,000 spent · 3 contests". Below: the client's non-private contests as contest cards (status chip, prize); completed ones show the winning logo (blind contests only if the client made it public). No contact details and no message button.
 
 ### P-07 Designer landing
 
@@ -214,7 +218,7 @@ Top summary bar: time left, entries, designers, and filter chips: All | New | Sh
 
 Grid of entry cards (2 columns mobile). Each card has quick actions under it: stars, heart (shortlist), and a "…" menu with Comment, Reject, Report.
 
-A banner appears in the judging phase: "Your contest has ended. Pick your winner by [date]."
+A banner appears in the judging phase: "Your contest has ended. Pick your winner by [date]. If you don't, the prize is shared equally among all designers and you won't receive final files."
 
 ### C-15 Entry review (full view)
 
@@ -234,7 +238,7 @@ A four-step tracker: Winner picked → Files uploaded → Your review → Done.
 
 - **Waiting state:** "The designer is preparing your files. Due by [date]."
 - **Missed deadline state:** "The designer didn't deliver the files in time. Please pick another winner." Button **Pick another winner** → `C-14` (the forfeited entry is marked and cannot be picked), shown with "Pick by [date] (3 days)". A secondary link **Give the designer a strike** opens the strike sheet.
-- **Files ready state:** list of files with type icons (AI, EPS, SVG, PDF, PNG, JPG) and download buttons, **Download all**, font names. Two buttons: **Approve files** and **Request a change** (opens a note field; shows "1 of 2 change requests left"). **Approve files** opens a sheet: 5 tappable stars (required) and "Feedback for the designer" (required, max 120 words, live word counter), then **Approve and release payment**. A note: "If you don't respond by [date], the files are approved automatically."
+- **Files ready state:** list of files with type icons (AI, EPS, SVG, PDF, PNG, JPG) and download buttons, **Download all**, font names. Two buttons: **Approve files** and **Request a change** (opens a note field; shows "1 of 2 change requests left"). **Approve files** opens a sheet: 5 tappable stars (required) and "Feedback for the designer" (required, max 120 words, live word counter), then **Approve and release payment**. A note: "Please approve or ask for a change by [date]. If you don't respond, the contest ends with no result and you won't receive the files."
 
 ### C-18 Completed
 
@@ -246,7 +250,7 @@ List of payments: date, contest, amount, method, status, and a receipt link. Tot
 
 ### C-20 Profile
 
-Photo, name, business name, mobile (verified tick), email, change password. A stat card at the top: **Total spent ৳X** (only the client sees it).
+Photo, name, business name, mobile (verified tick), email, change password. A username field (shows the `P-12` link) and a stat card at the top: **Total spent ৳X** (also shown publicly on `P-12`). Link **View public profile**.
 
 ### C-21 Create Contest (returning client)
 
@@ -313,7 +317,7 @@ Full-screen celebration: "You won! ৳5,000 contest: [brand]". Shows the breakdo
 
 Six required upload rows, one per file type (AI, EPS, SVG, PDF, PNG transparent, JPG), each with a tick when done. Font names field. A copyright transfer agreement in a scroll box with a checkbox. Button **Send files to client**.
 
-After sending: the same four-step tracker as `C-17`, with "Waiting for the client. Auto-approved on [date]." If a change is requested, the client's note appears at the top with the upload rows reopened.
+After sending: the same four-step tracker as `C-17`, with "Waiting for the client until [date]. If they don't respond, the prize is shared equally among all designers." If a change is requested, the client's note appears at the top with the upload rows reopened.
 
 ### D-10 Wallet
 
@@ -382,7 +386,8 @@ Every destructive admin action asks for confirmation and a short reason.
 | Approve sheet | Approve and release payment |
 | Reject confirm | Reject design |
 | Winner confirm | Yes, pick this winner |
-| Auto-approve note | If you don't respond by {date}, the files are approved automatically. |
+| Response deadline note | Please approve or ask for a change by {date}. If you don't respond, the contest ends with no result and you won't receive the files. |
+| No result (contest page) | No result. The client didn't pick a winner, so the prize was shared equally among {count} designers. |
 | Withdraw minimum | You need at least ৳500 to withdraw. |
 | Generic error | Something went wrong. Please try again. |
 
@@ -396,4 +401,4 @@ Every destructive admin action asks for confirmation and a short reason.
 
 ## 10. Build order for the UI
 
-Build the shared components in section 1.3 first, then screens in this order so each milestone in `BLUEPRINT.md` has its UI: P-01 and layout → C-01 to C-12 → P-02, P-03, P-04 → D-01 to D-07 → C-13 to C-16 → C-17, C-18, D-08 to D-11 → N-01 → admin A-01 to A-12 → P-05, P-06, P-07 and the text pages.
+Build the shared components in section 1.3 first, then screens in this order so each milestone in `BLUEPRINT.md` has its UI: P-01 and layout → C-01 to C-12 → P-02, P-03, P-04 → D-01 to D-07 → C-13 to C-16 → C-17, C-18, D-08 to D-11 → N-01 → admin A-01 to A-12 → P-05, P-06, P-12, P-07 and the text pages.

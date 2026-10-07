@@ -102,9 +102,9 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the winner has to upload the final files.",
   },
-  "timers.client_auto_approve_days": {
+  "timers.client_response_days": {
     group: "timers", type: "int", schema: int(1), default: 5,
-    description: "Days after files are submitted before they are approved automatically.",
+    description: "Days the client has to approve or request a change after files are submitted; then the contest ends with no result.",
   },
   "timers.judging_reminder_days": {
     group: "timers", type: "json", schema: intList, default: [1, 3, 5],
