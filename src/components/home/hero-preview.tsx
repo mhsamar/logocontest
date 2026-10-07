@@ -39,7 +39,7 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
 
           <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             {/* brief */}
-            <div className="rounded-lg bg-surface p-4 text-left shadow-card ring-1 ring-line">
+            <div className="flex flex-col rounded-lg bg-surface p-4 text-left shadow-card ring-1 ring-line">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("home.preview.brief")}</p>
               <p className="mt-1 text-lg font-bold text-ink">{t("home.preview.brand")}</p>
               <p className="text-sm text-muted">{t("wizard.businessTypes.food")}</p>
@@ -52,10 +52,41 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
                   </span>
                 ))}
               </div>
-              <div className="mt-4 flex gap-1.5" aria-hidden>
+              <div className="mt-4 flex gap-1.5 lg:mb-5" aria-hidden>
                 {["var(--color-primary)", "var(--color-cream)", "var(--color-ink)"].map((c) => (
                   <span key={c} className="size-6 rounded-full ring-1 ring-line" style={{ background: c }} />
                 ))}
+              </div>
+
+              {/* Desktop: the end of the story, the winner and the files (fills the card down to the grid's height). Phones show the grid right below, so it is left out there. */}
+              <div className="mt-auto hidden border-t border-line pt-4 lg:block">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+                  <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+                    <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {t("home.preview.picked")}
+                </span>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="size-16 shrink-0 overflow-hidden rounded-lg ring-2 ring-primary" aria-hidden>
+                    <div className="flex h-full items-center">{SAMPLE_LOGOS[0]}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink">#1</p>
+                    <div className="mt-1">
+                      <Stars value={RATINGS[0]} />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-2 rounded-md bg-canvas px-3 py-2">
+                  <span className="text-xs font-medium text-muted">{t("home.preview.files")}</span>
+                  <span className="flex gap-1">
+                    {["AI", "SVG", "PNG"].map((f) => (
+                      <span key={f} className="rounded bg-ink px-1.5 py-0.5 text-[0.625rem] font-bold text-cream">
+                        {f}
+                      </span>
+                    ))}
+                  </span>
+                </div>
               </div>
             </div>
 

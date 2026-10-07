@@ -54,6 +54,8 @@ const en = {
       brief: "Brief",
       brand: "Nodi Tea House",
       winner: "Winner",
+      picked: "Winner picked",
+      files: "Final files",
       caption: "An example contest: one brief, many designs, one winner.",
     },
     card: {
@@ -80,6 +82,13 @@ const en = {
       step1: { title: "Tell us about your brand", body: "Answer a few simple questions and choose your prize. It takes about five minutes." },
       step2: { title: "Get designs and give feedback", body: "Designers send their ideas. Rate them and comment to guide them towards what you want." },
       step3: { title: "Pick your winner and get your files", body: "Choose your favourite. The designer sends the final files and the copyright is yours." },
+      art: {
+        example: "Example",
+        entry: "Entry #{n}",
+        comment: "Love this one! Can you try a darker red?",
+        winner: "Winner",
+        files: "Final files",
+      },
     },
     why: {
       eyebrow: "Why logocontest.bd",
@@ -89,6 +98,19 @@ const en = {
       original: { title: "Original, human-made logos", body: "AI-made and copied logos are not allowed. Copying means a permanent ban." },
       ownership: { title: "The logo is fully yours", body: "The copyright is transferred to you with all the source files." },
       held: { title: "Your money is safe", body: "We hold your payment until you approve the final files." },
+      art: {
+        more: "and many more",
+        bkash: "bKash",
+        card: "Card",
+        human: "Human-made",
+        ai: "AI-made",
+        copyright: "Copyright",
+        yours: "Yours",
+        pay: "You pay",
+        hold: "We hold",
+        release: "Designer paid",
+        afterApprove: "only after you approve",
+      },
       compare: {
         title: "How we compare",
         freelancer: "Freelancer",

@@ -8,6 +8,8 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
 import { HeroForm } from "./hero-form";
+import { HowItWorks as HowItWorksSteps } from "./how-it-works";
+import { WhyBento } from "./why-bento";
 import { HeroPreview } from "./hero-preview";
 
 function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
@@ -145,88 +147,14 @@ export async function Showcase({ kind, contests }: { kind: "winners" | "live"; c
 // ---------------------------------------------------------------------------
 // 3. How it works
 // ---------------------------------------------------------------------------
-function StepArt({ step }: { step: 1 | 2 | 3 }) {
-  if (step === 1)
-    return (
-      <svg viewBox="0 0 160 100" className="h-24 w-full" aria-hidden>
-        <rect x="30" y="12" width="100" height="76" rx="10" fill="var(--color-surface)" stroke="var(--color-line)" />
-        <rect x="42" y="26" width="52" height="7" rx="3.5" fill="var(--color-ink)" />
-        <rect x="42" y="40" width="76" height="5" rx="2.5" fill="var(--color-line)" />
-        <rect x="42" y="50" width="64" height="5" rx="2.5" fill="var(--color-line)" />
-        <circle cx="48" cy="72" r="6" fill="var(--color-primary)" />
-        <circle cx="64" cy="72" r="6" fill="var(--color-cream)" stroke="var(--color-line)" />
-        <circle cx="80" cy="72" r="6" fill="var(--color-ink)" />
-      </svg>
-    );
-  if (step === 2)
-    return (
-      <svg viewBox="0 0 160 100" className="h-24 w-full" aria-hidden>
-        {[0, 1, 2].map((i) => (
-          <g key={i} transform={`translate(${18 + i * 44} 18)`}>
-            <rect width="38" height="44" rx="7" fill="var(--color-surface)" stroke={i === 1 ? "var(--color-primary)" : "var(--color-line)"} strokeWidth={i === 1 ? 2 : 1} />
-            <circle cx="19" cy="20" r="9" fill={["var(--color-cream)", "var(--color-primary)", "var(--color-ink)"][i]} />
-          </g>
-        ))}
-        <rect x="50" y="70" width="60" height="16" rx="8" fill="var(--color-cream)" />
-        <path d="M60 78h28" stroke="var(--color-primary-dark)" strokeWidth="3" strokeLinecap="round" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 160 100" className="h-24 w-full" aria-hidden>
-      <rect x="45" y="14" width="70" height="60" rx="10" fill="var(--color-surface)" stroke="var(--color-primary)" strokeWidth="2" />
-      <circle cx="80" cy="40" r="14" fill="var(--color-primary)" />
-      <path d="M73 40l5 5 9-10" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {["AI", "SVG", "PNG"].map((f, i) => (
-        <g key={f} transform={`translate(${44 + i * 26} 80)`}>
-          <rect width="22" height="12" rx="3" fill="var(--color-ink)" />
-          <text x="11" y="9" textAnchor="middle" fontSize="7" fontWeight="700" fill="var(--color-cream)" fontFamily="Inter, sans-serif">
-            {f}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
-}
-
 export async function HowItWorks() {
   const { t } = await getI18n();
-  const steps = [1, 2, 3] as const;
-  return (
-    <section className="border-y border-line bg-surface">
-      <div className="mx-auto max-w-page px-4 py-16 sm:py-20">
-        <SectionHeading eyebrow={t("home.how.eyebrow")} title={t("home.how.title")} />
-        <ol className="mt-12 grid gap-4 md:grid-cols-3">
-          {steps.map((n) => (
-            <li key={n} className="rounded-lg bg-canvas p-6 ring-1 ring-line">
-              <StepArt step={n} />
-              <div className="mt-4 flex items-center gap-3">
-                <span className="flex size-8 items-center justify-center rounded-full bg-ink text-sm font-bold text-cream">{n}</span>
-                <h3 className="text-h3 font-semibold text-ink">{t(`home.how.step${n}.title`)}</h3>
-              </div>
-              <p className="mt-2 text-muted">{t(`home.how.step${n}.body`)}</p>
-            </li>
-          ))}
-        </ol>
-        <div className="mt-10 text-center">
-          <ButtonLink href="/start" size="lg">
-            {t("home.cta")}
-          </ButtonLink>
-        </div>
-      </div>
-    </section>
-  );
+  return <HowItWorksSteps heading={<SectionHeading eyebrow={t("home.how.eyebrow")} title={t("home.how.title")} />} />;
 }
 
 // ---------------------------------------------------------------------------
 // 4. Why Logo Contest
 // ---------------------------------------------------------------------------
-const WHY: { key: "ideas" | "bkash" | "original" | "ownership" | "held"; icon: keyof typeof ICONS }[] = [
-  { key: "ideas", icon: "ideas" },
-  { key: "bkash", icon: "bkash" },
-  { key: "original", icon: "hand" },
-  { key: "ownership", icon: "key" },
-  { key: "held", icon: "lock" },
-];
 
 // Freelancer, design agency, logocontest.bd
 const COMPARE: { key: "many" | "price" | "original" | "copyright" | "held"; values: [boolean, boolean, boolean] }[] = [
@@ -256,17 +184,7 @@ export async function WhyUs() {
   return (
     <section className="mx-auto w-full max-w-page px-4 py-16 sm:py-20">
       <SectionHeading eyebrow={t("home.why.eyebrow")} title={t("home.why.title")} />
-      <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {WHY.map(({ key, icon }) => (
-          <li key={key} className="rounded-lg bg-surface p-5 shadow-card ring-1 ring-line">
-            <span className="flex size-10 items-center justify-center rounded-md bg-cream text-primary-dark">
-              <Icon d={ICONS[icon]} />
-            </span>
-            <h3 className="mt-4 font-semibold text-ink">{t(`home.why.${key}.title`)}</h3>
-            <p className="mt-1 text-sm text-muted">{t(`home.why.${key}.body`)}</p>
-          </li>
-        ))}
-      </ul>
+      <WhyBento />
 
       <div className="relative mx-auto mt-14 max-w-4xl rounded-2xl bg-surface p-2 shadow-card ring-1 ring-line sm:p-4">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
