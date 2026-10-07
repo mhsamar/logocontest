@@ -1,7 +1,8 @@
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LogoMark } from "@/components/ui/logo";
-import { ContestCard, type ContestCardData } from "@/components/contests/contest-card";
+import { ContestCard } from "@/components/contests/contest-card";
+import type { ContestRow } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -101,7 +102,7 @@ export async function Hero({ standardPrize }: { standardPrize: number }) {
 // ---------------------------------------------------------------------------
 // 2. Recent winning logos (live contests until real winners exist)
 // ---------------------------------------------------------------------------
-export async function Showcase({ kind, contests }: { kind: "winners" | "live"; contests: ContestCardData[] }) {
+export async function Showcase({ kind, contests }: { kind: "winners" | "live"; contests: ContestRow[] }) {
   const { t } = await getI18n();
   const now = new Date();
   return (
@@ -114,9 +115,10 @@ export async function Showcase({ kind, contests }: { kind: "winners" | "live"; c
       {contests.length > 0 ? (
         <>
           {/* 3 rows: 2 columns on phones (6 cards), 4 on desktop (12 cards) */}
-          <ul className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {/* Centred, so a short row doesn't hug the left edge */}
+          <ul className="mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">
             {contests.map((c, i) => (
-              <li key={c.slug} className={i >= 6 ? "hidden lg:block" : undefined}>
+              <li key={c.slug} className={cx("w-[calc(50%-0.375rem)] sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]", i >= 6 && "hidden lg:block")}>
                 <ContestCard contest={c} now={now} />
               </li>
             ))}

@@ -137,6 +137,22 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
   return ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
 }
 
+/** Home page section 2: open contests, Promoted first, then the newest. */
+export async function liveContests(limit: number): Promise<ContestRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await createAdminClient()
+    .from("contests")
+    .select(ROW_COLUMNS)
+    .eq("status", "open")
+    .order("is_promoted", { ascending: false })
+    .order("starts_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as DbRow[];
+  const entries = await countEntries(rows.map((r) => r.id));
+  return rows.map((r) => toRow(r, entries));
+}
+
 export type ContestFileView = { name: string; mime: string; url: string | null; isImage: boolean };
 
 export type ContestDetail = ContestRow & {

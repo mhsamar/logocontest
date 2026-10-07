@@ -47,7 +47,7 @@ Visual style (owner, 2026-10-07): **Golden Luxe** accents (red, maroon, cream, i
 | Button | Primary (filled teal), Secondary (outline), Danger (red outline), Ghost (text). Loading state shows a spinner and disables the button |
 | Input | Label above, helper text below, error text in red below. Never placeholder-only labels |
 | Stepper | Thin progress bar + "Step 3 of 11" text |
-| Contest card | Brand name, business type, prize in amber, entries count, designers count, time left pill, badges (Blind, Private, Promoted) |
+| Contest card | (owner, 2026-10-08) White card with the brand tile on top (the brand's first letter for now, the leading or winning logo later) and a red **Featured** pill on it for Promoted contests; then the package pill, brand name, business type, prize in amber with the designs count, and the time-left line with a thin progress bar. Blind and Private show as small outline pills. When a row has fewer cards than columns, the cards are centred |
 | Entry card | Square watermarked preview, entry number, designer name (hidden from other designers in Blind), stars, state chip |
 | Status chip | Contest: Draft (grey), Awaiting payment (grey), Live (green), Judging (amber), Winner picked (blue), Handover (blue), Completed (teal), No result (grey), Cancelled (red). Entry: Rejected (red) |
 | Price summary | Prize, service fee 20%, upgrades, total. Sticky bottom bar on mobile, right sidebar on desktop |
