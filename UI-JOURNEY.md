@@ -114,19 +114,23 @@ Mobile: a sticky bottom button **Start a Contest** appears after the hero scroll
 
 ### P-02 Browse contests
 
-- Filter chips: Open (default), Judging, Completed. Sort: Ending soon, Newest, Highest prize.
-- Contest cards in a list (mobile) or 3-column grid (desktop).
+Layout (owner, 2026-10-07, from the LogoArena reference): a dark ink page header ("Start a logo contest. Get designs from Bangladesh's best designers." with **Start a Contest**), then a **Featured contests** row (Promoted contests that are open, up to 3 cards), then **All contests** as a list of wide rows on every screen size.
+
+- Status tabs with counts: Open (default), Judging, Completed (completed and no-result). Sort: Ending soon (default for Open), Newest, Highest prize. Filter: business type. All of these live in the URL, so a filtered list can be shared.
+- Each row (owner, 2026-10-08, second reference): a large square tile on the left (the brand's first letter for now; the leading or winning logo once entries exist), then the brand name with a filled package pill (Economy grey, Standard ink, Premium red, Custom gold) and outline pills for Featured, Blind and Private, a meta line "IT & software · Started 2 days ago", and two lines of the business description. On the right two small boxes, prize (amber, with the package name under it) and entries count, and under them the status line: time left with a thin progress bar while open, "Judging · pick by {date}" while judging, "Contest complete" when done. Designers also see a heart to save the contest.
 - Private contests show brand name as "Private contest" with a lock icon and no brief preview for guests.
+- 20 rows per page with numbered pages and "Showing 1–20 of 134 contests".
 - Empty state: "No contests here yet." with **Start a Contest**.
 
 ### P-03 Contest detail
 
-Header block: brand name, business type, "by [client]" linking to `P-12`, status chip, prize in large amber text, countdown pill, entries and designers counts, badges.
+Header (owner, 2026-10-07, from the LogoArena reference): one white panel. Left: brand name, badges (Featured for Promoted, Blind, Private), business type and package, "by [client]", the business description. Right: a stats card with entries count, prize in large amber text and time left, then the contest timeline as three short progress bars with dates: **Accepting entries** → **Judging** (pick a winner) → **Files & handover**. The primary button sits under the stats.
 
-Two tabs:
+Three tabs, **Entries** first when there are entries to show, otherwise **Brief**:
 
 - **Brief:** description, logo text and slogan, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, likes and dislikes, reference files.
 - **Entries:** grid of entry cards.
+- **Comments:** the public contest comments, newest last, each with the commenter's name ("Client" badge) or designer username. The client and signed-in designers see a box at the bottom (500 characters, counter); others see "Only the client and designers can comment." with **Log in** for guests. Authors can delete their own comment.
 
 What the Entries tab shows depends on who is looking:
 
@@ -164,7 +168,7 @@ Simple text pages. How It Works has two tabs: For clients, For designers. Legal 
 
 ### P-11 Log in
 
-One field "Mobile number or email" and password. Links: "Forgot password?" (SMS code reset), "I want a logo" → `C-01`, "I'm a designer" → `D-01`.
+One field "Mobile number or email" and password. Links: "Forgot password?" (asks for the email and sends a reset link; the link opens a "Set a new password" page), "I want a logo" → `C-01`, "I'm a designer" → `D-01`.
 
 ---
 
@@ -195,7 +199,7 @@ flowchart LR
 | C-07 | Any examples or a current logo? | Drag-and-drop zone / file picker, thumbnails with remove icons | Optional; note "For reference only. Designers will not copy these." |
 | C-08 | Choose your prize | Four package cards (Standard marked Recommended); Custom reveals an amount input; duration selector (5 / 7 / 10 days); upgrade rows with toggle and price | Summary updates live |
 | C-09 | Where should we send updates? | Mobile input and email input (both required, no OTP) | Number or email already used → "You already have an account. Log in" |
-| C-10 | Create a password | Password with show/hide and strength hint | |
+| C-10 | Create a password | Password with show/hide and strength hint | **Create account** asks for browser notification permission, then sends the welcome push and the 6-digit email code |
 | C-11 | Review and pay | "Your name" input (required, saved to the account); collapsible brief recap with Edit links; full price breakdown; method tiles (bKash, Card); checkbox "I agree to the Terms and understand payments are non-refundable"; button **Pay ৳6,000** | Opens gateway checkout |
 
 **C-08 package card content:** name, prize amount, one line ("Good for new pages and small shops" / "Most popular" / "Attracts experienced designers"), and "You pay ৳X including service fee".
@@ -207,15 +211,21 @@ flowchart LR
 - **Success** → `C-12`.
 - **Failed or cancelled:** "Payment didn't go through. Your contest is saved as a draft." Buttons **Try again** and **Go to dashboard**.
 
+### Email confirmation banner (all pages, signed-in users with an unconfirmed email)
+
+A thin bar above the header: "Please confirm your email. Enter the 6-digit code we sent to x@y.com." with a code box, **Confirm** and **Resend code**. A right code shows "Email confirmed" and the bar disappears. A wrong code says how many tries are left (5 tries, then a new code is needed); a new code can be asked for once a minute. The same form is on its own page, `/verify-email`, which the welcome push notification opens.
+
+Browser push: pressing **Create account** (`C-10`) asks the browser for notification permission. If allowed, a "Welcome to logocontest.bd" notification arrives at once; if not, sign-up carries on without it.
+
 ### C-12 Contest live
 
 Confetti once. "Congratulations! Your logo contest is live." Shows the contest link with a copy button, a **Share on Facebook** button, and a short "What happens next" list: designs start arriving, rate and comment to guide designers, pick your winner by [date]. Button **Go to dashboard**.
 
 ### C-13 Client dashboard
 
-- Greeting, **Create Contest** button, and a stat line: contests run, total spent.
-- Tabs: Active | Drafts | Completed.
-- Each contest row: status chip, entries count with a "new" dot, countdown, and the next action as a button ("Review 12 entries", "Pick your winner", "Approve files", "Finish payment"). Open contests also show **Extend**; when there are fewer than 5 entries a hint reads "Only 3 designs so far. Extending gives designers more time."
+- **Profile panel (owner, 2026-10-08):** the client's initial in a circle, "Hi, {name}", business name and "Member since {month year}", the **Create Contest** button, and four stats: contests run (paid), total spent (sum of paid payments, as on the public profile), active now, completed.
+- Tabs: Active | Drafts | Completed (completed, no result and cancelled). The first tab with contests opens by default.
+- Each contest is a full-detail card (owner, 2026-10-08): on the left the **winning logo** with a "Winner" ribbon once a winner is picked (the brand's first letter until then); then brand name, status chip, package pill and upgrade pills, business type; a facts grid with prize, amount paid for this contest (contest + extensions), entries, designers, started date, end date (or "Ended {date}"), and winner ("@username" or "Not picked yet"); the countdown while open; and the next action as a button ("Review entries", "Pick your winner", "Approve files", "Finish payment") plus **View contest**. Open contests also show **Extend**; when there are fewer than 5 entries a hint reads "Only 3 designs so far. Extending gives designers more time."
 - Empty state: "You haven't started a contest yet." with **Create Contest**.
 
 ### C-14 Review entries
@@ -289,6 +299,7 @@ Four short screens with a stepper:
 - **Needs your attention:** new client comments, revision requests, files due.
 - **Open contests for you:** contest cards, with filter chips (Ending soon, Highest prize, Not entered).
 - Strikes, if any, appear as a warning banner with the reason.
+- **Saved contests:** contests the designer saved with the heart, as list rows, newest saved first, each with the heart to unsave. Until the full dashboard is built this lives at `/dashboard/saved`, linked from the account menu.
 
 ### D-03 Contest detail (designer view)
 
@@ -405,7 +416,7 @@ Every destructive admin action asks for confirmation and a short reason.
 
 - **Under 640px:** single column, bottom nav, sticky bottom action bar, bottom sheets instead of modals, entry grids in 2 columns.
 - **640–1024px:** two columns where useful, entry grids in 3 columns.
-- **Over 1024px:** sidebars appear (price summary in the wizard, filters in browse), entry grids in 4 columns.
+- **Over 1024px:** sidebars appear (price summary in the wizard), entry grids in 4 columns. Browse keeps its filters in one bar above the list.
 
 ## 10. Build order for the UI
 

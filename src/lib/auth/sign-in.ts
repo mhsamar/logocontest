@@ -1,12 +1,10 @@
 import "server-only";
-import { cookies } from "next/headers";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { authEmailForPhone } from "./identity";
-import type { OtpPurpose } from "./otp-service";
-import { loginGuard, otpService } from "./services";
+import { loginGuard } from "./services";
 
 export type FormMessage = { key: MessageKey; params?: MessageParams };
 
@@ -26,8 +24,6 @@ export const fail = (key: MessageKey, field?: AuthFormState["field"], params?: M
   error: { key, params },
   field,
 });
-
-export const ticketCookie = (purpose: OtpPurpose) => `lc_verify_${purpose}`;
 
 export function safeNext(value: FormDataEntryValue | null): string {
   const next = typeof value === "string" ? value : "";
@@ -91,12 +87,6 @@ export async function signIn(key: string, authEmail: string, password: string, i
 
   await guard.record(key, ip, true);
   return null;
-}
-
-export async function readTicket(purpose: OtpPurpose) {
-  const store = await cookies();
-  const check = await otpService().checkTicket(store.get(ticketCookie(purpose))?.value, purpose);
-  return check;
 }
 
 export async function passwordError(password: string): Promise<AuthFormState | null> {

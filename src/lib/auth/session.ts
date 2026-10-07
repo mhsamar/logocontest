@@ -13,10 +13,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, mobile, name, role, status, locale")
+    .select("id, mobile, name, role, status, locale, email, email_verified_at")
     .eq("id", data.user.id)
-    .maybeSingle<CurrentUser>();
-  return profile ?? null;
+    .maybeSingle<Omit<CurrentUser, "emailVerifiedAt"> & { email_verified_at: string | null }>();
+  if (!profile) return null;
+  const { email_verified_at, ...rest } = profile;
+  return { ...rest, emailVerifiedAt: email_verified_at };
 });
 
 /** Throws a 404 when the current user may not do this, so hidden pages stay hidden. */

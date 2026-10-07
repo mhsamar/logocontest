@@ -21,6 +21,8 @@ import { GUEST_NAV } from "./nav-items";
 function accountItems(user: CurrentUser, t: Translate) {
   const items: { href: string; label: string }[] = [];
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
+  if (user.role === "client") items.push({ href: "/dashboard", label: t("nav.dashboard") });
+  if (can(user, "contest.save")) items.push({ href: "/dashboard/saved", label: t("nav.saved") });
   return items;
 }
 

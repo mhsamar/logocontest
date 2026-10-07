@@ -8,6 +8,7 @@ import { LoginGuard } from "./login-guard";
 import { OtpService } from "./otp-service";
 import { SupabaseLoginAttemptRepository, SupabaseOtpRepository } from "./supabase-repositories";
 
+/** SMS codes are no longer used for sign-up or reset (owner, 2026-10-07); kept for future mobile verification. */
 export function otpService() {
   return new OtpService({
     repo: new SupabaseOtpRepository(createAdminClient()),

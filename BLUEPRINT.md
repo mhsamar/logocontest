@@ -68,7 +68,7 @@ One account has one role. One mobile number and one email can each hold only one
 - **Background jobs:** a scheduled job every 15 minutes (chosen in milestone 6)
 - **Storage:** Supabase Storage (S3-compatible). Originals in a private bucket, watermarked previews in a public one
 - **Images:** server-side resize + watermark (library chosen in milestone 4)
-- **Auth (owner, 2026-10-07):** sign up with a mobile number (Bangladesh format checked, no OTP), an email and a password. Log in with the mobile number or the email, plus the password. Password reset is still by SMS code **[CONFIRM]**
+- **Auth (owner, 2026-10-07):** sign up with a mobile number (Bangladesh format checked, no OTP), an email and a password. Log in with the mobile number or the email, plus the password. Right after sign-up the user gets a browser push notification ("Welcome", if they allow notifications when they press **Create account**) and an email with a 6-digit code; they type the code on the site to confirm the email. The account works straight away and a banner asks for the code until it is entered. Password reset is by an emailed link (owner, 2026-10-07). An unconfirmed email blocks nothing for clients (owner, 2026-10-07); for designers it is **[CONFIRM]** (proposal: can't withdraw until confirmed)
 - **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver: SSLCommerz (covers bKash and cards) is added in milestone 9
 - **SMS:** behind an `SmsSender` interface with a log driver for dev
 - **Languages:** English default with a Bangla toggle. Use the en/bn message files from day one; never hard-code user-facing strings
@@ -77,7 +77,7 @@ One account has one role. One mobile number and one email can each hold only one
 
 All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned integers in taka.
 
-**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at (stays empty while there is no OTP), email (unique, required for new accounts; was nullable), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
+**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at (stays empty while there is no OTP), email (unique, required for new accounts; was nullable), email_verified_at (set when the emailed code is entered), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
@@ -90,6 +90,10 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 **entry_images**: entry_id, slot (icon/full_logo/logo_story/facebook_cover/other/extra), position, original_path, preview_path, phash
 
 **entry_comments**: entry_id, user_id, body, parent_id (nullable), is_blocked (bool)
+
+**contest_comments**: contest_id, user_id, body, is_hidden (bool, set by an admin), deleted_at — the public comment list on a contest (§10)
+
+**contest_favorites**: user_id, contest_id, created_at — contests a designer saved (§10)
 
 **handovers**: contest_id, entry_id, status (awaiting_files/submitted/revision_requested/approved/cancelled/no_result), fee_rate (locked when the winner is picked), revision_count, fonts_note, agreement_accepted_at, due_at, approved_at, client_rating (1–5), client_feedback (max 120 words)
 
@@ -106,6 +110,10 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 **strikes**: user_id, reason, entry_id (nullable), contest_id (nullable), issued_by, issuer_role (client/admin), created_at
 
 **notifications**: user_id, type, data (json), read_at
+
+**push_subscriptions**: user_id, endpoint (unique), p256dh, auth, user_agent, last_used_at — one row per browser that allowed notifications
+
+**email_verifications**: user_id, email, code hash, attempts, expires_at, used_at — the 6-digit confirm-your-email codes
 
 **monthly_winners**: designer_id, month (YYYY-MM), wins, prize_amount
 
@@ -280,6 +288,8 @@ Available balance, pending (won but not yet approved), current fee rate with pro
 ## 10. Comments and the no-contact filter
 
 - Each entry has one thread visible only to that client, that designer, and admins.
+- **Contest comments (owner, 2026-10-08):** every contest also has one public comment list (the **Comments** tab). Anyone who can see the contest can read it. Only the contest's own client and designers (signed in with a designer account; their username is shown) can post, for example "Nice designs, good job" or "Entry #12 looks copied from …". Up to 500 characters (setting), the no-contact filter applies, authors can delete their own comments and admins can hide any. Pointing out a copy here does not replace the formal **Report** flag (§9).
+- **Saved contests (owner, 2026-10-08):** designers can save (heart) any contest they can see, from the list or the contest page, and find them again under **Saved contests** in their dashboard.
 - Turns alternate: the client comments, the designer may reply once, and so on.
 - Run the filter on comments, bios, logo stories, brief text and file names. Block the submission and show: "Contact details are not allowed."
 
@@ -314,10 +324,13 @@ Monthly winner: ties are broken by total prize value, then by average rating of 
 
 ## 12. Notifications
 
-Channels: in-app for everything, plus SMS and email where marked.
+Channels: in-app for everything, plus SMS, email and browser push where marked. Browser push (Web Push) reaches every browser where the user allowed notifications; their subscriptions are kept in `push_subscriptions` (user, endpoint, keys) and removed when the browser says they are gone.
 
 | Event | To | SMS/Email |
 |---|---|---|
+| Signed up: welcome | New user | Browser push |
+| Confirm your email: 6-digit code (also on **Resend code**) | New user | Email |
+| Password reset link | User | Email |
 | Contest live / payment received | Client | Yes |
 | New entry (batched every 3 hours) | Client | Email |
 | Contest ends in 24 hours (client copy offers **Extend** when entries are low) | Client and entered designers | Email |

@@ -22,6 +22,7 @@ import { normalizeEmail } from "@/lib/auth/identity";
 import { useI18n } from "@/lib/i18n/client";
 import { normalizeBdMobile } from "@/lib/phone";
 import { formatTaka } from "@/lib/money";
+import { subscribeToPush } from "@/lib/push/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
@@ -243,7 +244,10 @@ export function Wizard(props: WizardProps) {
     }
     if (step === 10) {
       startBusy(async () => {
+        // Asks for notification permission while we still have the click (BLUEPRINT §12: welcome push).
+        const push = await subscribeToPush();
         const res: WizardResult<{ contestId: string }> = await createAccountAndDraft({
+          push,
           mobile: state.mobile,
           password,
           email: state.email,

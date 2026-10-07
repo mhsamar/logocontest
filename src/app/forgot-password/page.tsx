@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
-import { ResetFlow } from "@/components/auth/reset-flow";
-import { getSetting } from "@/lib/settings";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,19 +9,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("auth.reset.title"), robots: { index: false } };
 }
 
-export default async function ForgotPasswordPage() {
+// P-11 "Forgot password?": the reset link is emailed (owner, 2026-10-07).
+export default async function ForgotPasswordPage({ searchParams }: PageProps<"/forgot-password">) {
+  const { expired } = await searchParams;
   const { t } = await getI18n();
   return (
     <AuthCard
       title={t("auth.reset.title")}
       subtitle={t("auth.reset.subtitle")}
       footer={
-        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary-dark hover:underline">
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
           {t("auth.reset.back")}
         </Link>
       }
     >
-      <ResetFlow passwordMin={await getSetting("auth.password_min_length")} />
+      <ForgotPasswordForm expired={expired === "1"} />
     </AuthCard>
   );
 }

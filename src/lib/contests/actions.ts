@@ -1,15 +1,20 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { sendVerificationEmail } from "@/lib/auth/email-service";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { normalizeBdMobile } from "@/lib/phone";
+import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
+import { MESSAGES } from "@/lib/i18n/messages";
 import { getI18n } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
@@ -108,6 +113,8 @@ export async function createAccountAndDraft(input: {
   password: string;
   brief: unknown;
   order: unknown;
+  /** This browser's push subscription, if the user allowed notifications. */
+  push?: unknown;
 }): Promise<WizardResult<{ contestId: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const data = parse(input.brief, input.order);
@@ -144,8 +151,17 @@ export async function createAccountAndDraft(input: {
     .update({ business_name: brandName, username: makeSlug(brandName) })
     .eq("id", created.data.user.id);
 
-  const signInError = await signIn(email, email, input.password, await clientIp());
+  const ip = await clientIp();
+  const signInError = await signIn(email, email, input.password, ip);
   if (signInError?.error) return { ok: false, error: signInError.error };
+
+  // Owner, 2026-10-07: welcome push in the browser + the 6-digit email code. Neither blocks sign-up.
+  const userId = created.data.user.id;
+  await sendVerificationEmail({ userId, email, name: brandName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
+  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent")))) {
+    const t = createTranslator(locale, MESSAGES[locale]);
+    await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
+  }
 
   const saved = await contestService().saveDraft(created.data.user.id, data.brief, data.order, null);
   if (!saved.ok) return err(SAVE_ERRORS[saved.error]);

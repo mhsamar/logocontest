@@ -9,6 +9,8 @@ export interface FileStorage {
   createUploadUrl(bucket: string, path: string): Promise<{ path: string; token: string }>;
   exists(bucket: string, path: string): Promise<boolean>;
   remove(bucket: string, paths: string[]): Promise<void>;
+  /** Short-lived links to read private files. Missing files are left out. */
+  createReadUrls(bucket: string, paths: string[], seconds: number): Promise<Map<string, string>>;
 }
 
 class SupabaseFileStorage implements FileStorage {
@@ -34,6 +36,15 @@ class SupabaseFileStorage implements FileStorage {
     if (paths.length === 0) return;
     const { error } = await this.db.storage.from(bucket).remove(paths);
     if (error) throw new Error(error.message);
+  }
+
+  async createReadUrls(bucket: string, paths: string[], seconds: number) {
+    const out = new Map<string, string>();
+    if (paths.length === 0) return out;
+    const { data, error } = await this.db.storage.from(bucket).createSignedUrls(paths, seconds);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) if (row.path && row.signedUrl) out.set(row.path, row.signedUrl);
+    return out;
   }
 }
 
