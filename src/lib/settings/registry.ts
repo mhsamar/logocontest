@@ -295,6 +295,6 @@ export function parseSetting<K extends SettingKey>(key: K, raw: unknown): Settin
   const def = SETTINGS[key];
   const parsed = def.schema.safeParse(raw);
   if (parsed.success) return parsed.data as SettingValue<K>;
-  console.warn(`[settings] invalid or missing value for "${key}", using default`);
+  if (raw !== undefined) console.warn(`[settings] invalid value for "${key}", using default`);
   return def.default as SettingValue<K>;
 }

@@ -149,3 +149,93 @@ export function OtpField(props: FieldProps & { length: number } & Omit<React.Inp
     </FieldShell>
   );
 }
+
+/** Textarea with a live character counter (shown as used / max). */
+export function TextAreaField({
+  label,
+  hint,
+  error,
+  optionalLabel,
+  className,
+  value,
+  maxLength,
+  counterLabel,
+  ...input
+}: FieldProps & { value: string; counterLabel?: string } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "value">) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+      <textarea
+        id={id}
+        value={value}
+        maxLength={maxLength}
+        rows={4}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? `${id}-msg` : undefined}
+        className={cx(INPUT, "min-h-28 py-3 leading-relaxed", error && "ring-2 ring-danger focus:ring-danger")}
+        {...input}
+      />
+      {counterLabel && (
+        <p className="text-right text-xs text-muted" aria-live="polite">
+          {counterLabel}
+        </p>
+      )}
+    </FieldShell>
+  );
+}
+
+export function SelectField({
+  label,
+  hint,
+  error,
+  optionalLabel,
+  className,
+  options,
+  placeholder,
+  ...select
+}: FieldProps & { options: { value: string; label: string }[]; placeholder: string } & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className">) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+      <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? `${id}-msg` : undefined}
+        className={cx(INPUT, "appearance-none bg-[length:1rem] bg-[right_0.875rem_center] bg-no-repeat pr-10", error && "ring-2 ring-danger")}
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+        }}
+        {...select}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </FieldShell>
+  );
+}
+
+/** A full-width, 44px+ tall checkbox row. */
+export function Checkbox({
+  label,
+  description,
+  className,
+  ...input
+}: { label: React.ReactNode; description?: string; className?: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type">) {
+  const id = useId();
+  return (
+    <label htmlFor={id} className={cx("flex min-h-11 cursor-pointer items-start gap-3 py-2.5", className)}>
+      <input id={id} type="checkbox" className="mt-0.5 size-5 shrink-0 rounded accent-primary" {...input} />
+      <span className="text-[0.9375rem] leading-snug text-ink">
+        {label}
+        {description && <span className="mt-0.5 block text-sm text-muted">{description}</span>}
+      </span>
+    </label>
+  );
+}

@@ -58,7 +58,7 @@ Then the prize is shared **equally per designer** (not per entry; ratings do not
 | Designer | Submit entries, reply to comments, deliver files, withdraw wallet balance |
 | Admin | Everything in section 13 |
 
-One account has one role. One mobile number can hold one account.
+One account has one role. One mobile number and one email can each hold only one account.
 
 ## 4. Tech stack
 
@@ -68,7 +68,7 @@ One account has one role. One mobile number can hold one account.
 - **Background jobs:** a scheduled job every 15 minutes (chosen in milestone 6)
 - **Storage:** Supabase Storage (S3-compatible). Originals in a private bucket, watermarked previews in a public one
 - **Images:** server-side resize + watermark (library chosen in milestone 4)
-- **Auth:** mobile number + password, mobile verified by SMS OTP
+- **Auth (owner, 2026-10-07):** sign up with a mobile number (Bangladesh format checked, no OTP), an email and a password. Log in with the mobile number or the email, plus the password. Password reset is still by SMS code **[CONFIRM]**
 - **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver: SSLCommerz (covers bKash and cards) is added in milestone 9
 - **SMS:** behind an `SmsSender` interface with a log driver for dev
 - **Languages:** English default with a Bangla toggle. Use the en/bn message files from day one; never hard-code user-facing strings
@@ -77,7 +77,7 @@ One account has one role. One mobile number can hold one account.
 
 All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned integers in taka.
 
-**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at, email (nullable), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
+**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at (stays empty while there is no OTP), email (unique, required for new accounts; was nullable), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
@@ -212,7 +212,7 @@ One question per screen, progress bar, Back/Next, autosave to the browser. Once 
 6. What you like / what you don't like (two text areas; "like" min 30 chars)
 7. Upload examples or current logo (optional, max 5 files, JPG/PNG/PDF, 5 MB each)
 8. Package (Economy / Standard / Premium / Custom), duration, upgrades, live order summary
-9. Mobile number (OTP) and email (optional)
+9. Mobile number and email (no OTP; both required and unique)
 10. Password
 11. Your name, then payment (bKash / card), with a checkbox accepting Terms and the no-refund policy
 
@@ -245,7 +245,7 @@ Shows only: photo, business name (or name if none), member since, **total spent*
 
 ### 9.1 Signup
 
-Full name, mobile (OTP), email, password, bio, payout method (bKash number or bank details), username, acceptance of Designer Rules.
+Full name, mobile (no OTP), email, password, bio, payout method (bKash number or bank details), username, acceptance of Designer Rules.
 
 ### 9.2 Submitting an entry
 
@@ -360,10 +360,9 @@ Channels: in-app for everything, plus SMS and email where marked.
 1. Hero. Headline: "Many designers. Many ideas. One perfect logo." Sub-line: "Get your logo from Bangladesh's best designers." Button: **Get Started** → `/start`
 2. Recent winning logos, three rows, then **Browse more** → `/contests`. Until real winners exist, show live contests instead. Never show invented numbers or fake winners.
 3. How it works: (1) Tell us about your brand (2) Get designs and give feedback (3) Pick your winner and get your files
-4. Why Logo Contest: many ideas for one price; pay in taka with bKash; original, human-made logos only; full ownership of the winning logo; your payment is held safely until you approve the files
-5. For designers: "Win more, pay less: 7% → 5% → 2%", Monthly Champion prize, portfolio link with QR code
-6. Q&A
-7. Footer: Terms, Privacy, Payment & No-Refund Policy, Designer Rules, Contact
+4. Why Logo Contest: many ideas for one price; pay in taka with bKash; original, human-made logos only; full ownership of the winning logo; your payment is held safely until you approve the files; plus a comparison with a freelancer and a design agency
+5. Q&A
+6. Footer: Terms, Privacy, Payment & No-Refund Policy, Designer Rules, Contact
 
 Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`, `/winners`, `/d/{username}`, `/c/{username}`, `/how-it-works`, `/designers` (designer landing + signup), `/faq`, legal pages.
 

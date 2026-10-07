@@ -12,25 +12,30 @@ Design for a 360px-wide phone first, then widen. All user-facing text goes throu
 
 Clean, light, trustworthy, with lots of white space so the logos are the colourful thing on the page. Friendly but businesslike: the buyer is a shop or company owner paying real money.
 
+Visual style (owner, 2026-10-07): **Golden Luxe** accents (red, maroon, cream, ink) on a cool light-grey SaaS layout like InsightHub — the home hero and the header sit inside one large rounded frame with a faint grid, the example panel overlaps the frame's bottom edge, the header is transparent until the page scrolls, centred headlines with a small eyebrow line above, large rounded panels with soft shadows, white cards with thin warm borders, icons in small rounded tiles, and a dark ink footer. Every page follows the same style.
+
 ### 1.2 Tokens
 
 | Token | Value | Use |
 |---|---|---|
-| `primary` | `#0F766E` (deep teal) | Main buttons, links, active states |
-| `primary-dark` | `#115E59` | Button hover/pressed |
-| `accent` | `#F59E0B` (amber) | Prize amounts, stars, winner ribbon |
-| `ink` | `#111827` | Headings, body text |
+| `primary` | `#8B0000` (Golden Luxe red) | Main buttons, links, active states, progress |
+| `primary-dark` | `#5B0202` (maroon) | Button hover/pressed |
+| `cream` | `#EDE7C7` (Golden Luxe cream) | Highlight bands, badges, selected backgrounds |
+| `accent` | `#8A6D1F` (deep gold, derived from cream for readable text) | Prize amounts, stars, winner ribbon |
+| `ink` | `#200E01` (near-black brown) | Headings, body text, dark buttons, footer |
 | `muted` | `#6B7280` | Helper text, meta |
-| `line` | `#E5E7EB` | Borders, dividers |
+| `line` | `#E3E7EC` | Borders, dividers |
 | `surface` | `#FFFFFF` | Cards |
-| `canvas` | `#F8FAFC` | Page background |
-| `success` | `#16A34A` | Paid, approved, live |
-| `danger` | `#DC2626` | Reject, errors, bans |
-| `warning` | `#D97706` | Ending soon, pending |
+| `canvas` | `#EEF1F5` (cool light grey) | Page background |
+| `frame` | `#F6F8FA` | The large rounded hero frame |
+| `success` | `#2E7D4F` | Paid, approved, live |
+| `danger` | `#C0362C` | Reject, errors, bans |
+| `warning` | `#B7791F` | Ending soon, pending |
+| `info` | `#2B5C8A` | Handover chip |
 
 - **Fonts:** Inter for English, Hind Siliguri for Bangla. Headings 600–700 weight, body 400.
 - **Type scale (mobile → desktop):** H1 28 → 44px, H2 22 → 30px, H3 18 → 20px, body 16px, small 14px.
-- **Radius:** 12px cards, 10px inputs and buttons, full for pills.
+- **Radius:** 16px cards, 24px large panels, 10px inputs and buttons, full for pills.
 - **Spacing:** 4px grid; page side padding 16px mobile, max content width 1200px.
 - **Shadows:** one soft shadow for cards; none on flat lists.
 - **Touch targets:** minimum 44px tall.
@@ -96,13 +101,14 @@ flowchart TD
 
 Sections top to bottom:
 
-1. **Hero.** H1 "Many designers. Many ideas. One perfect logo." Sub-line "Get your logo from Bangladesh's best designers." An input "Your business name" with a **Get Started** button; submitting carries the name into `C-01`. Under it a trust row: "Pay with bKash or card", "Your payment is held until you approve the files", "Call us: 01712028511". Right side (below on mobile): a collage of 3–4 logo mockups.
+1. **Hero.** Centred. Eyebrow "Logo contests · Bangladesh". H1 "Many designers. Many ideas. One perfect logo." Sub-line "Get your logo from Bangladesh's best designers." An input "Your business name" with a **Get Started** button; submitting carries the name into `C-01`, so a client is on board in one step. Under it a trust row: "Pay with bKash or card", "Your payment is held until you approve the files", "Call us: 01712028511". Below: a large rounded panel showing an example contest (our own sample logos, clearly labelled "Example", no invented counts).
 2. **Recent winning logos.** Grid, 3 rows (2 columns mobile, 4 desktop). Each tile: logo mockup, brand name, "৳5,000 · 34 designs". Button **Browse more** → `P-02`. If there are no completed contests yet, the heading becomes "Contests live right now" and shows contest cards.
 3. **How it works.** Three numbered cards with a small illustration each. Button **Get Started**.
-4. **Why Logo Contest.** Five short benefit tiles with icons.
-5. **For designers.** A tinted band: "Win more, pay less: 7% → 5% → 2%", Monthly Champion prize, portfolio link with QR. Button **Join as a Designer** → `P-07`.
-6. **Q&A.** Accordion, 8–10 questions.
-7. **Footer.**
+4. **Why Logo Contest.** Five short benefit tiles with icons, then a comparison table: Freelancer | Design agency | logocontest.bd.
+5. **Q&A.** Accordion, 8–10 questions. Every number in the answers comes from settings.
+6. **Footer.**
+
+The "For designers" band was removed from the home page (owner, 2026-10-07); designers reach `P-07` from "I'm a designer" on `P-11`.
 
 Mobile: a sticky bottom button **Start a Contest** appears after the hero scrolls out of view.
 
@@ -158,7 +164,7 @@ Simple text pages. How It Works has two tabs: For clients, For designers. Legal 
 
 ### P-11 Log in
 
-Mobile number and password. Links: "Forgot password?" (OTP reset), "I want a logo" → `C-01`, "I'm a designer" → `D-01`.
+One field "Mobile number or email" and password. Links: "Forgot password?" (SMS code reset), "I want a logo" → `C-01`, "I'm a designer" → `D-01`.
 
 ---
 
@@ -181,14 +187,14 @@ flowchart LR
 | ID | Heading | Controls | Notes |
 |---|---|---|---|
 | C-01 | What's your business or brand name? | Text input; optional "Text to show on the logo" and "Slogan" behind a "+ Add" link | Pre-filled if it came from the hero |
-| C-02 | What kind of business is it? | Dropdown of business types + short description textarea with character counter | Example text shown as helper, not placeholder |
+| C-02 | What kind of business is it? | Dropdown of business types + short description textarea with character counter; under it **5 suggestions** written for the chosen business type and brand name — tap one to fill the box, then edit it | Example text shown as helper, not placeholder |
 | C-03 | Do you have a website or Facebook page? | URL input + checkbox "I don't have one yet" | Skippable |
 | C-04 | Which logo styles do you like? | Tappable image tiles (multi-select), each with two example shapes and a label; three style sliders below: Minimal ↔ Complex, Modern ↔ Classic, Playful ↔ Serious | At least one tile. Example shapes are our own drawings, never real brand logos |
 | C-05 | Pick your colours | Up to 5 swatch slots that open a colour picker with hex field; toggle "Let designers choose"; then checkboxes "Where will you use the logo?" | |
-| C-06 | Tell designers what you like and don't like | Two textareas, "I like" and "I don't like" | Contact filter runs here; inline error if tripped |
+| C-06 | Tell designers what you like and don't like | Two textareas, "I like" and "I don't like", each with **5 suggestions** built from the earlier answers (business type, styles, colours, where the logo is used); tap to fill, then edit | Contact filter runs here; inline error if tripped |
 | C-07 | Any examples or a current logo? | Drag-and-drop zone / file picker, thumbnails with remove icons | Optional; note "For reference only. Designers will not copy these." |
 | C-08 | Choose your prize | Four package cards (Standard marked Recommended); Custom reveals an amount input; duration selector (5 / 7 / 10 days); upgrade rows with toggle and price | Summary updates live |
-| C-09 | Where should we send updates? | Mobile input → **Send code** → 6-digit OTP boxes with resend timer; optional email | Existing number → "You already have an account. Log in" |
+| C-09 | Where should we send updates? | Mobile input and email input (both required, no OTP) | Number or email already used → "You already have an account. Log in" |
 | C-10 | Create a password | Password with show/hide and strength hint | |
 | C-11 | Review and pay | "Your name" input (required, saved to the account); collapsible brief recap with Edit links; full price breakdown; method tiles (bKash, Card); checkbox "I agree to the Terms and understand payments are non-refundable"; button **Pay ৳6,000** | Opens gateway checkout |
 
@@ -272,7 +278,7 @@ flowchart LR
 
 Four short screens with a stepper:
 
-1. Full name, mobile → OTP
+1. Full name, mobile (no OTP)
 2. Email, password
 3. Username (live availability check, shows the profile link preview), bio with counter, optional photo
 4. Payout method: tabs bKash | Bank. Then the Designer Rules in five bullets with a required checkbox. Button **Create account**.

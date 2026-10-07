@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ResetFlow } from "@/components/auth/reset-flow";
-import { passwordMinLength } from "@/lib/auth/password-min";
+import { getSetting } from "@/lib/settings";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,7 +22,7 @@ export default async function ForgotPasswordPage() {
         </Link>
       }
     >
-      <ResetFlow passwordMin={await passwordMinLength()} />
+      <ResetFlow passwordMin={await getSetting("auth.password_min_length")} />
     </AuthCard>
   );
 }

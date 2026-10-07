@@ -1,9 +1,12 @@
 import "server-only";
 import { cache } from "react";
+import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseSetting, type SettingKey, type SettingValue } from "./registry";
 
 const loadAll = cache(async (): Promise<Map<string, unknown>> => {
+  // Before Supabase is connected (local preview), every setting uses its seed default.
+  if (!isSupabaseConfigured()) return new Map();
   const { data, error } = await createAdminClient().from("settings").select("key, value");
   if (error) throw new Error(`Could not load settings: ${error.message}`);
   return new Map(data.map((row) => [row.key as string, row.value]));

@@ -7,19 +7,21 @@
 @theme {
   --font-sans: var(--font-latin), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
 
-  --color-primary: #0f766e;
-  --color-primary-dark: #115e59;
-  --color-accent: #f59e0b;
-  --color-ink: #111827;
+  /* Golden Luxe palette (UI-JOURNEY §1.2) */
+  --color-primary: #8b0000;
+  --color-primary-dark: #5b0202;
+  --color-cream: #ede7c7;
+  --color-accent: #8a6d1f;
+  --color-ink: #200e01;
   --color-muted: #6b7280;
-  --color-line: #e5e7eb;
+  --color-line: #e3e7ec;
   --color-surface: #ffffff;
-  --color-canvas: #f8fafc;
-  --color-success: #16a34a;
-  --color-danger: #dc2626;
-  --color-warning: #d97706;
-  /* Not in §1.2; only for the blue "Handover" status chip (§1.3). */
-  --color-info: #2563eb;
+  --color-canvas: #eef1f5;
+  --color-frame: #f6f8fa;
+  --color-success: #2e7d4f;
+  --color-danger: #c0362c;
+  --color-warning: #b7791f;
+  --color-info: #2b5c8a;
 
   /* Type scale (mobile → desktop): H1 28→44, H2 22→30, H3 18→20 */
   --text-h1: 1.75rem;
@@ -29,14 +31,17 @@
   --text-h3: 1.125rem;
   --text-h3-lg: 1.25rem;
 
-  /* 10px inputs and buttons, 12px cards */
+  /* 10px inputs and buttons, 16px cards, 24px large panels */
   --radius-md: 0.625rem;
-  --radius-lg: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-2xl: 1.5rem;
 
   --container-page: 1200px;
 
-  --shadow-card: 0 1px 2px rgb(19 32 27 / 0.05), 0 1px 3px rgb(19 32 27 / 0.06);
-  --shadow-raised: 0 8px 24px rgb(19 32 27 / 0.12), 0 2px 6px rgb(19 32 27 / 0.06);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
+  --shadow-raised: 0 12px 32px rgb(15 23 42 / 0.12), 0 2px 8px rgb(15 23 42 / 0.06);
+  --shadow-panel: 0 40px 90px -30px rgb(15 23 42 / 0.28), 0 2px 10px rgb(15 23 42 / 0.05);
+  --shadow-frame: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 24px 60px -36px rgb(15 23 42 / 0.3);
 
   --animate-sheet-up: sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-fade-in: fade-in 160ms ease-out;
@@ -73,6 +78,21 @@ html[lang="bn"] body {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Text fields draw their own focus ring; don't add the outline on top. */
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Faint grid behind hero sections (UI-JOURNEY §1.1). */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 @media (prefers-reduced-motion: reduce) {

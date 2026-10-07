@@ -16,6 +16,8 @@ export type CurrentUser = {
  */
 const POLICIES = {
   "admin.access": (user: CurrentUser | null) => user?.role === "admin" && user.status === "active",
+  // Guests may start the wizard; signed-in users must be active clients (one account = one role).
+  "contest.create": (user: CurrentUser | null) => user === null || (user.role === "client" && user.status === "active"),
 } satisfies Record<string, (user: CurrentUser | null) => boolean>;
 
 export type Ability = keyof typeof POLICIES;

@@ -4,76 +4,27 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
-import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { normalizeBdMobile, toAsciiDigits } from "@/lib/phone";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { authEmailForPhone } from "./identity";
 import type { OtpPurpose } from "./otp-service";
-import { clientIp, loginGuard, otpService } from "./services";
+import { clientIp, otpService } from "./services";
+import { authEmailForPhone, parseLoginIdentifier } from "./identity";
+import {
+  authEmailForMobile,
+  fail,
+  findProfileByPhone,
+  passwordError,
+  readTicket,
+  safeNext,
+  signIn,
+  ticketCookie,
+  type AuthFormState,
+} from "./sign-in";
 
-export type FormMessage = { key: MessageKey; params?: MessageParams };
-
-export type AuthFormState = {
-  status: "idle" | "ok" | "error";
-  error?: FormMessage;
-  field?: "phone" | "code" | "password" | "name";
-  phone?: string;
-  codeLength?: number;
-  resendAfter?: number;
-  /** Changes on every successful code request, so the client can restart its timer. */
-  sentAt?: number;
-};
-
-const fail = (key: MessageKey, field?: AuthFormState["field"], params?: MessageParams): AuthFormState => ({
-  status: "error",
-  error: { key, params },
-  field,
-});
-
-const ticketCookie = (purpose: OtpPurpose) => `lc_verify_${purpose}`;
-
-function safeNext(value: FormDataEntryValue | null): string {
-  const next = typeof value === "string" ? value : "";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/";
-}
-
-async function findProfileByPhone(phone: string) {
-  const { data, error } = await createAdminClient()
-    .from("profiles")
-    .select("id, status")
-    .eq("mobile", phone)
-    .maybeSingle<{ id: string; status: "active" | "suspended" | "banned" }>();
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-/**
- * Signs the user in and sets the session cookie. Refuses suspended or banned
- * accounts. Returns an error state, or null on success.
- */
-async function signIn(phone: string, password: string, ip: string | null): Promise<AuthFormState | null> {
-  const guard = loginGuard();
-  const gate = await guard.check(phone, ip);
-  if (!gate.allowed) return fail("auth.errors.locked", undefined, { minutes: gate.retryAfterMinutes });
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email: authEmailForPhone(phone), password });
-  if (error || !data.user) {
-    await guard.record(phone, ip, false);
-    return fail("auth.errors.invalidCredentials", "password");
-  }
-
-  const profile = await findProfileByPhone(phone);
-  if (!profile || profile.status !== "active") {
-    await supabase.auth.signOut();
-    return fail(profile?.status === "banned" ? "auth.errors.banned" : "auth.errors.suspended");
-  }
-
-  await guard.record(phone, ip, true);
-  return null;
-}
+export type { AuthFormState, FormMessage } from "./sign-in";
 
 // ---------------------------------------------------------------------------
 // Login (P-11) and logout
@@ -82,12 +33,15 @@ async function signIn(phone: string, password: string, ip: string | null): Promi
 export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
 
-  const phone = normalizeBdMobile(String(formData.get("phone") ?? ""));
-  if (!phone) return fail("auth.errors.invalidPhone", "phone");
+  // P-11: one field that takes a mobile number or an email.
+  const id = parseLoginIdentifier(String(formData.get("identifier") ?? ""));
+  if (!id) return fail("auth.errors.invalidIdentifier", "phone");
   const password = String(formData.get("password") ?? "");
   if (!password) return fail("auth.errors.invalidCredentials", "password");
 
-  const result = await signIn(phone, password, await clientIp());
+  const key = id.kind === "email" ? id.email : id.mobile;
+  const authEmail = id.kind === "email" ? id.email : await authEmailForMobile(id.mobile);
+  const result = await signIn(key, authEmail, password, await clientIp());
   if (result) return result;
   redirect(safeNext(formData.get("next")));
 }
@@ -177,17 +131,6 @@ export async function verifyCode(purpose: OtpPurpose, _prev: AuthFormState, form
   return { status: "ok", phone };
 }
 
-async function readTicket(purpose: OtpPurpose) {
-  const store = await cookies();
-  const check = await otpService().checkTicket(store.get(ticketCookie(purpose))?.value, purpose);
-  return check;
-}
-
-async function passwordError(password: string): Promise<AuthFormState | null> {
-  const min = await getSetting("auth.password_min_length");
-  return password.length < min ? fail("auth.errors.passwordTooShort", "password", { min }) : null;
-}
-
 // ---------------------------------------------------------------------------
 // Password reset: phone → code → new password
 // ---------------------------------------------------------------------------
@@ -212,7 +155,7 @@ export async function completeReset(_prev: AuthFormState, formData: FormData): P
   if (error) return fail("auth.errors.generic");
   (await cookies()).delete(ticketCookie("reset"));
 
-  const signInError = await signIn(ticket.phone, password, await clientIp());
+  const signInError = await signIn(ticket.phone, profile.email ?? authEmailForPhone(ticket.phone), password, await clientIp());
   if (signInError) return signInError;
   redirect("/");
 }

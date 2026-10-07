@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { PasswordField, PhoneField } from "@/components/ui/field";
+import { PasswordField, TextField } from "@/components/ui/field";
 import { login, type AuthFormState } from "@/lib/auth/actions";
 import { useI18n } from "@/lib/i18n/client";
 import { FormError, useFieldError } from "./form-error";
@@ -17,10 +17,12 @@ export function LoginForm({ next }: { next?: string }) {
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next ?? ""} />
       <FormError state={state} />
-      <PhoneField
-        name="phone"
-        label={t("auth.phone.label")}
-        placeholder={t("auth.phone.placeholder")}
+      <TextField
+        name="identifier"
+        label={t("auth.login.identifierLabel")}
+        placeholder={t("auth.login.identifierPlaceholder")}
+        autoComplete="username"
+        inputMode="email"
         error={fieldError("phone")}
         required
         autoFocus

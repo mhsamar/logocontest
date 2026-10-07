@@ -8,6 +8,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
 import { AvatarMenu } from "./avatar-menu";
+import { HeaderShell } from "./header-shell";
 import { LocaleToggle } from "./locale-toggle";
 import { MobileMenu } from "./mobile-menu";
 import { GUEST_NAV } from "./nav-items";
@@ -23,7 +24,7 @@ function accountItems(user: CurrentUser, t: Translate) {
   return items;
 }
 
-const NAV_LINK = "inline-flex min-h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-muted hover:bg-canvas hover:text-ink";
+const NAV_LINK = "inline-flex min-h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-muted transition-colors hover:text-ink";
 
 export async function SiteHeader() {
   const [{ locale, t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
@@ -47,14 +48,14 @@ export async function SiteHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
-      <div className="relative mx-auto flex h-16 max-w-page items-center gap-2 px-4">
+    <HeaderShell>
+      <div className="relative mx-auto flex h-16 max-w-page items-center gap-2 px-5 sm:px-8">
         <Link href="/" aria-label={t("brand.home")} className="-ml-1 flex min-h-11 items-center rounded-md px-1">
           <Wordmark />
         </Link>
 
-        {/* Desktop */}
-        <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label={t("nav.main")}>
+        {/* Desktop: links centred, account and language on the right */}
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex" aria-label={t("nav.main")}>
           {links.map((link) => (
             <Link key={link.href} href={link.href} className={NAV_LINK}>
               {link.label}
@@ -63,19 +64,23 @@ export async function SiteHeader() {
           <a href={SUPPORT_PHONE_HREF} className={NAV_LINK}>
             {callLabel}
           </a>
+        </nav>
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          {toggle}
           {user ? (
             <AvatarMenu name={user.name} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm("menu")} />
           ) : (
-            <Link href="/login" className={`${NAV_LINK} font-semibold text-ink`}>
+            <Link
+              href="/login"
+              className="inline-flex min-h-11 items-center rounded-md bg-ink px-5 text-[0.9375rem] font-semibold text-white transition-colors hover:bg-primary-dark"
+            >
               {t("nav.login")}
             </Link>
           )}
-          <span className="mx-1 h-6 w-px bg-line" aria-hidden />
-          {toggle}
-        </nav>
+        </div>
 
         {/* Mobile: logo left, hamburger right; the phone number is a tap-to-call link inside the menu */}
-        <div className="ml-auto md:hidden">
+        <div className="ml-auto lg:hidden">
           <MobileMenu openLabel={t("nav.menu")} closeLabel={t("nav.close")} links={links}>
             <a href={SUPPORT_PHONE_HREF} className="flex min-h-12 items-center gap-2 text-base font-medium text-primary">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -102,6 +107,6 @@ export async function SiteHeader() {
           </MobileMenu>
         </div>
       </div>
-    </header>
+    </HeaderShell>
   );
 }

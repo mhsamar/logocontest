@@ -39,4 +39,5 @@ Next.js (App Router, TypeScript), Supabase (Postgres + Auth), Tailwind CSS v4, V
 - Seed (settings defaults + first admin): `npm run seed`
 - Run: `npm run dev` → http://localhost:3000 (component showcase at `/styleguide`, dev only)
 - Test: `npm test` · Types: `npm run typecheck` · Lint: `npm run lint`
+- Build check while the dev server runs: `NEXT_DIST_DIR=.next-check npx next build` (a plain build overwrites `.next` and makes the dev server serve stale CSS)
 - SMS codes in development are printed in the `npm run dev` terminal (`[sms:log]` lines).

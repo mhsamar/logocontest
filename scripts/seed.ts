@@ -6,7 +6,7 @@
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { authEmailForPhone } from "../src/lib/auth/identity";
+import { authEmailForPhone, normalizeEmail } from "../src/lib/auth/identity";
 import { normalizeBdMobile } from "../src/lib/phone";
 import { SETTINGS } from "../src/lib/settings/registry";
 
@@ -43,16 +43,18 @@ async function seedAdmin() {
   if (!phone) throw new Error("ADMIN_PHONE is not a valid Bangladesh mobile number");
   const password = env("ADMIN_PASSWORD");
   const name = process.env.ADMIN_NAME || "Admin";
+  const email = process.env.ADMIN_EMAIL ? normalizeEmail(process.env.ADMIN_EMAIL) : null;
+  if (process.env.ADMIN_EMAIL && !email) throw new Error("ADMIN_EMAIL is not a valid email");
 
   const { data: existing } = await db.from("profiles").select("id").eq("mobile", phone).maybeSingle();
   let id = existing?.id as string | undefined;
 
   if (!id) {
     const { data, error } = await db.auth.admin.createUser({
-      email: authEmailForPhone(phone),
+      email: email ?? authEmailForPhone(phone),
       password,
       email_confirm: true,
-      user_metadata: { mobile: phone, name },
+      user_metadata: { mobile: phone, name, email },
     });
     if (error) throw new Error(`admin user: ${error.message}`);
     id = data.user.id;

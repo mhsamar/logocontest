@@ -1,19 +1,19 @@
-export function LogoMark({ className = "size-7" }: { className?: string }) {
+export function LogoMark({ className = "size-8", inverted = false }: { className?: string; inverted?: boolean }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="8" fill="var(--color-primary)" />
-      <circle cx="15" cy="16" r="7.5" fill="var(--color-accent)" />
-      <path d="M10 22.5h12.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
+      <rect width="32" height="32" rx="9" fill={inverted ? "var(--color-primary)" : "var(--color-ink)"} />
+      <circle cx="16" cy="14.5" r="7" fill="var(--color-cream)" />
+      <path d="M9.5 23.5h13" stroke={inverted ? "var(--color-cream)" : "var(--color-primary)"} strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
 
-export function Wordmark() {
+export function Wordmark({ inverted = false }: { inverted?: boolean }) {
   return (
-    <span className="flex items-center gap-2 text-[1.0625rem] font-bold tracking-tight text-ink">
-      <LogoMark />
+    <span className={`flex items-center gap-2 text-[1.0625rem] font-bold tracking-tight ${inverted ? "text-white" : "text-ink"}`}>
+      <LogoMark inverted={inverted} />
       <span>
-        logocontest<span className="text-primary">.bd</span>
+        logocontest<span className={inverted ? "text-cream" : "text-primary"}>.bd</span>
       </span>
     </span>
   );
