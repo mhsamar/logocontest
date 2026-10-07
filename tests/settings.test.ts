@@ -26,6 +26,13 @@ describe("BLUEPRINT defaults", () => {
     expect([d("packages.economy_prize"), d("packages.standard_prize"), d("packages.premium_prize")]).toEqual([3000, 5000, 10000]);
     expect([d("packages.custom_min_prize"), d("packages.custom_step")]).toEqual([3000, 500]);
     expect(d("fees.client_service_fee_percent")).toBe(20);
+    // Extension is a paid add-on, never free (owner, 2026-10-07)
+    expect(d("upgrades.extension_price_per_day")).toBe(500);
+    expect([d("upgrades.blind_price"), d("upgrades.private_price"), d("upgrades.promoted_price")]).toEqual([1000, 1000, 1000]);
+    expect(d("monthly.champion_prize")).toBe(5000);
+    expect([d("fees.counted_win_min_prize"), d("fees.counted_win_min_designers"), d("fees.counted_wins_max_per_client")]).toEqual([3000, 3, 2]);
+    expect(d("upgrades.extension_days_options")).toEqual([3, 5, 7]);
+    expect(Object.keys(SETTINGS).some((k) => k.includes("low_entry_extension"))).toBe(false);
     expect(d("fees.designer_tiers")).toEqual([
       { min_wins: 0, rate_percent: 7 },
       { min_wins: 5, rate_percent: 5 },

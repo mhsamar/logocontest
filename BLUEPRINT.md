@@ -40,7 +40,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 
 Fee tier timing: the rate is decided by the designer's count of completed wins at the moment the winner is selected, and stored on the handover so it cannot change later. So the 5th win is still charged 7%, and the 6th is charged 5%. (The client's price is fixed when they pay; the contest goes live only after payment.)
 
-Low-entry rule **[CONFIRM]**: because there are no refunds, if a contest ends with fewer than 5 active (not rejected) entries it is extended free by 5 days, once.
+Paid extension (owner, 2026-10-07): a contest is never extended for free or automatically. While a contest is open, the client may buy an **Extension** add-on to add days to it; if they don't, it ends on time. Price: **৳500 per day added** (owner), so +3 days = ৳1,500. Lengths and the low-entry prompt are settings: 3, 5 or 7 days per extension; no limit on how many; the dashboard and the 24-hour notice prompt the client to extend when the contest has fewer than 5 active entries.
 
 No-result rule (owner, 2026-10-07): the contest ends with **no result** when the client stays silent in either of these cases:
 
@@ -69,7 +69,7 @@ One account has one role. One mobile number can hold one account.
 - **Storage:** Supabase Storage (S3-compatible). Originals in a private bucket, watermarked previews in a public one
 - **Images:** server-side resize + watermark (library chosen in milestone 4)
 - **Auth:** mobile number + password, mobile verified by SMS OTP
-- **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver (aamarPay or SSLCommerz, covering bKash and cards) is added in milestone 9
+- **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver: SSLCommerz (covers bKash and cards) is added in milestone 9
 - **SMS:** behind an `SmsSender` interface with a log driver for dev
 - **Languages:** English default with a Bangla toggle. Use the en/bn message files from day one; never hard-code user-facing strings
 
@@ -81,7 +81,7 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
-**contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extended_once (bool), winner_entry_id, completed_at
+**contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extensions_count (int), extension_days_total (int), winner_entry_id, completed_at
 
 **contest_files**: contest_id, type (example/current_logo), path, original_name
 
@@ -95,7 +95,7 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 **handover_files**: handover_id, file_type (ai/eps/svg/pdf/png/jpg), path
 
-**payments**: contest_id, client_id, gateway, gateway_txn_id, amount, status (initiated/paid/failed), paid_at, raw_response (json)
+**payments**: contest_id, client_id, purpose (contest/extension), extension_days (nullable), gateway, gateway_txn_id, amount, status (initiated/paid/failed), paid_at, raw_response (json)
 
 **wallet_transactions**: designer_id, type (prize_credit/split_share/withdrawal/adjustment/bonus), amount (signed), contest_id (nullable), fee_rate, fee_amount, balance_after, note
 
@@ -121,7 +121,6 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 draft → pending_payment → open → judging → winner_selected → handover → completed
                                     judging → no_result (client picked no winner, §2)
                                     handover → no_result (client silent 5 days after files, §2)
-                                    ↘ extended (back to open, once)
 handover → judging (winner missed the 3-day file deadline; win cancelled)
 any state → cancelled (admin only)
 ```
@@ -130,7 +129,7 @@ any state → cancelled (admin only)
 |---|---|---|
 | draft | Wizard not finished or not paid | Client reaches payment |
 | pending_payment | Checkout started | Gateway confirms payment |
-| open | Live, accepting entries | `ends_at` passes |
+| open | Live, accepting entries | `ends_at` passes (a paid extension moves `ends_at` later) |
 | judging | No new entries; client decides | Winner picked, or 5 days pass (→ no_result) |
 | winner_selected | Winner chosen | Handover record created (immediate) |
 | handover | Designer uploads files, client reviews | Client approves (rating + feedback), or the client is silent 5 days after files are submitted (→ no_result), or the designer misses the upload deadline (→ judging) |
@@ -170,7 +169,7 @@ credit = prize - fee
 
 `counted_wins_count` is read when the winner is picked, and the resulting rate is stored on the handover. Increment `wins_count` (and `counted_wins_count`, if the win counts) only when the contest reaches `completed`.
 
-A win only counts toward the tier and the leaderboard **[CONFIRM]** when prize ≥ 3,000 and the contest had entries from at least 3 different designers. At most 2 wins from the same client count.
+A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and the contest had entries from at least 3 different designers. At most 2 wins from the same client count.
 
 ### 7.3 Wallet
 
@@ -180,11 +179,12 @@ A win only counts toward the tier and the leaderboard **[CONFIRM]** when prize �
 
 ### 7.4 Upgrades (prices in settings)
 
-| Upgrade | Effect | Price [CONFIRM] |
+| Upgrade | Effect | Price |
 |---|---|---|
-| Blind | Only the client sees the entries; each designer sees only their own. Nobody else ever sees them, even after completion, except that after completion the client may choose to make the winning logo public, shown with the designer's name | 500 |
-| Private | Login required to view the brief, `noindex`, hidden from winners gallery and designer portfolios | 500 |
-| Promoted | Flag for admin to post it on the Facebook page/group; shown first in lists | 500 |
+| Blind | Only the client sees the entries; each designer sees only their own. Nobody else ever sees them, even after completion, except that after completion the client may choose to make the winning logo public, shown with the designer's name | 1,000 |
+| Private | Login required to view the brief, `noindex`, hidden from winners gallery and designer portfolios | 1,000 |
+| Promoted | Flag for admin to post it on the Facebook page/group; shown first in lists | 1,000 |
+| Extension | Bought while the contest is open; adds 3, 5 or 7 days to `ends_at`. Can be bought more than once | 500 per day added |
 
 ### 7.5 No-result split
 
@@ -192,7 +192,7 @@ A win only counts toward the tier and the leaderboard **[CONFIRM]** when prize �
 designers = distinct designers with ≥1 active entry (excluding a forfeited winner)
 share     = floor(prize / count(designers))
 leftover  = prize - share * count(designers)   → 1 taka each to the designers who entered first
-fee       = round(share * rate)                 [CONFIRM] rate = each designer's normal tier (§7.2)
+fee       = round(share * rate)                 rate = each designer's normal tier (§7.2)
 credit    = share - fee                         → one `split_share` wallet transaction per designer
 ```
 
@@ -224,6 +224,7 @@ A logged-in client uses **Create Contest** from the dashboard: steps 1–8, then
 
 - My contests with status, days left, entry count
 - Contest view: entries grid; on each entry: 1–5 stars, comment, shortlist, **Reject**, **Pick winner**
+- **Extend contest** (while open): choose days, see the price, pay; `ends_at` moves only after the payment is confirmed
 - Rejected tab
 - Handover view: download files, Request revision (max 2), or Approve. Approving requires a 1–5 star rating and feedback (max 120 words); only then is the designer paid
 - Blind contests, after completion: a switch to make the winning logo public
@@ -309,7 +310,7 @@ False flags: if the admin finds that a flag was false, the person who flagged ge
 - **Monthly Champion:** most counted wins in a calendar month; shows the month
 - No "verified" badge (there is no NID check)
 
-Monthly winner: ties are broken by total prize value, then by average rating of winning entries. The system proposes the winner on the 1st; an admin confirms; the prize is added to the wallet as a `bonus` transaction. Prize amount is a setting.
+Monthly winner: ties are broken by total prize value, then by average rating of winning entries. The system proposes the winner on the 1st; an admin confirms; the prize is added to the wallet as a `bonus` transaction. Prize amount is a setting (default ৳5,000).
 
 ## 12. Notifications
 
@@ -319,7 +320,8 @@ Channels: in-app for everything, plus SMS and email where marked.
 |---|---|---|
 | Contest live / payment received | Client | Yes |
 | New entry (batched every 3 hours) | Client | Email |
-| Contest ends in 24 hours | Client and entered designers | Email |
+| Contest ends in 24 hours (client copy offers **Extend** when entries are low) | Client and entered designers | Email |
+| Contest extended (new end date) | Client and entered designers | No |
 | Pick-a-winner reminders (day 1, 3, 5) | Client | Yes |
 | Strike received (with reason) | Designer | Yes |
 | False-flag warning | Flagger | Yes |
@@ -384,7 +386,7 @@ Finish, test and commit each milestone before starting the next.
 3. **Browse and contest pages:** `/contests`, contest detail, home page with live data
 4. **Designer side:** signup, payout method, entry upload with slots, watermarking, declarations, blind/open visibility rules
 5. **Client review:** ratings, shortlist, reject with reasons, comment threads, contact filter, report button, designer copy flags with evidence
-6. **Lifecycle engine:** scheduler, judging, low-entry extension, pick winner, no-result when the client is silent
+6. **Lifecycle engine:** scheduler, judging, paid extension, pick winner, no-result when the client is silent
 7. **Handover and wallet:** file delivery, missed-deadline cancellation, approval with rating and feedback, no-result split payout, fee tiers, wallet ledger, withdrawals
 8. **Admin panel:** everything in section 13
 9. **Real integrations:** payment gateway driver, SMS provider, email, S3 storage
@@ -397,8 +399,6 @@ Direct messaging, refunds, NID verification, international payments, design cate
 
 ## 18. Things the owner still needs to settle
 
-1. The **[CONFIRM]** items: low-entry extension; the designer fee on no-result shares (§7.5). (Settled: entries per designer unlimited; fee rate locked at winner pick; no-result rule; 3-day re-pick after a missed deadline.)
-2. Upgrade prices (Blind, Private, Promoted)
-3. Monthly Champion prize amount
-4. Which payment gateway to apply to, and its merchant documents
-5. Legal check with a CA/lawyer: holding client funds, tax on designer payouts, VAT on the service fee, and the wording of the no-refund policy
+1. All **[CONFIRM]** items are settled (owner, 2026-10-07): counted wins (prize ≥ 3,000, at least 3 designers, at most 2 wins per client); upgrades ৳1,000 each; Monthly Champion ৳5,000; payment gateway SSLCommerz. (Also settled: no free or automatic extension; extension price ৳500 per day, 3/5/7 days, prompt under 5 entries; the normal designer fee applies to no-result shares; entries per designer unlimited; fee rate locked at winner pick; no-result rule; 3-day re-pick after a missed deadline.)
+2. SSLCommerz merchant account and its documents (needed for milestone 9)
+3. Legal check with a CA/lawyer: holding client funds, tax on designer payouts, VAT on the service fee, and the wording of the no-refund policy

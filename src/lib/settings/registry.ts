@@ -30,15 +30,15 @@ export const SETTINGS = {
   },
   "fees.counted_win_min_prize": {
     group: "fees", type: "int", schema: int(), default: 3000,
-    description: "[CONFIRM] A win only counts toward tiers and the leaderboard at or above this prize.",
+    description: "A win only counts toward tiers and the leaderboard at or above this prize.",
   },
   "fees.counted_win_min_designers": {
     group: "fees", type: "int", schema: int(1), default: 3,
-    description: "[CONFIRM] A win only counts if at least this many different designers entered.",
+    description: "A win only counts if at least this many different designers entered.",
   },
   "fees.counted_wins_max_per_client": {
     group: "fees", type: "int", schema: int(1), default: 2,
-    description: "[CONFIRM] At most this many wins from the same client count.",
+    description: "At most this many wins from the same client count.",
   },
 
   // ---- Packages (§2, §7.1) ------------------------------------------------
@@ -65,16 +65,24 @@ export const SETTINGS = {
 
   // ---- Upgrades (§7.4) ----------------------------------------------------
   "upgrades.blind_price": {
-    group: "upgrades", type: "int", schema: int(), default: 500,
-    description: "[CONFIRM] Blind contest upgrade price (taka).",
+    group: "upgrades", type: "int", schema: int(), default: 1000,
+    description: "Blind contest upgrade price (taka).",
   },
   "upgrades.private_price": {
-    group: "upgrades", type: "int", schema: int(), default: 500,
-    description: "[CONFIRM] Private contest upgrade price (taka).",
+    group: "upgrades", type: "int", schema: int(), default: 1000,
+    description: "Private contest upgrade price (taka).",
+  },
+  "upgrades.extension_price_per_day": {
+    group: "upgrades", type: "int", schema: int(1), default: 500,
+    description: "Price of each day added by a paid extension (taka). Extensions are never free or automatic.",
+  },
+  "upgrades.extension_days_options": {
+    group: "upgrades", type: "json", schema: intList, default: [3, 5, 7],
+    description: "Days a client can add with one paid extension.",
   },
   "upgrades.promoted_price": {
-    group: "upgrades", type: "int", schema: int(), default: 500,
-    description: "[CONFIRM] Promoted contest upgrade price (taka).",
+    group: "upgrades", type: "int", schema: int(), default: 1000,
+    description: "Promoted contest upgrade price (taka).",
   },
 
   // ---- Timers (§2, §6, §12) -----------------------------------------------
@@ -93,10 +101,6 @@ export const SETTINGS = {
   "timers.repick_window_days": {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the client has to pick another winner after the first one missed the file deadline.",
-  },
-  "timers.low_entry_extension_days": {
-    group: "timers", type: "int", schema: int(1), default: 5,
-    description: "[CONFIRM] Free one-time extension when a contest ends with too few entries (days).",
   },
   "timers.designer_file_upload_days": {
     group: "timers", type: "int", schema: int(1), default: 3,
@@ -124,9 +128,9 @@ export const SETTINGS = {
   },
 
   // ---- Limits (§6, §7.3, §8.1, §9) ----------------------------------------
-  "limits.low_entry_threshold": {
+  "limits.low_entry_prompt_threshold": {
     group: "limits", type: "int", schema: int(1), default: 5,
-    description: "[CONFIRM] A contest ending with fewer entries than this is extended once.",
+    description: "Below this many active entries, the client is prompted to buy an extension.",
   },
   "limits.max_revision_requests": {
     group: "limits", type: "int", schema: int(), default: 2,
@@ -191,8 +195,8 @@ export const SETTINGS = {
 
   // ---- Monthly Champion (§11) ---------------------------------------------
   "monthly.champion_prize": {
-    group: "monthly", type: "int", schema: int(), default: 0,
-    description: "[CONFIRM] Monthly Champion bonus (taka). Not decided yet (BLUEPRINT §18).",
+    group: "monthly", type: "int", schema: int(), default: 5000,
+    description: "Monthly Champion bonus, added to the wallet (taka).",
   },
 
   // ---- Auth (§4, §15) -----------------------------------------------------

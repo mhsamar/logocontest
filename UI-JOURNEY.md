@@ -194,7 +194,7 @@ flowchart LR
 
 **C-08 package card content:** name, prize amount, one line ("Good for new pages and small shops" / "Most popular" / "Attracts experienced designers"), and "You pay ৳X including service fee".
 
-**C-08 Blind upgrade wording:** "Blind contest (+৳500): designers can't see each other's work, so they can't copy ideas."
+**C-08 Blind upgrade wording:** "Blind contest (+৳1,000): designers can't see each other's work, so they can't copy ideas."
 
 ### C-11b Payment result
 
@@ -209,12 +209,14 @@ Confetti once. "Congratulations! Your logo contest is live." Shows the contest l
 
 - Greeting, **Create Contest** button, and a stat line: contests run, total spent.
 - Tabs: Active | Drafts | Completed.
-- Each contest row: status chip, entries count with a "new" dot, countdown, and the next action as a button ("Review 12 entries", "Pick your winner", "Approve files", "Finish payment").
+- Each contest row: status chip, entries count with a "new" dot, countdown, and the next action as a button ("Review 12 entries", "Pick your winner", "Approve files", "Finish payment"). Open contests also show **Extend**; when there are fewer than 5 entries a hint reads "Only 3 designs so far. Extending gives designers more time."
 - Empty state: "You haven't started a contest yet." with **Create Contest**.
 
 ### C-14 Review entries
 
-Top summary bar: time left, entries, designers, and filter chips: All | New | Shortlisted | Rejected.
+Top summary bar: time left, entries, designers, an **Extend** button (open contests only), and filter chips: All | New | Shortlisted | Rejected.
+
+**Extend sheet:** day options as tiles (+3 / +5 / +7 days), each showing the new end date and its price at ৳500 per day (৳1,500 / ৳2,500 / ৳3,500), the no-refund checkbox, and **Pay ৳{days × 500}**. Opens the gateway checkout; on success a toast "Your contest now ends on [date]" and the countdown updates; on failure nothing changes.
 
 Grid of entry cards (2 columns mobile). Each card has quick actions under it: stars, heart (shortlist), and a "…" menu with Comment, Reject, Report.
 
@@ -353,7 +355,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | ID | Screen | Content |
 |---|---|---|
 | A-01 | Dashboard | Number tiles (contests live, payments this month, revenue, pending withdrawals, open reports), wizard drop-off chart by step, latest activity |
-| A-02 | Contests | Table with filters; row actions: View, Edit brief, Extend, Force-award, Cancel |
+| A-02 | Contests | Table with filters; row actions: View, Edit brief, Extend (free, admin only, needs a reason), Force-award, Cancel |
 | A-03 | Entries | Tabs: Flagged duplicates, Recently submitted. Side-by-side compare for duplicates. Action: Remove |
 | A-04 | Reports | Queue with reason, entry preview, evidence image and links side by side. Actions: Uphold (with strike or ban), Dismiss, Dismiss as false (warns the flagger) |
 | A-05 | Users | Search by name or mobile; profile drawer with strikes (who gave each and why), false-flag warnings, contests or entries, wallet. Actions: Suspend, Ban, Add strike, Remove strike |
