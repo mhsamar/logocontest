@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Every page reads per-request cookies (locale, Supabase session), so we use
+  // the regular dynamic rendering model instead of Cache Components.
+  cacheComponents: false,
   turbopack: {
     rules: {
       "*.css": {
