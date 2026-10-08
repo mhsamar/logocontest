@@ -57,7 +57,7 @@ export async function SiteHeader() {
 
   return (
     <HeaderShell>
-      <div className="relative flex h-16 items-center gap-2 pl-4 pr-2 sm:pl-6">
+      <div className="relative flex h-16 items-center gap-2 pl-1 pr-2 sm:pl-3">
         <Link href="/" aria-label={t("brand.home")} className="flex min-h-11 shrink-0 items-center rounded-full px-1">
           <Wordmark />
         </Link>

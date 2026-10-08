@@ -33,12 +33,13 @@ export const SETTINGS = {
   "fees.designer_tiers": {
     group: "fees", type: "json",
     schema: z.array(z.object({ min_wins: int(), rate_percent: int(0, 100) })).min(1),
+    // Owner, 2026-10-08: 15% to start, 10% after 10 wins, 5% after 50 wins.
     default: [
-      { min_wins: 0, rate_percent: 7 },
-      { min_wins: 5, rate_percent: 5 },
-      { min_wins: 10, rate_percent: 2 },
+      { min_wins: 0, rate_percent: 15 },
+      { min_wins: 10, rate_percent: 10 },
+      { min_wins: 50, rate_percent: 5 },
     ],
-    description: "Designer fee by counted wins before this win (0–4: 7%, 5–9: 5%, 10+: 2%).",
+    description: "Designer fee by counted wins before this win (0–9: 15%, 10–49: 10%, 50+: 5%).",
   },
   "fees.counted_win_min_prize": {
     group: "fees", type: "int", schema: int(), default: 3000,

@@ -23,7 +23,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 | Rule | Value |
 |---|---|
 | Client service fee | 20% of prize, added on top (prize 5,000 → client pays 6,000) |
-| Designer fee | 7% (0–4 wins), 5% (5–9 wins), 2% (10+ wins) |
+| Designer fee | 15% (0–9 wins), 10% (10–49 wins), 5% (50+ wins) (owner, 2026-10-08; was 7% / 5% / 2%) |
 | Refunds | None. All payments are non-refundable |
 | Entry visibility | Client chooses. Open is the default and free. Blind is a paid upgrade (only the client ever sees the entries, see §7.4) |
 | Entries per designer | Unlimited. To answer client feedback, a designer submits a new entry |
@@ -40,7 +40,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 | Contest number (owner, 2026-10-08) | Every contest gets a running number shown as "Contest #00001" (five digits, more when needed) on its page, cards, dashboard and manage page, so everyone sees how many contests have run. The number is given when the contest is published (payment confirmed), so unpaid drafts never leave gaps. Existing contests were numbered in the order they started |
 | Contest length | Any whole number of days from 3 to 30 (owner, 2026-10-08; min, max and the quick-pick chips are settings) |
 
-Fee tier timing: the rate is decided by the designer's count of completed wins at the moment the winner is selected, and stored on the handover so it cannot change later. So the 5th win is still charged 7%, and the 6th is charged 5%. (The client's price is fixed when they pay; the contest goes live only after payment.)
+Fee tier timing: the rate is decided by the designer's count of completed wins at the moment the winner is selected, and stored on the handover so it cannot change later. So the 10th win is still charged 15%, the 11th is charged 10%, and from the 51st win the fee is 5%. (The client's price is fixed when they pay; the contest goes live only after payment.)
 
 Paid extension (owner, 2026-10-07): a contest is never extended for free or automatically. While a contest is open, the client may buy an **Extension** add-on to add days to it; if they don't, it ends on time. Price: **৳500 per day added** (owner), so +3 days = ৳1,500. Lengths and the low-entry prompt are settings: 3, 5 or 7 days per extension; no limit on how many; the dashboard and the 24-hour notice prompt the client to extend when the contest has fewer than 5 active entries.
 
@@ -180,7 +180,7 @@ Always show the client the full breakdown before payment.
 ### 7.2 Designer payout
 
 ```
-rate   = 0.07 if wins_count < 5; 0.05 if wins_count < 10; else 0.02
+rate   = 0.15 if wins_count < 10; 0.10 if wins_count < 50; else 0.05
 fee    = round(prize * rate)
 credit = prize - fee
 ```
@@ -417,7 +417,7 @@ Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`,
 - Original files are served only through signed, expiring URLs
 - Rate-limit OTP, login, comments and uploads
 - Verify payment gateway callbacks server-side before marking anything paid
-- Feature tests are required for: fee calculation, tier changes at 5 and 10 wins, contest state transitions (including the missed file deadline and both no-result cases), the no-result split (equal shares, exclusions, rounding), wallet credit happening exactly once, the contact filter, blind-contest visibility
+- Feature tests are required for: fee calculation, tier changes at 10 and 50 wins, contest state transitions (including the missed file deadline and both no-result cases), the no-result split (equal shares, exclusions, rounding), wallet credit happening exactly once, the contact filter, blind-contest visibility
 
 ## 16. Build milestones
 

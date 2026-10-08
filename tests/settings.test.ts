@@ -38,10 +38,11 @@ describe("BLUEPRINT defaults", () => {
     expect([d("fees.counted_win_min_prize"), d("fees.counted_win_min_designers"), d("fees.counted_wins_max_per_client")]).toEqual([3000, 3, 2]);
     expect(d("upgrades.extension_days_options")).toEqual([3, 5, 7]);
     expect(Object.keys(SETTINGS).some((k) => k.includes("low_entry_extension"))).toBe(false);
+    // Owner, 2026-10-08: 15% to start, 10% after 10 wins, 5% after 50 wins.
     expect(d("fees.designer_tiers")).toEqual([
-      { min_wins: 0, rate_percent: 7 },
-      { min_wins: 5, rate_percent: 5 },
-      { min_wins: 10, rate_percent: 2 },
+      { min_wins: 0, rate_percent: 15 },
+      { min_wins: 10, rate_percent: 10 },
+      { min_wins: 50, rate_percent: 5 },
     ]);
   });
 

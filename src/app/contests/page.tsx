@@ -37,10 +37,15 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
   const pages = Math.max(1, Math.ceil(list.total / BROWSE_PAGE_SIZE));
   const from = list.total === 0 ? 0 : (query.page - 1) * BROWSE_PAGE_SIZE + 1;
   const to = Math.min(list.total, query.page * BROWSE_PAGE_SIZE);
+  // Signed-in designers see no banner, so the lists start right under the header.
+  const noBanner = user?.role === "designer";
 
   return (
     <div className="pb-16">
-      {user?.role === "client" ? (
+      {user?.role === "designer" ? (
+        // Signed-in designers are here to find contests, so no banner at all (owner, 2026-10-08).
+        <h1 className="sr-only">{t("nav.browse")}</h1>
+      ) : user?.role === "client" ? (
         // Clients already run a contest, so they get one short line instead of the big banner (owner, 2026-10-08).
         <section className="mx-auto w-full max-w-page px-4 pt-4">
           <div className="flex animate-rise flex-col items-start gap-3 rounded-2xl bg-aurora px-5 py-4 shadow-card ring-1 ring-white sm:flex-row sm:items-center sm:justify-between">
@@ -147,7 +152,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
       )}
 
       {featured.length > 0 && (
-        <section className="mx-auto w-full max-w-page px-4 pt-12">
+        <section className={cx("mx-auto w-full max-w-page px-4", noBanner ? "pt-4" : "pt-12")}>
           <h2 className="text-h3 font-semibold text-ink lg:text-h3-lg">{t("browse.featured")}</h2>
           {/* Centred, so one or two featured contests don't hug the left edge */}
           <ul className="mt-5 flex flex-wrap justify-center gap-4">
@@ -160,7 +165,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
         </section>
       )}
 
-      <section className="mx-auto w-full max-w-page px-4 pt-12">
+      <section className={cx("mx-auto w-full max-w-page px-4", noBanner && featured.length === 0 ? "pt-4" : "pt-12")}>
         <h2 className="text-h3 font-semibold text-ink lg:text-h3-lg">{t("browse.all")}</h2>
 
         <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
