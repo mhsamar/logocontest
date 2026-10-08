@@ -491,8 +491,6 @@ const en = {
       shortName: "Short name / app name",
       audience: "Target audience",
       needs: "What the client needs",
-      likes: "What the client likes",
-      dislikes: "What designers can't do",
       requirements: "Requirements",
       note: "Other requirements",
       files: "Reference files",

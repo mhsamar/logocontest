@@ -157,7 +157,7 @@ Header (owner, 2026-10-07, from the LogoArena reference): one white panel. Left:
 
 Three tabs, **Entries** first when there are entries to show, otherwise **Brief**:
 
-- **Brief:** description, short name / app name, logo text and slogan, target audience, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, **What the client needs** (always-included items plus the ticked extras), likes and dislikes (only older contests have them), **Requirements** (always-on rules plus the ticked ones and other requirements), reference files (owner, 2026-10-08).
+- **Brief:** description, short name / app name, logo text and slogan, target audience, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, **What the client needs** (always-included items plus the ticked extras), **Requirements** next to it (owner, 2026-10-08: likes and dislikes are no longer shown, older contests included) (always-on rules plus the ticked ones and other requirements), reference files (owner, 2026-10-08).
 - **Entries:** grid of entry cards (2 columns on phones, 3 on tablets, 4 on desktop). Clicking a card opens `P-04`.
 - **Comments:** the public contest comments, newest last, each with the commenter's name ("Client" badge) or designer username. The client and signed-in designers see a box at the bottom (500 characters, counter); others see "Only the client and designers can comment." with **Log in** for guests. Authors can delete their own comment.
 

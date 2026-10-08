@@ -202,8 +202,6 @@ export type ContestDetail = ContestRow & {
     colors: string[];
     letDesignersChoose: boolean;
     usedOn: UsedOn[];
-    likes: string;
-    dislikes: string | null;
     shortName: string | null;
     targetAudience: string | null;
     deliverables: Deliverable[];
@@ -224,7 +222,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     .from("contests")
     .select(
       `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, styles, style_sliders, colors,
-       let_designers_choose_colors, used_on, likes_text, dislikes_text, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
+       let_designers_choose_colors, used_on, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -284,8 +282,6 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
           colors: (data.colors ?? []) as string[],
           letDesignersChoose: data.let_designers_choose_colors,
           usedOn: (data.used_on ?? []) as UsedOn[],
-          likes: data.likes_text,
-          dislikes: data.dislikes_text,
           shortName: data.short_name,
           targetAudience: data.target_audience,
           deliverables: (data.deliverables ?? []) as Deliverable[],

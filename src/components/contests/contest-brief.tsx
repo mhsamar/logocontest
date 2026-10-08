@@ -134,33 +134,29 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
         </Block>
       )}
 
-      {/* What the client needs: always-included items, then the ticked extras (owner, 2026-10-08) */}
-      <Block title={t("contest.brief.needs")}>
-        <Ticks items={[t("wizard.c05.always.main"), t("wizard.c05.always.files"), ...brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`) + " — " + t(`wizard.deliverables.${d}.line`))]} />
-      </Block>
-
-      {/* No longer asked for (owner, 2026-10-08); older contests still show theirs. */}
-      {brief.likes && (
-        <Block title={t("contest.brief.likes")}>
-          <p className="whitespace-pre-line leading-relaxed">{brief.likes}</p>
+      {/* What the client needs and their requirements, always side by side (owner, 2026-10-08: the old
+          "likes" / "can't do" texts are no longer shown, older contests included) */}
+      <div className="grid gap-4 lg:col-span-2 lg:grid-cols-2">
+        <Block title={t("contest.brief.needs")}>
+          <Ticks
+            items={[
+              t("wizard.c05.always.main"),
+              t("wizard.c05.always.files"),
+              ...brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`) + " — " + t(`wizard.deliverables.${d}.line`)),
+            ]}
+          />
         </Block>
-      )}
 
-      {brief.dislikes && (
-        <Block title={t("contest.brief.dislikes")}>
-          <p className="whitespace-pre-line leading-relaxed">{brief.dislikes}</p>
+        <Block title={t("contest.brief.requirements")}>
+          <Ticks items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi"), ...brief.requirements.map((r) => t(`wizard.requirements.${r}`))]} />
+          {brief.requirementsNote && (
+            <div className="mt-4">
+              <p className="text-xs text-muted">{t("contest.brief.note")}</p>
+              <p className="mt-0.5 whitespace-pre-line leading-relaxed">{brief.requirementsNote}</p>
+            </div>
+          )}
         </Block>
-      )}
-
-      <Block title={t("contest.brief.requirements")}>
-        <Ticks items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi"), ...brief.requirements.map((r) => t(`wizard.requirements.${r}`))]} />
-        {brief.requirementsNote && (
-          <div className="mt-4">
-            <p className="text-xs text-muted">{t("contest.brief.note")}</p>
-            <p className="mt-0.5 whitespace-pre-line leading-relaxed">{brief.requirementsNote}</p>
-          </div>
-        )}
-      </Block>
+      </div>
 
       {brief.files.length > 0 && (
         <Block title={t("contest.brief.files")} className="lg:col-span-2">
