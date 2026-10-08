@@ -39,7 +39,7 @@ function Cross({ className }: { className?: string }) {
   );
 }
 
-/** Many ideas: a wall of our sample logos. */
+/** Many ideas: a wall of the example logos. */
 function IdeasArt({ t }: { t: Translate }) {
   return (
     <div className="relative">

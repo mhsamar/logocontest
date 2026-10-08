@@ -11,7 +11,7 @@ export function Stepper({ current, total, label }: { current: number; total: num
         aria-valuenow={current}
         aria-valuetext={label}
       >
-        <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(current / total) * 100}%` }} />
+        <div className="bar-fill h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(current / total) * 100}%` }} />
       </div>
     </div>
   );

@@ -6,7 +6,8 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-primary text-white hover:bg-primary-dark active:bg-primary-dark disabled:bg-primary/40",
+  primary:
+    "btn-sheen bg-primary text-white hover:-translate-y-px hover:bg-primary-dark hover:shadow-[0_10px_24px_-10px_rgb(139_0_0/0.6)] active:bg-primary-dark disabled:bg-primary/40 disabled:shadow-none",
   secondary:
     "bg-surface text-ink ring-1 ring-inset ring-line hover:bg-canvas active:bg-line disabled:text-muted",
   ghost: "text-primary-dark hover:bg-primary/10 active:bg-primary/15 disabled:text-muted",
@@ -29,8 +30,9 @@ type CommonProps = {
 
 export function buttonClasses({ variant = "primary", size = "md", block, className }: Omit<CommonProps, "children">) {
   return cx(
-    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors select-none",
-    "disabled:cursor-not-allowed",
+    "relative inline-flex items-center justify-center gap-2 overflow-clip rounded-full font-semibold select-none",
+    "transition-[color,background-color,box-shadow,transform] duration-200 ease-out active:scale-[0.97]",
+    "disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100",
     VARIANTS[variant],
     SIZES[size],
     block && "w-full",

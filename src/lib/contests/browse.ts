@@ -2,6 +2,7 @@ import "server-only";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { isSupabaseConfigured } from "@/lib/env";
 import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
+import { countDesigners, countShownEntries, designerFaces, leadingDesigns, type ContestCover, type ContestDesigner } from "@/lib/entries/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BusinessType, LogoStyle, PackageKey, StyleSlider, UsedOn } from "./brief";
 import { BROWSE_PAGE_SIZE, BROWSE_TABS, TAB_STATUSES, type BrowseQuery, type BrowseTab } from "./browse-query";
@@ -25,6 +26,10 @@ export type ContestRow = {
   isPrivate: boolean;
   isPromoted: boolean;
   entries: number;
+  /** The design on the card: winner, else best rated, else newest (never for blind or private contests). */
+  cover: ContestCover | null;
+  /** Designers who took part: up to three faces (none for blind or private contests) and the total. */
+  faces: { total: number; list: ContestDesigner[] };
   /** Business description for list rows; never set for private contests. */
   description: string | null;
 };
@@ -51,7 +56,7 @@ type DbRow = {
 
 const date = (v: string | null) => (v ? new Date(v) : null);
 
-function toRow(r: DbRow, entries: Map<string, number>): ContestRow {
+function toRow(r: DbRow, entries: Map<string, number>, covers: Map<string, ContestCover>, faces: Map<string, { total: number; list: ContestDesigner[] }>): ContestRow {
   return {
     id: r.id,
     slug: r.slug,
@@ -67,13 +72,22 @@ function toRow(r: DbRow, entries: Map<string, number>): ContestRow {
     isPrivate: r.is_private,
     isPromoted: r.is_promoted,
     entries: entries.get(r.id) ?? 0,
+    cover: covers.get(r.id) ?? null,
+    faces: faces.get(r.id) ?? { total: 0, list: [] },
     description: r.is_private ? null : r.business_description,
   };
 }
 
-/** Entries per contest. TODO(milestone 4): count rows in `entries` once designers can submit. */
+/** Shown designs (active and winning) per contest. */
 export async function countEntries(contestIds: string[]): Promise<Map<string, number>> {
-  return new Map(contestIds.map((id) => [id, 0]));
+  return countShownEntries(contestIds);
+}
+
+/** Rows with their design counts and card covers. */
+async function toRows(rows: DbRow[]): Promise<ContestRow[]> {
+  const refs = rows.map((r) => ({ id: r.id, isBlind: r.is_blind, isPrivate: r.is_private }));
+  const [entries, covers, faces] = await Promise.all([countEntries(rows.map((r) => r.id)), leadingDesigns(refs), designerFaces(refs, 3)]);
+  return rows.map((r) => toRow(r, entries, covers, faces));
 }
 
 /** P-02: one page of contests for a tab, plus how many contests each tab has. */
@@ -105,9 +119,7 @@ export async function listContests(q: BrowseQuery): Promise<{ rows: ContestRow[]
     ),
   ) as Record<BrowseTab, number>;
 
-  const rows = (data ?? []) as DbRow[];
-  const entries = await countEntries(rows.map((r) => r.id));
-  return { rows: rows.map((r) => toRow(r, entries)), total: count ?? 0, counts };
+  return { rows: await toRows((data ?? []) as DbRow[]), total: count ?? 0, counts };
 }
 
 /** P-02 "Featured contests": open contests with the Promoted upgrade, ending soonest first. */
@@ -121,9 +133,7 @@ export async function featuredContests(limit: number): Promise<ContestRow[]> {
     .order("ends_at", { ascending: true })
     .limit(limit);
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as DbRow[];
-  const entries = await countEntries(rows.map((r) => r.id));
-  return rows.map((r) => toRow(r, entries));
+  return toRows((data ?? []) as DbRow[]);
 }
 
 /** Saved contests page: these contests in the given order, leaving out ones that are no longer public. */
@@ -131,9 +141,7 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
   if (!isSupabaseConfigured() || ids.length === 0) return [];
   const { data, error } = await createAdminClient().from("contests").select(ROW_COLUMNS).in("id", ids).in("status", [...PUBLIC_STATUSES]);
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as DbRow[];
-  const entries = await countEntries(rows.map((r) => r.id));
-  const byId = new Map(rows.map((r) => [r.id, toRow(r, entries)]));
+  const byId = new Map((await toRows((data ?? []) as DbRow[])).map((r) => [r.id, r]));
   return ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
 }
 
@@ -148,9 +156,7 @@ export async function liveContests(limit: number): Promise<ContestRow[]> {
     .order("starts_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as DbRow[];
-  const entries = await countEntries(rows.map((r) => r.id));
-  return rows.map((r) => toRow(r, entries));
+  return toRows((data ?? []) as DbRow[]);
 }
 
 export type ContestFileView = { name: string; mime: string; url: string | null; isImage: boolean };
@@ -163,6 +169,11 @@ export type ContestDetail = ContestRow & {
   canSeeBrief: boolean;
   client: { name: string; username: string | null } | null;
   designers: number;
+  /** Blind contests: the client made the winning logo public after completion. */
+  winnerIsPublic: boolean;
+  /** Logo Scan add-on bought (owner, 2026-10-08). */
+  logoScan: boolean;
+  extensionsCount: number;
   brief: {
     description: string;
     logoText: string | null;
@@ -190,7 +201,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     .from("contests")
     .select(
       `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, styles, style_sliders, colors,
-       let_designers_choose_colors, used_on, likes_text, dislikes_text, client:profiles!client_id(name, username)`,
+       let_designers_choose_colors, used_on, likes_text, dislikes_text, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -203,7 +214,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
   if (!isPublic && !isOwner && !isAdmin) return null;
 
   const canSeeBrief = !data.is_private || Boolean(viewer);
-  const entries = await countEntries([data.id]);
+  const [[row], designers] = await Promise.all([toRows([data as DbRow]), countDesigners(data.id)]);
   const client = (Array.isArray(data.client) ? data.client[0] : data.client) as { name: string; username: string | null } | null;
 
   let files: ContestFileView[] = [];
@@ -226,14 +237,17 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
   }
 
   return {
-    ...toRow(data as DbRow, entries),
+    ...row,
     rawStatus: data.status,
     ownerId: data.client_id,
     isOwner,
     canSeeBrief,
     // A private contest doesn't show who is behind it to guests.
     client: canSeeBrief ? client : null,
-    designers: 0, // TODO(milestone 4): distinct designers with entries
+    designers,
+    winnerIsPublic: Boolean(data.winner_is_public),
+    logoScan: Boolean(data.logo_scan),
+    extensionsCount: (data.extensions_count as number) ?? 0,
     brief: canSeeBrief
       ? {
           description: data.business_description,

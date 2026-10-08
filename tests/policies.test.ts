@@ -45,3 +45,24 @@ describe("contest.save", () => {
     expect(can(null, "contest.save")).toBe(false);
   });
 });
+
+describe("entry.comment (owner, 2026-10-08)", () => {
+  const open = { contestOwnerId: "c1", isBlind: false, entryDesignerId: "d2" };
+  it("lets the contest's client comment", () => {
+    expect(can(user({ id: "c1", role: "client" }), "entry.comment", open)).toBe(true);
+    expect(can(user({ id: "c9", role: "client" }), "entry.comment", open)).toBe(false);
+  });
+  it("lets designers who submitted to the contest comment", () => {
+    expect(can(user({ id: "d1", role: "designer" }), "entry.comment", { ...open, viewerHasEntry: true })).toBe(true);
+    expect(can(user({ id: "d1", role: "designer" }), "entry.comment", { ...open, viewerHasEntry: false })).toBe(false);
+  });
+  it("in a blind contest, only the design's own designer", () => {
+    const blind = { ...open, isBlind: true, viewerHasEntry: true };
+    expect(can(user({ id: "d2", role: "designer" }), "entry.comment", blind)).toBe(true);
+    expect(can(user({ id: "d1", role: "designer" }), "entry.comment", blind)).toBe(false);
+  });
+  it("never guests or inactive users", () => {
+    expect(can(null, "entry.comment", open)).toBe(false);
+    expect(can(user({ id: "c1", role: "client", status: "suspended" }), "entry.comment", open)).toBe(false);
+  });
+});

@@ -55,7 +55,7 @@ export const ICONS = {
 // ---------------------------------------------------------------------------
 // 1. Hero
 // ---------------------------------------------------------------------------
-export async function Hero({ standardPrize }: { standardPrize: number }) {
+export async function Hero({ premiumPrize }: { premiumPrize: number }) {
   const { t } = await getI18n();
   const trust: { icon: keyof typeof ICONS; title: string; sub: string; href?: string }[] = [
     { icon: "bkash", title: t("home.trustBar.payTitle"), sub: t("home.trustBar.paySub") },
@@ -131,7 +131,7 @@ export async function Hero({ standardPrize }: { standardPrize: number }) {
 
       {/* The example panel overlaps the frame's bottom edge */}
       <div className="relative z-10 -mt-36 px-4 sm:-mt-48">
-        <HeroPreview standardPrize={standardPrize} />
+        <HeroPreview prize={premiumPrize} />
       </div>
       <div id="hero-end" aria-hidden />
     </section>

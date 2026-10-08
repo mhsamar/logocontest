@@ -357,7 +357,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
 
       <p className="text-center text-sm text-muted">
         {t("designerSignup.haveAccount")}{" "}
-        <Link href="/login" className="font-semibold text-primary hover:underline">
+        <Link href="/login?as=designer" className="font-semibold text-primary hover:underline">
           {t("designerSignup.login")}
         </Link>
       </p>

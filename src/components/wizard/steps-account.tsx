@@ -48,7 +48,7 @@ export function AccountStep({
       {taken && (
         <Alert tone="info">
           {t("wizard.c09.existing")}{" "}
-          <Link href="/login?next=/start" className="font-semibold underline">
+          <Link href="/login?as=client&next=/start" className="font-semibold underline">
             {t("nav.login")}
           </Link>
         </Alert>

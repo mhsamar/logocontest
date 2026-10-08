@@ -1,8 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 import { TrophyIcon, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
-import { SAMPLE_LOGOS } from "./sample-logos";
+import { SAMPLE_LOGO_SRC } from "./sample-logos";
 
 function Stars({ value }: { value: number }) {
   return (
@@ -16,13 +17,19 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-const RATINGS = [5, 4, 4, 3, 5, 4];
+/**
+ * Entries in the example contest (owner, 2026-10-08): the winner is our own "lc"
+ * icon, the others are lettermark examples the owner chose. The sixth slot says
+ * more designs are coming instead of showing a number.
+ */
+const RATINGS = [5, 4, 4, 5, 3];
+const ENTRIES = SAMPLE_LOGO_SRC.slice(0, 5).map((src, i) => ({ src, rating: RATINGS[i] }));
 
 /**
- * The large rounded "app preview" panel under the hero: an example contest
- * with our own sample logos. Clearly labelled; no invented counts.
+ * The large rounded "app preview" panel under the hero: an example contest for
+ * our own brand on the Premium package. Clearly labelled; no invented counts.
  */
-export async function HeroPreview({ standardPrize }: { standardPrize: number }) {
+export async function HeroPreview({ prize }: { prize: number }) {
   const { t, locale } = await getI18n();
   return (
     <figure className="relative mx-auto w-full max-w-5xl">
@@ -43,18 +50,18 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
             <div className="flex flex-col rounded-lg bg-surface p-4 text-left shadow-card ring-1 ring-line">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("home.preview.brief")}</p>
               <p className="mt-1 text-lg font-bold text-ink">{t("home.preview.brand")}</p>
-              <p className="text-sm text-muted">{t("wizard.businessTypes.food")}</p>
-              <p className="mt-3 text-xl font-bold text-accent">{formatTaka(standardPrize, locale)}</p>
-              <p className="text-xs text-muted">{t("wizard.packages.standard.name")}</p>
+              <p className="text-sm text-muted">{t("wizard.businessTypes.services")}</p>
+              <p className="mt-3 text-xl font-bold text-accent">{formatTaka(prize, locale)}</p>
+              <p className="text-xs text-muted">{t("wizard.packages.premium.name")}</p>
               <div className="mt-4 flex flex-wrap gap-1.5">
-                {["emblem", "wordmark"].map((s) => (
+                {["lettermark", "emblem"].map((s) => (
                   <span key={s} className="rounded-full bg-canvas px-2.5 py-1 text-xs font-medium text-ink ring-1 ring-line">
-                    {t(`wizard.styles.${s as "emblem" | "wordmark"}`)}
+                    {t(`wizard.styles.${s as "lettermark" | "emblem"}`)}
                   </span>
                 ))}
               </div>
               <div className="mt-4 flex gap-1.5 lg:mb-5" aria-hidden>
-                {["var(--color-primary)", "var(--color-cream)", "var(--color-ink)"].map((c) => (
+                {["#5c0b0f", "#d4a017", "var(--color-ink)"].map((c) => (
                   <span key={c} className="size-6 rounded-full ring-1 ring-line" style={{ background: c }} />
                 ))}
               </div>
@@ -65,16 +72,13 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
                   <TrophyIcon className="size-5" />
                   {t("home.preview.picked")}
                 </span>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="size-16 shrink-0 overflow-hidden rounded-lg ring-2 ring-primary" aria-hidden>
-                    <div className="flex h-full items-center">{SAMPLE_LOGOS[0]}</div>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">#1</p>
-                    <div className="mt-1">
-                      <Stars value={RATINGS[0]} />
-                    </div>
-                  </div>
+                {/* The winner's full logo (owner's logo pack) */}
+                <div className="mt-3 rounded-lg bg-white px-3 py-4 ring-2 ring-primary">
+                  <img src="/brand/logo-full.png" alt="" width={501} height={74} className="mx-auto h-auto w-full" />
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-ink">#1</p>
+                  <Stars value={ENTRIES[0].rating} />
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-2 rounded-md bg-canvas px-3 py-2">
                   <span className="text-xs font-medium text-muted">{t("home.preview.files")}</span>
@@ -91,13 +95,13 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
 
             {/* entries */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {SAMPLE_LOGOS.map((logo, i) => (
+              {ENTRIES.map((entry, i) => (
                 <div
                   key={i}
                   className={cx(
-                    "relative overflow-hidden rounded-lg bg-surface text-left shadow-card ring-1",
+                    "relative flex flex-col overflow-hidden rounded-lg bg-surface text-left shadow-card ring-1",
                     i === 0 ? "ring-2 ring-primary" : "ring-line",
-                    i > 3 && "hidden sm:block",
+                    i > 3 && "hidden sm:flex",
                   )}
                 >
                   {i === 0 && (
@@ -108,13 +112,19 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
                       <WinnerTrophy className="absolute right-2 top-2 z-10" />
                     </>
                   )}
-                  <div className="aspect-[4/3]">{logo}</div>
+                  <img src={entry.src} alt="" className="aspect-[4/3] min-h-0 w-full flex-1 object-cover" loading={i === 0 ? "eager" : "lazy"} />
                   <div className="flex items-center justify-between border-t border-line px-2.5 py-2">
                     <span className="text-xs font-semibold text-muted">#{i + 1}</span>
-                    <Stars value={RATINGS[i]} />
+                    <Stars value={entry.rating} />
                   </div>
                 </div>
               ))}
+              <div className="hidden flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line bg-surface/60 p-4 text-center sm:flex">
+                <span className="flex size-10 items-center justify-center rounded-full bg-cream text-xl font-bold text-primary-dark" aria-hidden>
+                  +
+                </span>
+                <span className="text-sm font-medium text-muted">{t("home.preview.more")}</span>
+              </div>
             </div>
           </div>
         </div>

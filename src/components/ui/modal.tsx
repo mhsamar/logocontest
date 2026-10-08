@@ -13,6 +13,7 @@ export function Modal({
   children,
   footer,
   closeLabel,
+  size = "default",
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,6 +21,8 @@ export function Modal({
   children: React.ReactNode;
   footer?: React.ReactNode;
   closeLabel: string;
+  /** "wide" for panels with several cards (e.g. add-ons). */
+  size?: "default" | "wide";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -41,10 +44,10 @@ export function Modal({
       }}
       className={
         "m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-ink/50 backdrop:animate-fade-in " +
-        "sm:m-auto sm:max-w-md"
+        (size === "wide" ? "sm:m-auto sm:max-w-2xl" : "sm:m-auto sm:max-w-md")
       }
     >
-      <div className="animate-sheet-up rounded-t-xl bg-surface shadow-raised sm:animate-fade-in sm:rounded-lg">
+      <div className="animate-sheet-up rounded-t-xl bg-surface shadow-raised sm:animate-dialog-in sm:rounded-lg">
         <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-line sm:hidden" aria-hidden />
         <div className="flex items-start justify-between gap-4 px-5 pt-4 sm:pt-5">
           <h2 id={titleId} className="text-lg font-semibold text-ink">
@@ -61,7 +64,7 @@ export function Modal({
             </svg>
           </button>
         </div>
-        <div className="px-5 pb-5 pt-2 text-[0.9375rem] text-muted">{children}</div>
+        <div className="max-h-[65vh] overflow-y-auto px-5 pb-5 pt-2 text-[0.9375rem] text-muted">{children}</div>
         {footer && (
           <div className="flex flex-col-reverse gap-2 border-t border-line px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
             {footer}

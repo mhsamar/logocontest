@@ -96,6 +96,10 @@ export const SETTINGS = {
     group: "upgrades", type: "int", schema: int(), default: 1000,
     description: "Promoted contest upgrade price (taka).",
   },
+  "upgrades.logo_scan_price": {
+    group: "upgrades", type: "int", schema: int(), default: 500,
+    description: "Price of the Logo Scan add-on (taka, once per contest; owner, 2026-10-08).",
+  },
 
   // ---- Timers (§2, §6, §12) -----------------------------------------------
   "timers.contest_duration_options_days": {
@@ -165,12 +169,12 @@ export const SETTINGS = {
     description: "Entries one designer can submit to one contest. 0 = unlimited.",
   },
   "limits.entry_min_images": {
-    group: "limits", type: "int", schema: int(1), default: 5,
-    description: "Minimum images per entry.",
+    group: "limits", type: "int", schema: int(1), default: 1,
+    description: "Minimum mockups per design.",
   },
   "limits.entry_max_images": {
-    group: "limits", type: "int", schema: int(1), default: 10,
-    description: "Maximum images per entry.",
+    group: "limits", type: "int", schema: int(1, 8), default: 8,
+    description: "Maximum mockups per design. A designer who wants more submits another design.",
   },
   "limits.entry_image_max_mb": {
     group: "limits", type: "int", schema: int(1), default: 5,
@@ -178,10 +182,10 @@ export const SETTINGS = {
   },
   "limits.entry_image_min_px": {
     group: "limits", type: "int", schema: int(1), default: 1000,
-    description: "Smallest allowed short side of an entry image (px).",
+    description: "Every design mockup is stored as this many pixels square; the browser fits any image into it automatically.",
   },
   "limits.entry_preview_max_px": {
-    group: "limits", type: "int", schema: int(1), default: 1200,
+    group: "limits", type: "int", schema: int(1), default: 1000,
     description: "Long side of the watermarked preview (px).",
   },
   "limits.brief_max_files": {

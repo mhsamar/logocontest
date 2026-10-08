@@ -20,7 +20,13 @@ export type CurrentUser = {
  * pages and actions call can()/authorize() instead of checking roles inline.
  */
 /** What a check may need to know about the thing being acted on. */
-export type PolicyContext = { contestOwnerId?: string };
+export type PolicyContext = {
+  contestOwnerId?: string;
+  /** Design comments: the contest is blind, whose design it is, and whether the viewer submitted to this contest. */
+  isBlind?: boolean;
+  entryDesignerId?: string;
+  viewerHasEntry?: boolean;
+};
 
 const active = (user: CurrentUser | null): user is CurrentUser => user?.status === "active";
 
@@ -31,6 +37,14 @@ const POLICIES = {
   // Public contest comments: the contest's own client, or any designer (BLUEPRINT §10, owner 2026-10-08).
   "contest.comment": (user: CurrentUser | null, ctx?: PolicyContext) =>
     active(user) && (user.role === "designer" || (user.role === "client" && user.id === ctx?.contestOwnerId)),
+  // Design comments (owner, 2026-10-08): the contest's client, or a designer who submitted to it.
+  // In a blind contest other designers can't see the design, so only its own designer.
+  "entry.comment": (user: CurrentUser | null, ctx?: PolicyContext) =>
+    active(user) &&
+    ((user.role === "client" && user.id === ctx?.contestOwnerId) ||
+      (user.role === "designer" && (ctx?.isBlind ? user.id === ctx.entryDesignerId : Boolean(ctx?.viewerHasEntry)))),
+  // Submitting designs: active designers only (the contest must also be open).
+  "entry.submit": (user: CurrentUser | null) => active(user) && user.role === "designer",
   // Saved contests (heart) are for designers.
   "contest.save": (user: CurrentUser | null) => active(user) && user.role === "designer",
 } satisfies Record<string, (user: CurrentUser | null, ctx?: PolicyContext) => boolean>;

@@ -26,7 +26,7 @@ export function LocaleToggle({
         lang={locale === "en" ? "bn" : "en"}
         className={cx(
           "inline-flex min-h-11 items-center gap-1.5 px-3 text-sm font-semibold",
-          tone === "dark" ? "rounded-full text-white/70 hover:bg-white/10 hover:text-white" : "rounded-md text-muted hover:bg-canvas hover:text-ink",
+          tone === "dark" ? "rounded-full text-white/70 hover:bg-white/10 hover:text-white" : "rounded-full text-ink/85 hover:bg-white/70 hover:text-ink",
         )}
       >
         <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

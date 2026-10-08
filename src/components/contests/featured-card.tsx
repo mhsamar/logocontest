@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ContestRow } from "@/lib/contests/browse";
 import { getI18n } from "@/lib/i18n/server";
-import { formatTaka } from "@/lib/money";
-import { BrandTile, StatusLine, contestTitle } from "./contest-bits";
+import { formatNumber, formatTaka } from "@/lib/money";
+import { cx } from "@/lib/cx";
+import { BrandTile, PRIZE_TEXT, StatusLine, contestTitle } from "./contest-bits";
 import { SaveButton } from "./save-button";
 
 /** P-02 "Featured contests" card (Promoted upgrade). */
@@ -17,7 +18,7 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
         </svg>
         {t("contest.featured")}
       </span>
-      <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} className="mt-6 size-28 text-[1.5rem]" />
+      <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} className="mt-6 size-28 text-[1.5rem]" />
       <h3 className="mt-4 w-full truncate text-lg font-semibold text-ink group-hover:text-primary">
         {/* Stretched link: the whole card opens the contest; the heart stays its own button. */}
         <Link href={`/contest/${contest.slug}`} className="after:absolute after:inset-0">
@@ -27,10 +28,10 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
       <p className="text-sm text-muted">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
       <div className="mt-4 flex w-full items-end justify-between gap-3 border-t border-line pt-4 text-left">
         <div>
-          <p className="text-2xl font-bold leading-tight text-accent tabular-nums">{formatTaka(contest.prize, locale)}</p>
+          <p className={cx("text-2xl font-extrabold leading-tight tabular-nums", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
           <p className="text-xs text-muted">{t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}</p>
         </div>
-        <p className="text-sm text-muted">{t("browse.designs", { count: contest.entries })}</p>
+        <p className="text-sm text-muted">{contest.entries === 1 ? t("browse.oneDesign") : t("browse.designs", { count: formatNumber(contest.entries, locale) })}</p>
       </div>
       <div className="mt-3 w-full text-left">
         <StatusLine contest={contest} now={now} t={t} locale={locale} />

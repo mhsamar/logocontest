@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BrandTile, PackagePill, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
+import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
+import { AddonsButton } from "@/components/manage/addons-button";
 import { ButtonLink } from "@/components/ui/button";
-import { WinnerTrophy } from "@/components/ui/trophy";
+import type { AddonPrices } from "@/lib/contests/addon-payments";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import type { DashboardContest } from "@/lib/contests/dashboard";
 import { cx } from "@/lib/cx";
@@ -10,110 +11,112 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 
-/** The next thing the client should do (UI-JOURNEY C-13). */
+/** The one next step for this contest (UI-JOURNEY C-13, owner 2026-10-08: no two buttons to the same place). */
 function nextAction(c: DashboardContest): { href: string; label: MessageKey } | null {
   switch (c.status) {
     case "draft":
     case "pending_payment":
       return { href: `/start?draft=${c.id}`, label: "dashboard.actions.finish" };
     case "open":
-      return { href: `/contest/${c.slug}?tab=entries`, label: "dashboard.actions.review" };
     case "judging":
-      // TODO(milestone 5): C-16 Pick winner.
-      return { href: `/contest/${c.slug}?tab=entries`, label: "dashboard.actions.pick" };
     case "winner_selected":
     case "handover":
-      // TODO(milestone 6): C-17 Handover.
-      return { href: `/contest/${c.slug}`, label: "dashboard.actions.approve" };
+      return { href: `/dashboard/contests/${c.slug}`, label: "dashboard.manage" };
     default:
       return null;
   }
 }
 
-/** C-13 full-detail contest card, with the winning logo once there is one. */
-export async function ClientContestCard({ contest: c, now }: { contest: DashboardContest; now: Date }) {
+/** C-13 contest card: the leading or winning design, the key facts and one clear button. */
+export async function ClientContestCard({ contest: c, now, index = 0, addons }: { contest: DashboardContest; now: Date; index?: number; addons?: AddonPrices }) {
   const { t, locale } = await getI18n();
   const isDraft = c.tab === "drafts";
   const action = nextAction(c);
   const live = c.startsAt !== null;
 
   const facts: { label: string; value: string; className?: string }[] = [
-    { label: t("dashboard.facts.prize"), value: formatTaka(c.prize, locale), className: "text-accent" },
+    { label: t("dashboard.facts.prize"), value: formatTaka(c.prize, locale), className: cx("text-lg font-extrabold", PRIZE_TEXT) },
     { label: t("dashboard.facts.paid"), value: formatTaka(c.paid, locale) },
     { label: t("dashboard.facts.designs"), value: formatNumber(c.entries, locale) },
     { label: t("dashboard.facts.designers"), value: formatNumber(c.designers, locale) },
-    live
-      ? { label: t("dashboard.facts.started"), value: formatDate(c.startsAt!, locale) }
-      : { label: t("dashboard.facts.created"), value: formatDate(c.createdAt, locale) },
+  ];
+  const dates = [
+    live ? t("dashboard.facts.started") + " " + formatDate(c.startsAt!, locale, "short") : t("dashboard.facts.created") + " " + formatDate(c.createdAt, locale, "short"),
     c.endsAt
-      ? {
-          label: c.endsAt > now && c.tab === "active" && c.status === "open" ? t("dashboard.facts.ends") : t("dashboard.facts.ended"),
-          value: formatDate(c.completedAt ?? c.endsAt, locale),
-        }
+      ? (c.endsAt > now && c.status === "open" ? t("dashboard.facts.ends") : t("dashboard.facts.ended")) + " " + formatDate(c.completedAt ?? c.endsAt, locale, "short")
       : null,
-    !isDraft ? { label: t("dashboard.facts.winner"), value: c.winner ? `@${c.winner.designer}` : t("dashboard.facts.notPicked") } : null,
-  ].filter(Boolean) as { label: string; value: string; className?: string }[];
+  ].filter(Boolean) as string[];
+
+  // C-13 (owner, 2026-10-08): "Add-ons" opens this contest's add-ons in a pop-up, not the manage page.
+  const addonsButton =
+    !isDraft && c.status === "open" && addons ? (
+      <AddonsButton
+        contestId={c.id}
+        brand={c.brandName}
+        active={{ promote: c.isPromoted, private: c.isPrivate, blind: c.isBlind, logo_scan: c.logoScan }}
+        prices={addons}
+        extensionDays={addons.extensionDays}
+        endsAt={c.endsAt ? c.endsAt.toISOString() : null}
+      />
+    ) : null;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line sm:flex-row">
-      {/* Winning logo (or the brand's letter until a winner is picked) */}
-      <div className="relative flex h-40 shrink-0 sm:h-auto sm:w-48 lg:w-56">
-        {c.winner ? (
-          // Entry previews are watermarked images from storage.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={c.winner.logoUrl} alt={t("dashboard.winnerRibbon")} className="h-full w-full bg-white object-contain p-4" />
-        ) : (
-          <BrandTile name={c.brandName} isPrivate={false} flat className="h-full w-full text-[1.8rem]" />
-        )}
-        {c.winner && (
-          <>
-            <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
-              {t("dashboard.winnerRibbon")}
-            </span>
-            <WinnerTrophy className="absolute right-3 top-3" />
-          </>
-        )}
-      </div>
+    <article
+      className="group flex animate-rise flex-col overflow-hidden rounded-3xl bg-surface shadow-card ring-1 ring-line transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-raised sm:flex-row"
+      style={{ animationDelay: `${Math.min(index, 8) * 80}ms` }}
+    >
+      <Link href={action?.href ?? `/contest/${c.slug}`} className="relative block h-44 shrink-0 overflow-hidden sm:h-auto sm:w-52 lg:w-60" tabIndex={-1} aria-hidden>
+        <BrandTile name={c.brandName} isPrivate={false} cover={c.cover} flat className="h-full w-full text-[1.8rem] transition-transform duration-500 group-hover:scale-105" />
+      </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           <StatusChip status={c.status as ChipStatus} label={t(`status.${c.status as ChipStatus}`)} />
           <PackagePill pkg={c.package} t={t} />
           <UpgradePills contest={c} t={t} />
         </div>
-        <h3 className="mt-2 truncate text-lg font-semibold text-ink sm:text-xl">
-          {isDraft ? c.brandName : (
-            <Link href={`/contest/${c.slug}`} className="hover:text-primary">
-              {c.brandName}
-            </Link>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-xl font-bold text-ink">{c.brandName}</h3>
+            <p className="text-sm text-muted">
+              {t(`wizard.businessTypes.${c.businessType}`)} · {dates.join(" · ")}
+            </p>
+          </div>
+          {!isDraft && (
+            <div className="hidden shrink-0 items-center gap-4 sm:flex">
+              {addonsButton}
+              <a href={`/contest/${c.slug}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-primary">
+                {t("dashboard.publicPage")} ↗
+              </a>
+            </div>
           )}
-        </h3>
-        <p className="text-sm text-muted">{t(`wizard.businessTypes.${c.businessType}`)}</p>
+        </div>
 
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
+        <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {facts.map((f) => (
-            <div key={f.label} className="flex min-w-0 flex-col-reverse">
+            <div key={f.label} className="flex min-w-0 flex-col-reverse rounded-xl bg-canvas px-3 py-2">
               <dt className="text-xs text-muted">{f.label}</dt>
-              <dd className={cx("truncate font-semibold tabular-nums text-ink", f.className)}>{f.value}</dd>
+              <dd className={cx("truncate font-bold tabular-nums text-ink", f.className)}>{f.value}</dd>
             </div>
           ))}
         </dl>
 
-        <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 sm:max-w-xs sm:flex-1">
-            {isDraft ? (
-              <p className="text-sm font-medium text-warning">{t("dashboard.draftNote")}</p>
-            ) : (
-              <StatusLine contest={c} now={now} t={t} locale={locale} />
-            )}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 sm:max-w-sm sm:flex-1">
+            {isDraft ? <p className="text-sm font-medium text-warning">{t("dashboard.draftNote")}</p> : <StatusLine contest={c} now={now} t={t} locale={locale} />}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {!isDraft && (
-              <ButtonLink href={`/contest/${c.slug}`} variant={action ? "secondary" : "primary"}>
-                {t("dashboard.actions.view")}
+          <div className="flex flex-wrap items-center gap-3">
+            {addonsButton && <span className="sm:hidden">{addonsButton}</span>}
+            {c.unrated > 0 && c.status === "open" && (
+              <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+                {c.unrated === 1 ? t("dashboard.attention.rateOne") : t("dashboard.attention.rate", { n: formatNumber(c.unrated, locale) })}
+              </span>
+            )}
+            {action && (
+              <ButtonLink href={action.href} className="shrink-0">
+                {t(action.label)} →
               </ButtonLink>
             )}
-            {action && <ButtonLink href={action.href}>{t(action.label)}</ButtonLink>}
           </div>
         </div>
       </div>

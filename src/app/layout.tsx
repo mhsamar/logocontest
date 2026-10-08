@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri, Instrument_Serif, Inter, Tiro_Bangla } from "next/font/google";
+import { PointerFx } from "@/components/layout/pointer-fx";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <SiteHeader />
             <main className="flex flex-1 flex-col">{children}</main>
             <SiteFooter />
+            <PointerFx />
           </ToastProvider>
         </I18nProvider>
       </body>

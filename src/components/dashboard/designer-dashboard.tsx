@@ -103,6 +103,21 @@ export async function DesignerDashboard({
       <Panel title={t("designerDash.share.title")} className="mt-5">
         <p className="-mt-2 mb-4 text-sm text-muted">{t("designerDash.share.subtitle")}</p>
         <ShareProfile url={profileUrl} qrSvg={qrSvg} qrDownloadHref={`/d/${designer.username}/qr?download=1`} name={designer.name} />
+        {/* Portfolio (owner, 2026-10-08): the public profile as a PDF, and where to edit it */}
+        <div className="mt-5 flex flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted">{t("portfolio.subtitle")}</p>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/dashboard/profile" className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-primary ring-1 ring-inset ring-line hover:ring-primary">
+              {t("portfolio.title")}
+            </Link>
+            <a href={`/d/${designer.username}/portfolio`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-white hover:bg-primary-dark">
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+              </svg>
+              {t("portfolio.downloadPdf")}
+            </a>
+          </div>
+        </div>
       </Panel>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
@@ -118,11 +133,21 @@ export async function DesignerDashboard({
             <ul className="divide-y divide-line">
               {contests.map((c) => (
                 <li key={c.slug} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <Link href={`/contest/${c.slug}`} className="block truncate font-semibold text-ink hover:text-primary">
-                      {c.brandName}
+                  <div className="flex min-w-0 items-center gap-3">
+                    {/* The designer's newest design in this contest (watermarked preview) */}
+                    <Link href={`/contest/${c.slug}?tab=entries`} className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-canvas ring-1 ring-line" aria-hidden tabIndex={-1}>
+                      {c.latestCoverUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.winningLogoUrl ?? c.latestCoverUrl} alt="" className="h-full w-full object-cover" />
+                      )}
+                      {c.won && <WinnerTrophy size="sm" className="absolute -right-0.5 -top-0.5 scale-75" />}
                     </Link>
-                    <p className="text-sm text-muted">{t("designerDash.myEntries", { count: formatNumber(c.myEntries, locale) })}</p>
+                    <div className="min-w-0">
+                      <Link href={`/contest/${c.slug}?tab=entries`} className="block truncate font-semibold text-ink hover:text-primary">
+                        {c.brandName}
+                      </Link>
+                      <p className="text-sm text-muted">{t("designerDash.myEntries", { count: formatNumber(c.myEntries, locale) })}</p>
+                    </div>
                   </div>
                   <StatusChip status={c.status as ChipStatus} label={t(`status.${c.status as ChipStatus}`)} />
                 </li>

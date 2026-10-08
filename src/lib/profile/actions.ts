@@ -19,6 +19,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { checkPayout, type PayoutInput } from "@/lib/designers/signup";
+import { EXPERIENCE_MAX, OTHER_MAX, isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { AVATAR_TYPES, AVATARS_BUCKET } from "./avatar";
 
 /** D-12 / C-20 profile settings (UI-JOURNEY, owner 2026-10-08). */
@@ -52,6 +53,39 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
   }
 
   const { error } = await createAdminClient().from("profiles").update(update).eq("id", user.id);
+  if (error) return fail("auth.errors.generic");
+  refresh();
+  return { status: "ok" };
+}
+
+/** D-12 Portfolio (owner, 2026-10-08): experience, skills and tools, each from a fixed list plus one "other". */
+export async function savePortfolio(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  const user = await me();
+  if (!user || user.role !== "designer") return fail("auth.errors.generic");
+
+  const yearsRaw = String(formData.get("experienceYears") ?? "").trim();
+  const years = yearsRaw === "" ? null : Number(yearsRaw);
+  if (years !== null && (!Number.isInteger(years) || years < 0 || years > EXPERIENCE_MAX)) return fail("portfolio.errors.years", "experienceYears", { max: EXPERIENCE_MAX });
+
+  const terms = await blockedTerms();
+  const other = (name: string): { value: string | null; error?: SettingsState } => {
+    const v = String(formData.get(name) ?? "").trim().replace(/\s+/g, " ");
+    if (!v) return { value: null };
+    if (v.length > OTHER_MAX) return { value: null, error: fail("portfolio.errors.otherLong", name, { max: OTHER_MAX }) };
+    if (findContactDetails(v, terms)) return { value: null, error: fail("contest.comments.contact", name) };
+    return { value: v };
+  };
+  const otherSkill = other("otherSkill");
+  if (otherSkill.error) return otherSkill.error;
+  const otherTool = other("otherTool");
+  if (otherTool.error) return otherTool.error;
+
+  const skills: string[] = [...new Set(formData.getAll("skills").map(String).filter(isSkillKey))];
+  const tools: string[] = [...new Set(formData.getAll("tools").map(String).filter(isToolKey))];
+  if (otherSkill.value) skills.push(otherSkill.value);
+  if (otherTool.value) tools.push(otherTool.value);
+
+  const { error } = await createAdminClient().from("profiles").update({ skills, tools, experience_years: years }).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
   refresh();
   return { status: "ok" };

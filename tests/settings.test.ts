@@ -50,7 +50,8 @@ describe("BLUEPRINT defaults", () => {
     expect(d("timers.client_response_days")).toBe(5);
     expect(d("limits.max_revision_requests")).toBe(2);
     expect(d("limits.withdrawal_min")).toBe(500);
-    expect([d("limits.entry_min_images"), d("limits.entry_max_images")]).toEqual([5, 10]);
+    expect([d("limits.entry_min_images"), d("limits.entry_max_images")]).toEqual([1, 8]); // owner, 2026-10-08
+    expect(d("limits.entry_image_min_px")).toBe(1000);
     expect(d("limits.max_entries_per_designer")).toBe(0); // unlimited
     expect(d("limits.approval_feedback_max_words")).toBe(120);
     expect(d("limits.false_flag_warnings_for_ban")).toBe(3);

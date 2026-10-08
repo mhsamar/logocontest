@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAddonPayment, settleAddonPayment } from "@/lib/contests/addon-payments";
 import { contestService } from "@/lib/contests/services";
 import { getFakeGateway } from "@/lib/payments";
 
@@ -8,6 +9,15 @@ export async function POST(request: NextRequest) {
 
   const form = await request.formData();
   const params = Object.fromEntries([...form.entries()].map(([k, v]) => [k, String(v)]));
+
+  // Add-ons and extensions bought after launch return to the contest's manage page (C-13b).
+  const verified = await getFakeGateway()!.verifyCallback(params);
+  if (verified && (await isAddonPayment(verified.paymentId))) {
+    const settled = await settleAddonPayment(verified);
+    const to = settled.slug ? `/dashboard/contests/${settled.slug}?payment=${settled.status}` : "/dashboard";
+    return NextResponse.redirect(new URL(to, request.url), 303);
+  }
+
   const result = await contestService().handleCallback(params);
 
   if (!result.ok) {

@@ -328,84 +328,85 @@ export function Wizard(props: WizardProps) {
             </button>
           </div>
 
-          <h1 className="text-h2 font-bold leading-tight tracking-tight text-ink lg:text-h2-lg">{t(`wizard.${key}.heading`)}</h1>
-          <p className="mb-6 mt-2 text-muted">
-            {t(`wizard.${key}.helper`, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}
-          </p>
+          {/* Each step slides in when it changes (UI-JOURNEY §1.5) */}
+          <div key={step} className="animate-step-in">
+            <h1 className="text-h2 font-bold leading-tight tracking-tight text-ink lg:text-h2-lg">{t(`wizard.${key}.heading`)}</h1>
+            <p className="mb-6 mt-2 text-muted">{t(`wizard.${key}.helper`, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}</p>
 
-          {step === 1 && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
-            <PreviousBriefs previous={props.previous} onUse={(b) => updateBrief({ ...b })} />
-          )}
+            {step === 1 && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
+              <PreviousBriefs previous={props.previous} onUse={(b) => updateBrief({ ...b })} />
+            )}
 
-          {step === 1 && <BrandStep {...briefProps} />}
-          {step === 2 && <BusinessStep {...briefProps} />}
-          {step === 3 && <WebsiteStep {...briefProps} />}
-          {step === 4 && <StylesStep {...briefProps} />}
-          {step === 5 && <ColorsStep {...briefProps} />}
-          {step === 6 && <LikesStep {...briefProps} />}
-          {step === 7 && (
-            <FilesStep
-              localFiles={state.localFiles}
-              serverFiles={serverFiles}
-              limits={props.fileLimits}
-              onChange={(localFiles) => setState({ ...state, localFiles })}
-              onRemoveServerFile={(id) =>
-                startBusy(async () => {
-                  if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
-                  setServerFiles((f) => f.filter((x) => x.id !== id));
-                })
-              }
-            />
-          )}
-          {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
-          {step === 9 && (
-            <AccountStep
-              mobile={state.mobile}
-              email={state.email}
-              onMobile={(mobile) => {
-                setState({ ...state, mobile });
-                setAccountError(null);
-              }}
-              onEmail={(email) => {
-                setState({ ...state, email });
-                setAccountError(null);
-                setTouchedAccount(true);
-              }}
-              mobileError={
-                accountError?.field === "mobile" && !accountError.taken
-                  ? accountError.message
-                  : state.mobile.trim().length >= 11 && !normalizeBdMobile(state.mobile)
-                    ? t("auth.errors.invalidPhone")
-                    : undefined
-              }
-              emailError={
-                accountError?.field === "email" && !accountError.taken
-                  ? accountError.message
-                  : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
-                    ? t("wizard.errors.email")
-                    : undefined
-              }
-              taken={Boolean(accountError?.taken)}
-            />
-          )}
-          {step === 10 && <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} />}
-          {step === 11 && price && (
-            <ReviewStep
-              brief={state.brief}
-              order={state.order}
-              price={price}
-              feePercent={props.pricing.serviceFeePercent}
-              name={name}
-              onName={setName}
-              method={method}
-              onMethod={setMethod}
-              terms={terms}
-              onTerms={setTerms}
-              uploads={uploads}
-              onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}
-              goTo={goToFromReview}
-            />
-          )}
+            {step === 1 && <BrandStep {...briefProps} />}
+            {step === 2 && <BusinessStep {...briefProps} />}
+            {step === 3 && <WebsiteStep {...briefProps} />}
+            {step === 4 && <StylesStep {...briefProps} />}
+            {step === 5 && <ColorsStep {...briefProps} />}
+            {step === 6 && <LikesStep {...briefProps} />}
+            {step === 7 && (
+              <FilesStep
+                localFiles={state.localFiles}
+                serverFiles={serverFiles}
+                limits={props.fileLimits}
+                onChange={(localFiles) => setState({ ...state, localFiles })}
+                onRemoveServerFile={(id) =>
+                  startBusy(async () => {
+                    if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
+                    setServerFiles((f) => f.filter((x) => x.id !== id));
+                  })
+                }
+              />
+            )}
+            {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
+            {step === 9 && (
+              <AccountStep
+                mobile={state.mobile}
+                email={state.email}
+                onMobile={(mobile) => {
+                  setState({ ...state, mobile });
+                  setAccountError(null);
+                }}
+                onEmail={(email) => {
+                  setState({ ...state, email });
+                  setAccountError(null);
+                  setTouchedAccount(true);
+                }}
+                mobileError={
+                  accountError?.field === "mobile" && !accountError.taken
+                    ? accountError.message
+                    : state.mobile.trim().length >= 11 && !normalizeBdMobile(state.mobile)
+                      ? t("auth.errors.invalidPhone")
+                      : undefined
+                }
+                emailError={
+                  accountError?.field === "email" && !accountError.taken
+                    ? accountError.message
+                    : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
+                      ? t("wizard.errors.email")
+                      : undefined
+                }
+                taken={Boolean(accountError?.taken)}
+              />
+            )}
+            {step === 10 && <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} />}
+            {step === 11 && price && (
+              <ReviewStep
+                brief={state.brief}
+                order={state.order}
+                price={price}
+                feePercent={props.pricing.serviceFeePercent}
+                name={name}
+                onName={setName}
+                method={method}
+                onMethod={setMethod}
+                terms={terms}
+                onTerms={setTerms}
+                uploads={uploads}
+                onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}
+                goTo={goToFromReview}
+              />
+            )}
+          </div>
 
           {error && (
             <div className="mt-6">
@@ -458,4 +459,3 @@ function PreviousBriefs({ previous, onUse }: { previous: WizardProps["previous"]
     </div>
   );
 }
-

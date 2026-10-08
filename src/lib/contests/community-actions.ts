@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
+import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSetting } from "@/lib/settings";
 import { PUBLIC_STATUSES } from "./browse";
 import { blockedTerms, contestForAction, deleteOwnComment, insertComment, setSaved } from "./community";
@@ -29,6 +30,7 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   if (findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
 
   await insertComment(contest.id, user!.id, body);
+  await notify([contest.ownerId, ...(await contestDesignerIds(contest.id))], "contest_comment", { brand: contest.brand }, `/contest/${contest.slug}?tab=comments`, user!.id);
   refresh();
   return { status: "ok" };
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
+import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { formatBdMobile } from "@/lib/phone";
 import { getCurrentUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/email";
@@ -21,7 +22,7 @@ export default async function ProfileSettingsPage() {
   if (user.role !== "designer" && user.role !== "client") notFound();
 
   const [{ data: profile }, s] = await Promise.all([
-    createAdminClient().from("profiles").select("name, bio, business_name, username").eq("id", user.id).single(),
+    createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years").eq("id", user.id).single(),
     getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
   ]);
   let payout: PayoutValues | null = null;
@@ -68,6 +69,11 @@ export default async function ProfileSettingsPage() {
             />
           </div>
         </Section>
+        {user.role === "designer" && (
+          <Section title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
+            <PortfolioForm skills={(profile?.skills ?? []) as string[]} tools={(profile?.tools ?? []) as string[]} experienceYears={(profile?.experience_years as number | null) ?? null} />
+          </Section>
+        )}
         {payout && (
           <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
             <PayoutForm initial={payout} />

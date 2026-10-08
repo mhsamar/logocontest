@@ -51,15 +51,24 @@ export function AvatarMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={label}
-        className="flex size-11 items-center justify-center rounded-full"
+        className="flex size-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105 active:scale-95"
       >
         <Avatar name={name} url={avatarUrl} className="size-9 text-sm" />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg bg-surface py-1 shadow-raised ring-1 ring-line animate-fade-in">
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-1 w-56 origin-top-right animate-pop-in overflow-hidden rounded-2xl bg-surface py-1 shadow-raised ring-1 ring-line"
+        >
           <p className="truncate border-b border-line px-4 py-2.5 text-sm font-medium text-ink">{name}</p>
-          {items.map((item) => (
-            <Link key={item.href} role="menuitem" href={item.href} className="flex min-h-11 items-center px-4 text-sm text-ink hover:bg-canvas">
+          {items.map((item, i) => (
+            <Link
+              key={item.href}
+              role="menuitem"
+              href={item.href}
+              className="flex min-h-11 animate-item-in items-center px-4 text-sm text-ink transition-[background-color,padding] duration-200 hover:bg-canvas hover:pl-5"
+              style={{ animationDelay: `${60 + i * 40}ms` }}
+            >
               {item.label}
             </Link>
           ))}

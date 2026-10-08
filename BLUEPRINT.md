@@ -11,7 +11,7 @@ Items marked **[CONFIRM]** are proposed defaults the owner has not confirmed yet
 logocontest.bd is a Bangladesh-only, logo-only design contest platform. All money is in BDT (whole taka, stored as integers).
 
 - A **client** fills in a brief, pays up front, and the contest goes live.
-- **Designers** submit logo entries (5 to 10 images each). A designer may submit as many entries to a contest as they like.
+- **Designers** submit logo entries (1 to 8 mockup images each, 1000×1000 px; owner 2026-10-08). A designer may submit as many entries to a contest as they like.
 - The client rates, comments, rejects, and finally picks one winner.
 - The winner delivers source files within 3 days, or the win is cancelled and the client picks another entry. After the client approves the files (with a star rating and short feedback), the prize (minus the designer fee) lands in the designer's wallet and can be withdrawn.
 - Clients and designers can never contact each other directly.
@@ -78,7 +78,7 @@ One account has one role. One mobile number and one email can each hold only one
 
 All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned integers in taka.
 
-**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at (stays empty while there is no OTP), email (unique, required for new accounts; was nullable), email_verified_at (set when the emailed code is entered), password, avatar_path, bio (designers, max 300), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
+**users**: role (client/designer/admin), name, username (unique; designers choose it, clients get one generated from their name and can change it), mobile (unique), mobile_verified_at (stays empty while there is no OTP), email (unique, required for new accounts; was nullable), email_verified_at (set when the emailed code is entered), password, avatar_path, bio (designers, max 300), skills (text[], designers), tools (text[], designers), experience_years (designers, 0–60, nullable), business_name (clients), status (active/suspended/banned), strikes (int), flag_warnings (int, false flags; 3 = ban), wins_count (int, all completed wins, shown on the profile), counted_wins_count (int, wins that count toward fee tiers and the leaderboard, §7.2), locale (en/bn, for SMS and notifications). In Supabase, `auth.users` holds the password and `public.profiles` holds the rest
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
@@ -88,11 +88,11 @@ Designers also get `rules_accepted_at` on users: when they ticked the Designer R
 
 **contest_files**: contest_id, type (example/current_logo), path, original_name
 
-**entries**: contest_id, designer_id, number (per-contest sequence), status (active/rejected/withdrawn/removed/winner/forfeited; forfeited = won but files not delivered in time), logo_story (50–600 chars), rating (1–5, nullable), is_shortlisted, reject_reason, reject_note, rejected_at, declarations (json), declared_ip, declared_at
+**entries**: contest_id, designer_id, number (per-contest sequence), status (active/rejected/withdrawn/removed/winner/forfeited; forfeited = won but files not delivered in time), logo_story (optional, up to 600 chars; owner 2026-10-08), rating (1–5, nullable), is_shortlisted, reject_reason, reject_note, rejected_at, declarations (json), declared_ip, declared_at
 
-**entry_images**: entry_id, slot (icon/full_logo/logo_story/facebook_cover/other/extra), position, original_path, preview_path, phash
+**entry_images**: entry_id, position (0 = cover), original_path, preview_path, phash, duplicate_of_entry_id (nullable, a near-duplicate found on upload, for admins). No fixed slots (owner, 2026-10-08)
 
-**entry_comments**: entry_id, user_id, body, parent_id (nullable), is_blocked (bool)
+**entry_comments**: entry_id, user_id, body, is_hidden (bool, set by an admin), deleted_at — the comment box on each design (§10)
 
 **contest_comments**: contest_id, user_id, body, is_hidden (bool, set by an admin), deleted_at — the public comment list on a contest (§10)
 
@@ -108,11 +108,13 @@ Designers also get `rules_accepted_at` on users: when they ticked the Designer R
 
 **withdrawals**: designer_id, payout_method_id, amount, status (requested/paid/rejected), paid_txn_id, processed_by, processed_at
 
-**reports**: reporter_id (client or designer), entry_id, reason (ai/copied/contact_info/other), evidence_image_path (similar logo, optional), evidence_urls (json, optional), note, status (open/upheld/dismissed), resolved_by
+**logo_scans** (owner, 2026-10-08): entry_id, requested_by, driver, full_matches (json), partial_matches (json), similar_images (json), pages (json), created_at
+
+**reports**: reporter_id (client or designer), entry_id, reason (copied/ai/trademark/contact_info/inappropriate/other; owner 2026-10-08), evidence_image_path (similar logo, optional), evidence_urls (json, optional, up to 5 links), note (up to 500 chars), status (open/upheld/dismissed/dismissed_false), resolved_by, resolved_at. One open report per person per design
 
 **strikes**: user_id, reason, entry_id (nullable), contest_id (nullable), issued_by, issuer_role (client/admin), created_at
 
-**notifications**: user_id, type, data (json), read_at
+**notifications**: user_id, type, data (json), link, read_at, created_at
 
 **push_subscriptions**: user_id, endpoint (unique), p256dh, auth, user_agent, last_used_at — one row per browser that allowed notifications
 
@@ -196,6 +198,11 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 | Private | Login required to view the brief, `noindex`, hidden from winners gallery and designer portfolios | 1,000 |
 | Promoted | Flag for admin to post it on the Facebook page/group; shown first in lists | 1,000 |
 | Extension | Bought while the contest is open; adds 3, 5 or 7 days to `ends_at`. Can be bought more than once | 500 per day added |
+| Logo Scan (owner, 2026-10-08) | Bought once per contest; the client can then scan any design in that contest as often as they like. The scan searches the web for the same or a visually similar image (behind a `LogoScanner` interface: `log` dev driver that searches nothing and says so; `google` driver = Google Cloud Vision Web Detection with the same API key as image moderation) and lists exact matches, partial matches, similar images and pages that show them. Results are stored per design (`logo_scans`) | 500 |
+
+**Add-ons after launch (owner, 2026-10-08):** while a contest is open the client can buy Promoted (shown as "Featured"), Private, Blind, Extension and Logo Scan from the contest's manage page. Each is a separate payment (`purpose` = `addon` or `extension`) through the same gateway; a paid callback applies it in one transaction (`confirm_addon_payment`). Blind bought after designs arrived hides them from other people from then on. An add-on already on the contest can't be bought again (Extension can). Add-on payments count toward the client's total spent but don't change the contest's original total.
+
+**Picking the winner early (owner, 2026-10-08):** the client may pick a winner while the contest is open or judging. Picking closes the contest at once: the entry becomes `winner`, the contest `winner_selected` (no more designs), and the winner's file deadline starts (handover, milestone 6).
 
 ### 7.5 No-result split
 
@@ -260,9 +267,9 @@ Full name, mobile (no OTP), email, password, bio, payout method (bKash number or
 
 ### 9.2 Submitting an entry
 
-- 5 required image slots: Icon, Full logo, Logo story, Facebook cover mockup, Other mockup. Up to 5 extra. Minimum 5, maximum 10 images.
-- JPG/PNG/WebP, max 5 MB each, minimum 1000 px on the short side
-- Logo story text, 50–600 characters
+- Owner, 2026-10-08: **1 to 8 mockup images** per entry, no fixed slots; the first image is the cover. Every image is stored at **1000×1000 px**. Any image the designer picks is fitted into 1000×1000 automatically in the browser (owner, 2026-10-08: no crop tool and no "too small" error): the whole image is kept and centred, small images are scaled up, and the spare edges take the image's own background colour (white for transparent images). The server checks again: every stored image must be exactly 1000×1000.
+- JPG/PNG/WebP, max 5 MB each
+- No logo story (owner, 2026-10-08: removed from the form; the `logo_story` column stays empty)
 - No limit on entries per designer per contest. When the client asks for changes in a comment, the designer answers by submitting a new entry
 - On upload: store the original privately, generate a preview (max 1200 px) with a tiled "logocontest.bd #entry" watermark, compute a perceptual hash and flag near-duplicates of existing entries for admin
 
@@ -282,7 +289,9 @@ The winner uploads AI, EPS, SVG, PDF, transparent PNG and JPG files plus font na
 
 ### 9.4 Public profile (`/d/{username}`)
 
-Shows only: name, bio, photo, badges, win count, **total earned** (public: sum of `prize_credit`, `split_share` and `bonus` wallet transactions, after fees), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
+Shows only: name, bio, photo, badges, **portfolio details** (owner, 2026-10-08: years of experience, skills, tools — chosen from fixed lists plus one "other" of each, no contact details), win count, **total earned** (public: sum of `prize_credit`, `split_share` and `bonus` wallet transactions, after fees), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
+
+**Portfolio (owner, 2026-10-08):** the public profile is the designer's portfolio. Anyone can share its link or download it as a **PDF** (`/d/[username]/portfolio`, made on our server with pdf-lib): photo, name, username, bio, experience, skills, tools, wins and designs, up to 12 public contest designs with their contest names, the profile link and its QR code. The portfolio shows only designs submitted to contests on this site (no outside uploads). PDF text uses the Latin font, so a bio written in Bangla is left out of the PDF until a Bangla font is added.
 
 ### 9.5 Wallet page
 
@@ -290,10 +299,9 @@ Available balance, pending (won but not yet approved), current fee rate with pro
 
 ## 10. Comments and the no-contact filter
 
-- Each entry has one thread visible only to that client, that designer, and admins.
+- **Design comments (owner, 2026-10-08):** each entry has one comment box. Everyone who can see the entry can read it. The contest's own client and designers who have submitted to that contest can post (in a blind contest only the client and that entry's designer, since nobody else sees it). Same rules as contest comments: 500 characters (setting), the no-contact filter (no mobile numbers, email addresses or social names), authors can delete their own comments, admins can hide any.
 - **Contest comments (owner, 2026-10-08):** every contest also has one public comment list (the **Comments** tab). Anyone who can see the contest can read it. Only the contest's own client and designers (signed in with a designer account; their username is shown) can post, for example "Nice designs, good job" or "Entry #12 looks copied from …". Up to 500 characters (setting), the no-contact filter applies, authors can delete their own comments and admins can hide any. Pointing out a copy here does not replace the formal **Report** flag (§9).
 - **Saved contests (owner, 2026-10-08):** designers can save (heart) any contest they can see, from the list or the contest page, and find them again under **Saved contests** in their dashboard.
-- Turns alternate: the client comments, the designer may reply once, and so on.
 - Run the filter on comments, bios, logo stories, brief text and file names. Block the submission and show: "Contact details are not allowed."
 
 The filter must catch:
@@ -342,6 +350,14 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 | Strike received (with reason) | Designer | Yes |
 | False-flag warning | Flagger | Yes |
 | Rating given | Designer | No |
+| Brief edited by the client (owner, 2026-10-08) | Designers who submitted to the contest | No |
+| New design submitted (owner, 2026-10-08: in-app at once) | Client | No |
+| Comment on a design | The contest's client and that design's designer (not the author) | No |
+| Comment on the contest | The client and designers who submitted (not the author) | No |
+| Design rejected (with reason) | Designer | No |
+| Winner picked | The winner ("You won!") and the other designers ("A winner was picked") | No |
+
+**In-app notifications (owner, 2026-10-08):** a bell in the header with the unread count opens the latest ones; each one links to the place it is about; "Mark all as read"; `/notifications` lists them all. Stored in `notifications` (user_id, type, data json, link, read_at).
 | New comment or reply | Other party | Email |
 | Entry rejected (with reason) | Designer | No |
 | You won | Designer | Yes |

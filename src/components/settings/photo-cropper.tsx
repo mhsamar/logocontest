@@ -17,15 +17,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Crops and shrinks in the browser, so a photo of any size uploads as a small square file. */
-export async function cropToBlob(src: string, area: Area): Promise<Blob> {
+/** Crops and resizes in the browser, so an image of any size uploads as a square file of `output` px. */
+export async function cropToBlob(src: string, area: Area, output = OUTPUT, quality = 0.9): Promise<Blob> {
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = OUTPUT;
+  canvas.width = canvas.height = output;
   const ctx = canvas.getContext("2d")!;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, OUTPUT, OUTPUT);
-  const as = (type: string) => new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.9));
+  ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, output, output);
+  const as = (type: string) => new Promise<Blob | null>((r) => canvas.toBlob(r, type, quality));
   // WebP where the browser can make it, otherwise JPEG.
   const webp = await as("image/webp");
   if (webp && webp.type === "image/webp") return webp;

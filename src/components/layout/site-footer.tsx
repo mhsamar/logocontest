@@ -76,7 +76,7 @@ export async function SiteFooter() {
       links: [
         { href: "/designers/signup", label: t("nav.becomeDesigner") },
         { href: "/how-it-works?for=designers", label: t("footer.howDesigners") },
-        { href: "/login", label: t("nav.login") },
+        { href: "/login?as=designer", label: t("nav.login") },
       ],
     },
     { title: t("footer.legal"), links: LEGAL_NAV.map((item) => ({ href: item.href, label: t(item.label) })) },
@@ -84,7 +84,7 @@ export async function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-line">
-      <div className="mx-auto grid max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="reveal mx-auto grid max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 max-w-xs lg:col-span-1">
           <Wordmark />
           <p className="mt-3 text-sm leading-relaxed text-muted">{t("footer.blurb")}</p>

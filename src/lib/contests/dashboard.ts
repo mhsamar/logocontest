@@ -1,5 +1,6 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
+import { leadingDesigns, type ContestCover } from "@/lib/entries/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BusinessType, PackageKey } from "./brief";
 import { countEntries } from "./browse";
@@ -36,6 +37,7 @@ export type DashboardContest = {
   isBlind: boolean;
   isPrivate: boolean;
   isPromoted: boolean;
+  logoScan: boolean;
   createdAt: Date;
   startsAt: Date | null;
   endsAt: Date | null;
@@ -43,6 +45,10 @@ export type DashboardContest = {
   completedAt: Date | null;
   entries: number;
   designers: number;
+  /** The leading design (winner, best rated or newest), shown instead of the brand letter. */
+  cover: ContestCover | null;
+  /** Active designs the client hasn't rated yet (owner, 2026-10-08: "needs your attention"). */
+  unrated: number;
   /** TODO(milestone 5): the winning entry's logo and designer once winners can be picked. */
   winner: { logoUrl: string; designer: string } | null;
 };
@@ -69,7 +75,7 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     db
       .from("contests")
       .select(
-        "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, created_at, starts_at, ends_at, judging_ends_at, completed_at",
+        "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, logo_scan, created_at, starts_at, ends_at, judging_ends_at, completed_at",
       )
       .eq("client_id", userId)
       .order("created_at", { ascending: false }),
@@ -88,7 +94,20 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
   }
 
   const list = rows ?? [];
-  const entries = await countEntries(list.map((r) => r.id as string));
+  const [entries, covers, entryRows] = await Promise.all([
+    countEntries(list.map((r) => r.id as string)),
+    // The client's own contests: blind and private ones show their designs too.
+    leadingDesigns(list.map((r) => ({ id: r.id as string, isBlind: r.is_blind as boolean, isPrivate: r.is_private as boolean })), true),
+    list.length
+      ? db.from("entries").select("contest_id, designer_id, rating, status").in("contest_id", list.map((r) => r.id as string)).in("status", ["active", "winner", "forfeited"])
+      : Promise.resolve({ data: [] as { contest_id: string; designer_id: string; rating: number | null; status: string }[] }),
+  ]);
+  const designersBy = new Map<string, Set<string>>();
+  const unratedBy = new Map<string, number>();
+  for (const e of (entryRows.data ?? []) as { contest_id: string; designer_id: string; rating: number | null; status: string }[]) {
+    designersBy.set(e.contest_id, (designersBy.get(e.contest_id) ?? new Set()).add(e.designer_id));
+    if (e.status === "active" && !e.rating) unratedBy.set(e.contest_id, (unratedBy.get(e.contest_id) ?? 0) + 1);
+  }
   const contests: DashboardContest[] = list.map((r) => ({
     id: r.id,
     slug: r.slug,
@@ -103,13 +122,16 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     isBlind: r.is_blind,
     isPrivate: r.is_private,
     isPromoted: r.is_promoted,
+    logoScan: Boolean(r.logo_scan),
     createdAt: new Date(r.created_at),
     startsAt: date(r.starts_at),
     endsAt: date(r.ends_at),
     judgingEndsAt: date(r.judging_ends_at),
     completedAt: date(r.completed_at),
     entries: entries.get(r.id) ?? 0,
-    designers: 0, // TODO(milestone 4): distinct designers with entries
+    designers: designersBy.get(r.id)?.size ?? 0,
+    cover: covers.get(r.id) ?? null,
+    unrated: unratedBy.get(r.id) ?? 0,
     winner: null,
   }));
 

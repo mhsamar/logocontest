@@ -74,7 +74,7 @@ export async function ContestComments({
 
       <div className="mt-6 rounded-lg bg-surface p-4 ring-1 ring-line sm:p-5">
         {canComment ? (
-          <CommentForm contestId={contestId} maxLength={maxLength} />
+          <CommentForm target={{ kind: "contest", contestId }} maxLength={maxLength} />
         ) : (
           <div className="flex flex-col items-center gap-3 py-2 text-center sm:flex-row sm:justify-between sm:text-left">
             <p className="text-sm text-muted">{loginHref ? t("contest.comments.loginToComment") : t("contest.comments.notAllowed")}</p>

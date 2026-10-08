@@ -1,6 +1,8 @@
 import { cx } from "@/lib/cx";
 import type { ContestRow } from "@/lib/contests/browse";
 import type { PackageKey } from "@/lib/contests/brief";
+import { WinnerTrophy } from "@/components/ui/trophy";
+import type { ContestCover } from "@/lib/entries/queries";
 import { formatDate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
@@ -16,11 +18,33 @@ export function LockIcon({ className = "size-4" }: { className?: string }) {
 }
 
 /**
- * Square tile standing in for the contest's logo: the brand's first letter, or
- * a lock for private contests. TODO(milestone 4): the leading or winning entry.
+ * The contest's picture (owner, 2026-10-08): its leading design (the winner gets a
+ * small trophy), else the brand's first letter, or a lock for private contests.
  */
-export function BrandTile({ name, isPrivate, flat, className }: { name: string; isPrivate: boolean; flat?: boolean; className?: string }) {
+export function BrandTile({
+  name,
+  isPrivate,
+  cover,
+  flat,
+  className,
+}: {
+  name: string;
+  isPrivate: boolean;
+  cover?: ContestCover | null;
+  flat?: boolean;
+  className?: string;
+}) {
   const letter = name.trim().charAt(0).toUpperCase() || "•";
+  if (cover && !isPrivate) {
+    return (
+      <div className={cx("relative shrink-0 overflow-hidden bg-white", !flat && "rounded-lg ring-1 ring-inset ring-line", className)} aria-hidden>
+        {/* Watermarked preview from storage */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cover.url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        {cover.isWinner && <WinnerTrophy size="sm" className="absolute right-2 top-2" />}
+      </div>
+    );
+  }
   return (
     <div
       className={cx(
@@ -36,6 +60,10 @@ export function BrandTile({ name, isPrivate, flat, className }: { name: string; 
     </div>
   );
 }
+
+/** Prize amount in metallic gold (owner, 2026-10-08: the flat amber wasn't eye-catching). */
+/** Gold prize amount with a shine that sweeps across (globals.css, UI-JOURNEY §1.5). */
+export const PRIZE_TEXT = "prize-text";
 
 /** Contest name for public lists: private contests never show theirs. */
 export function contestTitle(c: Pick<ContestRow, "brandName" | "isPrivate">, t: Translate) {
@@ -117,7 +145,7 @@ export function StatusLine({
           {ms <= 0 ? t("home.card.ended") : soon ? t("home.card.hoursLeft", { hours: left.hours }) : t("home.card.daysLeft", { days: left.days })}
         </p>
         <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-line" aria-hidden>
-          <div className={cx("h-full rounded-full", soon ? "bg-warning" : "bg-primary")} style={{ width: `${Math.round(done * 100)}%` }} />
+          <div className={cx("bar-fill h-full rounded-full", soon ? "bg-warning" : "bg-primary")} style={{ width: `${Math.round(done * 100)}%` }} />
         </div>
       </div>
     );

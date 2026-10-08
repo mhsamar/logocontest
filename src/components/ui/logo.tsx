@@ -1,20 +1,24 @@
+/* eslint-disable @next/next/no-img-element */
+import { cx } from "@/lib/cx";
+
+/**
+ * The owner's logo pack (owner, 2026-10-08), files in public/brand/:
+ * logo-full(-white).png is the "lc LOGO CONTEST.bd" lockup, logo-icon(-white).png the
+ * "lc" mark, and logo-icon-tile.png the white mark on a maroon square (app icon).
+ * "inverted" picks the white files for dark backgrounds.
+ */
 export function LogoMark({ className = "size-8", inverted = false }: { className?: string; inverted?: boolean }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="9" fill={inverted ? "var(--color-primary)" : "var(--color-ink)"} />
-      <circle cx="16" cy="14.5" r="7" fill="var(--color-cream)" />
-      <path d="M9.5 23.5h13" stroke={inverted ? "var(--color-cream)" : "var(--color-primary)"} strokeWidth="2.6" strokeLinecap="round" />
-    </svg>
-  );
+  return <img src={inverted ? "/brand/logo-icon-white.png" : "/brand/logo-icon.png"} alt="" className={cx("object-contain", className)} aria-hidden />;
 }
 
-export function Wordmark({ inverted = false }: { inverted?: boolean }) {
+export function Wordmark({ inverted = false, className }: { inverted?: boolean; className?: string }) {
   return (
-    <span className={`flex items-center gap-2 text-[1.0625rem] font-bold tracking-tight ${inverted ? "text-white" : "text-ink"}`}>
-      <LogoMark inverted={inverted} />
-      <span>
-        logocontest<span className={inverted ? "text-cream" : "text-primary"}>.bd</span>
-      </span>
-    </span>
+    <img
+      src={inverted ? "/brand/logo-full-white.png" : "/brand/logo-full.png"}
+      alt="logocontest.bd"
+      width={501}
+      height={74}
+      className={cx("h-7 w-auto sm:h-9", className)}
+    />
   );
 }

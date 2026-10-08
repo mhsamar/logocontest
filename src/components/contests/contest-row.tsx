@@ -3,7 +3,8 @@ import type { ContestRow as Row } from "@/lib/contests/browse";
 import { timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
-import { BrandTile, PackagePill, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
+import { cx } from "@/lib/cx";
+import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
 import { SaveButton } from "./save-button";
 
 /**
@@ -21,12 +22,12 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg bg-surface shadow-card ring-1 ring-line transition-shadow hover:shadow-raised sm:flex-row">
       <div className="hidden w-40 shrink-0 sm:flex lg:w-48">
-        <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} flat className="h-full w-full text-[1.6rem]" />
+        <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} flat className="h-full w-full text-[1.6rem]" />
       </div>
 
       <div className="min-w-0 flex-1 p-4 sm:p-5">
         <div className="flex items-start gap-3">
-          <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} className="size-16 text-[0.9rem] sm:hidden" />
+          <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} className="size-16 text-[0.9rem] sm:hidden" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
               <h3 className="min-w-0 text-base font-semibold text-ink group-hover:text-primary sm:text-lg">
@@ -49,7 +50,7 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
         <dl className="grid grid-cols-2 gap-2">
           <div className="flex flex-col-reverse rounded-md bg-canvas px-3 py-2.5 text-center">
             <dt className="mt-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted">{t(`wizard.packages.${contest.package}.name`)}</dt>
-            <dd className="text-xl font-bold leading-tight text-accent tabular-nums">{formatTaka(contest.prize, locale)}</dd>
+            <dd className={cx("text-xl font-extrabold leading-tight tabular-nums", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</dd>
           </div>
           <div className="flex flex-col-reverse rounded-md bg-canvas px-3 py-2.5 text-center">
             <dt className="mt-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted">{t("contest.stats.designs")}</dt>

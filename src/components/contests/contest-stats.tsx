@@ -4,6 +4,8 @@ import { contestTimeline } from "@/lib/contests/browse-query";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { TrophyIcon } from "@/components/ui/trophy";
+import { PRIZE_TEXT } from "./contest-bits";
 import { timeLeft } from "./countdown-pill";
 
 /** P-03 stats card: designs, prize, time left, then the three-step timeline. */
@@ -21,22 +23,33 @@ export async function ContestStats({ contest, judgingDays, now, action }: { cont
   }
 
   const stats = [
-    { label: t("contest.stats.designs"), value: formatNumber(contest.entries, locale), className: "text-ink" },
-    { label: t("contest.stats.prize"), value: formatTaka(contest.prize, locale), className: "text-accent" },
-    { label: t("contest.stats.timeLeft"), value: left, className: "text-ink" },
+    { label: t("contest.stats.designs"), value: formatNumber(contest.entries, locale), prize: false },
+    { label: t("contest.stats.prize"), value: formatTaka(contest.prize, locale), prize: true },
+    { label: t("contest.stats.timeLeft"), value: left, prize: false },
   ];
 
   return (
     <div className="rounded-xl bg-frame p-5 ring-1 ring-line">
       <h2 className="text-sm font-semibold text-ink">{t("contest.stats.title")}</h2>
-      <dl className="mt-3 grid grid-cols-3 gap-3">
-        {stats.map((s) => (
+      <dl className="mt-3 grid grid-cols-2 items-center gap-3 sm:grid-cols-[1fr_1.35fr_1fr]">
+        {stats.map((s) =>
           // Label after the value on screen, but first in the markup (dt before dd).
-          <div key={s.label} className="flex min-w-0 flex-col-reverse">
-            <dt className="mt-0.5 text-xs text-muted">{s.label}</dt>
-            <dd className={cx("text-lg font-bold leading-tight tabular-nums sm:text-2xl", s.className)}>{s.value}</dd>
-          </div>
-        ))}
+          s.prize ? (
+            // The prize stands out in a soft gold panel (owner, 2026-10-08).
+            <div key={s.label} className="relative order-first col-span-2 flex min-w-0 flex-col-reverse overflow-hidden rounded-xl sm:order-none sm:col-span-1 prize-glow bg-gradient-to-br from-[#fff9e8] via-[#fff0c7] to-[#ffe2a0] px-3 py-2.5 shadow-card ring-1 ring-[#f1c75c]/70">
+              <dt className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-[#8a5105]">
+                <TrophyIcon className="size-4" />
+                {s.label}
+              </dt>
+              <dd className={cx("truncate text-2xl font-extrabold leading-tight tabular-nums sm:text-[1.65rem]", PRIZE_TEXT)}>{s.value}</dd>
+            </div>
+          ) : (
+            <div key={s.label} className="flex min-w-0 flex-col-reverse">
+              <dt className="mt-0.5 text-xs text-muted">{s.label}</dt>
+              <dd className="text-lg font-bold leading-tight text-ink tabular-nums sm:text-2xl">{s.value}</dd>
+            </div>
+          ),
+        )}
       </dl>
 
       <h3 className="mt-6 text-xs font-semibold uppercase tracking-wider text-muted">{t("contest.timeline.title")}</h3>
@@ -45,35 +58,33 @@ export async function ContestStats({ contest, judgingDays, now, action }: { cont
         {phases.map((p, i) => {
           const next = phases[i + 1];
           return (
-            <li key={p.key} className="relative min-w-0 pr-3">
-              <div className="flex items-center">
-                <span
-                  className={cx(
-                    "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                    p.state === "done" && "bg-success text-white",
-                    p.state === "active" && "bg-primary text-white ring-4 ring-primary/15",
-                    p.state === "upcoming" && "bg-surface text-muted ring-2 ring-inset ring-line",
-                  )}
-                  aria-hidden
-                >
-                  {p.state === "done" ? (
-                    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    formatNumber(i + 1, locale)
-                  )}
+            <li key={p.key} className="relative min-w-0 px-1 text-center">
+              {next && (
+                // Line from this dot's centre to the next one's; it fills while this step is running.
+                <span className="absolute left-1/2 top-3 h-1 w-full overflow-hidden rounded-full bg-line" aria-hidden>
+                  <span
+                    className={cx("block h-full rounded-full", p.state === "done" ? "bg-success" : "bg-primary")}
+                    style={{ width: `${Math.round(p.progress * 100)}%` }}
+                  />
                 </span>
-                {next && (
-                  // Line to the next dot; it fills while this step is running.
-                  <span className="-mr-3 ml-1.5 h-1 flex-1 overflow-hidden rounded-full bg-line" aria-hidden>
-                    <span
-                      className={cx("block h-full rounded-full", p.state === "done" ? "bg-success" : "bg-primary")}
-                      style={{ width: `${Math.round(p.progress * 100)}%` }}
-                    />
-                  </span>
+              )}
+              <span
+                className={cx(
+                  "relative z-10 mx-auto flex size-7 items-center justify-center rounded-full text-xs font-bold",
+                  p.state === "done" && "bg-success text-white",
+                  p.state === "active" && "bg-primary text-white ring-4 ring-primary/15",
+                  p.state === "upcoming" && "bg-surface text-muted ring-2 ring-inset ring-line",
                 )}
-              </div>
+                aria-hidden
+              >
+                {p.state === "done" ? (
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  formatNumber(i + 1, locale)
+                )}
+              </span>
               <p className={cx("mt-2.5 text-sm font-semibold leading-snug", p.state === "upcoming" ? "text-muted" : "text-ink")}>
                 {t(`contest.timeline.${p.key}`)}
               </p>
