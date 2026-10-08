@@ -116,3 +116,9 @@ export async function savedContestIdList(userId: string, limit: number): Promise
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => r.contest_id as string);
 }
+
+export async function countSaved(userId: string): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  const { count } = await createAdminClient().from("contest_favorites").select("contest_id", { count: "exact", head: true }).eq("user_id", userId);
+  return count ?? 0;
+}

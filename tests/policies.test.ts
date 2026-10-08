@@ -10,6 +10,8 @@ const user = (over: Partial<CurrentUser>): CurrentUser => ({
   locale: "en",
   email: null,
   emailVerifiedAt: null,
+  username: null,
+  avatarUrl: null,
   ...over,
 });
 

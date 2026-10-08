@@ -67,7 +67,7 @@ Loading (skeletons, not spinners, for lists and grids), empty, error with a retr
 
 ### 2.1 Header
 
-- **Guest:** Logo | Browse Contests | How It Works | Call: 01712028511 | Log In. Language toggle (EN / বাংলা) sits at the far right.
+- **Guest:** Logo | Browse Contests | How It Works | Call: 01712028511 | **Become a designer** (outline button, owner 2026-10-08, opens `D-01`) | Log In. Language toggle (EN / বাংলা) sits at the far right. On phones, **Become a designer** is a full-width button in the menu under Log In.
 - **Client logged in:** Log In is replaced by an avatar menu: Dashboard, Create Contest, Payments, Profile, Log out.
 - **Designer logged in:** avatar menu: Dashboard, My Entries, Wallet, My Profile, Log out. A bell icon with unread count sits next to the avatar for both roles.
 - **Mobile:** logo left, bell and hamburger right. The phone number is a tap-to-call link inside the menu, and the language toggle sits at the bottom of the menu.
@@ -290,11 +290,16 @@ Four short screens with a stepper:
 
 1. Full name, mobile (no OTP)
 2. Email, password
-3. Username (live availability check, shows the profile link preview), bio with counter, optional photo
-4. Payout method: tabs bKash | Bank. Then the Designer Rules in five bullets with a required checkbox. Button **Create account**.
+3. Username (live availability check, shows the profile link preview), bio with counter (300 characters, no-contact filter), optional photo (for now added later from My profile, since photo uploads come with `D-12`)
+4. Payout method: tabs bKash (number) | Bank (bank name, account name, account number; branch and routing number optional). Then the Designer Rules in five bullets (original work only; no AI logos; no contact with clients; deliver the source files on time; copying means a permanent ban) with a required checkbox. Button **Create account**: like client sign-up it asks for browser notification permission, sends the welcome push and the 6-digit email code, signs the designer in and opens **Browse Contests**.
+
+Usernames: 3–20 characters, lowercase letters, digits and underscores, starting with a letter; unique ignoring case; words like admin, support, logocontest are reserved. The URL `/designers/signup` is linked from the header and from "I'm a designer" on `P-11`.
 
 ### D-02 Designer dashboard
 
+- **Profile panel (owner, 2026-10-08):** photo (or initial), name, @username, member since, **Edit profile** and **Browse contests** buttons, and four stats: contests entered, designs submitted, wins, total earned.
+- **Share your profile (owner, 2026-10-08):** the public profile link (`/d/{username}`) with **Copy link**, Facebook and WhatsApp share buttons (and the phone's own share sheet where available), and the QR code with **Download QR** (PNG), so the designer can put their profile on other sites and cards.
+- **My contests:** every contest the designer submitted to, with their entries count there and the contest status; **Wins** lists the contests they won with the winning logo. Both show an empty state with **Browse contests** until there are entries.
 - Top card: wallet balance, current fee ("7% fee · 2 more wins to reach 5%") with a progress bar, wins count.
 - **Needs your attention:** new client comments, revision requests, files due.
 - **Open contests for you:** contest cards, with filter chips (Ending soon, Highest prize, Not entered).
@@ -352,6 +357,8 @@ Amount input with a "Max" shortcut, payout method selector, summary, and **Reque
 ### D-12 My profile (edit)
 
 Edit photo, name, bio; preview of the public profile; **Share profile** with QR; payout methods; change password.
+
+Owner, 2026-10-08: the settings page (`/dashboard/profile`, used by clients for `C-20` too) has sections **Profile** (photo upload JPG/PNG/WebP up to 2 MB with remove, name, bio for designers, business name for clients; username shown read-only with the profile link), **Mobile number** (Bangladesh format, must be unused), **Email** (changing it asks for the 6-digit code again) and **Password** (current password, then the new one).
 
 ---
 

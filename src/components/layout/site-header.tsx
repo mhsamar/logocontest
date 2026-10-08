@@ -21,8 +21,9 @@ import { GUEST_NAV } from "./nav-items";
 function accountItems(user: CurrentUser, t: Translate) {
   const items: { href: string; label: string }[] = [];
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
-  if (user.role === "client") items.push({ href: "/dashboard", label: t("nav.dashboard") });
+  if (user.role !== "admin") items.push({ href: "/dashboard", label: t("nav.dashboard") });
   if (can(user, "contest.save")) items.push({ href: "/dashboard/saved", label: t("nav.saved") });
+  if (user.role !== "admin") items.push({ href: "/dashboard/profile", label: t("nav.profile") });
   return items;
 }
 
@@ -56,28 +57,44 @@ export async function SiteHeader() {
           <Wordmark />
         </Link>
 
-        {/* Desktop: links centred, account and language on the right */}
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex" aria-label={t("nav.main")}>
+        {/* Desktop: links next to the logo (centred from 1280px), account and language on the right */}
+        <nav className="hidden items-center gap-1 lg:ml-4 lg:flex xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2" aria-label={t("nav.main")}>
           {links.map((link) => (
             <Link key={link.href} href={link.href} className={NAV_LINK}>
               {link.label}
             </Link>
           ))}
-          <a href={SUPPORT_PHONE_HREF} className={NAV_LINK}>
-            {callLabel}
-          </a>
+          {/* Hidden between 1024 and 1280px so the guest buttons fit; the number is also in the hero and footer. */}
+          <span className="hidden xl:flex">
+            <a href={SUPPORT_PHONE_HREF} className={NAV_LINK}>
+              {callLabel}
+            </a>
+          </span>
         </nav>
         <div className="ml-auto hidden items-center gap-2 lg:flex">
           {toggle}
           {user ? (
-            <AvatarMenu name={user.name} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm("menu")} />
+            <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm("menu")} />
           ) : (
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 items-center rounded-md bg-ink px-5 text-[0.9375rem] font-semibold text-white transition-colors hover:bg-primary-dark"
-            >
-              {t("nav.login")}
-            </Link>
+            <>
+              <Link
+                href="/designers/signup"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md px-4 text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line transition-colors hover:bg-surface hover:ring-primary"
+              >
+                <svg viewBox="0 0 24 24" className="size-4 text-primary" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M15.7 21.3a1 1 0 0 1-1.4 0l-1.6-1.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4Z" strokeLinejoin="round" />
+                  <path d="m18 13-1.4-6.9a1 1 0 0 0-.7-.8L3.2 2a1 1 0 0 0-1.2 1.2l3.3 12.7a1 1 0 0 0 .8.7L13 18M2.3 2.3l7.3 7.3" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="11" cy="11" r="2" />
+                </svg>
+                {t("nav.becomeDesigner")}
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex min-h-11 items-center rounded-md bg-ink px-5 text-[0.9375rem] font-semibold text-white transition-colors hover:bg-primary-dark"
+              >
+                {t("nav.login")}
+              </Link>
+            </>
           )}
         </div>
 
@@ -101,9 +118,14 @@ export async function SiteHeader() {
                 {logoutForm("block")}
               </>
             ) : (
-              <ButtonLink href="/login" size="lg" block>
-                {t("nav.login")}
-              </ButtonLink>
+              <>
+                <ButtonLink href="/login" size="lg" block>
+                  {t("nav.login")}
+                </ButtonLink>
+                <ButtonLink href="/designers/signup" variant="secondary" size="lg" block>
+                  {t("nav.becomeDesigner")}
+                </ButtonLink>
+              </>
             )}
             <div className="flex justify-center pt-1">{toggle}</div>
           </MobileMenu>

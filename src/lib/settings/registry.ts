@@ -136,6 +136,14 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(50), default: 500,
     description: "Characters allowed in one public contest comment.",
   },
+  "limits.designer_bio_max_length": {
+    group: "limits", type: "int", schema: int(50), default: 300,
+    description: "Characters allowed in a designer's bio.",
+  },
+  "limits.avatar_max_mb": {
+    group: "limits", type: "int", schema: int(1), default: 2,
+    description: "Largest profile photo in MB (the storage bucket also caps it at 2 MB).",
+  },
   "limits.max_revision_requests": {
     group: "limits", type: "int", schema: int(), default: 2,
     description: "Change requests a client can make during handover.",

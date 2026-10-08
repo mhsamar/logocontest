@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <Link href="/start" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
             {t("auth.login.wantLogo")}
           </Link>
-          <Link href="/designers" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
+          <Link href="/designers/signup" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
             {t("auth.login.imDesigner")}
           </Link>
         </div>

@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ClientContestCard } from "@/components/dashboard/client-contest-card";
+import { DesignerDashboard } from "@/components/dashboard/designer-dashboard";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
+import { countSaved } from "@/lib/contests/community";
 import { DASHBOARD_TABS, getClientDashboard, type DashboardTab } from "@/lib/contests/dashboard";
+import { designerById, designerContests } from "@/lib/designers/profile";
+import { siteOrigin } from "@/lib/email";
+import { qrSvg } from "@/lib/profile/qr";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -21,8 +26,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   if (!user) redirect("/login?next=/dashboard");
-  // Designers have their own dashboard (D-02); until it is built, their saved contests.
-  if (can(user, "contest.save")) redirect("/dashboard/saved");
+  // Designers have their own dashboard (D-02).
+  if (user.role === "designer") {
+    const designer = await designerById(user.id);
+    if (!designer) notFound();
+    const profileUrl = `${await siteOrigin()}/d/${designer.username}`;
+    const [contests, savedCount, qr] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl)]);
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} />;
+  }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Avatar } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -10,11 +11,13 @@ import { useEffect, useRef, useState } from "react";
  */
 export function AvatarMenu({
   name,
+  avatarUrl,
   label,
   items,
   footer,
 }: {
   name: string;
+  avatarUrl: string | null;
   label: string;
   items: { href: string; label: string }[];
   footer: React.ReactNode;
@@ -40,13 +43,6 @@ export function AvatarMenu({
     };
   }, [open]);
 
-  const initials = name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
     <div ref={ref} className="relative">
       <button
@@ -57,9 +53,7 @@ export function AvatarMenu({
         aria-label={label}
         className="flex size-11 items-center justify-center rounded-full"
       >
-        <span className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary-dark">
-          {initials || "?"}
-        </span>
+        <Avatar name={name} url={avatarUrl} className="size-9 text-sm" />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg bg-surface py-1 shadow-raised ring-1 ring-line animate-fade-in">

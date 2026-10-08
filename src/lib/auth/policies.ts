@@ -10,6 +10,9 @@ export type CurrentUser = {
   locale: "en" | "bn";
   email: string | null;
   emailVerifiedAt: string | null;
+  username: string | null;
+  /** Public URL of the profile photo, if any. */
+  avatarUrl: string | null;
 };
 
 /**

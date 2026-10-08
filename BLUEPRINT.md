@@ -81,6 +81,8 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 **designer_payout_methods**: user_id, type (bkash/bank), bkash_number, bank_name, branch, account_name, account_number, routing_number, is_default
 
+Designers also get `rules_accepted_at` on users: when they ticked the Designer Rules at sign-up (D-01).
+
 **contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extensions_count (int), extension_days_total (int), winner_entry_id, completed_at
 
 **contest_files**: contest_id, type (example/current_logo), path, original_name
