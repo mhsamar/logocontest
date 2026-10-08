@@ -8,11 +8,14 @@ export function LocaleToggle({
   label,
   ariaLabel,
   className,
+  tone = "light",
 }: {
   locale: Locale;
   label: string;
   ariaLabel: string;
   className?: string;
+  /** "dark" for the floating header pill. */
+  tone?: "light" | "dark";
 }) {
   return (
     <form action={setLocale} className={className}>
@@ -22,8 +25,8 @@ export function LocaleToggle({
         aria-label={ariaLabel}
         lang={locale === "en" ? "bn" : "en"}
         className={cx(
-          "inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-muted",
-          "hover:bg-canvas hover:text-ink",
+          "inline-flex min-h-11 items-center gap-1.5 px-3 text-sm font-semibold",
+          tone === "dark" ? "rounded-full text-white/70 hover:bg-white/10 hover:text-white" : "rounded-md text-muted hover:bg-canvas hover:text-ink",
         )}
       >
         <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

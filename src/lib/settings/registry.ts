@@ -3,6 +3,18 @@ import { z } from "zod";
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
 const intList = z.array(z.number().int().positive()).min(1);
 
+/** Empty (icon hidden) or an https link on one of the platform's own domains. */
+const socialUrl = (hosts: string[]) =>
+  z.string().refine((v) => {
+    if (v === "") return true;
+    try {
+      const u = new URL(v);
+      return u.protocol === "https:" && hosts.some((h) => u.hostname === h || u.hostname.endsWith(`.${h}`));
+    } catch {
+      return false;
+    }
+  }, "Must be empty or an https link on the platform's own site");
+
 /**
  * Every admin-changeable value (BLUEPRINT.md §2, §6, §7, §9, §10, §11, §12).
  * Code reads these through getSetting(); the defaults below only seed the
@@ -330,6 +342,29 @@ export const SETTINGS = {
     schema: z.number().int().min(1).max(1440),
     default: 15,
     description: "Window (minutes) used to count failed logins.",
+  },
+
+  // ---- Site: social links in the footer (owner, 2026-10-08) --------------
+  // Empty = the icon is hidden. Only links on the platform's own domain are accepted.
+  "social.facebook": {
+    group: "site", type: "string", schema: socialUrl(["facebook.com", "fb.com"]), default: "https://www.facebook.com/Businessviewbd/",
+    description: "Facebook page link (https://facebook.com/…). Empty hides the icon.",
+  },
+  "social.facebook_group": {
+    group: "site", type: "string", schema: socialUrl(["facebook.com", "fb.com"]), default: "https://www.facebook.com/groups/freelancingvideoediting",
+    description: "Facebook group link (https://facebook.com/groups/…). Empty hides the icon.",
+  },
+  "social.instagram": {
+    group: "site", type: "string", schema: socialUrl(["instagram.com"]), default: "https://www.instagram.com/logocontest.bd/",
+    description: "Instagram link (https://instagram.com/…). Empty hides the icon.",
+  },
+  "social.youtube": {
+    group: "site", type: "string", schema: socialUrl(["youtube.com", "youtu.be"]), default: "",
+    description: "YouTube channel link (https://youtube.com/…). Empty hides the icon.",
+  },
+  "social.linkedin": {
+    group: "site", type: "string", schema: socialUrl(["linkedin.com"]), default: "",
+    description: "LinkedIn page link (https://linkedin.com/…). Empty hides the icon.",
   },
 } as const satisfies Record<string, SettingDefinition>;
 

@@ -58,6 +58,6 @@ describe("BLUEPRINT defaults", () => {
 
   it("every setting belongs to an A-11 group or auth", () => {
     const groups = new Set(Object.values(SETTINGS).map((s) => s.group));
-    expect([...groups].sort()).toEqual(["auth", "fees", "limits", "monthly", "packages", "timers", "upgrades"]);
+    expect([...groups].sort()).toEqual(["auth", "fees", "limits", "monthly", "packages", "site", "timers", "upgrades"]);
   });
 });

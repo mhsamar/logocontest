@@ -52,7 +52,7 @@ export function BrowseFilters({ query }: { query: BrowseQuery }) {
         ))}
       </select>
       <noscript>
-        <button type="submit" className="min-h-11 rounded-md bg-ink px-4 text-sm font-semibold text-white">
+        <button type="submit" className="min-h-11 rounded-full bg-ink px-4 text-sm font-semibold text-white">
           {t("browse.apply")}
         </button>
       </noscript>

@@ -1,4 +1,5 @@
 import { ButtonLink } from "@/components/ui/button";
+import { WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
@@ -29,7 +30,7 @@ function Star({ on }: { on: boolean }) {
   );
 }
 
-function Stars({ value }: { value: number }) {
+export function Stars({ value }: { value: number }) {
   return (
     <span className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
@@ -39,7 +40,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-function MockCard({ t, children, className }: { t: Translate; children: React.ReactNode; className?: string }) {
+export function MockCard({ t, children, className }: { t: Translate; children: React.ReactNode; className?: string }) {
   return (
     <div className={cx("relative w-full max-w-sm rounded-2xl bg-surface p-4 shadow-raised ring-1 ring-line sm:p-5", className)} aria-hidden>
       <span className="absolute -top-2.5 right-4 rounded-full bg-cream px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary-dark">
@@ -51,7 +52,7 @@ function MockCard({ t, children, className }: { t: Translate; children: React.Re
 }
 
 /** Step 1: the brief's look-and-feel sliders, styles and colours. */
-function BriefMock({ t }: { t: Translate }) {
+export function BriefMock({ t }: { t: Translate }) {
   const sliders = [
     { key: "complexity", value: 0.3 },
     { key: "era", value: 0.72 },
@@ -92,7 +93,7 @@ function BriefMock({ t }: { t: Translate }) {
   );
 }
 
-function EntryTile({ logo, n, stars, t, locale, className }: { logo: number; n: number; stars: number; t: Translate; locale: "en" | "bn"; className?: string }) {
+export function EntryTile({ logo, n, stars, t, locale, className }: { logo: number; n: number; stars: number; t: Translate; locale: "en" | "bn"; className?: string }) {
   return (
     <div className={cx("min-w-0", className)}>
       <div className="aspect-[4/3] overflow-hidden rounded-lg ring-1 ring-line">{SAMPLE_LOGOS[logo]}</div>
@@ -105,7 +106,7 @@ function EntryTile({ logo, n, stars, t, locale, className }: { logo: number; n: 
 }
 
 /** Step 2: two example entries, rated, with a client comment. */
-function ReviewMock({ t, locale }: { t: Translate; locale: "en" | "bn" }) {
+export function ReviewMock({ t, locale }: { t: Translate; locale: "en" | "bn" }) {
   return (
     <MockCard t={t}>
       <div className="grid grid-cols-2 gap-3">
@@ -123,17 +124,13 @@ function ReviewMock({ t, locale }: { t: Translate; locale: "en" | "bn" }) {
 }
 
 /** Step 3: the picked winner with a ribbon, and the final files. */
-function WinnerMock({ t, locale }: { t: Translate; locale: "en" | "bn" }) {
+export function WinnerMock({ t, locale }: { t: Translate; locale: "en" | "bn" }) {
   return (
     <MockCard t={t}>
       <div className="grid grid-cols-2 gap-3">
         <div className="relative rounded-xl p-1.5 ring-2 ring-accent">
           <EntryTile logo={0} n={14} stars={5} t={t} locale={locale} />
-          <span className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-accent text-white shadow-card ring-2 ring-surface">
-            <svg viewBox="0 0 24 24" className="size-4" fill="currentColor">
-              <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" />
-            </svg>
-          </span>
+          <WinnerTrophy className="absolute -right-3 -top-3" />
           <span className="absolute left-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-white">
             {t("home.how.art.winner")}
           </span>
@@ -163,7 +160,7 @@ export async function HowItWorks({ heading }: { heading: React.ReactNode }) {
   ] as const;
 
   return (
-    <section className="relative overflow-hidden border-y border-line bg-gradient-to-b from-cream/35 via-frame to-surface">
+    <section className="relative overflow-hidden">
       <div className="mx-auto max-w-page px-4 py-16 sm:py-20">
         {heading}
 
@@ -183,7 +180,7 @@ export async function HowItWorks({ heading }: { heading: React.ReactNode }) {
               <li key={n} className="relative grid grid-cols-[2.5rem_1fr] gap-x-4 gap-y-6 lg:h-80 lg:grid-cols-[1fr_7rem_1fr] lg:items-center lg:gap-0">
                 {/* Phones: dashed line from this dot down to the next one */}
                 {n < steps.length && <span className="absolute -bottom-12 left-5 top-10 border-l-2 border-dashed border-primary/30 lg:hidden" aria-hidden />}
-                <span className="col-start-1 row-start-1 flex size-10 items-center justify-center self-start rounded-full bg-primary text-base font-bold text-white shadow-card ring-8 ring-frame lg:col-start-2 lg:self-center lg:justify-self-center">
+                <span className="col-start-1 row-start-1 flex size-10 items-center justify-center self-start rounded-full bg-primary text-base font-bold text-white shadow-card ring-4 ring-white lg:col-start-2 lg:self-center lg:justify-self-center">
                   {formatNumber(n, locale)}
                 </span>
                 <div className="col-start-2 row-start-1 lg:col-start-1 lg:max-w-sm lg:justify-self-end lg:pr-10">

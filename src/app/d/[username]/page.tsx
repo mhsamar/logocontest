@@ -38,9 +38,7 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
   return (
     <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
       <section className="relative overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line">
-        <div className="h-24 bg-ink sm:h-32" aria-hidden>
-          <div className="bg-grid h-full w-full opacity-[0.35] invert" />
-        </div>
+        <div className="bg-aurora h-24 sm:h-32" aria-hidden />
         <div className="px-5 pb-6 sm:px-8">
           {/* Only the photo rises over the banner; the name sits fully below it. */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

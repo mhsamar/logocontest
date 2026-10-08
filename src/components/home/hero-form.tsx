@@ -48,13 +48,13 @@ export function HeroForm() {
           aria-describedby={error ? errorId : undefined}
           onChange={() => error && setError(null)}
           className={cx(
-            "min-h-12 w-full rounded-md bg-surface px-4 text-base text-ink shadow-card ring-1 ring-inset placeholder:text-muted focus:outline-none focus:ring-2",
+            "min-h-12 w-full rounded-full bg-surface px-5 text-base text-ink shadow-card ring-1 ring-inset placeholder:text-muted focus:outline-none focus:ring-2",
             error ? "ring-2 ring-danger focus:ring-danger" : "ring-line focus:ring-primary",
           )}
         />
         <button
           type="submit"
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-ink px-6 text-base font-semibold text-white transition-colors hover:bg-primary-dark"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-semibold text-white shadow-card transition-colors hover:bg-primary-dark"
         >
           {t("home.cta")}
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

@@ -10,15 +10,15 @@ function Card({ title, body, children, dark, className }: { title: string; body:
     <li
       className={cx(
         "relative flex flex-col overflow-hidden rounded-2xl p-6 ring-1 sm:p-7",
-        dark ? "bg-ink text-white ring-ink" : "bg-surface shadow-card ring-line",
+        dark ? "bg-aurora text-ink shadow-card ring-white" : "bg-surface shadow-card ring-line",
         className,
       )}
     >
       <div className="flex-1" aria-hidden>
         {children}
       </div>
-      <h3 className={cx("mt-6 font-bold leading-snug", dark ? "text-2xl text-white lg:text-[1.75rem]" : "text-lg text-ink")}>{title}</h3>
-      <p className={cx("mt-1.5 leading-relaxed", dark ? "text-cream/75 lg:text-lg" : "text-muted")}>{body}</p>
+      <h3 className={cx("mt-6 font-bold leading-snug", dark ? "text-2xl text-ink lg:text-[1.75rem]" : "text-lg text-ink")}>{title}</h3>
+      <p className={cx("mt-1.5 leading-relaxed", dark ? "text-muted lg:text-lg" : "text-muted")}>{body}</p>
     </li>
   );
 }
@@ -47,7 +47,7 @@ function IdeasArt({ t }: { t: Translate }) {
         {SAMPLE_LOGOS.map((logo, i) => (
           <div
             key={i}
-            className={cx("aspect-square overflow-hidden rounded-xl bg-white ring-1 ring-white/10", i % 2 === 1 && "translate-y-3")}
+            className={cx("aspect-square overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-line", i % 2 === 1 && "translate-y-3")}
           >
             <div className="flex h-full items-center">{logo}</div>
           </div>

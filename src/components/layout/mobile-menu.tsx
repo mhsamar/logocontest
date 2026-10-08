@@ -42,7 +42,7 @@ export function MobileMenu({
         aria-expanded={open}
         aria-controls="mobile-menu"
         aria-label={open ? closeLabel : openLabel}
-        className="flex size-11 items-center justify-center rounded-md text-ink hover:bg-canvas"
+        className="flex size-11 items-center justify-center rounded-full text-white hover:bg-white/10"
       >
         <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
           {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />}
@@ -52,7 +52,7 @@ export function MobileMenu({
       <div
         id="mobile-menu"
         hidden={!open}
-        className="absolute inset-x-0 top-full border-b border-line bg-surface shadow-raised animate-fade-in"
+        className="absolute inset-x-0 top-full mt-2 overflow-hidden rounded-2xl bg-surface shadow-panel ring-1 ring-line animate-fade-in"
       >
         <nav className="px-4 py-2">
           <ul>

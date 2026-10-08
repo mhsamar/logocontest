@@ -189,6 +189,7 @@ export function StylesStep(p: BriefStepProps) {
           );
         })}
       </div>
+      <p className="-mt-3 text-xs text-muted">{t("wizard.c04.credit")}</p>
 
       <fieldset className="space-y-5">
         <legend className="mb-3 text-sm font-semibold text-ink">{t("wizard.c04.slidersTitle")}</legend>

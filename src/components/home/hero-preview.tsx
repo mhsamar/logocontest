@@ -1,3 +1,4 @@
+import { TrophyIcon, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
@@ -60,10 +61,8 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
 
               {/* Desktop: the end of the story, the winner and the files (fills the card down to the grid's height). Phones show the grid right below, so it is left out there. */}
               <div className="mt-auto hidden border-t border-line pt-4 lg:block">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-                  <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
-                    <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-cream/70 py-0.5 pl-1 pr-2.5 text-xs font-semibold text-primary-dark">
+                  <TrophyIcon className="size-5" />
                   {t("home.preview.picked")}
                 </span>
                 <div className="mt-3 flex items-center gap-3">
@@ -102,9 +101,12 @@ export async function HeroPreview({ standardPrize }: { standardPrize: number }) 
                   )}
                 >
                   {i === 0 && (
-                    <span className="absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
-                      {t("home.preview.winner")}
-                    </span>
+                    <>
+                      <span className="absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
+                        {t("home.preview.winner")}
+                      </span>
+                      <WinnerTrophy className="absolute right-2 top-2 z-10" />
+                    </>
                   )}
                   <div className="aspect-[4/3]">{logo}</div>
                   <div className="flex items-center justify-between border-t border-line px-2.5 py-2">

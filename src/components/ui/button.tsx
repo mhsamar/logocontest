@@ -29,7 +29,7 @@ type CommonProps = {
 
 export function buttonClasses({ variant = "primary", size = "md", block, className }: Omit<CommonProps, "children">) {
   return cx(
-    "inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors select-none",
+    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors select-none",
     "disabled:cursor-not-allowed",
     VARIANTS[variant],
     SIZES[size],

@@ -12,7 +12,7 @@ Design for a 360px-wide phone first, then widen. All user-facing text goes throu
 
 Clean, light, trustworthy, with lots of white space so the logos are the colourful thing on the page. Friendly but businesslike: the buyer is a shop or company owner paying real money.
 
-Visual style (owner, 2026-10-07): **Golden Luxe** accents (red, maroon, cream, ink) on a cool light-grey SaaS layout like InsightHub — the home hero and the header sit inside one large rounded frame with a faint grid, the example panel overlaps the frame's bottom edge, the header is transparent until the page scrolls, centred headlines with a small eyebrow line above, large rounded panels with soft shadows, white cards with thin warm borders, icons in small rounded tiles, and a dark ink footer. Every page follows the same style.
+Visual style (owner, 2026-10-07; updated 2026-10-08 from the ofsp_ce reference): **Golden Luxe** accents (red buttons, ink text, gold prizes, cream highlights) on a soft **pastel aurora gradient** — sky blue, lilac-pink and peach-cream blobs washing over a near-white page, on every page. White, lightly glassy cards with very soft shadows and thin borders; feature cards are centred with a small duotone blob icon, a title, a line of text and an optional "Learn more" link; carousels have round arrow buttons and dot indicators; buttons are pills. No dark panels: page headers, dashboard panels and bands use the aurora gradient with ink text. The one dark element is the **floating header pill** (ink, fully rounded, a small gap from the top and sides, soft shadow, stays on screen while scrolling; white wordmark, links in light text with the current page in a soft pill, a white pill button on the right). Centred headlines with a small eyebrow line above, accent words in the italic display serif, and a footer on the page background (a thin line on top, link columns, then a bottom strip: © logocontest.bd · language switch English | বাংলা · social icons · Made in Bangladesh). Every page follows the same style.
 
 ### 1.2 Tokens
 
@@ -48,7 +48,7 @@ Visual style (owner, 2026-10-07): **Golden Luxe** accents (red, maroon, cream, i
 | Input | Label above, helper text below, error text in red below. Never placeholder-only labels |
 | Stepper | Thin progress bar + "Step 3 of 11" text |
 | Contest card | (owner, 2026-10-08) White card with the brand tile on top (the brand's first letter for now, the leading or winning logo later) and a red **Featured** pill on it for Promoted contests; then the package pill, brand name, business type, prize in amber with the designs count, and the time-left line with a thin progress bar. Blind and Private show as small outline pills. When a row has fewer cards than columns, the cards are centred |
-| Entry card | Square watermarked preview, entry number, designer name (hidden from other designers in Blind), stars, state chip |
+| Entry card | Square watermarked preview, entry number, designer name (hidden from other designers in Blind), stars, state chip. The winning entry gets a small gold **trophy badge** in its corner (owner, 2026-10-08: our own drawing — gold cup with a shine, red ribbon, white star, dark base, tiny sparkles; floats gently) wherever a winner is shown: example panels, dashboards, contest pages |
 | Status chip | Contest: Draft (grey), Awaiting payment (grey), Live (green), Judging (amber), Winner picked (blue), Handover (blue), Completed (teal), No result (grey), Cancelled (red). Entry: Rejected (red) |
 | Price summary | Prize, service fee 20%, upgrades, total. Sticky bottom bar on mobile, right sidebar on desktop |
 | Star rating | 5 tappable stars, large enough for thumbs |
@@ -67,7 +67,8 @@ Loading (skeletons, not spinners, for lists and grids), empty, error with a retr
 
 ### 2.1 Header
 
-- **Guest:** Logo | Browse Contests | How It Works | Call: 01712028511 | **Become a designer** (outline button, owner 2026-10-08, opens `D-01`) | Log In. Language toggle (EN / বাংলা) sits at the far right. On phones, **Become a designer** is a full-width button in the menu under Log In.
+- **Look:** the floating dark pill from §1.1 on every page. On phones the pill holds the logo and the menu button; the menu opens as a white rounded card under the pill.
+- **Guest:** Logo | Browse Contests | How It Works | Call: 01712028511 | **Become a designer** (outline pill, owner 2026-10-08, opens `D-01`) | **Log In** (white pill). Language toggle (EN / বাংলা) sits at the far right. On phones, **Become a designer** is a full-width button in the menu under Log In.
 - **Client logged in:** Log In is replaced by an avatar menu: Dashboard, Create Contest, Payments, Profile, Log out.
 - **Designer logged in:** avatar menu: Dashboard, My Entries, Wallet, My Profile, Log out. A bell icon with unread count sits next to the avatar for both roles.
 - **Mobile:** logo left, bell and hamburger right. The phone number is a tap-to-call link inside the menu, and the language toggle sits at the bottom of the menu.
@@ -97,16 +98,18 @@ flowchart TD
 
 ## 3. Public screens
 
+Home section headings (owner, 2026-10-08): every section title ends with an accent in the italic display serif and the red-to-gold gradient, typed out when the heading scrolls into view ("Contests live *right now*", "Your new logo in *three steps*", "More ideas, *less risk*", "Common *questions*").
+
 ### P-01 Home
 
 Sections top to bottom:
 
-1. **Hero.** Centred. Eyebrow "Logo contests · Bangladesh". H1 "Many designers. Many ideas. One perfect logo." Sub-line "Get your logo from Bangladesh's best designers." An input "Your business name" with a **Get Started** button; submitting carries the name into `C-01`, so a client is on board in one step. Under it a trust row: "Pay with bKash or card", "Your payment is held until you approve the files", "Call us: 01712028511". Below: a large rounded panel showing an example contest (our own sample logos, clearly labelled "Example", no invented counts).
+1. **Hero.** Centred. Eyebrow "Logo contests · Bangladesh" as a small pill with a pulsing dot. H1 "Many designers. Many ideas." in the sans font in ink, then the accent line in an italic display serif (Instrument Serif; Tiro Bangla in Bangla) in a red-to-gold gradient that types itself out, pauses, erases and types the next phrase: "One perfect logo." → "One logo you'll love." → "One fair price in taka." (owner, 2026-10-08). Sub-line "Get your logo from Bangladesh's best designers." An input "Your business name" with a **Get Started** button; submitting carries the name into `C-01`, so a client is on board in one step. Under it the trust points in one floating glass bar (owner, 2026-10-08: a single bar that bobs gently, three parts split by thin lines, each with an icon tile, a bold line and a small line: bKash or card / Pay in taka; Money held safe / Until you approve the files; 01712028511 / Call us for help; stacked on phones). The parts rise in one after another. The side floating cards were removed (owner, 2026-10-08). Nothing moves for visitors who ask for reduced motion. Below: a large rounded panel showing an example contest (our own sample logos, clearly labelled "Example", no invented counts).
 2. **Recent winning logos.** Grid, 3 rows (2 columns mobile, 4 desktop). Each tile: logo mockup, brand name, "৳5,000 · 34 designs". Button **Browse more** → `P-02`. If there are no completed contests yet, the heading becomes "Contests live right now" and shows contest cards.
 3. **How it works** (owner, 2026-10-08, from a reference). On desktop, each step is a row: title and text on the left, a numbered dot on a wavy dashed line running down the middle, and a small mock of the product on the right: (1) the brief's look-and-feel sliders, (2) two example entries with stars and a client comment, (3) the picked winner with a ribbon. On phones the line runs down the left with the dots, and each mock sits under its text. The mocks use our own sample logos, labelled as examples. Button **Get Started**.
 4. **Why Logo Contest.** Five benefits as a bento grid (owner, 2026-10-08): a tall dark card for "Many ideas, one price" showing a grid of our sample logos, then four smaller cards, each with a small picture of its point: pay in taka (bKash and card chips), original human-made logos (Human-made ✓ / AI-made ✕), the logo is yours (copyright with AI/SVG/PNG/PDF files), your money is safe (You pay → We hold → Designer paid). One column on phones, two on tablets, three on desktop. Then a comparison table: Freelancer | Design agency | logocontest.bd.
 5. **Q&A.** Accordion, 8–10 questions. Every number in the answers comes from settings.
-6. **Footer.**
+6. **Footer.** Same background as the page. Brand and phone; columns For clients (Start a contest, Browse contests, How it works), For designers (Become a designer, How it works for designers, Log in) and Legal (Terms, Privacy, Payment & No-Refund Policy, Designer Rules); bottom strip with © year, the language switch and "Made in Bangladesh". Social icons (Facebook page, Facebook group, Instagram, YouTube, LinkedIn) sit at the right of the bottom strip; each shows only when its link is set in admin settings (owner, 2026-10-08).
 
 The "For designers" band was removed from the home page (owner, 2026-10-07); designers reach `P-07` from "I'm a designer" on `P-11`.
 
@@ -164,7 +167,14 @@ Headline "Design logos. Win contests. Get paid in bKash." Three steps, the fee t
 
 ### P-08 How It Works / P-09 FAQ / P-10 legal pages
 
-Simple text pages. How It Works has two tabs: For clients, For designers. Legal pages: Terms, Privacy, Payment & No-Refund Policy, Designer Rules.
+**How It Works** (owner, 2026-10-08, layout from a 99designs reference) at `/how-it-works`, with two tabs **For clients** | **For designers** (`?for=designers`):
+
+- Top: H1 "How *it works*" (accent in the display serif), a short intro, and on the right the example contest panel. Under it a row of step links (1. Brief · 2. Designs · 3. Winner, or 1. Join · 2. Submit · 3. Get paid) and **Get Started** (clients) or **Become a designer** (designers).
+- Three step sections, alternating sides: a huge faint step number behind, a product mock on one side (our own sample logos, labelled Example), and on the other the title (accent typed in on scroll), a short paragraph, three ticked points and three questions as an accordion. Every number in the answers comes from settings.
+- "So, why *us*?": four true points with icons (no ratings, reviews or press logos until real ones exist).
+- A band for the other side (clients see "Are you a designer?" → `D-01`; designers see "Need a logo?" → `C-01`), then "Questions?" with the phone number and a link to the home page Q&A.
+
+FAQ and legal pages stay simple text pages. Legal pages: Terms, Privacy, Payment & No-Refund Policy, Designer Rules.
 
 ### P-11 Log in
 
@@ -193,7 +203,7 @@ flowchart LR
 | C-01 | What's your business or brand name? | Text input; optional "Text to show on the logo" and "Slogan" behind a "+ Add" link | Pre-filled if it came from the hero |
 | C-02 | What kind of business is it? | Dropdown of business types + short description textarea with character counter; under it **5 suggestions** written for the chosen business type and brand name — tap one to fill the box, then edit it | Example text shown as helper, not placeholder |
 | C-03 | Do you have a website or Facebook page? | URL input + checkbox "I don't have one yet" | Skippable |
-| C-04 | Which logo styles do you like? | Tappable image tiles (multi-select), each with two example shapes and a label; three style sliders below: Minimal ↔ Complex, Modern ↔ Classic, Playful ↔ Serious | At least one tile. Example shapes are our own drawings, never real brand logos |
+| C-04 | Which logo styles do you like? | Tappable image tiles (multi-select), each with two example shapes and a label; three style sliders below: Minimal ↔ Complex, Modern ↔ Classic, Playful ↔ Serious | At least one tile. Examples (owner 2026-10-08, as in the 99designs reference): Wordmark = Facebook, Yahoo; Pictorial = Apple, NBC; Lettermark = F1, McDonald's; Calligraphic = Ray-Ban, Coca-Cola; Mascot = KFC, Tux. SVGs from Wikimedia Commons in `public/style-examples/`. Abstract and Emblem keep our own drawings (no free files). A small line under the tiles says the logos belong to their owners and credits Tux (Larry Ewing, The GIMP) |
 | C-05 | Pick your colours | Up to 5 swatch slots that open a colour picker with hex field; toggle "Let designers choose"; then checkboxes "Where will you use the logo?" | |
 | C-06 | Tell designers what you like and don't like | Two textareas, "I like" and "I don't like", each with **5 suggestions** built from the earlier answers (business type, styles, colours, where the logo is used); tap to fill, then edit | Contact filter runs here; inline error if tripped |
 | C-07 | Any examples or a current logo? | Drag-and-drop zone / file picker, thumbnails with remove icons | Optional; note "For reference only. Designers will not copy these." |
@@ -390,7 +400,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-08 | Monthly winner | Ranked table for the month, flags for suspicious wins, **Confirm winner** |
 | A-09 | Homepage | Pick and order featured winning logos |
 | A-10 | Blocked terms | List with add/remove and a test box that shows whether sample text would be blocked |
-| A-11 | Settings | Grouped form: Fees and tiers, Packages, Upgrades, Timers, Limits, Monthly prize |
+| A-11 | Settings | Grouped form: Fees and tiers, Packages, Upgrades, Timers, Limits, Monthly prize, Site (footer social links: Facebook page, Facebook group, Instagram, YouTube, LinkedIn; an empty link hides its icon) |
 | A-12 | Audit log | Read-only table of admin actions |
 
 Every destructive admin action asks for confirmation and a short reason.

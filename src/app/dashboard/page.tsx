@@ -56,8 +56,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   return (
     <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
       {/* Profile panel */}
-      <section className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white shadow-panel sm:p-8">
-        <div className="bg-grid pointer-events-none absolute inset-0 opacity-[0.35] invert [mask-image:linear-gradient(to_right,transparent,black)]" aria-hidden />
+      <section className="relative overflow-hidden bg-aurora rounded-[2rem] p-5 text-ink shadow-frame ring-1 ring-white sm:p-8">
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-cream text-xl font-bold text-ink sm:size-16 sm:text-2xl" aria-hidden>
@@ -65,7 +64,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             </span>
             <div className="min-w-0">
               <h1 className="truncate text-h2 font-bold leading-tight lg:text-h2-lg">{t("dashboard.hi", { name })}</h1>
-              <p className="mt-0.5 flex flex-col text-sm text-cream/75 sm:flex-row sm:gap-1.5">
+              <p className="mt-0.5 flex flex-col text-sm text-muted sm:flex-row sm:gap-1.5">
                 {data.profile.businessName && (
                   <span className="truncate">
                     {data.profile.businessName}
@@ -78,7 +77,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           </div>
           <Link
             href="/start"
-            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-cream px-6 font-semibold text-ink transition-colors hover:bg-white"
+            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 font-semibold text-white shadow-card transition-colors hover:bg-primary-dark"
           >
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
               <path d="M12 5v14M5 12h14" strokeLinecap="round" />
@@ -89,9 +88,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
         <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="flex flex-col-reverse rounded-xl bg-white/[0.07] px-4 py-3 ring-1 ring-white/10">
-              <dt className="mt-0.5 text-xs text-cream/70">{s.label}</dt>
-              <dd className={cx("truncate text-xl font-bold tabular-nums sm:text-2xl", s.accent && "text-cream")}>{s.value}</dd>
+            <div key={s.label} className="flex flex-col-reverse rounded-xl bg-white/70 px-4 py-3 ring-1 ring-white backdrop-blur">
+              <dt className="mt-0.5 text-xs text-muted">{s.label}</dt>
+              <dd className={cx("truncate text-xl font-bold tabular-nums sm:text-2xl", s.accent && "text-accent")}>{s.value}</dd>
             </div>
           ))}
         </dl>

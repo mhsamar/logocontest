@@ -37,16 +37,15 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
     <div className="pb-16">
       {/* Page header: dark ink panel with the faint grid */}
       <section className="mx-auto w-full max-w-page px-4 pt-4">
-        <div className="relative overflow-hidden rounded-2xl bg-ink px-6 py-10 text-white shadow-panel sm:px-10 sm:py-14">
-          <div className="bg-grid pointer-events-none absolute inset-0 opacity-[0.35] invert [mask-image:linear-gradient(to_right,transparent,black)]" aria-hidden />
+        <div className="relative overflow-hidden bg-aurora rounded-[2rem] px-6 py-10 text-ink shadow-frame ring-1 ring-white sm:px-10 sm:py-14">
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-cream/80">{t("browse.hero.eyebrow")}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t("browse.hero.eyebrow")}</p>
               <h1 className="mt-3 text-balance text-h1 font-bold leading-tight tracking-tight lg:text-[2.5rem]">{t("browse.hero.title")}</h1>
             </div>
             <Link
               href="/start"
-              className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-cream px-6 font-semibold text-ink transition-colors hover:bg-white"
+              className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 font-semibold text-white shadow-card transition-colors hover:bg-primary-dark"
             >
               {t("browse.hero.cta")}
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>

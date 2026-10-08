@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandTile, PackagePill, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
 import { ButtonLink } from "@/components/ui/button";
+import { WinnerTrophy } from "@/components/ui/trophy";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import type { DashboardContest } from "@/lib/contests/dashboard";
 import { cx } from "@/lib/cx";
@@ -65,12 +66,12 @@ export async function ClientContestCard({ contest: c, now }: { contest: Dashboar
           <BrandTile name={c.brandName} isPrivate={false} flat className="h-full w-full text-[1.8rem]" />
         )}
         {c.winner && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">
-            <svg viewBox="0 0 24 24" className="size-3.5" fill="currentColor" aria-hidden>
-              <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" />
-            </svg>
-            {t("dashboard.winnerRibbon")}
-          </span>
+          <>
+            <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+              {t("dashboard.winnerRibbon")}
+            </span>
+            <WinnerTrophy className="absolute right-3 top-3" />
+          </>
         )}
       </div>
 

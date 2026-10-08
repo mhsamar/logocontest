@@ -57,6 +57,7 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
               </li>
             ))}
           </ul>
+          <p className="mt-3 text-xs text-muted">{t("wizard.c04.credit")}</p>
         </Block>
       )}
 

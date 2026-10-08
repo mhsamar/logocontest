@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShareProfile } from "@/components/designers/share-profile";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink } from "@/components/ui/button";
+import { WinnerTrophy } from "@/components/ui/trophy";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
@@ -56,14 +57,13 @@ export async function DesignerDashboard({
   return (
     <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
       {/* Profile panel */}
-      <section className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white shadow-panel sm:p-8">
-        <div className="bg-grid pointer-events-none absolute inset-0 opacity-[0.35] invert [mask-image:linear-gradient(to_right,transparent,black)]" aria-hidden />
+      <section className="relative overflow-hidden bg-aurora rounded-[2rem] p-5 text-ink shadow-frame ring-1 ring-white sm:p-8">
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <Avatar name={designer.name} url={designer.avatarUrl} tone="cream" className="size-16 text-xl ring-4 ring-white/10 sm:size-20 sm:text-2xl" />
+            <Avatar name={designer.name} url={designer.avatarUrl} tone="cream" className="size-16 text-xl ring-4 ring-white sm:size-20 sm:text-2xl" />
             <div className="min-w-0">
               <h1 className="truncate text-h2 font-bold leading-tight lg:text-h2-lg">{t("dashboard.hi", { name: designer.name })}</h1>
-              <p className="mt-0.5 flex flex-col text-sm text-cream/75 sm:flex-row sm:gap-1.5">
+              <p className="mt-0.5 flex flex-col text-sm text-muted sm:flex-row sm:gap-1.5">
                 <span className="font-mono">@{designer.username}</span>
                 <span className="hidden sm:inline">·</span>
                 <span>{t("dashboard.memberSince", { date: formatDate(designer.memberSince, locale, "month") })}</span>
@@ -76,13 +76,13 @@ export async function DesignerDashboard({
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
             <Link
               href="/dashboard/profile"
-              className="inline-flex min-h-11 items-center justify-center rounded-md bg-cream px-5 font-semibold text-ink transition-colors hover:bg-white"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 font-semibold text-white shadow-card transition-colors hover:bg-primary-dark"
             >
               {t("designerDash.editProfile")}
             </Link>
             <Link
               href={`/d/${designer.username}`}
-              className="inline-flex min-h-11 items-center justify-center rounded-md px-5 font-semibold text-white ring-1 ring-inset ring-white/25 transition-colors hover:bg-white/10"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-white/70 px-5 font-semibold text-ink ring-1 ring-inset ring-white backdrop-blur transition-colors hover:bg-white"
             >
               {t("designerDash.viewProfile")}
             </Link>
@@ -91,9 +91,9 @@ export async function DesignerDashboard({
 
         <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="flex flex-col-reverse rounded-xl bg-white/[0.07] px-4 py-3 ring-1 ring-white/10">
-              <dt className="mt-0.5 text-xs text-cream/70">{s.label}</dt>
-              <dd className={cx("truncate text-xl font-bold tabular-nums sm:text-2xl", s.accent && "text-cream")}>{s.value}</dd>
+            <div key={s.label} className="flex flex-col-reverse rounded-xl bg-white/70 px-4 py-3 ring-1 ring-white backdrop-blur">
+              <dt className="mt-0.5 text-xs text-muted">{s.label}</dt>
+              <dd className={cx("truncate text-xl font-bold tabular-nums sm:text-2xl", s.accent && "text-accent")}>{s.value}</dd>
             </div>
           ))}
         </dl>
@@ -139,7 +139,8 @@ export async function DesignerDashboard({
               <ul className="grid grid-cols-2 gap-3">
                 {wins.map((w) => (
                   <li key={w.slug}>
-                    <Link href={`/contest/${w.slug}`} className="block overflow-hidden rounded-lg ring-1 ring-line hover:ring-primary">
+                    <Link href={`/contest/${w.slug}`} className="relative block overflow-hidden rounded-lg ring-1 ring-line hover:ring-primary">
+                      <WinnerTrophy size="sm" className="absolute right-1.5 top-1.5" />
                       {w.winningLogoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={w.winningLogoUrl} alt="" className="aspect-square w-full bg-white object-contain p-2" />

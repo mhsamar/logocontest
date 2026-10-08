@@ -11,6 +11,7 @@ import { AvatarMenu } from "./avatar-menu";
 import { HeaderShell } from "./header-shell";
 import { LocaleToggle } from "./locale-toggle";
 import { MobileMenu } from "./mobile-menu";
+import { NavLinks, PILL_LINK } from "./nav-links";
 import { GUEST_NAV } from "./nav-items";
 
 /**
@@ -27,13 +28,12 @@ function accountItems(user: CurrentUser, t: Translate) {
   return items;
 }
 
-const NAV_LINK = "inline-flex min-h-11 items-center rounded-md px-3 text-[0.9375rem] font-medium text-muted transition-colors hover:text-ink";
 
 export async function SiteHeader() {
   const [{ locale, t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const links = GUEST_NAV.map((item) => ({ href: item.href, label: t(item.label) }));
   const callLabel = t("nav.call", { phone: SUPPORT_PHONE });
-  const toggle = <LocaleToggle locale={locale} label={t("nav.switchTo")} ariaLabel={t("nav.switchToLabel")} />;
+  const toggle = (tone: "light" | "dark") => <LocaleToggle locale={locale} label={t("nav.switchTo")} ariaLabel={t("nav.switchToLabel")} tone={tone} />;
 
   const logoutForm = (variant: "menu" | "block") => (
     <form action={logout}>
@@ -52,36 +52,32 @@ export async function SiteHeader() {
 
   return (
     <HeaderShell>
-      <div className="relative mx-auto flex h-16 max-w-page items-center gap-2 px-5 sm:px-8">
-        <Link href="/" aria-label={t("brand.home")} className="-ml-1 flex min-h-11 items-center rounded-md px-1">
-          <Wordmark />
+      <div className="relative flex h-16 items-center gap-2 pl-4 pr-2 sm:pl-6">
+        <Link href="/" aria-label={t("brand.home")} className="flex min-h-11 items-center rounded-full px-1">
+          <Wordmark inverted />
         </Link>
 
-        {/* Desktop: links next to the logo (centred from 1280px), account and language on the right */}
+        {/* Desktop: links next to the logo (centred from 1280px), language and account on the right */}
         <nav className="hidden items-center gap-1 lg:ml-4 lg:flex xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2" aria-label={t("nav.main")}>
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className={NAV_LINK}>
-              {link.label}
-            </Link>
-          ))}
+          <NavLinks links={links} />
           {/* Hidden between 1024 and 1280px so the guest buttons fit; the number is also in the hero and footer. */}
           <span className="hidden xl:flex">
-            <a href={SUPPORT_PHONE_HREF} className={NAV_LINK}>
+            <a href={SUPPORT_PHONE_HREF} className={`${PILL_LINK} text-white/70 hover:text-white`}>
               {callLabel}
             </a>
           </span>
         </nav>
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          {toggle}
+          {toggle("dark")}
           {user ? (
             <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm("menu")} />
           ) : (
             <>
               <Link
                 href="/designers/signup"
-                className="inline-flex min-h-11 items-center gap-2 rounded-md px-4 text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line transition-colors hover:bg-surface hover:ring-primary"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[0.9375rem] font-semibold text-white ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/10"
               >
-                <svg viewBox="0 0 24 24" className="size-4 text-primary" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <svg viewBox="0 0 24 24" className="size-4 text-cream" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M15.7 21.3a1 1 0 0 1-1.4 0l-1.6-1.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4Z" strokeLinejoin="round" />
                   <path d="m18 13-1.4-6.9a1 1 0 0 0-.7-.8L3.2 2a1 1 0 0 0-1.2 1.2l3.3 12.7a1 1 0 0 0 .8.7L13 18M2.3 2.3l7.3 7.3" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="11" cy="11" r="2" />
@@ -90,7 +86,7 @@ export async function SiteHeader() {
               </Link>
               <Link
                 href="/login"
-                className="inline-flex min-h-11 items-center rounded-md bg-ink px-5 text-[0.9375rem] font-semibold text-white transition-colors hover:bg-primary-dark"
+                className="inline-flex min-h-12 items-center rounded-full bg-white px-6 text-[0.9375rem] font-bold text-ink shadow-card transition-colors hover:bg-cream"
               >
                 {t("nav.login")}
               </Link>
@@ -127,7 +123,7 @@ export async function SiteHeader() {
                 </ButtonLink>
               </>
             )}
-            <div className="flex justify-center pt-1">{toggle}</div>
+            <div className="flex justify-center pt-1">{toggle("light")}</div>
           </MobileMenu>
         </div>
       </div>
