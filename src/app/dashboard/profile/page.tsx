@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { EmailForm, MobileForm, PasswordForm, PhotoSection, ProfileForm, Section } from "@/components/settings/settings-forms";
+import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
+import { formatBdMobile } from "@/lib/phone";
 import { getCurrentUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
@@ -21,8 +22,26 @@ export default async function ProfileSettingsPage() {
 
   const [{ data: profile }, s] = await Promise.all([
     createAdminClient().from("profiles").select("name, bio, business_name, username").eq("id", user.id).single(),
-    getSettings(["limits.designer_bio_max_length", "limits.avatar_max_mb", "auth.password_min_length"]),
+    getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
   ]);
+  let payout: PayoutValues | null = null;
+  if (user.role === "designer") {
+    const { data: p } = await createAdminClient()
+      .from("designer_payout_methods")
+      .select("type, bkash_number, bank_name, branch, account_name, account_number, routing_number")
+      .eq("user_id", user.id)
+      .eq("is_default", true)
+      .maybeSingle();
+    payout = {
+      type: p?.type === "bank" ? "bank" : "bkash",
+      bkashNumber: p?.bkash_number ? formatBdMobile(p.bkash_number) : "",
+      bankName: p?.bank_name ?? "",
+      branch: p?.branch ?? "",
+      accountName: p?.account_name ?? "",
+      accountNumber: p?.account_number ?? "",
+      routingNumber: p?.routing_number ?? "",
+    };
+  }
   // Designers have a public profile page (P-06); the client one (P-12) comes later.
   const profileUrl = user.role === "designer" && user.username ? `${await siteOrigin()}/d/${user.username}` : null;
 
@@ -36,7 +55,7 @@ export default async function ProfileSettingsPage() {
 
       <div className="mt-8 space-y-5">
         <Section title={t("settings.profileTitle")}>
-          <PhotoSection name={user.name} avatarUrl={user.avatarUrl} maxMb={s["limits.avatar_max_mb"]} />
+          <PhotoSection name={user.name} avatarUrl={user.avatarUrl} />
           <div className="mt-6 border-t border-line pt-6">
             <ProfileForm
               role={user.role}
@@ -49,6 +68,11 @@ export default async function ProfileSettingsPage() {
             />
           </div>
         </Section>
+        {payout && (
+          <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
+            <PayoutForm initial={payout} />
+          </Section>
+        )}
         <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
           <MobileForm mobile={user.mobile} />
         </Section>

@@ -358,7 +358,9 @@ Amount input with a "Max" shortcut, payout method selector, summary, and **Reque
 
 Edit photo, name, bio; preview of the public profile; **Share profile** with QR; payout methods; change password.
 
-Owner, 2026-10-08: the settings page (`/dashboard/profile`, used by clients for `C-20` too) has sections **Profile** (photo upload JPG/PNG/WebP up to 2 MB with remove, name, bio for designers, business name for clients; username shown read-only with the profile link), **Mobile number** (Bangladesh format, must be unused), **Email** (changing it asks for the 6-digit code again) and **Password** (current password, then the new one).
+Owner, 2026-10-08: the settings page (`/dashboard/profile`, used by clients for `C-20` too) has sections **Profile** (photo, name, bio for designers, business name for clients; username shown read-only with the profile link), **Payout method** (designers: bKash or bank, edited like `D-01` step 4), **Mobile number** (Bangladesh format, must be unused), **Email** (changing it asks for the 6-digit code again) and **Password** (current password, then the new one).
+
+Photo upload (owner, 2026-10-08): any photo of any size the phone or browser can open. Choosing one opens a **crop** sheet (square frame, drag to move, pinch or slider to zoom); **Save photo** crops and shrinks it in the browser to 512×512 before uploading, so big photos are fine. Nude or sexual photos are not allowed: the server checks every photo (image moderation, behind an interface) and refuses one that fails, with "This photo isn't allowed. Please choose another one." The rule is shown under the upload button.
 
 ---
 

@@ -12,11 +12,13 @@ import { blockedTerms } from "@/lib/contests/community";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
+import { getImageModerator } from "@/lib/moderation/images";
 import { normalizeBdMobile } from "@/lib/phone";
 import { getSetting } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { checkPayout, type PayoutInput } from "@/lib/designers/signup";
 import { AVATAR_TYPES, AVATARS_BUCKET } from "./avatar";
 
 /** D-12 / C-20 profile settings (UI-JOURNEY, owner 2026-10-08). */
@@ -67,20 +69,33 @@ export async function prepareAvatarUpload(input: { type: string; size: number })
   return { ok: true, ...upload };
 }
 
-/** Photo step 2: checks the upload and makes it the profile photo (the old one is deleted). */
-export async function saveAvatar(path: string): Promise<boolean> {
+/**
+ * Photo step 2: checks the upload (path, nudity) and makes it the profile
+ * photo. A refused photo is deleted at once; the old photo is deleted on success.
+ */
+export async function saveAvatar(path: string): Promise<{ ok: true } | { ok: false; error: { key: MessageKey } }> {
   const user = await me();
-  if (!user) return false;
-  if (!new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(path)) return false;
+  const generic = { ok: false as const, error: { key: "auth.errors.generic" as MessageKey } };
+  if (!user) return generic;
+  const match = new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).exec(path);
+  if (!match) return generic;
   const storage = getFileStorage();
-  if (!(await storage.exists(AVATARS_BUCKET, path))) return false;
+  if (!(await storage.exists(AVATARS_BUCKET, path))) return generic;
+
+  const mime = Object.entries(AVATAR_TYPES).find(([, ext]) => ext === match[1])![0];
+  const verdict = await getImageModerator().check(await storage.download(AVATARS_BUCKET, path), mime);
+  if (!verdict.allowed) {
+    await storage.remove(AVATARS_BUCKET, [path]).catch(() => {});
+    return { ok: false, error: { key: verdict.reason === "error" ? "settings.photo.checkFailed" : "settings.photo.notAllowed" } };
+  }
+
   const db = createAdminClient();
   const { data: old } = await db.from("profiles").select("avatar_path").eq("id", user.id).single();
   const { error } = await db.from("profiles").update({ avatar_path: path }).eq("id", user.id);
-  if (error) return false;
+  if (error) return generic;
   if (old?.avatar_path && old.avatar_path !== path) await storage.remove(AVATARS_BUCKET, [old.avatar_path]).catch(() => {});
   refresh();
-  return true;
+  return { ok: true };
 }
 
 export async function removeAvatar(): Promise<boolean> {
@@ -157,5 +172,24 @@ export async function changePassword(_prev: SettingsState, formData: FormData): 
   // Through the user's own session: the admin API would log out every session, this browser included.
   const { error } = await (await createServerClient()).auth.updateUser({ password: next });
   if (error) return /different|same/i.test(error.message) ? fail("auth.errors.samePassword", "password") : fail("auth.errors.generic", "password");
+  return { status: "ok" };
+}
+
+/** Designers: where winnings are paid (bKash or bank), same rules as sign-up (D-01 step 4). */
+export async function updatePayout(input: PayoutInput): Promise<SettingsState> {
+  const user = await me();
+  if (!user || user.role !== "designer") return fail("auth.errors.generic");
+  const checked = checkPayout(input);
+  if (!checked.ok) return fail(`designerSignup.payout.errors.${checked.field}`, checked.field);
+  const db = createAdminClient();
+  // One payout method per designer for now: replace the default row.
+  const empty = { bkash_number: null, bank_name: null, branch: null, account_name: null, account_number: null, routing_number: null };
+  const row: Record<string, string | boolean | null> = { ...empty, ...checked.payout, user_id: user.id, is_default: true };
+  const { data: existing } = await db.from("designer_payout_methods").select("id").eq("user_id", user.id).eq("is_default", true).maybeSingle();
+  const { error } = existing
+    ? await db.from("designer_payout_methods").update(row).eq("id", existing.id)
+    : await db.from("designer_payout_methods").insert(row);
+  if (error) return fail("auth.errors.generic");
+  refresh();
   return { status: "ok" };
 }

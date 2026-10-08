@@ -14,10 +14,13 @@ import {
   prepareAvatarUpload,
   removeAvatar,
   saveAvatar,
+  updatePayout,
   updateProfile,
   type SettingsState,
 } from "@/lib/profile/actions";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import type { Area } from "react-easy-crop";
+import { cropToBlob, PhotoCropper } from "./photo-cropper";
 
 const IDLE: SettingsState = { status: "idle" };
 
@@ -44,24 +47,48 @@ function useFieldError(state: SettingsState) {
   return (field: string) => (state.status === "error" && state.field === field && state.error ? t(state.error.key, state.error.params) : undefined);
 }
 
-export function PhotoSection({ name, avatarUrl, maxMb }: { name: string; avatarUrl: string | null; maxMb: number }) {
+export function PhotoSection({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const { t } = useI18n();
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [source, setSource] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const shown = preview ?? avatarUrl;
 
-  const upload = (file: File) =>
+  const closeCropper = () => {
+    if (source) URL.revokeObjectURL(source);
+    setSource(null);
+  };
+
+  // Any image the browser can open is accepted; it's cropped and shrunk before upload.
+  const pick = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const probe = new Image();
+    probe.onload = () => setSource(url);
+    probe.onerror = () => {
+      URL.revokeObjectURL(url);
+      toast(t("settings.photo.cantOpen"), "danger");
+    };
+    probe.src = url;
+  };
+
+  const save = (area: Area) =>
     start(async () => {
-      const prepared = await prepareAvatarUpload({ type: file.type, size: file.size });
-      if (!prepared.ok) return toast(t(prepared.error.key, prepared.error.params), "danger");
-      setPreview(URL.createObjectURL(file));
-      const { error } = await createBrowserSupabase().storage.from("avatars").uploadToSignedUrl(prepared.path, prepared.token, file, { contentType: file.type });
-      if (error || !(await saveAvatar(prepared.path))) {
-        setPreview(null);
-        return toast(t("auth.errors.generic"), "danger");
+      let blob: Blob;
+      try {
+        blob = await cropToBlob(source!, area);
+      } catch {
+        return toast(t("settings.photo.cantOpen"), "danger");
       }
+      const prepared = await prepareAvatarUpload({ type: blob.type, size: blob.size });
+      if (!prepared.ok) return toast(t(prepared.error.key, prepared.error.params), "danger");
+      const { error } = await createBrowserSupabase().storage.from("avatars").uploadToSignedUrl(prepared.path, prepared.token, blob, { contentType: blob.type });
+      if (error) return toast(t("auth.errors.generic"), "danger");
+      const saved = await saveAvatar(prepared.path);
+      if (!saved.ok) return toast(t(saved.error.key), "danger");
+      setPreview(URL.createObjectURL(blob));
+      closeCropper();
       toast(t("settings.photo.saved"));
     });
 
@@ -72,16 +99,16 @@ export function PhotoSection({ name, avatarUrl, maxMb }: { name: string; avatarU
         <input
           ref={input}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           className="sr-only"
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
-            if (file) upload(file);
+            if (file) pick(file);
           }}
         />
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" loading={busy} onClick={() => input.current?.click()}>
+          <Button variant="secondary" disabled={busy} onClick={() => input.current?.click()}>
             {shown ? t("settings.photo.change") : t("settings.photo.upload")}
           </Button>
           {shown && (
@@ -99,8 +126,10 @@ export function PhotoSection({ name, avatarUrl, maxMb }: { name: string; avatarU
             </Button>
           )}
         </div>
-        <p className="mt-2 text-xs text-muted">{t("settings.photo.hint", { mb: maxMb })}</p>
+        <p className="mt-2 text-xs text-muted">{t("settings.photo.hint")}</p>
+        <p className="mt-1 text-xs text-muted">{t("settings.photo.rule")}</p>
       </div>
+      <PhotoCropper src={source} onCancel={closeCropper} onSave={save} saving={busy} />
     </div>
   );
 }
@@ -253,3 +282,91 @@ export function PasswordForm({ min }: { min: number }) {
 }
 
 export { Section };
+
+export type PayoutValues = {
+  type: "bkash" | "bank";
+  bkashNumber: string;
+  bankName: string;
+  branch: string;
+  accountName: string;
+  accountNumber: string;
+  routingNumber: string;
+};
+
+/** Designers: bKash or bank details for winnings (D-12). */
+export function PayoutForm({ initial }: { initial: PayoutValues }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const [v, setV] = useState<PayoutValues>(initial);
+  const [state, setState] = useState<SettingsState>(IDLE);
+  const [pending, start] = useTransition();
+  const err = useFieldError(state);
+  const set = <K extends keyof PayoutValues>(k: K, value: PayoutValues[K]) => {
+    setV((x) => ({ ...x, [k]: value }));
+    setState(IDLE);
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await updatePayout(
+            v.type === "bkash"
+              ? { type: "bkash", bkashNumber: v.bkashNumber }
+              : { type: "bank", bankName: v.bankName, branch: v.branch, accountName: v.accountName, accountNumber: v.accountNumber, routingNumber: v.routingNumber },
+          );
+          setState(r);
+          if (r.status === "ok") toast(t("settings.payout.saved"));
+        });
+      }}
+      className="space-y-4"
+      noValidate
+    >
+      <div className="grid grid-cols-2 gap-1 rounded-full bg-canvas p-1 ring-1 ring-line" role="tablist">
+        {(["bkash", "bank"] as const).map((type) => (
+          <button
+            key={type}
+            type="button"
+            role="tab"
+            aria-selected={v.type === type}
+            onClick={() => set("type", type)}
+            className={`min-h-10 rounded-full text-sm font-semibold transition-colors ${v.type === type ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+          >
+            {t(`designerSignup.payout.${type}`)}
+          </button>
+        ))}
+      </div>
+      {v.type === "bkash" ? (
+        <PhoneField label={t("designerSignup.payout.bkashNumber")} value={v.bkashNumber} onChange={(e) => set("bkashNumber", e.target.value)} error={err("bkashNumber")} />
+      ) : (
+        <div className="space-y-4">
+          <TextField label={t("designerSignup.payout.bankName")} value={v.bankName} onChange={(e) => set("bankName", e.target.value)} error={err("bankName")} />
+          <TextField label={t("designerSignup.payout.branch")} optionalLabel={t("common.optional")} value={v.branch} onChange={(e) => set("branch", e.target.value)} />
+          <TextField label={t("designerSignup.payout.accountName")} value={v.accountName} onChange={(e) => set("accountName", e.target.value)} error={err("accountName")} />
+          <TextField
+            label={t("designerSignup.payout.accountNumber")}
+            inputMode="numeric"
+            value={v.accountNumber}
+            onChange={(e) => set("accountNumber", e.target.value)}
+            error={err("accountNumber")}
+          />
+          <TextField
+            label={t("designerSignup.payout.routingNumber")}
+            optionalLabel={t("common.optional")}
+            inputMode="numeric"
+            value={v.routingNumber}
+            onChange={(e) => set("routingNumber", e.target.value)}
+            error={err("routingNumber")}
+          />
+        </div>
+      )}
+      {state.status === "error" && !state.field && state.error && <p className="text-sm text-danger">{t(state.error.key, state.error.params)}</p>}
+      <div className="flex justify-end">
+        <Button type="submit" variant="secondary" loading={pending}>
+          {t("settings.payout.save")}
+        </Button>
+      </div>
+    </form>
+  );
+}

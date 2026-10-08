@@ -142,7 +142,7 @@ export const SETTINGS = {
   },
   "limits.avatar_max_mb": {
     group: "limits", type: "int", schema: int(1), default: 2,
-    description: "Largest profile photo in MB (the storage bucket also caps it at 2 MB).",
+    description: "Largest stored profile photo in MB, after the browser crops it to 512×512 (users may pick photos of any size).",
   },
   "limits.max_revision_requests": {
     group: "limits", type: "int", schema: int(), default: 2,

@@ -71,6 +71,7 @@ One account has one role. One mobile number and one email can each hold only one
 - **Auth (owner, 2026-10-07):** sign up with a mobile number (Bangladesh format checked, no OTP), an email and a password. Log in with the mobile number or the email, plus the password. Right after sign-up the user gets a browser push notification ("Welcome", if they allow notifications when they press **Create account**) and an email with a 6-digit code; they type the code on the site to confirm the email. The account works straight away and a banner asks for the code until it is entered. Password reset is by an emailed link (owner, 2026-10-07). An unconfirmed email blocks nothing for clients (owner, 2026-10-07); for designers it is **[CONFIRM]** (proposal: can't withdraw until confirmed)
 - **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver: SSLCommerz (covers bKash and cards) is added in milestone 9
 - **SMS:** behind an `SmsSender` interface with a log driver for dev
+- **Image moderation (owner, 2026-10-08):** behind an `ImageModerator` interface. Every uploaded profile photo is checked on the server and refused when it is nude or sexual. Drivers: `log` (dev, allows and logs) and `google` (Google Cloud Vision SafeSearch: refuse when adult is LIKELY or VERY_LIKELY, or racy is VERY_LIKELY). Logo entries get the same check when they arrive (milestone 4)
 - **Languages:** English default with a Bangla toggle. Use the en/bn message files from day one; never hard-code user-facing strings
 
 ## 5. Data model
