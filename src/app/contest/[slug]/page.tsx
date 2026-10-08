@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContestBrief } from "@/components/contests/contest-brief";
-import { BrandTile, ContestBadges, LockIcon, contestTitle } from "@/components/contests/contest-bits";
+import { NdaGate } from "@/components/contests/nda-gate";
+import { BrandTile, ContestBadges, ContestNumber, LockIcon, contestTitle } from "@/components/contests/contest-bits";
 import { ContestComments } from "@/components/contests/contest-comments";
 import { ContestStats } from "@/components/contests/contest-stats";
 import { EntryCard } from "@/components/entries/entry-card";
@@ -105,6 +106,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <div className="min-w-0 pt-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusChip status={statusKnown ? contest.status : (contest.rawStatus as "draft")} label={t(`status.${contest.rawStatus as "draft"}`)} />
+                <ContestNumber n={contest.number} t={t} locale={locale} />
                 <ContestBadges contest={contest} t={t} />
               </div>
               <h1 className="mt-2 break-words text-h1 font-bold leading-tight tracking-tight text-ink lg:text-[2.5rem]">
@@ -129,6 +131,10 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
 
           {contest.brief ? (
             <p className="mt-6 max-w-2xl whitespace-pre-line border-l-2 border-primary/30 pl-4 text-[1.0625rem] leading-relaxed text-ink/85">{contest.brief.description}</p>
+          ) : contest.isNda && user ? (
+            <NdaGate contestId={contest.id} viewer={user.role === "designer" ? "designer" : "other"} loginHref={`/login?as=designer&next=${encodeURIComponent(`/contest/${contest.slug}`)}`} />
+          ) : contest.isNda ? (
+            <NdaGate contestId={contest.id} viewer="guest" loginHref={`/login?as=designer&next=${encodeURIComponent(`/contest/${contest.slug}`)}`} />
           ) : (
             <p className="mt-6 flex items-center gap-2 text-muted">
               <LockIcon />

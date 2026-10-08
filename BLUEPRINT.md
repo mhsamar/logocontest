@@ -36,7 +36,9 @@ Marketing targets clients. Designers are expected to arrive on their own.
 | Reject | Client can reject any entry to keep the contest clean |
 | Messaging | No direct messaging. Only a comment + reply thread on each entry |
 | Copied logo | Permanent ban |
-| Packages | Economy 3,000 / Standard 5,000 / Premium 10,000 / Custom (min 3,000, step 500) |
+| Packages | Starter 3,000 / Growth 5,000 / Pro 8,000 / Premium 12,000 / Elite 15,000 / Custom (min 3,000, step 500) (owner, 2026-10-08; database keys economy, standard, pro, premium, elite, custom) |
+| Contest number (owner, 2026-10-08) | Every contest gets a running number shown as "Contest #00001" (five digits, more when needed) on its page, cards, dashboard and manage page, so everyone sees how many contests have run. The number is given when the contest is published (payment confirmed), so unpaid drafts never leave gaps. Existing contests were numbered in the order they started |
+| Contest length | Any whole number of days from 3 to 30 (owner, 2026-10-08; min, max and the quick-pick chips are settings) |
 
 Fee tier timing: the rate is decided by the designer's count of completed wins at the moment the winner is selected, and stored on the handover so it cannot change later. So the 5th win is still charged 7%, and the 6th is charged 5%. (The client's price is fixed when they pay; the contest goes live only after payment.)
 
@@ -66,11 +68,12 @@ One account has one role. One mobile number and one email can each hold only one
 - **Database and auth:** Supabase (Postgres + Auth). Row-level security on every table as a second line of defence
 - **Frontend:** React + Tailwind CSS, mobile-first (design for 360px width first)
 - **Background jobs:** a scheduled job every 15 minutes (chosen in milestone 6)
-- **Storage:** Supabase Storage (S3-compatible). Originals in a private bucket, watermarked previews in a public one
-- **Images:** server-side resize + watermark (library chosen in milestone 4)
+- **Storage:** Supabase Storage (S3-compatible). Originals in a private bucket, previews (resized, no watermark — owner 2026-10-08) beside them
+- **Images:** server-side resize with sharp; no watermark on designs (owner, 2026-10-08: logos stay clean)
 - **Auth (owner, 2026-10-07):** sign up with a mobile number (Bangladesh format checked, no OTP), an email and a password. Log in with the mobile number or the email, plus the password. Right after sign-up the user gets a browser push notification ("Welcome", if they allow notifications when they press **Create account**) and an email with a 6-digit code; they type the code on the site to confirm the email. The account works straight away and a banner asks for the code until it is entered. Password reset is by an emailed link (owner, 2026-10-07). An unconfirmed email blocks nothing for clients (owner, 2026-10-07); for designers it is **[CONFIRM]** (proposal: can't withdraw until confirmed)
 - **Payments:** behind a `PaymentGateway` interface with a `FakeGateway` for local/dev. Real driver: SSLCommerz (covers bKash and cards) is added in milestone 9
 - **SMS:** behind an `SmsSender` interface with a log driver for dev
+- **Live chat (owner, 2026-10-08):** behind a `LiveChat` choice in settings: `none` (dev, no chat script; the Help page says chat is being set up) and `tawk` (Tawk.to, free; the owner answers from the Tawk.to app). The Tawk.to property and widget IDs are admin settings. The chat script loads only on the Help page and only after the visitor taps **Start live chat**, so no third-party script or cookie runs before that
 - **Image moderation (owner, 2026-10-08):** behind an `ImageModerator` interface. Every uploaded profile photo is checked on the server and refused when it is nude or sexual. Drivers: `log` (dev, allows and logs) and `google` (Google Cloud Vision SafeSearch: refuse when adult is LIKELY or VERY_LIKELY, or racy is VERY_LIKELY). Logo entries get the same check when they arrive (milestone 4)
 - **Languages:** English default with a Bangla toggle. Use the en/bn message files from day one; never hard-code user-facing strings
 
@@ -84,7 +87,7 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 Designers also get `rules_accepted_at` on users: when they ticked the Designer Rules at sign-up (D-01).
 
-**contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extensions_count (int), extension_days_total (int), winner_entry_id, completed_at
+**contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, short_name, target_audience, deliverables (text[]: icon_only, short_logo, versions, app_icons), requirements (text[]: no_stock, home_mockup), requirements_note, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, logo_scan, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extensions_count (int), extension_days_total (int), winner_entry_id, completed_at
 
 **contest_files**: contest_id, type (example/current_logo), path, original_name
 
@@ -166,9 +169,11 @@ total       = prize + service_fee + upgrades_total
 
 | Package | Prize | Fee | Total (no upgrades) |
 |---|---|---|---|
-| Economy | 3,000 | 600 | 3,600 |
-| Standard | 5,000 | 1,000 | 6,000 |
-| Premium | 10,000 | 2,000 | 12,000 |
+| Starter | 3,000 | 600 | 3,600 |
+| Growth | 5,000 | 1,000 | 6,000 |
+| Pro | 8,000 | 1,600 | 9,600 |
+| Premium | 12,000 | 2,400 | 14,400 |
+| Elite | 15,000 | 3,000 | 18,000 |
 
 Always show the client the full breakdown before payment.
 
@@ -196,7 +201,10 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 |---|---|---|
 | Blind | Only the client sees the entries; each designer sees only their own. Nobody else ever sees them, even after completion, except that after completion the client may choose to make the winning logo public, shown with the designer's name | 1,000 |
 | Private | Login required to view the brief, `noindex`, hidden from winners gallery and designer portfolios | 1,000 |
-| Promoted | Flag for admin to post it on the Facebook page/group; shown first in lists | 1,000 |
+| Promoted (shown as "Featured") | Flag for admin to post it on the Facebook page/group; shown first in lists | 1,000 |
+| Highlight (owner, 2026-10-08) | The contest's card in lists gets a gold border and a "Highlighted" badge | 500 |
+| Urgent (owner, 2026-10-08) | An "Urgent" badge on the contest's card and page, so designers look at it soon | 500 |
+| NDA / Confidential (owner, 2026-10-08) | Includes everything Private does (Private is not charged on top), and designers must accept a confidentiality agreement before they can read the brief, see the designs or submit. Acceptances are stored (`nda_acceptances`) | 1,500 |
 | Extension | Bought while the contest is open; adds 3, 5 or 7 days to `ends_at`. Can be bought more than once | 500 per day added |
 | Logo Scan (owner, 2026-10-08) | Bought once per contest; the client can then scan any design in that contest as often as they like. The scan searches the web for the same or a visually similar image (behind a `LogoScanner` interface: `log` dev driver that searches nothing and says so; `google` driver = Google Cloud Vision Web Detection with the same API key as image moderation) and lists exact matches, partial matches, similar images and pages that show them. Results are stored per design (`logo_scans`) | 500 |
 
@@ -222,14 +230,14 @@ Credits happen once, inside one database transaction. If no designer qualifies, 
 
 One question per screen, progress bar, Back/Next, autosave to the browser. Once the account exists (after step 10) the contest is saved on the server as a `draft`, so an unpaid contest can be finished later. No login is needed for steps 1–8.
 
-1. Business or brand name (required, 2–60 chars); optional logo text and slogan
-2. Business type (dropdown) + short description (20–300 chars)
+1. Logo name: the business or brand name (required, 2–60 chars); optional short name / app name (up to 30 chars, owner 2026-10-08), logo text and slogan
+2. Business type (dropdown) + short description (20–300 chars) + target audience (who the customers are, required, 10–300 chars, owner 2026-10-08)
 3. Website or Facebook page link (optional, "I don't have one" checkbox)
 4. Logo styles, multi-select with example images: Wordmark, Lettermark, Pictorial, Abstract, Emblem, Mascot, Bangla/Arabic calligraphy
-5. Up to 5 colors with hex codes, or "Let designers choose"; and "Logo will be used on": Facebook/Instagram, Website, Signboard, Packaging, Print, Merchandise, TV/Video
-6. What you like / what you don't like (two text areas; "like" min 30 chars)
+5. Up to 5 colors with hex codes, or "Let designers choose"; "Logo will be used on": Facebook/Instagram, Website, Signboard, Packaging, Print, Merchandise, TV/Video; and **What you need** (owner, 2026-10-08). Always included and shown ticked: the main logo, and the files every winner delivers (AI, EPS, SVG, PDF, transparent PNG, JPG, §9). Extras the client can tick: icon only (for the app icon and favicon), short logo (icon + short name), colour, white and black versions, and app icon sizes (1024×1024 master, plus iOS and Android sizes). The winner must deliver the ticked extras at handover
+6. **Requirements** (owner, 2026-10-08; the "what you like / don't like" text areas were removed the same day, so new contests save `likes_text` empty and older contests keep theirs). Always on and shown ticked: 100% original work with full copyright transferred to the client, and no AI-generated logos (§3). Requirements the client can tick: no stock images or AI-made images in the final design, and a mockup showing the app icon on a phone home screen. Plus "Other requirements" (optional, up to 500 chars; the contact filter runs on it)
 7. Upload examples or current logo (optional, max 5 files, JPG/PNG/PDF, 5 MB each)
-8. Package (Economy / Standard / Premium / Custom), duration, upgrades, live order summary
+8. Package (Starter / Growth / Pro / Premium / Elite / Custom), duration (3–30 days), upgrades (Featured, Blind, Private, Logo Scan, Highlight, Urgent, NDA), live order summary
 9. Mobile number and email (no OTP; both required and unique)
 10. Password
 11. Your name, then payment (bKash / card), with a checkbox accepting Terms and the no-refund policy
@@ -271,7 +279,7 @@ Full name, mobile (no OTP), email, password, bio, payout method (bKash number or
 - JPG/PNG/WebP, max 5 MB each
 - No logo story (owner, 2026-10-08: removed from the form; the `logo_story` column stays empty)
 - No limit on entries per designer per contest. When the client asks for changes in a comment, the designer answers by submitting a new entry
-- On upload: store the original privately, generate a preview (max 1200 px) with a tiled "logocontest.bd #entry" watermark, compute a perceptual hash and flag near-duplicates of existing entries for admin
+- On upload: store the original privately, generate a clean preview (max 1200 px, no watermark — owner 2026-10-08), compute a perceptual hash and flag near-duplicates of existing entries for admin
 
 Required checkboxes (store with timestamp and IP):
 
@@ -309,9 +317,12 @@ The filter must catch:
 - Bangladeshi mobile numbers (`01[3-9]` + 8 digits, `+880`), including digits split by spaces, dots or dashes
 - Bangla digits (০–৯): normalize to Latin digits first
 - Numbers spelled out in English, Bangla or Banglish (six or more number words in a row)
-- Emails, `@`, "gmail", "dot com"
-- Links and platform names: http, www, .com, .bd, facebook, fb, m.me, whatsapp, wa.me, imo, telegram, instagram, behance
+- Emails (`name@site.com`, "@gmail.com", "gmail dot com"), and social handles written as `@name`
+- Links: http, www, web addresses (`.com`, `.bd`, …), m.me, wa.me, fb.com/… and facebook.com/…
+- Platform names only when they are used to share a way to reach someone (owner, 2026-10-08: "who shop on Facebook" or "it looks like Instagram's logo" are fine): a platform (facebook, fb, whatsapp, imo, telegram, instagram, messenger, viber, skype, linkedin, behance, …) together with words like contact, message, inbox, knock, call, add, follow, my, ID, page, profile, number or link (in English, Bangla or Banglish), or right before a colon or a name
 - Any term in `blocked_terms`
+
+Ordinary numbers (ages like 25–40, prices, years) and the bare word "at" are never blocked.
 
 Strikes: 1 = warning, 2 = 14-day suspension, 3 = permanent ban. A confirmed copied or AI logo is an immediate permanent ban. Every entry has a Report button.
 
@@ -415,7 +426,7 @@ Finish, test and commit each milestone before starting the next.
 1. **Foundation:** Next.js + Supabase project, Tailwind layout, localization setup, settings table with seeded defaults, roles, mobile + OTP auth (log driver), basic admin login
 2. **Contest wizard:** all 11 steps with autosave and drafts, `FakeGateway` payment, contest goes `open`, success screen
 3. **Browse and contest pages:** `/contests`, contest detail, home page with live data
-4. **Designer side:** signup, payout method, entry upload with slots, watermarking, declarations, blind/open visibility rules
+4. **Designer side:** signup, payout method, entry upload with slots, previews, declarations, blind/open visibility rules
 5. **Client review:** ratings, shortlist, reject with reasons, comment threads, contact filter, report button, designer copy flags with evidence
 6. **Lifecycle engine:** scheduler, judging, paid extension, pick winner, no-result when the client is silent
 7. **Handover and wallet:** file delivery, missed-deadline cancellation, approval with rating and feedback, no-result split payout, fee tiers, wallet ledger, withdrawals

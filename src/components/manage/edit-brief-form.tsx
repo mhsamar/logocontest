@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { BrandStep, BusinessStep, ColorsStep, LikesStep, StylesStep, WebsiteStep } from "@/components/wizard/steps-brief";
+import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep } from "@/components/wizard/steps-brief";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -16,7 +16,7 @@ const STEPS = [
   { key: "c03", Step: WebsiteStep },
   { key: "c04", Step: StylesStep },
   { key: "c05", Step: ColorsStep },
-  { key: "c06", Step: LikesStep },
+  { key: "c06", Step: RequirementsStep },
 ] as const;
 
 /** C-13b Edit details (owner, 2026-10-08): the wizard's brief fields on one page; saving tells the designers. */

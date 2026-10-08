@@ -53,10 +53,12 @@ export async function countComments(contestId: string): Promise<number> {
 }
 
 /** The contest's id, owner and status, for permission checks in actions. */
-export async function contestForAction(contestId: string): Promise<{ id: string; slug: string; brand: string; ownerId: string; status: string; isPrivate: boolean } | null> {
+export async function contestForAction(contestId: string): Promise<{ id: string; slug: string; brand: string; ownerId: string; status: string; isPrivate: boolean; isNda: boolean } | null> {
   if (!/^[0-9a-f-]{36}$/i.test(contestId)) return null;
-  const { data } = await createAdminClient().from("contests").select("id, slug, brand_name, client_id, status, is_private").eq("id", contestId).maybeSingle();
-  return data ? { id: data.id, slug: data.slug, brand: data.brand_name, ownerId: data.client_id, status: data.status, isPrivate: data.is_private } : null;
+  const { data } = await createAdminClient().from("contests").select("id, slug, brand_name, client_id, status, is_private, is_nda").eq("id", contestId).maybeSingle();
+  return data
+    ? { id: data.id, slug: data.slug, brand: data.brand_name, ownerId: data.client_id, status: data.status, isPrivate: data.is_private, isNda: Boolean(data.is_nda) }
+    : null;
 }
 
 export async function insertComment(contestId: string, userId: string, body: string): Promise<void> {

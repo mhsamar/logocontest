@@ -6,9 +6,11 @@ import { Checkbox, SelectField, TextAreaField, TextField } from "@/components/ui
 import { Modal } from "@/components/ui/modal";
 import {
   BUSINESS_TYPES,
+  DELIVERABLES,
   LIMITS,
   LOGO_STYLES,
   MAX_COLORS,
+  REQUIREMENTS,
   STYLE_SLIDERS,
   USED_ON,
   type Brief,
@@ -19,7 +21,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { StyleExamples } from "./style-art";
 import { Suggestions } from "./suggestions";
-import { descriptionSuggestions, dislikesSuggestions, likesSuggestions } from "@/lib/contests/suggestions";
+import { audienceSuggestions, descriptionSuggestions } from "@/lib/contests/suggestions";
 
 export type BriefStepProps = {
   brief: Brief;
@@ -42,6 +44,27 @@ function counter(value: string, max: number, locale: string) {
   return `${fmt.format(value.trim().length)} / ${fmt.format(max)}`;
 }
 
+/** Things that are always part of every contest, shown ticked and locked (owner, 2026-10-08). */
+function AlwaysList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-2xl bg-success/5 p-3 ring-1 ring-success/20">
+      <p className="text-xs font-semibold uppercase tracking-wider text-success">{title}</p>
+      <ul className="mt-2 space-y-1.5">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2 text-sm text-ink">
+            <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success text-white" aria-hidden>
+              <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </span>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // C-01
 export function BrandStep(p: BriefStepProps) {
   const { t } = useI18n();
@@ -59,6 +82,16 @@ export function BrandStep(p: BriefStepProps) {
         autoComplete="organization"
         autoFocus
       />
+      <TextField
+        label={t("wizard.c01.shortNameLabel")}
+        hint={t("wizard.c01.shortNameHint")}
+        optionalLabel={t("common.optional")}
+        value={p.brief.shortName}
+        onChange={(e) => p.update({ shortName: e.target.value })}
+        onBlur={() => p.touch("shortName")}
+        maxLength={LIMITS.shortName.max}
+        error={error("shortName")}
+      />
       {extra ? (
         <>
           <TextField
@@ -67,14 +100,18 @@ export function BrandStep(p: BriefStepProps) {
             optionalLabel={t("common.optional")}
             value={p.brief.logoText}
             onChange={(e) => p.update({ logoText: e.target.value })}
+            onBlur={() => p.touch("logoText")}
             maxLength={LIMITS.logoText.max}
+            error={error("logoText")}
           />
           <TextField
             label={t("wizard.c01.sloganLabel")}
             optionalLabel={t("common.optional")}
             value={p.brief.slogan}
             onChange={(e) => p.update({ slogan: e.target.value })}
+            onBlur={() => p.touch("slogan")}
             maxLength={LIMITS.slogan.max}
+            error={error("slogan")}
           />
         </>
       ) : (
@@ -115,9 +152,29 @@ export function BusinessStep(p: BriefStepProps) {
       />
       <Suggestions
         items={descriptionSuggestions(p.brief, t)}
+        value={p.brief.businessDescription}
         onPick={(text) => {
           p.update({ businessDescription: text });
           p.touch("businessDescription");
+        }}
+      />
+      <TextAreaField
+        label={t("wizard.c02.audienceLabel")}
+        hint={t("wizard.c02.audienceHint")}
+        rows={3}
+        value={p.brief.targetAudience}
+        onChange={(e) => p.update({ targetAudience: e.target.value })}
+        onBlur={() => p.touch("targetAudience")}
+        maxLength={LIMITS.targetAudience.max}
+        counterLabel={counter(p.brief.targetAudience, LIMITS.targetAudience.max, locale)}
+        error={error("targetAudience")}
+      />
+      <Suggestions
+        items={audienceSuggestions(p.brief, t)}
+        value={p.brief.targetAudience}
+        onPick={(text) => {
+          p.update({ targetAudience: text });
+          p.touch("targetAudience");
         }}
       />
     </div>
@@ -304,6 +361,38 @@ export function ColorsStep(p: BriefStepProps) {
         </div>
       </fieldset>
 
+      {/* What you need (owner, 2026-10-08): always-included items, then extras to tick */}
+      <fieldset>
+        <legend className="text-base font-semibold text-ink">{t("wizard.c05.needTitle")}</legend>
+        <p className="mb-3 mt-0.5 text-sm text-muted">{t("wizard.c05.needHelper")}</p>
+        <AlwaysList title={t("wizard.c05.alwaysTitle")} items={[t("wizard.c05.always.main"), t("wizard.c05.always.files")]} />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {DELIVERABLES.map((d) => {
+            const on = p.brief.deliverables.includes(d);
+            return (
+              <label
+                key={d}
+                className={cx(
+                  "flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl p-3 ring-1 transition-[background-color,box-shadow] duration-200",
+                  on ? "bg-primary/5 ring-2 ring-primary" : "bg-surface ring-line hover:bg-canvas",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-5 shrink-0 rounded accent-primary"
+                  checked={on}
+                  onChange={(e) => p.update({ deliverables: e.target.checked ? [...p.brief.deliverables, d] : p.brief.deliverables.filter((x) => x !== d) })}
+                />
+                <span className="min-w-0">
+                  <span className="block text-[0.9375rem] font-semibold leading-snug text-ink">{t(`wizard.deliverables.${d}.title`)}</span>
+                  <span className="mt-0.5 block text-sm text-muted">{t(`wizard.deliverables.${d}.line`)}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
@@ -359,38 +448,39 @@ export function ColorsStep(p: BriefStepProps) {
   );
 }
 
-// C-06
-export function LikesStep(p: BriefStepProps) {
+// C-06 Requirements (owner, 2026-10-08: the like / don't like boxes were removed)
+export function RequirementsStep(p: BriefStepProps) {
   const { t, locale } = useI18n();
   const error = useError(p);
   return (
     <div className="space-y-5">
-      <TextAreaField
-        label={t("wizard.c06.likesLabel")}
-        hint={t("wizard.c06.likesHint", { min: LIMITS.likes.min })}
-        value={p.brief.likes}
-        onChange={(e) => p.update({ likes: e.target.value })}
-        onBlur={() => p.touch("likes")}
-        maxLength={LIMITS.likes.max}
-        counterLabel={counter(p.brief.likes, LIMITS.likes.max, locale)}
-        error={error("likes", { min: LIMITS.likes.min })}
-      />
-      <Suggestions
-        items={likesSuggestions(p.brief, t)}
-        onPick={(text) => {
-          p.update({ likes: text });
-          p.touch("likes");
-        }}
-      />
-      <TextAreaField
-        label={t("wizard.c06.dislikesLabel")}
-        optionalLabel={t("common.optional")}
-        value={p.brief.dislikes}
-        onChange={(e) => p.update({ dislikes: e.target.value })}
-        maxLength={LIMITS.dislikes.max}
-        counterLabel={counter(p.brief.dislikes, LIMITS.dislikes.max, locale)}
-      />
-      <Suggestions items={dislikesSuggestions(p.brief, t)} onPick={(text) => p.update({ dislikes: text })} />
+      {/* Requirements (owner, 2026-10-08): always-on rules, then ones the client can add */}
+      <fieldset>
+        <legend className="sr-only">{t("wizard.c06.requirementsTitle")}</legend>
+        <AlwaysList title={t("wizard.c06.alwaysTitle")} items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi")]} />
+        <div className="mt-2">
+          {REQUIREMENTS.map((r) => (
+            <Checkbox
+              key={r}
+              label={t(`wizard.requirements.${r}`)}
+              checked={p.brief.requirements.includes(r)}
+              onChange={(e) => p.update({ requirements: e.target.checked ? [...p.brief.requirements, r] : p.brief.requirements.filter((x) => x !== r) })}
+            />
+          ))}
+        </div>
+        <TextAreaField
+          className="mt-2"
+          label={t("wizard.c06.noteLabel")}
+          optionalLabel={t("common.optional")}
+          rows={3}
+          value={p.brief.requirementsNote}
+          onChange={(e) => p.update({ requirementsNote: e.target.value })}
+          onBlur={() => p.touch("requirementsNote")}
+          maxLength={LIMITS.requirementsNote.max}
+          counterLabel={counter(p.brief.requirementsNote, LIMITS.requirementsNote.max, locale)}
+          error={error("requirementsNote")}
+        />
+      </fieldset>
     </div>
   );
 }

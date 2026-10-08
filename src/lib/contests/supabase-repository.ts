@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emptyBrief, type Brief, type Order } from "./brief";
+import { emptyBrief, noUpgrades, type Brief, type Order } from "./brief";
 import {
   AmountMismatchError,
   type ContestRecord,
@@ -27,6 +27,11 @@ type ContestRow = {
   used_on: Brief["usedOn"];
   likes_text: string;
   dislikes_text: string | null;
+  short_name: string | null;
+  target_audience: string | null;
+  deliverables: Brief["deliverables"] | null;
+  requirements: Brief["requirements"] | null;
+  requirements_note: string | null;
   package: Order["package"];
   prize_amount: number;
   service_fee_amount: number;
@@ -36,6 +41,10 @@ type ContestRow = {
   is_blind: boolean;
   is_private: boolean;
   is_promoted: boolean;
+  is_highlighted: boolean;
+  is_urgent: boolean;
+  is_nda: boolean;
+  logo_scan: boolean;
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;
@@ -65,10 +74,12 @@ export function toContestRecord(r: ContestRow): ContestRecord {
     status: r.status,
     brief: {
       brandName: r.brand_name,
+      shortName: r.short_name ?? "",
       logoText: r.logo_text ?? "",
       slogan: r.slogan ?? "",
       businessType: r.business_type as Brief["businessType"],
       businessDescription: r.business_description,
+      targetAudience: r.target_audience ?? "",
       websiteUrl: r.website_url ?? "",
       noWebsite: !r.website_url,
       styles: r.styles ?? [],
@@ -76,14 +87,26 @@ export function toContestRecord(r: ContestRow): ContestRecord {
       colors: r.colors ?? [],
       letDesignersChoose: r.let_designers_choose_colors,
       usedOn: r.used_on ?? [],
+      deliverables: r.deliverables ?? [],
       likes: r.likes_text,
       dislikes: r.dislikes_text ?? "",
+      requirements: r.requirements ?? [],
+      requirementsNote: r.requirements_note ?? "",
     },
     order: {
       package: r.package,
       customPrize: r.package === "custom" ? r.prize_amount : null,
       durationDays: r.duration_days,
-      upgrades: { blind: r.is_blind, private: r.is_private, promoted: r.is_promoted },
+      upgrades: {
+        ...noUpgrades(),
+        blind: r.is_blind,
+        private: r.is_private,
+        promoted: r.is_promoted,
+        logo_scan: Boolean(r.logo_scan),
+        highlight: Boolean(r.is_highlighted),
+        urgent: Boolean(r.is_urgent),
+        nda: Boolean(r.is_nda),
+      },
     },
     amounts: { prize: r.prize_amount, serviceFee: r.service_fee_amount, upgrades: r.upgrades_amount, total: r.total_amount },
     startsAt: date(r.starts_at),
@@ -107,6 +130,17 @@ function toPaymentRecord(r: PaymentRow): PaymentRecord {
   };
 }
 
+/** The brief details added on 2026-10-08 (migration 0016); shared with the brief editor. */
+export function briefDetailColumns(brief: Brief) {
+  return {
+    short_name: brief.shortName || null,
+    target_audience: brief.targetAudience || null,
+    deliverables: brief.deliverables,
+    requirements: brief.requirements,
+    requirements_note: brief.requirementsNote || null,
+  };
+}
+
 function columns({ brief, order, amounts }: DraftData) {
   return {
     brand_name: brief.brandName,
@@ -122,15 +156,21 @@ function columns({ brief, order, amounts }: DraftData) {
     used_on: brief.usedOn,
     likes_text: brief.likes,
     dislikes_text: brief.dislikes || null,
+    ...briefDetailColumns(brief),
     package: order.package,
     prize_amount: amounts.prize,
     service_fee_amount: amounts.serviceFee,
     upgrades_amount: amounts.upgrades,
     total_amount: amounts.total,
     duration_days: order.durationDays,
+    // NDA includes Private (owner, 2026-10-08).
     is_blind: order.upgrades.blind,
-    is_private: order.upgrades.private,
+    is_private: order.upgrades.private || order.upgrades.nda,
     is_promoted: order.upgrades.promoted,
+    logo_scan: order.upgrades.logo_scan,
+    is_highlighted: order.upgrades.highlight,
+    is_urgent: order.upgrades.urgent,
+    is_nda: order.upgrades.nda,
   };
 }
 

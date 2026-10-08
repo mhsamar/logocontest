@@ -93,7 +93,7 @@ export async function pickWinner(entryId: string): Promise<Result> {
   return { ok: true };
 }
 
-/** Logo Scan of the design's cover (original, not the watermarked preview). */
+/** Logo Scan of the design's cover (the original upload, not the resized preview). */
 export async function scanEntry(entryId: string): Promise<{ ok: true; result: ScanResult } | { ok: false; error: MessageKey }> {
   const own = await ownEntry(entryId);
   if (!own) return { ok: false, error: "auth.errors.generic" };

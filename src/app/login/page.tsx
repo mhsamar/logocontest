@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { homeForRole } from "@/lib/auth/home";
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -47,7 +48,8 @@ function RoleIcon({ as }: { as: As }) {
 // P-11 (owner, 2026-10-08): first "I'm a client" / "I'm a designer", then the form.
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
-  if (await getCurrentUser()) redirect("/");
+  const current = await getCurrentUser();
+  if (current) redirect(homeForRole(current.role));
   const { t } = await getI18n();
   const nextPath = typeof sp.next === "string" ? sp.next : undefined;
   const as: As | null = sp.as === "client" || sp.as === "designer" ? sp.as : null;

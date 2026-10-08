@@ -134,7 +134,7 @@ export async function DesignerDashboard({
               {contests.map((c) => (
                 <li key={c.slug} className="flex items-center justify-between gap-3 py-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    {/* The designer's newest design in this contest (watermarked preview) */}
+                    {/* The designer's newest design in this contest (its preview) */}
                     <Link href={`/contest/${c.slug}?tab=entries`} className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-canvas ring-1 ring-line" aria-hidden tabIndex={-1}>
                       {c.latestCoverUrl && (
                         // eslint-disable-next-line @next/next/no-img-element

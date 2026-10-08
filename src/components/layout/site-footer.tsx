@@ -68,7 +68,9 @@ export async function SiteFooter() {
       links: [
         { href: "/start", label: t("footer.startContest") },
         { href: "/contests", label: t("nav.browse") },
+        { href: "/design-studio", label: t("nav.studio") },
         { href: "/how-it-works", label: t("nav.how") },
+        { href: "/help", label: t("nav.help") },
       ],
     },
     {

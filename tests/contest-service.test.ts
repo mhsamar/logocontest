@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Order } from "@/lib/contests/brief";
+import { noUpgrades, type Order } from "@/lib/contests/brief";
 import type { PricingConfig } from "@/lib/contests/pricing";
 import {
   AmountMismatchError,
@@ -71,11 +71,13 @@ class MemoryRepo implements ContestRepository {
 
 const cfg: PricingConfig = {
   serviceFeePercent: 20,
-  packagePrizes: { economy: 3000, standard: 5000, premium: 10000 },
+  packagePrizes: { economy: 3000, standard: 5000, pro: 8000, premium: 12000, elite: 15000 },
   customMin: 3000,
   customStep: 500,
-  upgradePrices: { blind: 1000, private: 1000, promoted: 1000 },
-  durationOptions: [5, 7, 10],
+  upgradePrices: { promoted: 1000, blind: 1000, private: 1000, logo_scan: 500, highlight: 500, urgent: 500, nda: 1500 },
+  durationOptions: [3, 5, 7, 10, 14, 21, 30],
+  durationMin: 3,
+  durationMax: 30,
   defaultDuration: 7,
 };
 
@@ -83,7 +85,7 @@ const order = (over: Partial<Order> = {}): Order => ({
   package: "standard",
   customPrize: null,
   durationDays: 7,
-  upgrades: { blind: false, private: false, promoted: false },
+  upgrades: noUpgrades(),
   ...over,
 });
 
@@ -120,9 +122,9 @@ describe("ContestService", () => {
 
   describe("drafts", () => {
     it("saves a draft with server-computed amounts", async () => {
-      const c = await draft(order({ package: "premium", upgrades: { blind: true, private: false, promoted: false } }));
+      const c = await draft(order({ package: "premium", upgrades: { ...noUpgrades(), blind: true } }));
       expect(c).toMatchObject({ status: "draft", clientId: CLIENT, slug: "rahim-tea-abc123" });
-      expect(c.amounts).toEqual({ prize: 10000, serviceFee: 2000, upgrades: 1000, total: 13000 });
+      expect(c.amounts).toEqual({ prize: 12000, serviceFee: 2400, upgrades: 1000, total: 15400 });
     });
 
     it("updates the same draft instead of creating another", async () => {
@@ -139,7 +141,7 @@ describe("ContestService", () => {
     });
 
     it("refuses incomplete briefs and invalid custom amounts", async () => {
-      expect(await service.saveDraft(CLIENT, { ...validBrief(), likes: "" }, order())).toEqual({ ok: false, error: "invalid_brief" });
+      expect(await service.saveDraft(CLIENT, { ...validBrief(), targetAudience: "" }, order())).toEqual({ ok: false, error: "invalid_brief" });
       expect(await service.saveDraft(CLIENT, validBrief(), order({ package: "custom", customPrize: 3200 }))).toEqual({
         ok: false,
         error: "invalid_order",

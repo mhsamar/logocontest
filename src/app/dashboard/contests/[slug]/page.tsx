@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine } from "@/components/contests/contest-bits";
+import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@/components/contests/contest-bits";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { Collage } from "@/components/entries/entry-card";
 import { EntryViewer } from "@/components/entries/entry-viewer";
@@ -121,6 +121,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               <div className="flex flex-wrap items-center gap-2">
                 <StatusChip status={contest.status as ChipStatus} label={t(`status.${contest.status as ChipStatus}`)} />
                 <PackagePill pkg={contest.package} t={t} />
+                <ContestNumber n={contest.number} t={t} locale={locale} />
               </div>
               <h1 className="mt-1.5 truncate text-h1 font-bold tracking-tight text-ink lg:text-4xl">{contest.brandName}</h1>
               <div className="mt-1 text-sm">

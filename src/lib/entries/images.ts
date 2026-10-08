@@ -19,33 +19,9 @@ export async function imageSize(input: Uint8Array): Promise<{ width: number; hei
   }
 }
 
-/** Tiled diagonal "logocontest.bd #14" text over the whole image. */
-function watermarkSvg(size: number, label: string): Buffer {
-  const step = Math.round(size / 4);
-  const fontSize = Math.round(size / 28);
-  const rows: string[] = [];
-  for (let y = -size; y < size * 2; y += step) {
-    for (let x = -size; x < size * 2; x += step * 1.6) {
-      rows.push(`<text x="${x}" y="${y}">${label}</text>`);
-    }
-  }
-  return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <g transform="rotate(-30 ${size / 2} ${size / 2})" font-family="sans-serif" font-size="${fontSize}" font-weight="700"
-         fill="#ffffff" fill-opacity="0.32" stroke="#000000" stroke-opacity="0.18" stroke-width="1">${rows.join("")}</g>
-    </svg>`,
-  );
-}
-
-/** The watermarked preview every viewer sees. JPEG, at most `maxPx` square. */
-export async function watermarkedPreview(input: Uint8Array, entryNumber: number, maxPx: number): Promise<Buffer> {
-  const base = sharp(input).rotate().resize(maxPx, maxPx, { fit: "inside", withoutEnlargement: true }).flatten({ background: "#ffffff" });
-  const { width = maxPx } = await base.clone().metadata();
-  const size = Math.min(width, maxPx);
-  return base
-    .composite([{ input: watermarkSvg(size, `logocontest.bd #${entryNumber}`), gravity: "centre" }])
-    .jpeg({ quality: 82, mozjpeg: true })
-    .toBuffer();
+/** The preview every viewer sees: JPEG, at most `maxPx` square, no watermark (owner, 2026-10-08: logos stay clean). */
+export async function previewImage(input: Uint8Array, maxPx: number): Promise<Buffer> {
+  return sharp(input).rotate().resize(maxPx, maxPx, { fit: "inside", withoutEnlargement: true }).flatten({ background: "#ffffff" }).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
 }
 
 /** 64-bit difference hash as 16 hex characters: similar images give similar hashes. */

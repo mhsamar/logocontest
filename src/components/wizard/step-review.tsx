@@ -48,8 +48,9 @@ export function ReviewStep({
   const failed = uploads.some((u) => u.status === "error");
 
   const recap: { step: number; label: string; value: string }[] = [
-    { step: 1, label: t("wizard.c11.recap.brand"), value: [brief.brandName, brief.logoText, brief.slogan].filter(Boolean).join(" · ") },
+    { step: 1, label: t("wizard.c11.recap.brand"), value: [brief.brandName, brief.shortName, brief.logoText, brief.slogan].filter(Boolean).join(" · ") },
     { step: 2, label: t("wizard.c11.recap.business"), value: brief.businessType ? t(`wizard.businessTypes.${brief.businessType}`) : "" },
+    { step: 2, label: t("wizard.c11.recap.audience"), value: brief.targetAudience },
     { step: 3, label: t("wizard.c11.recap.website"), value: brief.noWebsite || !brief.websiteUrl ? t("wizard.c11.recap.none") : brief.websiteUrl },
     { step: 4, label: t("wizard.c11.recap.styles"), value: brief.styles.map((s) => t(`wizard.styles.${s}`)).join(", ") },
     {
@@ -57,7 +58,16 @@ export function ReviewStep({
       label: t("wizard.c11.recap.colours"),
       value: brief.letDesignersChoose ? t("wizard.c05.letChoose") : brief.colors.join(" ").toUpperCase(),
     },
-    { step: 6, label: t("wizard.c11.recap.likes"), value: brief.likes },
+    {
+      step: 5,
+      label: t("wizard.c11.recap.needs"),
+      value: brief.deliverables.length ? brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`)).join(", ") : t("wizard.c11.recap.none"),
+    },
+    {
+      step: 6,
+      label: t("wizard.c11.recap.requirements"),
+      value: [...brief.requirements.map((r) => t(`wizard.requirements.${r}`)), brief.requirementsNote].filter(Boolean).join(" · ") || t("wizard.c11.recap.none"),
+    },
     {
       step: 8,
       label: t("wizard.c11.recap.package"),
@@ -86,7 +96,7 @@ export function ReviewStep({
         </summary>
         <dl className="divide-y divide-line border-t border-line">
           {recap.map((r) => (
-            <div key={r.step} className="flex items-start gap-3 px-4 py-3">
+            <div key={r.label} className="flex items-start gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">{r.label}</dt>
                 <dd className="mt-0.5 line-clamp-2 break-words text-sm text-ink">{r.value || "—"}</dd>

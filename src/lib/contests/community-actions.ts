@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
+import { passesNda } from "./nda";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSetting } from "@/lib/settings";
 import { PUBLIC_STATUSES } from "./browse";
@@ -22,6 +23,7 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   const contest = await contestForAction(String(formData.get("contestId") ?? ""));
   if (!contest || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status)) return fail("auth.errors.generic");
   if (!can(user, "contest.comment", { contestOwnerId: contest.ownerId })) return fail("contest.comments.notAllowed");
+  if (!(await passesNda(contest, user))) return fail("contest.nda.required");
 
   const body = String(formData.get("body") ?? "").replace(/\r\n/g, "\n").trim();
   const max = Math.min(2000, await getSetting("limits.contest_comment_max_length"));

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
+import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
 import { AddonsButton } from "@/components/manage/addons-button";
 import { ButtonLink } from "@/components/ui/button";
 import type { AddonPrices } from "@/lib/contests/addon-payments";
@@ -73,6 +73,7 @@ export async function ClientContestCard({ contest: c, now, index = 0, addons }: 
         <div className="flex flex-wrap items-center gap-2">
           <StatusChip status={c.status as ChipStatus} label={t(`status.${c.status as ChipStatus}`)} />
           <PackagePill pkg={c.package} t={t} />
+          <ContestNumber n={c.number} t={t} locale={locale} />
           <UpgradePills contest={c} t={t} />
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">

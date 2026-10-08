@@ -37,6 +37,11 @@ export type DashboardContest = {
   isBlind: boolean;
   isPrivate: boolean;
   isPromoted: boolean;
+  /** Running contest number (null until published). */
+  number: number | null;
+  isHighlighted: boolean;
+  isUrgent: boolean;
+  isNda: boolean;
   logoScan: boolean;
   createdAt: Date;
   startsAt: Date | null;
@@ -75,7 +80,7 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     db
       .from("contests")
       .select(
-        "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, logo_scan, created_at, starts_at, ends_at, judging_ends_at, completed_at",
+        "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, contest_number, logo_scan, created_at, starts_at, ends_at, judging_ends_at, completed_at",
       )
       .eq("client_id", userId)
       .order("created_at", { ascending: false }),
@@ -122,6 +127,10 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     isBlind: r.is_blind,
     isPrivate: r.is_private,
     isPromoted: r.is_promoted,
+    number: (r.contest_number as number | null) ?? null,
+    isHighlighted: Boolean(r.is_highlighted),
+    isUrgent: Boolean(r.is_urgent),
+    isNda: Boolean(r.is_nda),
     logoScan: Boolean(r.logo_scan),
     createdAt: new Date(r.created_at),
     startsAt: date(r.starts_at),
@@ -149,4 +158,11 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     },
     contests,
   };
+}
+
+/** Contests of this client that are live or being judged (client home P-01c). */
+export async function countRunningContests(userId: string): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  const { count } = await createAdminClient().from("contests").select("id", { count: "exact", head: true }).eq("client_id", userId).in("status", ["open", "judging"]);
+  return count ?? 0;
 }

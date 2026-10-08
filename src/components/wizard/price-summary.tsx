@@ -5,13 +5,15 @@ import { useI18n } from "@/lib/i18n/client";
 import type { Price } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { formatTaka } from "@/lib/money";
+import { CountUp } from "@/components/ui/count-up";
 
 function Rows({ price, feePercent }: { price: Price; feePercent: number }) {
   const { t, locale } = useI18n();
   const row = (key: string, label: string, amount: number, strong = false) => (
     <div key={key} className={cx("flex items-baseline justify-between gap-4 py-1.5", strong && "border-t border-line pt-3 font-semibold text-ink")}>
       <dt className={strong ? "" : "text-muted"}>{label}</dt>
-      <dd className={cx("tabular-nums", strong ? "text-lg" : "text-ink")}>{formatTaka(amount, locale)}</dd>
+      {/* The total counts to its new value as the client changes their choices (UI-JOURNEY §1.5). */}
+      <dd className={cx("tabular-nums", strong ? "text-lg" : "text-ink")}>{strong ? <CountUp value={amount} locale={locale} taka fromZero={false} duration={600} /> : formatTaka(amount, locale)}</dd>
     </div>
   );
   return (
@@ -58,7 +60,7 @@ export function PriceBar({ price, feePercent }: { price: Price | null; feePercen
       >
         <span className="text-muted">{open ? t("wizard.summary.hide") : t("wizard.summary.show")}</span>
         <span className="font-semibold text-ink">
-          {t("wizard.summary.total")} {formatTaka(price.total, locale)}
+          {t("wizard.summary.total")} <CountUp value={price.total} locale={locale} taka fromZero={false} duration={600} />
         </span>
       </button>
     </div>

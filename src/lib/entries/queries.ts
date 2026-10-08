@@ -21,7 +21,7 @@ export type EntryCard = {
   rating: number | null;
   isShortlisted: boolean;
   imageCount: number;
-  /** Signed links to the watermarked previews, cover first. The grid uses up to four. */
+  /** Signed links to the previews, cover first. The grid uses up to four. */
   previews: string[];
   commentCount: number;
   mine: boolean;

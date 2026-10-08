@@ -4,12 +4,13 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
 import { countDesigners, countShownEntries, designerFaces, leadingDesigns, type ContestCover, type ContestDesigner } from "@/lib/entries/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { BusinessType, LogoStyle, PackageKey, StyleSlider, UsedOn } from "./brief";
+import { hasAcceptedNda } from "./nda";
+import type { BusinessType, Deliverable, LogoStyle, PackageKey, Requirement, StyleSlider, UsedOn } from "./brief";
 import { BROWSE_PAGE_SIZE, BROWSE_TABS, TAB_STATUSES, type BrowseQuery, type BrowseTab } from "./browse-query";
 
-/** Statuses anyone may see. Drafts, unpaid and cancelled contests are only for their owner. */
-export const PUBLIC_STATUSES = ["open", "judging", "winner_selected", "handover", "completed", "no_result"] as const;
-export type PublicStatus = (typeof PUBLIC_STATUSES)[number];
+import { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
+
+export { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 
 export type ContestRow = {
   id: string;
@@ -25,6 +26,12 @@ export type ContestRow = {
   isBlind: boolean;
   isPrivate: boolean;
   isPromoted: boolean;
+  /** Running contest number, given when the contest is published (owner, 2026-10-08). */
+  number: number | null;
+  /** Add-ons from 2026-10-08: gold border + badge, "Urgent" badge, confidentiality agreement. */
+  isHighlighted: boolean;
+  isUrgent: boolean;
+  isNda: boolean;
   entries: number;
   /** The design on the card: winner, else best rated, else newest (never for blind or private contests). */
   cover: ContestCover | null;
@@ -35,7 +42,7 @@ export type ContestRow = {
 };
 
 const ROW_COLUMNS =
-  "id, slug, status, brand_name, business_type, business_description, package, prize_amount, starts_at, ends_at, judging_ends_at, is_blind, is_private, is_promoted";
+  "id, slug, status, brand_name, business_type, business_description, package, prize_amount, starts_at, ends_at, judging_ends_at, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, contest_number";
 
 type DbRow = {
   id: string;
@@ -52,6 +59,10 @@ type DbRow = {
   is_blind: boolean;
   is_private: boolean;
   is_promoted: boolean;
+  is_highlighted: boolean;
+  is_urgent: boolean;
+  is_nda: boolean;
+  contest_number: number | null;
 };
 
 const date = (v: string | null) => (v ? new Date(v) : null);
@@ -71,6 +82,10 @@ function toRow(r: DbRow, entries: Map<string, number>, covers: Map<string, Conte
     isBlind: r.is_blind,
     isPrivate: r.is_private,
     isPromoted: r.is_promoted,
+    number: r.contest_number ?? null,
+    isHighlighted: Boolean(r.is_highlighted),
+    isUrgent: Boolean(r.is_urgent),
+    isNda: Boolean(r.is_nda),
     entries: entries.get(r.id) ?? 0,
     cover: covers.get(r.id) ?? null,
     faces: faces.get(r.id) ?? { total: 0, list: [] },
@@ -165,8 +180,11 @@ export type ContestDetail = ContestRow & {
   rawStatus: string;
   ownerId: string;
   isOwner: boolean;
-  /** Private contests: only signed-in users may read the brief (BLUEPRINT §7.3). */
+  /** Private contests: only signed-in users may read the brief (BLUEPRINT §7.3); NDA contests: only the
+   * client, admins and designers who accepted the confidentiality agreement (§7.4, owner 2026-10-08). */
   canSeeBrief: boolean;
+  /** NDA contest whose agreement this viewer has accepted. */
+  ndaAccepted: boolean;
   client: { name: string; username: string | null } | null;
   designers: number;
   /** Blind contests: the client made the winning logo public after completion. */
@@ -186,6 +204,11 @@ export type ContestDetail = ContestRow & {
     usedOn: UsedOn[];
     likes: string;
     dislikes: string | null;
+    shortName: string | null;
+    targetAudience: string | null;
+    deliverables: Deliverable[];
+    requirements: Requirement[];
+    requirementsNote: string | null;
     files: ContestFileView[];
   } | null;
 };
@@ -201,7 +224,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     .from("contests")
     .select(
       `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, styles, style_sliders, colors,
-       let_designers_choose_colors, used_on, likes_text, dislikes_text, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
+       let_designers_choose_colors, used_on, likes_text, dislikes_text, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -213,7 +236,8 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
   const isPublic = (PUBLIC_STATUSES as readonly string[]).includes(data.status);
   if (!isPublic && !isOwner && !isAdmin) return null;
 
-  const canSeeBrief = !data.is_private || Boolean(viewer);
+  const ndaAccepted = Boolean(data.is_nda) && Boolean(viewer) && (await hasAcceptedNda(data.id, viewer!.id));
+  const canSeeBrief = (!data.is_private || Boolean(viewer)) && (!data.is_nda || isOwner || isAdmin || ndaAccepted);
   const [[row], designers] = await Promise.all([toRows([data as DbRow]), countDesigners(data.id)]);
   const client = (Array.isArray(data.client) ? data.client[0] : data.client) as { name: string; username: string | null } | null;
 
@@ -242,6 +266,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     ownerId: data.client_id,
     isOwner,
     canSeeBrief,
+    ndaAccepted,
     // A private contest doesn't show who is behind it to guests.
     client: canSeeBrief ? client : null,
     designers,
@@ -261,6 +286,11 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
           usedOn: (data.used_on ?? []) as UsedOn[],
           likes: data.likes_text,
           dislikes: data.dislikes_text,
+          shortName: data.short_name,
+          targetAudience: data.target_audience,
+          deliverables: (data.deliverables ?? []) as Deliverable[],
+          requirements: (data.requirements ?? []) as Requirement[],
+          requirementsNote: data.requirements_note,
           files,
         }
       : null,

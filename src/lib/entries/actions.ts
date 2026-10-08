@@ -14,8 +14,9 @@ import { getSetting } from "@/lib/settings";
 import { notify } from "@/lib/notifications";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
-import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, watermarkedPreview } from "./images";
+import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
 import { ENTRY_FILES_BUCKET, hasEntryIn } from "./queries";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, entryScope } from "./rules";
@@ -27,9 +28,9 @@ const UUID = /^[0-9a-f-]{36}$/i;
 /** An open contest that still accepts designs, or null. */
 async function openContest(contestId: string) {
   if (!UUID.test(contestId)) return null;
-  const { data } = await createAdminClient().from("contests").select("id, slug, status, ends_at, client_id, brand_name").eq("id", contestId).maybeSingle();
+  const { data } = await createAdminClient().from("contests").select("id, slug, status, ends_at, client_id, brand_name, is_nda").eq("id", contestId).maybeSingle();
   if (!data || data.status !== "open" || (data.ends_at && new Date(data.ends_at) <= new Date())) return null;
-  return { id: data.id as string, slug: data.slug as string, ownerId: data.client_id as string, brand: data.brand_name as string };
+  return { id: data.id as string, slug: data.slug as string, ownerId: data.client_id as string, brand: data.brand_name as string, isNda: Boolean(data.is_nda) };
 }
 
 const originalPattern = (contestId: string, userId: string) => new RegExp(`^originals/${contestId}/${userId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`);
@@ -41,6 +42,7 @@ export async function prepareEntryImageUpload(input: { contestId: string; type: 
   if (!can(user, "entry.submit")) return fail("submit.errors.designersOnly");
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
+  if (!(await passesNda(contest, user))) return fail("contest.nda.required");
   const ext = ENTRY_IMAGE_TYPES[input.type];
   if (!ext) return fail("submit.errors.type");
   const mb = await getSetting("limits.entry_image_max_mb");
@@ -62,7 +64,7 @@ export type SubmitInput = { contestId: string; paths: string[]; declarations: st
 
 /**
  * D-04 step 2: checks every mockup again on the server (exactly N×N, not nude),
- * numbers the design, makes watermarked previews and flags near-duplicates.
+ * numbers the design, makes clean previews and flags near-duplicates.
  */
 export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
@@ -70,6 +72,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   if (!can(user, "entry.submit")) return fail("submit.errors.designersOnly");
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
+  if (!(await passesNda(contest, user))) return fail("contest.nda.required");
 
   const [minImages, maxImages, px, previewPx, maxPerDesigner] = await Promise.all([
     getSetting("limits.entry_min_images"),
@@ -146,7 +149,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   try {
     const rows = [];
     for (const [position, f] of files.entries()) {
-      const preview = await watermarkedPreview(f.bytes, entry.number, previewPx);
+      const preview = await previewImage(f.bytes, previewPx);
       const previewPath = `previews/${contest.id}/${entry.id}/${position}-${randomUUID()}.jpg`;
       const { error: upError } = await db.storage.from(ENTRY_FILES_BUCKET).upload(previewPath, preview, { contentType: "image/jpeg" });
       if (upError) throw new Error(upError.message);
@@ -184,7 +187,7 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const db = createAdminClient();
   const { data } = await db
     .from("entries")
-    .select("id, number, status, designer_id, contest:contests!contest_id(id, slug, brand_name, client_id, is_blind, is_private, status, winner_is_public)")
+    .select("id, number, status, designer_id, contest:contests!contest_id(id, slug, brand_name, client_id, is_blind, is_private, is_nda, status, winner_is_public)")
     .eq("id", entryId)
     .maybeSingle();
   const c =
@@ -196,11 +199,13 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
       client_id: string;
       is_blind: boolean;
       is_private: boolean;
+      is_nda: boolean;
       status: string;
       winner_is_public: boolean;
     } | null);
   if (!data || !c) return commentFail("auth.errors.generic");
-  const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief: true, status: c.status, winnerIsPublic: c.winner_is_public }, user);
+  const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
+  const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
   if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return commentFail("auth.errors.generic");
   const allowed = can(user, "entry.comment", {
     contestOwnerId: c.client_id,
@@ -272,13 +277,16 @@ export async function reportEntry(input: ReportInput): Promise<{ ok: true } | Fa
   const db = createAdminClient();
   const { data } = await db
     .from("entries")
-    .select("id, status, designer_id, contest:contests!contest_id(client_id, is_blind, is_private, status, winner_is_public)")
+    .select("id, status, designer_id, contest:contests!contest_id(id, client_id, is_blind, is_private, is_nda, status, winner_is_public)")
     .eq("id", input.entryId)
     .maybeSingle();
-  const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { client_id: string; is_blind: boolean; is_private: boolean; status: string; winner_is_public: boolean } | null);
+  const c =
+    data &&
+    ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; client_id: string; is_blind: boolean; is_private: boolean; is_nda: boolean; status: string; winner_is_public: boolean } | null);
   if (!data || !c) return fail("auth.errors.generic");
   if (data.designer_id === user.id) return fail("entry.report.own");
-  const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief: true, status: c.status, winnerIsPublic: c.winner_is_public }, user);
+  const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
+  const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
   if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return fail("auth.errors.generic");
 
   const note = input.note.replace(/\r\n/g, "\n").trim();

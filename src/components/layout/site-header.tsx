@@ -6,7 +6,6 @@ import { can, type CurrentUser } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
-import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
 import { AvatarMenu } from "./avatar-menu";
 import { HeaderShell } from "./header-shell";
 import { LocaleToggle } from "./locale-toggle";
@@ -14,7 +13,7 @@ import { MobileMenu } from "./mobile-menu";
 import { NotificationBell } from "./notification-bell";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
-import { NavLinks, PILL_LINK } from "./nav-links";
+import { NavLinks } from "./nav-links";
 import { GUEST_NAV } from "./nav-items";
 
 /**
@@ -39,7 +38,6 @@ export async function SiteHeader() {
   const now = new Date();
   const bell = user ? <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} /> : null;
   const links = GUEST_NAV.map((item) => ({ href: item.href, label: t(item.label) }));
-  const callLabel = t("nav.call", { phone: SUPPORT_PHONE });
   const toggle = (tone: "light" | "dark") => <LocaleToggle locale={locale} label={t("nav.switchTo")} ariaLabel={t("nav.switchToLabel")} tone={tone} />;
 
   const logoutForm = (variant: "menu" | "block") => (
@@ -67,12 +65,6 @@ export async function SiteHeader() {
         {/* Desktop: links centred in the space between the logo and the right side, so both gaps match (owner, 2026-10-08) */}
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label={t("nav.main")}>
           <NavLinks links={links} />
-          {/* Hidden between 1024 and 1280px so the guest buttons fit; the number is also in the hero and footer. */}
-          <span className="hidden xl:flex">
-            <a href={SUPPORT_PHONE_HREF} className={`${PILL_LINK} text-ink/85 hover:text-ink`}>
-              {callLabel}
-            </a>
-          </span>
         </nav>
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
           {toggle("light")}
@@ -81,9 +73,10 @@ export async function SiteHeader() {
             <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm("menu")} />
           ) : (
             <>
+              {/* Hidden between 1024 and 1280px so the four links fit; also in the phone menu, footer and How It Works (owner, 2026-10-08) */}
               <Link
                 href="/designers/signup"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line transition-colors hover:bg-white hover:ring-primary"
+                className="hidden min-h-11 items-center gap-2 rounded-full px-4 xl:inline-flex text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line transition-colors hover:bg-white hover:ring-primary"
               >
                 <svg viewBox="0 0 24 24" className="size-4 text-primary" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M15.7 21.3a1 1 0 0 1-1.4 0l-1.6-1.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4Z" strokeLinejoin="round" />
@@ -102,16 +95,10 @@ export async function SiteHeader() {
           )}
         </div>
 
-        {/* Mobile: logo left, hamburger right; the phone number is a tap-to-call link inside the menu */}
+        {/* Mobile: logo left, hamburger right (the phone number moved to the Help page, owner 2026-10-08) */}
         <div className="ml-auto flex items-center gap-1 lg:hidden">
           {bell}
           <MobileMenu openLabel={t("nav.menu")} closeLabel={t("nav.close")} links={links}>
-            <a href={SUPPORT_PHONE_HREF} className="flex min-h-12 items-center gap-2 text-base font-medium text-primary">
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-              </svg>
-              {callLabel}
-            </a>
             {user ? (
               <>
                 <p className="pt-2 text-sm text-muted">{t("nav.signedInAs", { name: user.name })}</p>

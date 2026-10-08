@@ -19,13 +19,26 @@ import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BUSINESS_TYPES, LOGO_STYLES, PACKAGES, USED_ON, type Brief, type Order } from "./brief";
+import {
+  BUSINESS_TYPES,
+  DELIVERABLES,
+  findBriefContact,
+  LOGO_STYLES,
+  PACKAGES,
+  REQUIREMENTS,
+  UPGRADES,
+  USED_ON,
+  type Brief,
+  type ContactCheckedField,
+  type Order,
+} from "./brief";
+import { blockedTerms } from "./community";
 import { contestRepository, contestService } from "./services";
 import { makeSlug } from "./service";
 
 export type WizardResult<T = object> =
   | ({ ok: true } & T)
-  | { ok: false; error: { key: MessageKey; params?: MessageParams } };
+  | { ok: false; error: { key: MessageKey; params?: MessageParams; field?: ContactCheckedField } };
 
 const err = (key: MessageKey, params?: MessageParams) => ({ ok: false as const, error: { key, params } });
 
@@ -45,19 +58,40 @@ const BriefShape = z.object({
   usedOn: z.array(z.enum(USED_ON)).max(USED_ON.length),
   likes: z.string().max(2000),
   dislikes: z.string().max(2000),
+  // Added 2026-10-08; older saved drafts may not have them yet.
+  shortName: z.string().max(100).default(""),
+  targetAudience: z.string().max(1000).default(""),
+  deliverables: z.array(z.enum(DELIVERABLES)).max(DELIVERABLES.length).default([]),
+  requirements: z.array(z.enum(REQUIREMENTS)).max(REQUIREMENTS.length).default([]),
+  requirementsNote: z.string().max(1500).default(""),
 });
 
 const OrderShape = z.object({
   package: z.enum(PACKAGES),
   customPrize: z.number().int().nullable(),
   durationDays: z.number().int(),
-  upgrades: z.object({ blind: z.boolean(), private: z.boolean(), promoted: z.boolean() }),
+  // Keys added 2026-10-08 default to off for orders saved before then.
+  upgrades: z.object({
+    promoted: z.boolean().default(false),
+    blind: z.boolean().default(false),
+    private: z.boolean().default(false),
+    logo_scan: z.boolean().default(false),
+    highlight: z.boolean().default(false),
+    urgent: z.boolean().default(false),
+    nda: z.boolean().default(false),
+  } satisfies Record<(typeof UPGRADES)[number], z.ZodDefault<z.ZodBoolean>>),
 });
 
 function parse(brief: unknown, order: unknown): { brief: Brief; order: Order } | null {
   const b = BriefShape.safeParse(brief);
   const o = OrderShape.safeParse(order);
   return b.success && o.success ? { brief: b.data as Brief, order: o.data } : null;
+}
+
+/** C-06: brief text can't carry contact details (BLUEPRINT §10). Names the field so the wizard shows it inline. */
+async function contactError(brief: Brief) {
+  const field = findBriefContact(brief, await blockedTerms());
+  return field ? { ok: false as const, error: { key: "wizard.errors.contact" as const, field } } : null;
 }
 
 async function currentClient() {
@@ -79,6 +113,8 @@ export async function saveDraft(input: { brief: unknown; order: unknown; contest
   if (!user) return err("wizard.errors.signInAgain");
   const data = parse(input.brief, input.order);
   if (!data) return err("wizard.errors.incomplete");
+  const contact = await contactError(data.brief);
+  if (contact) return contact;
 
   const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId);
   if (!result.ok) return err(SAVE_ERRORS[result.error]);
@@ -119,6 +155,9 @@ export async function createAccountAndDraft(input: {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const data = parse(input.brief, input.order);
   if (!data) return err("wizard.errors.incomplete");
+  // Before the account is created, so a tripped filter doesn't leave an account without a draft.
+  const contact = await contactError(data.brief);
+  if (contact) return contact;
 
   const mobile = normalizeBdMobile(input.mobile);
   const email = normalizeEmail(input.email);
@@ -183,6 +222,13 @@ export async function startCheckout(input: {
   if (name.length < 2 || name.length > 80) return err("wizard.errors.name");
   if (!input.acceptedTerms) return err("wizard.errors.terms");
   if (input.method !== "bkash" && input.method !== "card") return err("wizard.errors.generic");
+
+  // The draft was checked when saved, but the admin may have blocked more terms since.
+  const contest = await contestRepository().findContest(input.contestId);
+  if (contest && contest.clientId === user.id) {
+    const contact = await contactError(contest.brief);
+    if (contact) return contact;
+  }
 
   await createAdminClient().from("profiles").update({ name }).eq("id", user.id);
 

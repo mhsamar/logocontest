@@ -1,8 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { PUBLIC_STATUSES } from "@/lib/contests/browse";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
-import { SHOWN_STATUSES, type EntryStatus } from "@/lib/entries/rules";
+import { isPublicDesign, type EntryStatus } from "@/lib/entries/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getSetting } from "@/lib/settings";
@@ -85,11 +84,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
  * Designs anyone may see on the public profile (BLUEPRINT §8.3): never from private
  * contests; from blind contests only the winner once the client made it public.
  */
-function isPublicDesign(e: EntryRow): boolean {
-  if (!SHOWN_STATUSES.includes(e.status) || !(PUBLIC_STATUSES as readonly string[]).includes(e.contest.status) || e.contest.isPrivate) return false;
-  if (!e.contest.isBlind) return true;
-  return e.status === "winner" && e.contest.status === "completed" && e.contest.winnerIsPublic;
-}
+const isPublic = (e: EntryRow) => isPublicDesign(e, e.contest);
 
 async function coverUrls(paths: (string | null)[]): Promise<Map<string, string>> {
   const list = paths.filter((p): p is string => Boolean(p));
@@ -101,7 +96,7 @@ async function coverUrls(paths: (string | null)[]): Promise<Map<string, string>>
 /** TODO(milestone 7): total earned from wallet transactions. */
 async function statsFor(designerId: string, winsCount: number, view: "own" | "public"): Promise<DesignerStats> {
   const rows = await designerEntries(designerId);
-  const shown = view === "own" ? rows : rows.filter(isPublicDesign);
+  const shown = view === "own" ? rows : rows.filter(isPublic);
   return { contestsEntered: new Set(shown.map((e) => e.contest.id)).size, designs: shown.length, wins: winsCount, totalEarned: 0 };
 }
 
@@ -201,7 +196,7 @@ export type PublicDesign = {
 
 /** P-06 tabs: the designer's public designs (winners first), each with its stars. */
 export async function publicDesigns(designerId: string): Promise<PublicDesign[]> {
-  const rows = (await designerEntries(designerId)).filter(isPublicDesign);
+  const rows = (await designerEntries(designerId)).filter(isPublic);
   const urls = await coverUrls(rows.map((e) => e.coverPath));
   return rows
     .map((e) => ({

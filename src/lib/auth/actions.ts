@@ -5,7 +5,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { parseLoginIdentifier } from "./identity";
 import { clientIp } from "./services";
-import { authEmailForMobile, fail, safeNext, signIn, type AuthFormState } from "./sign-in";
+import { homeForRole } from "./home";
+import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, safeNext, signIn, type AuthFormState } from "./sign-in";
 
 export type { AuthFormState, FormMessage } from "./sign-in";
 
@@ -26,7 +27,11 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   const authEmail = id.kind === "email" ? id.email : await authEmailForMobile(id.mobile);
   const result = await signIn(key, authEmail, password, await clientIp());
   if (result) return result;
-  redirect(safeNext(formData.get("next")));
+  // A page that sent the person to log in wins; otherwise each role has its own landing page.
+  const next = formData.get("next");
+  if (typeof next === "string" && next) redirect(safeNext(next));
+  const profile = id.kind === "email" ? await findProfileByEmail(id.email) : await findProfileByPhone(id.mobile);
+  redirect(homeForRole(profile?.role));
 }
 
 export async function logout() {

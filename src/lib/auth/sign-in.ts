@@ -30,12 +30,13 @@ export function safeNext(value: FormDataEntryValue | null): string {
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
-type ProfileStatus = { id: string; email: string | null; status: "active" | "suspended" | "banned" };
+type ProfileStatus = { id: string; email: string | null; role: "client" | "designer" | "admin"; status: "active" | "suspended" | "banned" };
+
 
 export async function findProfileByPhone(phone: string) {
   const { data, error } = await createAdminClient()
     .from("profiles")
-    .select("id, email, status")
+    .select("id, email, role, status")
     .eq("mobile", phone)
     .maybeSingle<ProfileStatus>();
   if (error) throw new Error(error.message);
@@ -45,7 +46,7 @@ export async function findProfileByPhone(phone: string) {
 export async function findProfileByEmail(email: string) {
   const { data, error } = await createAdminClient()
     .from("profiles")
-    .select("id, email, status")
+    .select("id, email, role, status")
     .ilike("email", email)
     .maybeSingle<ProfileStatus>();
   if (error) throw new Error(error.message);

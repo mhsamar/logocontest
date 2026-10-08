@@ -13,10 +13,28 @@ function Block({ title, children, className }: { title: string; children: React.
   );
 }
 
+function Ticks({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((item) => (
+        <li key={item} className="flex items-start gap-2.5 text-[0.9375rem]">
+          <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+          </span>
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** P-03 Brief tab. Only rendered for viewers allowed to read the brief. */
 export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail["brief"]> }) {
   const { t } = await getI18n();
   const facts = [
+    brief.shortName && { label: t("contest.brief.shortName"), value: brief.shortName },
     brief.logoText && { label: t("contest.brief.logoText"), value: brief.logoText },
     brief.slogan && { label: t("contest.brief.slogan"), value: brief.slogan },
   ].filter(Boolean) as { label: string; value: string }[];
@@ -24,7 +42,7 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {/* The description itself is in the page header. */}
-      {(facts.length > 0 || brief.websiteUrl) && (
+      {(facts.length > 0 || brief.websiteUrl || brief.targetAudience) && (
         <Block title={t("contest.brief.about")} className="lg:col-span-2">
           <dl className="grid gap-3 sm:grid-cols-3">
             {facts.map((f) => (
@@ -41,6 +59,12 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
                     {brief.websiteUrl.replace(/^https?:\/\//, "")}
                   </a>
                 </dd>
+              </div>
+            )}
+            {brief.targetAudience && (
+              <div className="sm:col-span-3">
+                <dt className="text-xs text-muted">{t("contest.brief.audience")}</dt>
+                <dd className="mt-0.5 font-medium">{brief.targetAudience}</dd>
               </div>
             )}
           </dl>
@@ -110,15 +134,33 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
         </Block>
       )}
 
-      <Block title={t("contest.brief.likes")}>
-        <p className="whitespace-pre-line leading-relaxed">{brief.likes}</p>
+      {/* What the client needs: always-included items, then the ticked extras (owner, 2026-10-08) */}
+      <Block title={t("contest.brief.needs")}>
+        <Ticks items={[t("wizard.c05.always.main"), t("wizard.c05.always.files"), ...brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`) + " — " + t(`wizard.deliverables.${d}.line`))]} />
       </Block>
+
+      {/* No longer asked for (owner, 2026-10-08); older contests still show theirs. */}
+      {brief.likes && (
+        <Block title={t("contest.brief.likes")}>
+          <p className="whitespace-pre-line leading-relaxed">{brief.likes}</p>
+        </Block>
+      )}
 
       {brief.dislikes && (
         <Block title={t("contest.brief.dislikes")}>
           <p className="whitespace-pre-line leading-relaxed">{brief.dislikes}</p>
         </Block>
       )}
+
+      <Block title={t("contest.brief.requirements")}>
+        <Ticks items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi"), ...brief.requirements.map((r) => t(`wizard.requirements.${r}`))]} />
+        {brief.requirementsNote && (
+          <div className="mt-4">
+            <p className="text-xs text-muted">{t("contest.brief.note")}</p>
+            <p className="mt-0.5 whitespace-pre-line leading-relaxed">{brief.requirementsNote}</p>
+          </div>
+        )}
+      </Block>
 
       {brief.files.length > 0 && (
         <Block title={t("contest.brief.files")} className="lg:col-span-2">

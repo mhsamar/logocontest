@@ -3,6 +3,8 @@
  * Pure functions, so the rules are easy to test.
  */
 
+import { PUBLIC_STATUSES } from "@/lib/contests/public-statuses";
+
 export type EntryStatus = "active" | "rejected" | "withdrawn" | "removed" | "winner" | "forfeited";
 
 /** Statuses everyone who can see the contest's entries sees. */
@@ -56,4 +58,17 @@ export function canSeeEntry(scope: EntryScope, entry: { status: EntryStatus; des
 export function showDesignerName(contest: ContestForEntries, viewer: EntryViewer, entryDesignerId: string): boolean {
   if (!contest.isBlind) return true;
   return Boolean(viewer && (viewer.id === contest.ownerId || viewer.role === "admin" || viewer.id === entryDesignerId));
+}
+
+export type PublicDesignContest = { status: string; isPrivate: boolean; isBlind: boolean; winnerIsPublic: boolean };
+
+/**
+ * Whether anyone, logged out included, may see this design (designer profiles, Design Studio P-13):
+ * a public, non-private contest; active, winning or forfeited designs; in blind contests only the
+ * winner, once the contest is completed and the client made it public.
+ */
+export function isPublicDesign(entry: { status: EntryStatus }, contest: PublicDesignContest): boolean {
+  if (!SHOWN_STATUSES.includes(entry.status) || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status) || contest.isPrivate) return false;
+  if (!contest.isBlind) return true;
+  return entry.status === "winner" && contest.status === "completed" && contest.winnerIsPublic;
 }

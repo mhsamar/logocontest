@@ -16,10 +16,11 @@ import {
   startCheckout,
   type WizardResult,
 } from "@/lib/contests/actions";
-import { LIMITS, validateBriefStep, type Brief, type Order } from "@/lib/contests/brief";
+import { CONTACT_CHECKED_FIELDS, LIMITS, validateBriefStep, type Brief, type ContactCheckedField, type Order } from "@/lib/contests/brief";
 import { calculatePrice, defaultOrder, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { useI18n } from "@/lib/i18n/client";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { normalizeBdMobile } from "@/lib/phone";
 import { formatTaka } from "@/lib/money";
 import { subscribeToPush } from "@/lib/push/client";
@@ -28,7 +29,7 @@ import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadState, saveState, type ServerFile, type WizardState } from "./state";
 import { AccountStep, PasswordStep } from "./steps-account";
-import { BrandStep, BusinessStep, ColorsStep, LikesStep, StylesStep, WebsiteStep, type BriefStepProps } from "./steps-brief";
+import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
 import { ReviewStep, type UploadState } from "./step-review";
 
@@ -66,6 +67,8 @@ export function Wizard(props: WizardProps) {
   const [busy, startBusy] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fromReview, setFromReview] = useState(false);
+  // A brief error only the server can find (the no-contact filter). Shown on its field until that text changes.
+  const [serverError, setServerError] = useState<{ field: ContactCheckedField; key: MessageKey; value: string } | null>(null);
   const top = useRef<HTMLDivElement>(null);
 
   // ---- load + autosave ------------------------------------------------------
@@ -120,6 +123,21 @@ export function Wizard(props: WizardProps) {
   const updateOrder = useCallback((patch: Partial<Order>) => setState((s) => (s ? { ...s, order: { ...s.order, ...patch } } : s)), []);
   const touch = useCallback((f: string) => setTouched((t) => (t.has(f) ? t : new Set(t).add(f))), []);
 
+  /** Shows a server error on its brief field and goes to that step. False when it belongs in the general alert. */
+  const showFieldError = useCallback(
+    (e: { key: MessageKey; field?: ContactCheckedField }, s: WizardState) => {
+      const field = inlineField(e);
+      if (!field) return false;
+      setServerError({ field, key: e.key, value: s.brief[field] });
+      touch(field);
+      // Signed in: the rest is already saved, so Next can return straight to the review.
+      if (props.user) setFromReview(true);
+      go(CONTACT_CHECKED_FIELDS[field]);
+      return true;
+    },
+    [props.user, go, touch],
+  );
+
   const price = useMemo(() => {
     if (!state || validateOrder(state.order, props.pricing)) return null;
     return calculatePrice(state.order, props.pricing);
@@ -127,20 +145,21 @@ export function Wizard(props: WizardProps) {
 
   // ---- server draft + uploads ----------------------------------------------
   const persistDraft = useCallback(
-    async (s: WizardState): Promise<string | null> => {
+    async (s: WizardState): Promise<WizardResult<{ contestId: string }>> => {
       let result = await saveDraft({ brief: s.brief, order: s.order, contestId: s.contestId });
-      if (!result.ok && s.contestId) {
+      if (!result.ok && s.contestId && !result.error.field) {
         // The stored draft may belong to another account on this device: start a new one.
         result = await saveDraft({ brief: s.brief, order: s.order, contestId: null });
       }
       if (!result.ok) {
-        setError(t(result.error.key, result.error.params));
-        return null;
+        if (!showFieldError(result.error, s)) setError(t(result.error.key, result.error.params));
+        return result;
       }
-      setState((cur) => (cur ? { ...cur, contestId: result.contestId } : cur));
-      return result.contestId;
+      const { contestId } = result;
+      setState((cur) => (cur ? { ...cur, contestId } : cur));
+      return result;
     },
-    [t],
+    [t, showFieldError],
   );
 
   const uploadPending = useCallback(
@@ -179,8 +198,8 @@ export function Wizard(props: WizardProps) {
     if (step !== 11 || !state || enteredReview.current) return;
     enteredReview.current = true;
     startBusy(async () => {
-      const id = await persistDraft(state);
-      if (id) await uploadPending(id, state);
+      const saved = await persistDraft(state);
+      if (saved.ok) await uploadPending(saved.contestId, state);
     });
   }, [step, state, persistDraft, uploadPending]);
   useEffect(() => {
@@ -192,7 +211,10 @@ export function Wizard(props: WizardProps) {
   }
 
   // ---- validity per step -----------------------------------------------------
-  const briefErrors = step <= 6 ? validateBriefStep(step, state.brief) : {};
+  const stepErrors = step <= 6 ? validateBriefStep(step, state.brief) : {};
+  const serverErrorShown =
+    serverError && CONTACT_CHECKED_FIELDS[serverError.field] === step && state.brief[serverError.field] === serverError.value;
+  const briefErrors = serverErrorShown ? { [serverError.field]: serverError.key, ...stepErrors } : stepErrors;
   const nameValid = name.trim().length >= 2;
   const uploading = uploads.some((u) => u.status === "uploading" || u.status === "waiting");
   const valid =
@@ -215,8 +237,8 @@ export function Wizard(props: WizardProps) {
     if (!valid) return;
     if (step === 8 && props.user) {
       startBusy(async () => {
-        const id = await persistDraft(state);
-        if (id) go(11);
+        const saved = await persistDraft(state);
+        if (saved.ok) go(11);
       });
       return;
     }
@@ -255,7 +277,7 @@ export function Wizard(props: WizardProps) {
           order: state.order,
         });
         if (!res.ok) {
-          setError(t(res.error.key, res.error.params));
+          if (!showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
           return;
         }
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
@@ -269,7 +291,7 @@ export function Wizard(props: WizardProps) {
       startBusy(async () => {
         const res = await startCheckout({ contestId: state.contestId!, method: method!, name, acceptedTerms: terms });
         // On success the action redirects to the gateway, so we only get here on failure.
-        if (res && !res.ok) setError(t(res.error.key, res.error.params));
+        if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
       });
       return;
     }
@@ -287,7 +309,11 @@ export function Wizard(props: WizardProps) {
 
   const onSaveExit = () => {
     startBusy(async () => {
-      if (props.user && Object.keys(validateBriefStep(1, state.brief)).length === 0) await persistDraft(state).catch(() => null);
+      if (props.user && Object.keys(validateBriefStep(1, state.brief)).length === 0) {
+        const saved = await persistDraft(state).catch(() => null);
+        // Stay so the client can fix the field the wizard just jumped to.
+        if (saved && !saved.ok && inlineField(saved.error)) return;
+      }
       toast(t("wizard.frame.savedOnDevice"), "info");
       router.push("/");
     });
@@ -342,7 +368,7 @@ export function Wizard(props: WizardProps) {
             {step === 3 && <WebsiteStep {...briefProps} />}
             {step === 4 && <StylesStep {...briefProps} />}
             {step === 5 && <ColorsStep {...briefProps} />}
-            {step === 6 && <LikesStep {...briefProps} />}
+            {step === 6 && <RequirementsStep {...briefProps} />}
             {step === 7 && (
               <FilesStep
                 localFiles={state.localFiles}
@@ -429,6 +455,11 @@ export function Wizard(props: WizardProps) {
       </div>
     </div>
   );
+}
+
+/** The brief field a server error should show on. Likes/dislikes have no input any more, so theirs go in the alert. */
+function inlineField(e: { field?: ContactCheckedField }): ContactCheckedField | null {
+  return e.field && e.field !== "likes" && e.field !== "dislikes" ? e.field : null;
 }
 
 /** Never land past the first unfinished step (e.g. a stale ?step=11 link). */

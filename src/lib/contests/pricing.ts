@@ -5,7 +5,7 @@
  * All amounts are whole taka. Every number comes from settings.
  */
 import type { Order, PackageKey, UpgradeKey } from "./brief";
-import { UPGRADES } from "./brief";
+import { noUpgrades, UPGRADES } from "./brief";
 
 export type PricingConfig = {
   serviceFeePercent: number;
@@ -13,7 +13,10 @@ export type PricingConfig = {
   customMin: number;
   customStep: number;
   upgradePrices: Record<UpgradeKey, number>;
+  /** Quick-pick chips; any whole number of days from durationMin to durationMax is allowed (owner, 2026-10-08). */
   durationOptions: number[];
+  durationMin: number;
+  durationMax: number;
   defaultDuration: number;
 };
 
@@ -32,7 +35,8 @@ export function serviceFee(prize: number, percent: number): number {
 }
 
 export function validateOrder(order: Order, cfg: PricingConfig): OrderError | null {
-  if (!cfg.durationOptions.includes(order.durationDays)) return "duration";
+  const d = order.durationDays;
+  if (!Number.isInteger(d) || d < cfg.durationMin || d > cfg.durationMax) return "duration";
   if (order.package !== "custom") return null;
   const amount = order.customPrize;
   if (amount === null || !Number.isInteger(amount)) return "custom_missing";
@@ -51,9 +55,26 @@ export function calculatePrice(order: Order, cfg: PricingConfig): Price {
   if (error) throw new Error(`Invalid order: ${error}`);
   const prize = prizeFor(order, cfg);
   const fee = serviceFee(prize, cfg.serviceFeePercent);
-  const upgrades = UPGRADES.filter((k) => order.upgrades[k]).map((key) => ({ key, price: cfg.upgradePrices[key] }));
+  const upgrades = chargedUpgrades(order).map((key) => ({ key, price: cfg.upgradePrices[key] }));
   const upgradesTotal = upgrades.reduce((sum, u) => sum + u.price, 0);
   return { prize, serviceFee: fee, upgrades, upgradesTotal, total: prize + fee + upgradesTotal };
+}
+
+/** NDA includes Private (owner, 2026-10-08): Private is switched on and not charged on top. */
+export function includedByNda(order: Order, key: UpgradeKey): boolean {
+  return key === "private" && Boolean(order.upgrades.nda);
+}
+
+/** The add-ons the client pays for, in display order. */
+export function chargedUpgrades(order: Order): UpgradeKey[] {
+  return UPGRADES.filter((k) => order.upgrades[k] && !includedByNda(order, k));
+}
+
+/** The add-ons that will be on: the chosen ones plus Private when NDA is chosen. */
+export function activeUpgrades(order: Order): Record<UpgradeKey, boolean> {
+  const on = { ...noUpgrades(), ...order.upgrades };
+  if (on.nda) on.private = true;
+  return on;
 }
 
 export function defaultOrder(cfg: PricingConfig): Order {
@@ -61,6 +82,6 @@ export function defaultOrder(cfg: PricingConfig): Order {
     package: "standard",
     customPrize: null,
     durationDays: cfg.defaultDuration,
-    upgrades: { blind: false, private: false, promoted: false },
+    upgrades: noUpgrades(),
   };
 }

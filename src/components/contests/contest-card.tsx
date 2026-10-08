@@ -4,7 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { cx } from "@/lib/cx";
-import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, contestTitle } from "./contest-bits";
+import { BrandTile, ContestNumber, HighlightBadge, PackagePill, PRIZE_TEXT, StatusLine, UrgentBadge, contestTitle } from "./contest-bits";
 
 /**
  * Contest card (UI-JOURNEY §1.3), used in grids such as the home page. Private
@@ -12,10 +12,16 @@ import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, contestTitle } from "./
  */
 export async function ContestCard({ contest, now }: { contest: ContestRow; now: Date }) {
   const { t, locale } = await getI18n();
-  const outline = [contest.isBlind && t("home.card.blind"), contest.isPrivate && t("home.card.private")].filter(Boolean) as string[];
+  const outline = [contest.isBlind && t("home.card.blind"), contest.isNda ? t("home.card.nda") : contest.isPrivate && t("home.card.private")].filter(Boolean) as string[];
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-raised">
+    <article
+      className={cx(
+        "group relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-raised",
+        // Highlight add-on (owner, 2026-10-08): gold border with a soft glow.
+        contest.isHighlighted ? "prize-glow ring-2 ring-[#f1c75c]" : "shadow-card ring-1 ring-line",
+      )}
+    >
       <div className="relative aspect-[4/3]">
         <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} flat className="h-full w-full text-[1.05rem] sm:text-[1.6rem]" />
         {contest.isPromoted && (
@@ -26,12 +32,17 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
             {t("contest.featured")}
           </span>
         )}
+        <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1 sm:right-3 sm:top-3">
+          {contest.isUrgent && <UrgentBadge label={t("home.card.urgent")} />}
+          {contest.isHighlighted && <HighlightBadge label={t("home.card.highlighted")} />}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col border-t border-line p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <PackagePill pkg={contest.package} t={t} />
+            <ContestNumber n={contest.number} t={t} locale={locale} />
             {outline.map((o) => (
               <span key={o} className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">
                 {o}

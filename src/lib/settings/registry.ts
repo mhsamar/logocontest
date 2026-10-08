@@ -54,17 +54,26 @@ export const SETTINGS = {
   },
 
   // ---- Packages (§2, §7.1) ------------------------------------------------
+  // Owner, 2026-10-08: Starter (economy), Growth (standard), Pro, Premium, Elite.
   "packages.economy_prize": {
     group: "packages", type: "int", schema: int(1), default: 3000,
-    description: "Economy package prize (taka).",
+    description: "Starter package prize (taka).",
   },
   "packages.standard_prize": {
     group: "packages", type: "int", schema: int(1), default: 5000,
-    description: "Standard package prize (taka).",
+    description: "Growth package prize (taka).",
+  },
+  "packages.pro_prize": {
+    group: "packages", type: "int", schema: int(1), default: 8000,
+    description: "Pro package prize (taka).",
   },
   "packages.premium_prize": {
-    group: "packages", type: "int", schema: int(1), default: 10000,
+    group: "packages", type: "int", schema: int(1), default: 12000,
     description: "Premium package prize (taka).",
+  },
+  "packages.elite_prize": {
+    group: "packages", type: "int", schema: int(1), default: 15000,
+    description: "Elite package prize (taka).",
   },
   "packages.custom_min_prize": {
     group: "packages", type: "int", schema: int(1), default: 3000,
@@ -100,11 +109,31 @@ export const SETTINGS = {
     group: "upgrades", type: "int", schema: int(), default: 500,
     description: "Price of the Logo Scan add-on (taka, once per contest; owner, 2026-10-08).",
   },
+  "upgrades.highlight_price": {
+    group: "upgrades", type: "int", schema: int(), default: 500,
+    description: "Highlight add-on: gold border and badge in lists (taka).",
+  },
+  "upgrades.urgent_price": {
+    group: "upgrades", type: "int", schema: int(), default: 500,
+    description: "Urgent add-on: \"Urgent\" badge (taka).",
+  },
+  "upgrades.nda_price": {
+    group: "upgrades", type: "int", schema: int(), default: 1500,
+    description: "NDA add-on: designers accept a confidentiality agreement; includes Private (taka).",
+  },
 
   // ---- Timers (§2, §6, §12) -----------------------------------------------
   "timers.contest_duration_options_days": {
-    group: "timers", type: "json", schema: intList, default: [5, 7, 10],
-    description: "Contest lengths the client can choose (days).",
+    group: "timers", type: "json", schema: intList, default: [3, 5, 7, 10, 14, 21, 30],
+    description: "Quick-pick contest lengths shown as chips (days).",
+  },
+  "timers.contest_duration_min_days": {
+    group: "timers", type: "int", schema: int(1), default: 3,
+    description: "Shortest contest the client can choose (days).",
+  },
+  "timers.contest_duration_max_days": {
+    group: "timers", type: "int", schema: int(1), default: 30,
+    description: "Longest contest the client can choose (days).",
   },
   "timers.contest_duration_default_days": {
     group: "timers", type: "int", schema: int(1), default: 7,
@@ -186,7 +215,7 @@ export const SETTINGS = {
   },
   "limits.entry_preview_max_px": {
     group: "limits", type: "int", schema: int(1), default: 1000,
-    description: "Long side of the watermarked preview (px).",
+    description: "Long side of the design preview (px).",
   },
   "limits.brief_max_files": {
     group: "limits", type: "int", schema: int(), default: 5,
@@ -369,6 +398,24 @@ export const SETTINGS = {
   "social.linkedin": {
     group: "site", type: "string", schema: socialUrl(["linkedin.com"]), default: "",
     description: "LinkedIn page link (https://linkedin.com/…). Empty hides the icon.",
+  },
+
+  // ---- Help page: WhatsApp and live chat (owner, 2026-10-08; UI-JOURNEY P-14) ----
+  "contact.whatsapp": {
+    group: "site", type: "string", schema: z.string().regex(/^01[3-9]\d{8}$/, "A Bangladesh mobile number like 01712028511"), default: "01712028511",
+    description: "WhatsApp number on the Help page (01XXXXXXXXX).",
+  },
+  "chat.driver": {
+    group: "site", type: "string", schema: z.enum(["none", "tawk"]), default: "none",
+    description: "Live chat on the Help page: none (off) or tawk (Tawk.to, needs the two IDs below).",
+  },
+  "chat.tawk_property_id": {
+    group: "site", type: "string", schema: z.string().regex(/^([a-f0-9]{24})?$/, "The 24-character Tawk.to property ID"), default: "",
+    description: "Tawk.to property ID (Administration → Chat Widget, the first part of the widget link).",
+  },
+  "chat.tawk_widget_id": {
+    group: "site", type: "string", schema: z.string().regex(/^([a-z0-9]{6,32})?$/, "The Tawk.to widget ID"), default: "",
+    description: "Tawk.to widget ID (the second part of the widget link).",
   },
 } as const satisfies Record<string, SettingDefinition>;
 

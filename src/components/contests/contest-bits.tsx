@@ -6,6 +6,7 @@ import type { ContestCover } from "@/lib/entries/queries";
 import { formatDate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
+import { formatContestNumber } from "@/lib/contests/number";
 import { timeLeft } from "./countdown-pill";
 
 export function LockIcon({ className = "size-4" }: { className?: string }) {
@@ -38,7 +39,7 @@ export function BrandTile({
   if (cover && !isPrivate) {
     return (
       <div className={cx("relative shrink-0 overflow-hidden bg-white", !flat && "rounded-lg ring-1 ring-inset ring-line", className)} aria-hidden>
-        {/* Watermarked preview from storage */}
+        {/* Preview from storage */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cover.url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         {cover.isWinner && <WinnerTrophy size="sm" className="absolute right-2 top-2" />}
@@ -73,11 +74,13 @@ export function contestTitle(c: Pick<ContestRow, "brandName" | "isPrivate">, t: 
 const PACKAGE_PILL: Record<PackageKey, string> = {
   economy: "bg-muted text-white",
   standard: "bg-ink text-cream",
+  pro: "bg-[#1d4ed8] text-white",
   premium: "bg-primary text-white",
+  elite: "bg-gradient-to-r from-[#8a5105] via-[#c9860a] to-[#8a5105] text-white",
   custom: "bg-accent text-white",
 };
 
-/** Filled package pill (UI-JOURNEY P-02): Economy grey, Standard ink, Premium red, Custom gold. */
+/** Filled package pill (UI-JOURNEY P-02): Starter grey, Growth ink, Pro blue, Premium red, Elite gold, Custom gold. */
 export function PackagePill({ pkg, t }: { pkg: PackageKey; t: Translate }) {
   return (
     <span className={cx("rounded px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wider", PACKAGE_PILL[pkg])}>
@@ -86,13 +89,22 @@ export function PackagePill({ pkg, t }: { pkg: PackageKey; t: Translate }) {
   );
 }
 
-/** Outline pills for the upgrades. */
-export function UpgradePills({ contest, t }: { contest: Pick<ContestRow, "isPromoted" | "isBlind" | "isPrivate">; t: Translate }) {
-  const pills = [
+type BadgeFlags = Pick<ContestRow, "isPromoted" | "isBlind" | "isPrivate"> & Partial<Pick<ContestRow, "isHighlighted" | "isUrgent" | "isNda">>;
+
+/** Labels for the add-ons a contest has, in display order (NDA stands in for Private). */
+function addonLabels(contest: BadgeFlags, t: Translate): string[] {
+  return [
+    contest.isUrgent && t("home.card.urgent"),
     contest.isPromoted && t("contest.featured"),
+    contest.isHighlighted && t("home.card.highlighted"),
     contest.isBlind && t("home.card.blind"),
-    contest.isPrivate && t("home.card.private"),
+    contest.isNda ? t("home.card.nda") : contest.isPrivate && t("home.card.private"),
   ].filter(Boolean) as string[];
+}
+
+/** Outline pills for the upgrades. */
+export function UpgradePills({ contest, t }: { contest: BadgeFlags; t: Translate }) {
+  const pills = addonLabels(contest, t);
   return pills.map((p) => (
     <span key={p} className="rounded px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">
       {p}
@@ -100,12 +112,8 @@ export function UpgradePills({ contest, t }: { contest: Pick<ContestRow, "isProm
   ));
 }
 
-export function ContestBadges({ contest, t, className }: { contest: Pick<ContestRow, "isPromoted" | "isBlind" | "isPrivate">; t: Translate; className?: string }) {
-  const badges = [
-    contest.isPromoted && t("contest.featured"),
-    contest.isBlind && t("home.card.blind"),
-    contest.isPrivate && t("home.card.private"),
-  ].filter(Boolean) as string[];
+export function ContestBadges({ contest, t, className }: { contest: BadgeFlags; t: Translate; className?: string }) {
+  const badges = addonLabels(contest, t);
   if (badges.length === 0) return null;
   return (
     <span className={cx("flex flex-wrap gap-1.5", className)}>
@@ -166,5 +174,40 @@ export function StatusLine({
       )}
       {t(`browse.line.${contest.status as "winner_selected" | "handover" | "completed" | "no_result" | "cancelled"}`)}
     </p>
+  );
+}
+
+/** Urgent add-on: a red badge with a pulsing dot (owner, 2026-10-08). */
+export function UrgentBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-white shadow-card">
+      <span className="relative flex size-1.5" aria-hidden>
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-white/80" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-white" />
+      </span>
+      {label}
+    </span>
+  );
+}
+
+/** Highlight add-on: a gold badge (owner, 2026-10-08). */
+export function HighlightBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#f4bd2f] to-[#c9860a] px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-white shadow-card">
+      <svg viewBox="0 0 24 24" className="size-3" fill="currentColor" aria-hidden>
+        <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.7L12 15.4l-5.6 4.1 2.1-6.7L3 8.8h6.8Z" />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
+/** "Contest #00001" (owner, 2026-10-08): nothing until the contest is published and numbered. */
+export function ContestNumber({ n, t, locale, className }: { n: number | null; t: Translate; locale: Locale; className?: string }) {
+  if (n == null) return null;
+  return (
+    <span className={cx("inline-flex items-center rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[0.6875rem] font-semibold tracking-wide text-ink/75 ring-1 ring-inset ring-ink/10", className)}>
+      {t("contest.number", { n: formatContestNumber(n, locale) })}
+    </span>
   );
 }

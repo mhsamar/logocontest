@@ -1,4 +1,4 @@
-import { emptyBrief, type Brief, type Order } from "@/lib/contests/brief";
+import { emptyBrief, noUpgrades, type Brief, type Order } from "@/lib/contests/brief";
 
 export type LocalFile = {
   id: string; // key in IndexedDB
@@ -33,7 +33,8 @@ export function loadState(): WizardState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as WizardState;
     if (parsed?.v !== 1 || !parsed.brief || !parsed.order) return null;
-    return { ...parsed, brief: { ...emptyBrief(), ...parsed.brief }, mobile: parsed.mobile ?? "", email: parsed.email ?? "", localFiles: parsed.localFiles ?? [] };
+    const order = { ...parsed.order, upgrades: { ...noUpgrades(), ...parsed.order.upgrades } };
+    return { ...parsed, order, brief: { ...emptyBrief(), ...parsed.brief }, mobile: parsed.mobile ?? "", email: parsed.email ?? "", localFiles: parsed.localFiles ?? [] };
   } catch {
     return null;
   }

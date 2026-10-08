@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { GlideTrack } from "@/components/ui/glide-track";
+import { UPGRADE_ICONS, UPGRADE_TINT } from "./upgrade-meta";
 import { Checkbox, TextField } from "@/components/ui/field";
-import { PACKAGES, UPGRADES, type Order, type PackageKey } from "@/lib/contests/brief";
-import { serviceFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { PACKAGES, UPGRADES, type Order } from "@/lib/contests/brief";
+import { activeUpgrades, includedByNda, serviceFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
@@ -175,13 +176,10 @@ function FileRow({
   );
 }
 
-// C-08
-const PACKAGE_LINES: Record<PackageKey, string> = {
-  economy: "wizard.packages.economy.line",
-  standard: "wizard.packages.standard.line",
-  premium: "wizard.packages.premium.line",
-  custom: "wizard.packages.custom.line",
-};
+// C-08 (owner, 2026-10-08): five packages + Custom, 3–30 day contests, seven add-ons, motion everywhere.
+
+// Amounts in a clear dark gold so they read easily (owner, 2026-10-08).
+const AMOUNT = "text-[#7a4300]";
 
 export function PackageStep({
   order,
@@ -196,6 +194,11 @@ export function PackageStep({
   const taka = (n: number) => formatTaka(n, locale);
   const orderError = validateOrder(order, config);
   const [customTouched, setCustomTouched] = useState(false);
+  const active = activeUpgrades(order);
+  // "Today" is read once, so the end date shown under the slider stays put while the client picks.
+  const [today] = useState(() => Date.now());
+  const endDate = new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long" }).format(new Date(today + order.durationDays * 86_400_000));
+  const fill = ((order.durationDays - config.durationMin) / Math.max(1, config.durationMax - config.durationMin)) * 100;
 
   const customError =
     order.package === "custom" && customTouched && orderError?.startsWith("custom")
@@ -207,11 +210,13 @@ export function PackageStep({
       : undefined;
 
   return (
-    <div className="space-y-8">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PACKAGES.map((pkg) => {
+    <div className="space-y-9">
+      {/* Packages */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {PACKAGES.map((pkg, i) => {
           const on = order.package === pkg;
           const prize = pkg === "custom" ? null : config.packagePrizes[pkg];
+          const elite = pkg === "elite";
           return (
             <button
               key={pkg}
@@ -219,22 +224,42 @@ export function PackageStep({
               onClick={() => update({ package: pkg })}
               aria-pressed={on}
               className={cx(
-                "relative rounded-lg bg-surface p-4 text-left ring-1 transition-shadow",
-                on ? "ring-2 ring-primary" : "ring-line hover:ring-muted/40",
+                "group relative flex animate-rise flex-col rounded-2xl p-4 text-left transition-[box-shadow,translate,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                on ? "-translate-y-1 bg-primary/[0.04] shadow-raised ring-2 ring-primary" : "bg-surface shadow-card ring-1 ring-line hover:-translate-y-0.5 hover:shadow-raised",
+                elite && !on && "ring-[#f1c75c]",
               )}
+              style={{ animationDelay: `${i * 60}ms` }}
             >
               {pkg === "standard" && (
-                <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-white">
+                <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-white shadow-card">
                   {t("wizard.packages.recommended")}
                 </span>
               )}
-              <span className="block text-sm font-semibold text-muted">{t(`wizard.packages.${pkg}.name`)}</span>
-              <span className="mt-1 block text-2xl font-bold text-accent tabular-nums">
+              <span className="flex items-center justify-between gap-2">
+                <span className={cx("text-sm font-semibold", elite ? "text-[#8a5105]" : "text-muted")}>
+                  {elite && "👑 "}
+                  {t(`wizard.packages.${pkg}.name`)}
+                </span>
+                <span
+                  aria-hidden
+                  className={cx(
+                    "flex size-5 items-center justify-center rounded-full transition-[background-color,scale] duration-300",
+                    on ? "scale-100 bg-primary text-white" : "scale-90 ring-1 ring-line",
+                  )}
+                >
+                  {on && (
+                    <svg viewBox="0 0 24 24" className="size-3.5 animate-pop-in" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12.5l4.5 4.5L19 7.5" />
+                    </svg>
+                  )}
+                </span>
+              </span>
+              <span className={cx("mt-1 block text-2xl font-extrabold tabular-nums tracking-tight sm:text-[1.65rem]", AMOUNT)}>
                 {prize ? taka(prize) : t("wizard.packages.custom.price")}
               </span>
-              <span className="mt-1 block text-sm text-ink">{t(PACKAGE_LINES[pkg] as "wizard.packages.economy.line")}</span>
+              <span className="mt-1 block text-sm leading-snug text-ink">{t(`wizard.packages.${pkg}.line`)}</span>
               {prize && (
-                <span className="mt-2 block text-xs text-muted">
+                <span className="mt-auto block pt-2 text-xs text-muted">
                   {t("wizard.packages.youPay", { total: taka(prize + serviceFee(prize, config.serviceFeePercent)) })}
                 </span>
               )}
@@ -244,65 +269,127 @@ export function PackageStep({
       </div>
 
       {order.package === "custom" && (
-        <TextField
-          label={t("wizard.c08.customLabel")}
-          hint={t("wizard.c08.customHint", { min: taka(config.customMin), step: taka(config.customStep) })}
-          type="number"
-          inputMode="numeric"
-          min={config.customMin}
-          step={config.customStep}
-          value={order.customPrize ?? ""}
-          onChange={(e) => update({ customPrize: e.target.value === "" ? null : Math.floor(Number(e.target.value)) })}
-          onBlur={() => setCustomTouched(true)}
-          error={customError}
-          autoFocus
-        />
+        <div className="animate-rise">
+          <TextField
+            label={t("wizard.c08.customLabel")}
+            hint={t("wizard.c08.customHint", { min: taka(config.customMin), step: taka(config.customStep) })}
+            type="number"
+            inputMode="numeric"
+            min={config.customMin}
+            step={config.customStep}
+            value={order.customPrize ?? ""}
+            onChange={(e) => update({ customPrize: e.target.value === "" ? null : Math.floor(Number(e.target.value)) })}
+            onBlur={() => setCustomTouched(true)}
+            error={customError}
+            autoFocus
+          />
+        </div>
       )}
 
+      {/* Contest length: quick chips + any day from min to max */}
       <fieldset>
         <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c08.durationTitle")}</legend>
-        <div className="flex gap-2">
-          {config.durationOptions.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => update({ durationDays: d })}
-              aria-pressed={order.durationDays === d}
-              className={cx(
-                "min-h-11 flex-1 rounded-md px-3 text-sm font-semibold ring-1",
-                order.durationDays === d ? "bg-primary text-white ring-primary" : "bg-surface text-ink ring-line hover:ring-muted/40",
-              )}
-            >
-              {t("wizard.c08.days", { days: d })}
-            </button>
-          ))}
+        <GlideTrack>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {config.durationOptions.map((d) => {
+              const on = order.durationDays === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => update({ durationDays: d })}
+                  aria-pressed={on}
+                  className={cx(
+                    "relative min-h-11 rounded-xl px-2 text-sm font-semibold ring-1 transition-[background-color,color,box-shadow,scale] duration-200 active:scale-95",
+                    on ? "bg-primary text-white shadow-card ring-primary" : "text-ink ring-line hover:text-primary",
+                  )}
+                >
+                  {t("wizard.c08.days", { days: d })}
+                </button>
+              );
+            })}
+          </div>
+        </GlideTrack>
+        <div className="mt-4 rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <label htmlFor="duration-slider" className="font-medium text-muted">
+              {t("wizard.c08.durationSlider")}
+            </label>
+            <span key={order.durationDays} className="animate-pop-in font-semibold text-ink">
+              {t("wizard.c08.durationEnds", { days: order.durationDays, date: endDate })}
+            </span>
+          </div>
+          <input
+            id="duration-slider"
+            type="range"
+            min={config.durationMin}
+            max={config.durationMax}
+            step={1}
+            value={order.durationDays}
+            onChange={(e) => update({ durationDays: Number(e.target.value) })}
+            className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full accent-primary"
+            style={{ background: `linear-gradient(to right, var(--color-primary) ${fill}%, var(--color-line) ${fill}%)` }}
+          />
+          <div className="mt-1 flex justify-between text-xs text-muted">
+            <span>{t("wizard.c08.days", { days: config.durationMin })}</span>
+            <span>{t("wizard.c08.days", { days: config.durationMax })}</span>
+          </div>
         </div>
       </fieldset>
 
+      {/* Add-ons */}
       <fieldset>
         <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c08.upgradesTitle")}</legend>
-        <div className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
-          {UPGRADES.map((u) => {
-            const on = order.upgrades[u];
+        <div className="grid gap-3 sm:grid-cols-2">
+          {UPGRADES.map((u, i) => {
+            const on = active[u];
+            const included = includedByNda(order, u);
             return (
-              <div key={u} className="flex items-start gap-3 p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">
-                    {t(`wizard.upgrades.${u}.name`)}{" "}
-                    <span className="font-normal text-accent">+{taka(config.upgradePrices[u])}</span>
-                  </p>
-                  <p className="mt-0.5 text-sm text-muted">{t(`wizard.upgrades.${u}.desc`)}</p>
-                </div>
-                <Button
-                  size="md"
-                  variant={on ? "primary" : "secondary"}
-                  aria-pressed={on}
-                  onClick={() => update({ upgrades: { ...order.upgrades, [u]: !on } })}
-                  className="shrink-0"
+              <button
+                key={u}
+                type="button"
+                role="switch"
+                aria-checked={on}
+                disabled={included}
+                onClick={() => update({ upgrades: { ...order.upgrades, [u]: !order.upgrades[u] } })}
+                className={cx(
+                  "group relative flex animate-rise items-start gap-3 overflow-clip rounded-2xl p-4 text-left transition-[box-shadow,translate,background-color] duration-300 disabled:cursor-default",
+                  on ? "bg-primary/[0.04] shadow-raised ring-2 ring-primary" : "bg-surface shadow-card ring-1 ring-line hover:-translate-y-0.5 hover:shadow-raised",
+                )}
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <span
+                  className={cx(
+                    "flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br transition-[rotate,scale] duration-300 group-hover:-rotate-6 group-hover:scale-110",
+                    UPGRADE_TINT[u],
+                  )}
                 >
-                  {on ? t("wizard.c08.added") : t("wizard.c08.add")}
-                </Button>
-              </div>
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    {UPGRADE_ICONS[u]}
+                  </svg>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-semibold text-ink">{t(`wizard.upgrades.${u}.name`)}</span>
+                    <span className={cx("text-sm font-bold tabular-nums", included ? "text-success" : AMOUNT)}>
+                      {included ? t("wizard.c08.included") : `+${taka(config.upgradePrices[u])}`}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-sm leading-snug text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>
+                </span>
+                {/* Switch */}
+                <span
+                  aria-hidden
+                  className={cx("relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors duration-300", on ? (included ? "bg-success" : "bg-primary") : "bg-line")}
+                >
+                  <span
+                    className={cx(
+                      "absolute top-0.5 size-5 rounded-full bg-white shadow-card transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      on ? "left-[1.375rem]" : "left-0.5",
+                    )}
+                  />
+                </span>
+              </button>
             );
           })}
         </div>

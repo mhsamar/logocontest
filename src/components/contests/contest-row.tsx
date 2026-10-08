@@ -4,7 +4,7 @@ import { timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { cx } from "@/lib/cx";
-import { BrandTile, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
+import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
 import { SaveButton } from "./save-button";
 
 /**
@@ -20,7 +20,12 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
     .join(" · ");
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-lg bg-surface shadow-card ring-1 ring-line transition-shadow hover:shadow-raised sm:flex-row">
+    <article
+      className={cx(
+        "group relative flex flex-col overflow-hidden rounded-lg bg-surface transition-shadow hover:shadow-raised sm:flex-row",
+        contest.isHighlighted ? "prize-glow ring-2 ring-[#f1c75c]" : "shadow-card ring-1 ring-line",
+      )}
+    >
       <div className="hidden w-40 shrink-0 sm:flex lg:w-48">
         <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} flat className="h-full w-full text-[1.6rem]" />
       </div>
@@ -37,6 +42,7 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
                 </Link>
               </h3>
               <PackagePill pkg={contest.package} t={t} />
+              <ContestNumber n={contest.number} t={t} locale={locale} />
               <UpgradePills contest={contest} t={t} />
             </div>
             <p className="mt-1 text-sm text-muted">{meta}</p>

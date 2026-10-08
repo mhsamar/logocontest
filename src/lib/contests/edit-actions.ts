@@ -4,12 +4,12 @@ import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cleanBrief, validateBrief, type Brief, type FieldErrors } from "./brief";
+import { cleanBrief, findBriefContact, validateBrief, type Brief, type FieldErrors } from "./brief";
 import { blockedTerms } from "./community";
 import { contestRepository } from "./services";
+import { briefDetailColumns } from "./supabase-repository";
 
 /**
  * C-13b Edit details (owner, 2026-10-08): the client changes the brief while the contest
@@ -26,10 +26,8 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
   const brief = cleanBrief(input);
   const errors = validateBrief(brief);
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  const terms = await blockedTerms();
-  for (const field of ["businessDescription", "likes", "dislikes", "logoText", "slogan"] as const) {
-    if (brief[field] && findContactDetails(brief[field], terms)) return { ok: false, errors: { [field]: "contest.comments.contact" } };
-  }
+  const contact = findBriefContact(brief, await blockedTerms());
+  if (contact) return { ok: false, errors: { [contact]: "contest.comments.contact" } };
 
   const { error } = await createAdminClient()
     .from("contests")
@@ -47,6 +45,7 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
       used_on: brief.usedOn,
       likes_text: brief.likes,
       dislikes_text: brief.dislikes || null,
+      ...briefDetailColumns(brief),
     })
     .eq("id", contest.id)
     .eq("status", "open");

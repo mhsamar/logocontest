@@ -23,7 +23,12 @@ describe("BLUEPRINT defaults", () => {
   const d = <K extends keyof typeof SETTINGS>(k: K) => SETTINGS[k].default;
 
   it("packages and fees match §2 and §7", () => {
-    expect([d("packages.economy_prize"), d("packages.standard_prize"), d("packages.premium_prize")]).toEqual([3000, 5000, 10000]);
+    // Owner, 2026-10-08: Starter, Growth, Pro, Premium, Elite.
+    expect([d("packages.economy_prize"), d("packages.standard_prize"), d("packages.pro_prize"), d("packages.premium_prize"), d("packages.elite_prize")]).toEqual([
+      3000, 5000, 8000, 12000, 15000,
+    ]);
+    expect([d("timers.contest_duration_min_days"), d("timers.contest_duration_max_days")]).toEqual([3, 30]);
+    expect([d("upgrades.logo_scan_price"), d("upgrades.highlight_price"), d("upgrades.urgent_price"), d("upgrades.nda_price")]).toEqual([500, 500, 500, 1500]);
     expect([d("packages.custom_min_prize"), d("packages.custom_step")]).toEqual([3000, 500]);
     expect(d("fees.client_service_fee_percent")).toBe(20);
     // Extension is a paid add-on, never free (owner, 2026-10-07)
@@ -41,7 +46,7 @@ describe("BLUEPRINT defaults", () => {
   });
 
   it("timers and limits match §6, §7.3 and §9", () => {
-    expect(d("timers.contest_duration_options_days")).toEqual([5, 7, 10]);
+    expect(d("timers.contest_duration_options_days")).toEqual([3, 5, 7, 10, 14, 21, 30]);
     expect(d("timers.contest_duration_default_days")).toBe(7);
     expect(d("timers.judging_window_days")).toBe(5);
     expect(d("timers.repick_window_days")).toBe(3);

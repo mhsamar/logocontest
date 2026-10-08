@@ -160,7 +160,7 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
               >
                 <div className="relative aspect-square bg-canvas">
                   {d.coverUrl && (
-                    // Watermarked preview from storage
+                    // Preview from storage
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={d.coverUrl} alt={t("entry.title", { n: formatNumber(d.number, locale) })} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
                   )}

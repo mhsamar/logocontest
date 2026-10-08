@@ -48,7 +48,7 @@ Visual style (owner, 2026-10-07; updated 2026-10-08 from the ofsp_ce reference):
 | Input | Label above, helper text below, error text in red below. Never placeholder-only labels |
 | Stepper | Thin progress bar + "Step 3 of 11" text |
 | Contest card | (owner, 2026-10-08) White card with the brand tile on top (owner, 2026-10-08: once a design is submitted, the tile shows its cover mockup: the winning design with a small gold trophy in the corner once picked, otherwise the highest-rated design, otherwise the newest; the brand's first letter until then. Blind and private contests keep the letter or lock in public lists; the client's own dashboard shows their design) and a red **Featured** pill on it for Promoted contests; then the package pill, brand name, business type, prize in gold with the designs count as a small pill with a grid icon ("1 design", "2 designs"); next to the package pill, up to three overlapping photos of the designers who took part and "+N" (owner, 2026-10-08; never for blind or private contests), and the time-left line with a thin progress bar. Blind and Private show as small outline pills. When a row has fewer cards than columns, the cards are centred |
-| Entry card | Square watermarked preview, entry number, designer name (hidden from other designers in Blind), stars, state chip. Owner, 2026-10-08: a design with more than one mockup shows them as a grid in the square, like the reference: 2 images side by side, 3 as one large and two small, 4 or more as a 2×2 grid with "+N" on the last tile; a small "4 mockups" count and a comment count sit under it. The winning entry gets a small gold **trophy badge** in its corner (owner, 2026-10-08: our own drawing — gold cup with a shine, red ribbon, white star, dark base, tiny sparkles; floats gently) wherever a winner is shown: example panels, dashboards, contest pages |
+| Entry card | Square preview (no watermark, owner 2026-10-08), entry number, designer name (hidden from other designers in Blind), stars, state chip. Owner, 2026-10-08: a design with more than one mockup shows them as a grid in the square, like the reference: 2 images side by side, 3 as one large and two small, 4 or more as a 2×2 grid with "+N" on the last tile; a small "4 mockups" count and a comment count sit under it. The winning entry gets a small gold **trophy badge** in its corner (owner, 2026-10-08: our own drawing — gold cup with a shine, red ribbon, white star, dark base, tiny sparkles; floats gently) wherever a winner is shown: example panels, dashboards, contest pages |
 | Status chip | Contest: Draft (grey), Awaiting payment (grey), Live (green), Judging (amber), Winner picked (blue), Handover (blue), Completed (teal), No result (grey), Cancelled (red). Entry: Rejected (red) |
 | Price summary | Prize, service fee 20%, upgrades, total. Sticky bottom bar on mobile, right sidebar on desktop |
 | Star rating | 5 tappable stars, large enough for thumbs |
@@ -85,10 +85,10 @@ Smooth, calm motion on every page so the site feels premium. Short and soft (abo
 
 - **Look:** the floating frosted-glass bar from §1.1 on every page, fixed at the top while scrolling. The logo is the owner's logo pack (2026-10-08, `public/brand/`): the full "lc LOGO CONTEST.bd" lockup in maroon in the header and footer, white versions for dark backgrounds, and the white "lc" mark on a maroon square as the favicon, home-screen icon and push notification icon. On phones the pill holds the logo and the menu button; the menu opens as a white rounded card under the pill. The links sit centred in the space between the logo and the right-hand controls, so the gaps on both sides match (owner, 2026-10-08).
 - **Notifications (owner, 2026-10-08):** a bell before the avatar with a red unread count; it opens a panel with the latest notifications (icon, text, time ago, unread dot), **Mark all as read** and **See all** (`/notifications`). On phones the bell sits next to the menu button.
-- **Guest:** Logo | Browse Contests | How It Works | Call: 01712028511 | **Join as a designer** (outline pill, owner 2026-10-08, opens `D-01`) | **Log In** (red pill). Language toggle (EN / বাংলা) sits at the far right. On phones, **Join as a designer** is a full-width button in the menu under Log In.
+- **Guest:** Logo | Browse Contests | Design Studio | How It Works | Help (owner, 2026-10-08: the phone number left the header; it is on the Help page) | **Join as a designer** (from 1280px wide; between 1024 and 1280px it is only in the menu, footer and How It Works so the links fit) (outline pill, owner 2026-10-08, opens `D-01`) | **Log In** (red pill). Language toggle (EN / বাংলা) sits at the far right. On phones, **Join as a designer** is a full-width button in the menu under Log In.
 - **Client logged in:** Log In is replaced by an avatar menu: Dashboard, Create Contest, Payments, Profile, Log out.
 - **Designer logged in:** avatar menu: Dashboard, My Entries, Wallet, My Profile, Log out. A bell icon with unread count sits next to the avatar for both roles.
-- **Mobile:** logo left, bell and hamburger right. The phone number is a tap-to-call link inside the menu, and the language toggle sits at the bottom of the menu.
+- **Mobile:** logo left, bell and hamburger right. The menu lists the same links (Browse Contests, Design Studio, How It Works, Help); the language toggle sits at the bottom of the menu.
 
 ### 2.2 Mobile bottom bar (logged in only)
 
@@ -118,6 +118,13 @@ flowchart TD
 Home section headings (owner, 2026-10-08): every section title ends with an accent in the italic display serif and the red-to-gold gradient, typed out when the heading scrolls into view ("Contests live *right now*", "Your new logo in *three steps*", "More ideas, *less risk*", "Common *questions*").
 
 ### P-01 Home
+
+**One home per role (owner, 2026-10-08).** Logged out, everyone sees the home below. After logging in or signing up, `/` shows a different home for each role:
+
+- **P-01c Client home:** for starting the next contest without the marketing page. A welcome line with the client's name, a big **Create a new contest** (with a "Your business name" box that carries the name into `C-01`) and **Go to my dashboard**; how a contest works in three steps; every package with its prize and what the client pays; contest length (3–30 days); every add-on with its price and what it does; what is always included (main logo, the six file types, full copyright) and the extras they can ask for; a short line with how many contests they have running. Ends with **Create a new contest** again.
+- **P-01d Designer home:** a welcome line, **Browse open contests** and **My dashboard**; a few open contests; **Tips and tricks** for winning; **How to upload a logo** (step by step, with the real mockup limits from settings); **Rules and requirements** (original human-made work, no AI logos, no contact details, deliver the files within the deadline, copyright transfer, strikes and bans) and the fee tiers from settings.
+- Admins keep the normal home.
+
 
 Sections top to bottom:
 
@@ -150,7 +157,7 @@ Header (owner, 2026-10-07, from the LogoArena reference): one white panel. Left:
 
 Three tabs, **Entries** first when there are entries to show, otherwise **Brief**:
 
-- **Brief:** description, logo text and slogan, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, likes and dislikes, reference files.
+- **Brief:** description, short name / app name, logo text and slogan, target audience, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, **What the client needs** (always-included items plus the ticked extras), likes and dislikes (only older contests have them), **Requirements** (always-on rules plus the ticked ones and other requirements), reference files (owner, 2026-10-08).
 - **Entries:** grid of entry cards (2 columns on phones, 3 on tablets, 4 on desktop). Clicking a card opens `P-04`.
 - **Comments:** the public contest comments, newest last, each with the commenter's name ("Client" badge) or designer username. The client and signed-in designers see a box at the bottom (500 characters, counter); others see "Only the client and designers can comment." with **Log in** for guests. Authors can delete their own comment.
 
@@ -158,7 +165,7 @@ What the Entries tab shows depends on who is looking:
 
 | Viewer | Open contest | Blind contest |
 |---|---|---|
-| Guest or other client | All active entries (watermarked) | Message: "This is a blind contest. Only the client can see the entries." After completion, the winning logo only if the client made it public |
+| Guest or other client | All active entries | Message: "This is a blind contest. Only the client can see the entries." After completion, the winning logo only if the client made it public |
 | Designer | All active entries | Only their own (after completion, plus the winning logo if the client made it public) |
 | Owner client | All, with review tools (`C-14`) | Same |
 
@@ -171,6 +178,27 @@ Opens when an entry card is clicked (`?tab=entries&entry=14`, so it can be share
 ### P-05 Winners gallery
 
 Masonry-style grid of winning logos with business-type filter chips. Tile tap opens the contest in `P-03`.
+
+### P-13 Design Studio (owner, 2026-10-08)
+
+`/design-studio`, public and indexable. Every design uploaded to any contest collects here automatically, newest first, so visitors see how many logos are made on the site and that new ones come in every day.
+
+- Top: a compact aurora banner with the title, one line ("Every design made on logocontest.bd, as it comes in"), a pulsing "Live" dot and real counts that count up: designs made, new today (Bangladesh time) and winning designs. No invented numbers.
+- Filter: **All designs** | **Winners**.
+- Grid of single tiles: one design = one tile showing its first mockup even when it has up to 8. Winning designs wear the trophy. Hovering shows the brand name, "#number" and the designer (hidden for blind contests). Tapping opens that design in its contest (`P-03` with the design open, where all its mockups are).
+- **Load more** at the bottom (24 at a time).
+- Only designs anyone may already see: contests that are public (not drafts, unpaid or cancelled) and not private; active, winning and forfeited designs (never rejected, withdrawn or removed); in blind contests only the winner, once the contest is completed and the client made the winner public.
+
+### P-14 Help & contact (owner, 2026-10-08)
+
+`/help`. Title "How can we help?" and one line. Four contact cards:
+
+- **Live chat:** **Start live chat** loads the Tawk.to chat and opens it (see BLUEPRINT live chat). Until the IDs are set, the card says live chat is being set up, points to WhatsApp and shows a quiet "Coming soon" label instead of a button.
+- **WhatsApp:** opens a chat with the support number (setting `contact.whatsapp`, default 01712028511) with a short greeting filled in.
+- **Facebook Messenger:** opens Messenger with the Facebook page from the footer setting (`social.facebook`); hidden when that is empty.
+- **Call us:** the support number as a tap-to-call link.
+
+Below: quick links to How It Works, Payment & No-Refund Policy, Designer Rules and Terms.
 
 ### P-06 Designer public profile
 
@@ -197,6 +225,8 @@ FAQ and legal pages stay simple text pages. Legal pages: Terms, Privacy, Payment
 
 ### P-11 Log in
 
+After logging in (owner, 2026-10-08): clients go to their dashboard (`C-13`), designers to **Browse contests** (`P-02`), admins to the admin panel — unless the login was started from a specific page (`?next=`), which wins. A logged-in person who opens `/login` is sent to the same place.
+
 Two steps (owner, 2026-10-08). Clicking **Log In** anywhere first asks "Who are you logging in as?" with two large cards: **I'm a client** ("I want a logo for my business") and **I'm a designer** ("I design logos and enter contests"). The choice opens the form at `/login?as=client` or `/login?as=designer` (any `?next=` is kept). Links that already know the role skip the first step: the wizard's "already have an account" (client), the designer sign-up page and the footer's For designers column (designer).
 
 The form: title "Log in as a client" / "Log in as a designer", one field "Mobile number or email" and password, "Forgot password?" (asks for the email and sends a reset link; the link opens a "Set a new password" page). Under the card: "New here? **Start a contest**" (→ `C-01`) or "New here? **Sign up as a designer**" (→ `D-01`), and a link to switch to the other role. The choice only changes the words and links; the account's own role decides what the person sees after logging in.
@@ -211,14 +241,14 @@ The form: title "Log in as a client" / "Log in as a designer", one field "Mobile
 
 | ID | Heading | Controls | Notes |
 |---|---|---|---|
-| C-01 | What's your business or brand name? | Text input; optional "Text to show on the logo" and "Slogan" behind a "+ Add" link | Pre-filled if it came from the hero |
-| C-02 | What kind of business is it? | Dropdown of business types + short description textarea with character counter; under it **5 suggestions** written for the chosen business type and brand name — tap one to fill the box, then edit it | Example text shown as helper, not placeholder |
+| C-01 | What's your logo name? | "Logo name (business or brand name)" input; under it "Short name / app name" (optional, owner 2026-10-08, e.g. for a short logo or app icon); optional "Text to show on the logo" and "Slogan" behind a "+ Add" link | Pre-filled if it came from the hero |
+| C-02 | What kind of business is it? | Dropdown of business types + short description textarea with character counter; under it **5 suggestions** written for the chosen business type and brand name — tap one to fill the box, then edit it. Then **Target audience** (owner, 2026-10-08): "Who are your customers?" textarea, required, 10–300 characters, with **5 suggestions** built from the business type and what the client wrote in the description (city or area, online or shop, who buys). **How suggestions behave (owner, 2026-10-08, everywhere they are used):** each suggestion is a full, detailed sentence or two; tapping one fills the box and hides the list; when the box is empty again, a "Need ideas? See 5 suggestions" button brings the list back | Example text shown as helper, not placeholder |
 | C-03 | Do you have a website or Facebook page? | URL input + checkbox "I don't have one yet" | Skippable |
 | C-04 | Which logo styles do you like? | Tappable image tiles (multi-select), each with two example shapes and a label; three style sliders below: Minimal ↔ Complex, Modern ↔ Classic, Playful ↔ Serious | At least one tile. Examples (owner 2026-10-08, as in the 99designs reference): Wordmark = Facebook, Yahoo; Pictorial = Apple, NBC; Lettermark = F1, McDonald's; Calligraphic = Ray-Ban, Coca-Cola; Mascot = KFC, Tux. SVGs from Wikimedia Commons in `public/style-examples/`. Abstract and Emblem keep our own drawings (no free files). A small line under the tiles says the logos belong to their owners and credits Tux (Larry Ewing, The GIMP) |
-| C-05 | Pick your colours | Up to 5 swatch slots that open a colour picker with hex field; toggle "Let designers choose"; then checkboxes "Where will you use the logo?" | |
-| C-06 | Tell designers what you like and don't like | Two textareas, "I like" and "I don't like", each with **5 suggestions** built from the earlier answers (business type, styles, colours, where the logo is used); tap to fill, then edit | Contact filter runs here; inline error if tripped |
+| C-05 | Pick your colours | Up to 5 swatch slots that open a colour picker with hex field; toggle "Let designers choose"; then checkboxes "Where will you use the logo?"; then **What you need** (owner, 2026-10-08): a short "Always included" list with ticks (main logo; AI, EPS, SVG, PDF, transparent PNG and JPG files) and tappable cards for the extras: Icon only (app icon and favicon), Short logo (icon + short name), Colour, white and black versions, App icon sizes (1024×1024 master, iOS and Android) | |
+| C-06 | Any requirements for designers? | (Owner, 2026-10-08: the "I like" and "I don't like" textareas and their suggestions were removed.) **Requirements**: "Always on" ticks (100% original work, full copyright transferred to you; no AI-generated logos) and checkboxes for: No stock or AI-made images in the final design; Show the app icon on a phone home screen mockup; plus "Other requirements" (optional, 500 characters) | Contact filter runs here; inline error if tripped |
 | C-07 | Any examples or a current logo? | Drag-and-drop zone / file picker, thumbnails with remove icons | Optional; note "For reference only. Designers will not copy these." |
-| C-08 | Choose your prize | Four package cards (Standard marked Recommended); Custom reveals an amount input; duration selector (5 / 7 / 10 days); upgrade rows with toggle and price | Summary updates live |
+| C-08 | Choose your prize | Owner, 2026-10-08: six package cards (Starter, Growth marked Recommended, Pro, Premium, Elite, Custom), amounts in a clear dark colour; Custom reveals an amount input; contest length: quick-pick chips (3, 5, 7, 10, 14, 21, 30 days) plus a 3–30 day slider showing the end date; add-on cards (Featured, Blind, Private, Logo Scan, Highlight, Urgent, NDA) each with an icon, price and toggle — choosing NDA ticks Private as included. Everything moves gently: cards rise in, the chosen card lifts, the highlight glides between chips, the total counts to its new value | Summary updates live |
 | C-09 | Where should we send updates? | Mobile input and email input (both required, no OTP) | Number or email already used → "You already have an account. Log in" |
 | C-10 | Create a password | Password with show/hide and strength hint | **Create account** asks for browser notification permission, then sends the welcome push and the 6-digit email code |
 | C-11 | Review and pay | "Your name" input (required, saved to the account); collapsible brief recap with Edit links; full price breakdown; method tiles (bKash, Card); checkbox "I agree to the Terms and understand payments are non-refundable"; button **Pay ৳6,000** | Opens gateway checkout |
