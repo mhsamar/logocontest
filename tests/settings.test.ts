@@ -66,9 +66,10 @@ describe("BLUEPRINT defaults", () => {
     expect(d("limits.false_flag_warnings_for_ban")).toBe(3);
   });
 
-  it("every setting belongs to an A-11 group or auth", () => {
+  it("every setting belongs to an A-11 group, auth, or Brand & notice (A-17)", () => {
     const groups = new Set(Object.values(SETTINGS).map((s) => s.group));
     // "monthly" has no settings since the Monthly Winner prize became a gift box (owner, 2026-10-09).
-    expect([...groups].sort()).toEqual(["auth", "fees", "limits", "packages", "site", "timers", "upgrades"]);
+    // "brand", "contact" and "notice" are edited in /admin/brand, "legal" in /admin/legal (owner, 2026-10-09).
+    expect([...groups].sort()).toEqual(["auth", "brand", "contact", "fees", "legal", "limits", "notice", "packages", "site", "timers", "upgrades"]);
   });
 });

@@ -6,6 +6,7 @@ import { listPayments } from "@/lib/admin/misc";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-06 Payments (BLUEPRINT §13.6). Checking a payment with the gateway comes with SSLCommerz (milestone 9).
 export default async function AdminPaymentsPage({ searchParams }: PageProps<"/admin/payments">) {
+  await requirePermission("payments.view");
   const sp = await searchParams;
   const q = { status: str(sp.status), purpose: str(sp.purpose), search: str(sp.q), page: pageNum(sp.page) };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listPayments(q)]);

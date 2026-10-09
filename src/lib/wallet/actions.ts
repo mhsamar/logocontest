@@ -2,7 +2,7 @@
 
 import { audit } from "@/lib/admin/core";
 import { refresh } from "next/cache";
-import { can } from "@/lib/auth/policies";
+import { adminUser } from "@/lib/admin/core";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
@@ -49,9 +49,9 @@ export async function requestWithdrawal(input: { amount: number; methodId: strin
   return { ok: true, status: "requested", txnId: null };
 }
 
+/** Admins with the Withdrawals "manage" permission (BLUEPRINT §13.2). */
 async function admin() {
-  const user = await getCurrentUser();
-  return can(user, "admin.access") ? user : null;
+  return adminUser("withdrawals.manage");
 }
 
 /** Admin: the money was sent by hand; records the transaction ID. */

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { WithdrawalActions } from "@/components/admin/withdrawal-row";
-import { authorize } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
 import { pendingWithdrawals } from "@/lib/wallet/queries";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Admin withdrawal queue (BLUEPRINT §7.3): bank requests, and bKash when the automatic payout is off or failed.
 export default async function AdminWithdrawalsPage() {
-  await authorize("admin.access");
+  await requirePermission("withdrawals.view");
   const [{ t, locale }, list] = await Promise.all([getI18n(), pendingWithdrawals()]);
   return (
     <div>

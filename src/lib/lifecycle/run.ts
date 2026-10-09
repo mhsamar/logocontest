@@ -1,4 +1,6 @@
 import "server-only";
+import { adminIdsWith } from "@/lib/admin/recipients";
+import { PAGE_VIEW_DAYS } from "@/lib/analytics/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
@@ -255,14 +257,24 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
       if (top) {
         const { error } = await db.from("monthly_winners").insert({ month, entry_id: top.entryId, designer_id: top.designerId, likes: top.likes, status: "proposed" });
         if (!error) {
-          const { data: admins } = await db.from("profiles").select("id").eq("role", "admin").eq("status", "active");
-          await notify((admins ?? []).map((a) => a.id as string), "monthly_proposed", { month }, `/admin/monthly?month=${month}`);
+          await notify(await adminIdsWith("monthly.view"), "monthly_proposed", { month }, `/admin/monthly?month=${month}`);
           report.proposed++;
         }
       }
     }
   } catch (e) {
     fail("monthly", "-", e);
+  }
+
+  // 10. Visit data: page views are kept 180 days, "online now" rows a day (BLUEPRINT §13.2 item 3).
+  {
+    const day = 86_400_000;
+    const [views, online] = await Promise.all([
+      db.from("page_views").delete().lt("created_at", new Date(now.getTime() - PAGE_VIEW_DAYS * day).toISOString()),
+      db.from("presence").delete().lt("updated_at", new Date(now.getTime() - day).toISOString()),
+    ]);
+    if (views.error) fail("page_views", "-", views.error.message);
+    if (online.error) fail("presence", "-", online.error.message);
   }
 
   return report;

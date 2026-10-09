@@ -11,6 +11,8 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
 import { formatBdMobile } from "@/lib/phone";
+import { requirePermission } from "@/lib/admin/core";
+import { hasPermission } from "@/lib/admin/permissions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -21,6 +23,7 @@ const TONE = { active: "ok", suspended: "warn", banned: "bad" } as const;
 
 // A-05 User drawer as a page: profile, strikes (who gave each and why), contests or designs, wallet; actions.
 export default async function AdminUserPage({ params }: PageProps<"/admin/users/[id]">) {
+  await requirePermission("users.view");
   const { id } = await params;
   const [{ t, locale }, u, me] = await Promise.all([getI18n(), getUser(id), adminUser()]);
   if (!u) notFound();
@@ -44,6 +47,21 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
           {u.email && <> · {u.email}</>} · {t("admin.users.joinedOn", { date: formatDate(u.createdAt, locale, "long") })}
         </p>
         {u.status === "suspended" && u.suspendedUntil && <p className="mt-1 text-sm font-semibold text-[#8a5105]">{t("admin.users.suspendedUntil", { date: when(u.suspendedUntil) })}</p>}
+        {/* Reach this person (BLUEPRINT §13.2 items 5–6). */}
+        {u.role !== "admin" && me && (hasPermission(me, "messages.manage") || hasPermission(me, "support.view")) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {hasPermission(me, "messages.manage") && (
+              <Link href={`/admin/messages?to=${u.id}`} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-dark">
+                {t("admin.users.sendMessage")}
+              </Link>
+            )}
+            {hasPermission(me, "support.view") && (
+              <Link href={`/admin/support?user=${u.id}`} className="inline-flex min-h-10 items-center rounded-full bg-surface px-4 text-sm font-semibold text-ink ring-1 ring-line hover:ring-primary">
+                {t("admin.users.openChat")}
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       {!self && (

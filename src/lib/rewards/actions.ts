@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { adminUser, audit, cleanReason, UUID } from "@/lib/admin/core";
+import { adminIdsWith } from "@/lib/admin/recipients";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
@@ -41,7 +42,7 @@ export async function toggleLike(entryId: string): Promise<{ ok: true; liked: bo
 
 /** A-08: pick a finished month's winning design; the winner is asked for the gift delivery details. */
 export async function pickMonthlyDesign(month: string, entryId: string, f: Record<string, string>): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("monthly.manage");
   if (!admin || !isMonthKey(month) || !UUID.test(entryId)) return fail("auth.errors.generic");
   if (month >= monthKey(new Date())) return fail("admin.monthly.notOver");
   const reason = cleanReason(f.reason);
@@ -80,15 +81,14 @@ export async function saveGiftAddress(month: string, f: Record<string, string>):
     .select("month")
     .maybeSingle();
   if (error || !data) return fail("gift.errors.closed");
-  const { data: admins } = await db.from("profiles").select("id").eq("role", "admin").eq("status", "active");
-  await notify((admins ?? []).map((a) => a.id as string), "gift_address_given", { month, name: user.name }, `/admin/monthly?month=${month}`, user.id);
+  await notify(await adminIdsWith("monthly.view"), "gift_address_given", { month, name: user.name }, `/admin/monthly?month=${month}`, user.id);
   refresh();
   return { ok: true };
 }
 
 /** A-08: the gift box was sent (with a courier note); the winner is told. */
 export async function markGiftSent(month: string, f: Record<string, string>): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("monthly.manage");
   if (!admin || !isMonthKey(month)) return fail("auth.errors.generic");
   const note = cleanReason(f.reason);
   if (!note) return fail("admin.errors.reason");

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { RevealId } from "@/components/admin/reveal-id";
 import { listAgreements } from "@/lib/agreements/queries";
-import { authorize } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { formatBdMobile } from "@/lib/phone";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-13 Designer agreements (BLUEPRINT §9.6, owner 2026-10-09): ID numbers masked; each full reveal is logged.
 export default async function AdminAgreementsPage() {
-  await authorize("admin.access");
+  await requirePermission("agreements.view");
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAgreements()]);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   return (

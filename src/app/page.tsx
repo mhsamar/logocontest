@@ -10,7 +10,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { faqParams } from "@/lib/home/faq-params";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
-import { SUPPORT_PHONE } from "@/lib/site";
+import { getContact } from "@/lib/content/contact";
 
 // P-01 Home for visitors (and admins): hero, recent winning logos, how it works, designers you can trust, why us, two ways in, Q&A (UI-JOURNEY P-01).
 export default async function HomePage() {
@@ -28,6 +28,7 @@ export default async function HomePage() {
   ]);
   // Structured data for search engines (BLUEPRINT §15.1): who we are and the site itself.
   const base = siteUrl();
+  const contact = await getContact(locale);
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -35,7 +36,7 @@ export default async function HomePage() {
       name: "logocontest.bd",
       url: base,
       logo: `${base}/brand/logo-icon.png`,
-      contactPoint: { "@type": "ContactPoint", telephone: "+88" + SUPPORT_PHONE, contactType: "customer support", areaServed: "BD", availableLanguage: ["en", "bn"] },
+      contactPoint: { "@type": "ContactPoint", telephone: "+88" + contact.phone, contactType: "customer support", areaServed: "BD", availableLanguage: ["en", "bn"] },
       sameAs: Object.values(social).filter(Boolean),
     },
     { "@context": "https://schema.org", "@type": "WebSite", name: "logocontest.bd", url: base, inLanguage: ["en", "bn"] },

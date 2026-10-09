@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { BUSINESS_TYPES } from "@/lib/contests/brief";
+import { visibleBusinessTypes } from "@/lib/content/lists";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { DesignTile } from "@/components/rewards/design-tile";
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function WinnersPage({ searchParams }: PageProps<"/winners">) {
   const sp = await searchParams;
   const type = typeof sp.type === "string" && (BUSINESS_TYPES as readonly string[]).includes(sp.type) ? sp.type : null;
-  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const [{ t }, user, types] = await Promise.all([getI18n(), getCurrentUser(), visibleBusinessTypes(type)]);
   const logos = await winningDesigns({ type, viewerId: user?.id ?? null, order: "newest", limit: 60 });
   const chip = (active: boolean) =>
     cx("inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold ring-1 ring-inset transition-colors", active ? "bg-ink text-white ring-ink" : "bg-surface text-ink ring-line hover:ring-primary");
@@ -39,7 +40,7 @@ export default async function WinnersPage({ searchParams }: PageProps<"/winners"
               {t("winners.all")}
             </Link>
           </li>
-          {BUSINESS_TYPES.map((b) => (
+          {types.map((b) => (
             <li key={b}>
               <Link href={`/winners?type=${b}`} className={chip(type === b)} aria-current={type === b ? "page" : undefined}>
                 {t(`wizard.businessTypes.${b}`)}

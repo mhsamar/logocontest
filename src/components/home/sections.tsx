@@ -6,8 +6,10 @@ import { ContestCard } from "@/components/contests/contest-card";
 import type { ContestRow } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
-import type { MessageKey } from "@/lib/i18n/translate";
-import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
+import { brandPictures } from "@/lib/content/brand";
+import { getContact } from "@/lib/content/contact";
+import { visibleList } from "@/lib/content/lists";
+import { fillLegal } from "@/lib/legal/types";
 import { HeroForm } from "./hero-form";
 import { HowItWorks as HowItWorksSteps } from "./how-it-works";
 import { Typewriter } from "./typewriter";
@@ -56,11 +58,12 @@ export const ICONS = {
 // 1. Hero
 // ---------------------------------------------------------------------------
 export async function Hero({ premiumPrize }: { premiumPrize: number }) {
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
+  const [contact, pictures] = await Promise.all([getContact(locale), brandPictures()]);
   const trust: { icon: keyof typeof ICONS; title: string; sub: string; href?: string }[] = [
     { icon: "bkash", title: t("home.trustBar.payTitle"), sub: t("home.trustBar.paySub") },
     { icon: "shield", title: t("home.trustBar.heldTitle"), sub: t("home.trustBar.heldSub") },
-    { icon: "phone", title: SUPPORT_PHONE, sub: t("home.trustBar.callSub"), href: SUPPORT_PHONE_HREF },
+    { icon: "phone", title: contact.phone, sub: t("home.trustBar.callSub"), href: contact.phoneHref },
   ];
   return (
     // Pulled up under the transparent header so the nav sits inside the frame (UI-JOURNEY §1.1).
@@ -131,7 +134,13 @@ export async function Hero({ premiumPrize }: { premiumPrize: number }) {
 
       {/* The example panel overlaps the frame's bottom edge */}
       <div className="relative z-10 -mt-36 px-4 sm:-mt-48">
-        <HeroPreview prize={premiumPrize} />
+        {pictures.hero ? (
+          // An admin's own picture in place of the example panel (A-17).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={pictures.hero} alt="" className="mx-auto block w-full max-w-5xl rounded-3xl bg-surface object-cover shadow-raised ring-1 ring-white" />
+        ) : (
+          <HeroPreview prize={premiumPrize} />
+        )}
       </div>
       <div id="hero-end" aria-hidden />
     </section>
@@ -283,22 +292,23 @@ export async function WhyUs() {
 // 5. Q&A
 // ---------------------------------------------------------------------------
 export async function Faq({ params }: { params: Record<string, string | number> }) {
-  const { t } = await getI18n();
-  const items = Array.from({ length: 10 }, (_, i) => i + 1);
+  const { t, locale } = await getI18n();
+  // Home Q&A list (A-15); answers may use the price placeholders.
+  const items = await visibleList("home_faq", locale);
   return (
     <section id="faq" className="scroll-mt-24">
       <div className="mx-auto max-w-3xl px-4 py-16 sm:py-20">
         <SectionHeading eyebrow={t("home.faq.eyebrow")} lead={t("home.faq.titleLead")} accent={t("home.faq.titleAccent")} />
         <div className="mt-10 divide-y divide-line rounded-2xl bg-surface/90 shadow-card ring-1 ring-line backdrop-blur">
-          {items.map((n) => (
-            <details key={n} className="group px-5 [&_summary::-webkit-details-marker]:hidden">
+          {items.map((item) => (
+            <details key={item.id} className="group px-5 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-semibold text-ink">
-                {t(`home.faq.q${n}.q` as MessageKey)}
+                {item.text.q}
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-line transition-transform group-open:rotate-45">
                   <Icon d="M12 5v14M5 12h14" className="size-4" />
                 </span>
               </summary>
-              <p className="pb-5 pr-10 leading-relaxed text-muted">{t(`home.faq.q${n}.a` as MessageKey, params)}</p>
+              <p className="pb-5 pr-10 leading-relaxed text-muted">{fillLegal(item.text.a, params)}</p>
             </details>
           ))}
         </div>

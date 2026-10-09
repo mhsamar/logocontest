@@ -6,6 +6,7 @@ import { listUsers } from "@/lib/admin/users";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatBdMobile } from "@/lib/phone";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -16,6 +17,7 @@ const TONE = { active: "ok", suspended: "warn", banned: "bad" } as const;
 
 // A-05 Users (BLUEPRINT §13.2).
 export default async function AdminUsersPage({ searchParams }: PageProps<"/admin/users">) {
+  await requirePermission("users.view");
   const sp = await searchParams;
   const q = { search: str(sp.q), role: str(sp.role), status: str(sp.status), page: pageNum(sp.page) };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listUsers(q)]);

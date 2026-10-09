@@ -10,9 +10,11 @@ import { resolveCopyClaim } from "@/lib/claims/actions";
 import { CLAIM_DECISIONS, type ClaimDecision } from "@/lib/claims/rules";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { useReadOnly } from "./read-only";
 
 /** A-13: reject a copy claim, or uphold it with a correction, a fine or a ban (BLUEPRINT §7.6). */
 export function ClaimActions({ claimId, balance }: { claimId: string; balance: string }) {
+  const readOnly = useReadOnly();
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -31,6 +33,7 @@ export function ClaimActions({ claimId, balance }: { claimId: string; balance: s
       toast(t("admin.claims.done"));
       router.refresh();
     });
+  if (readOnly) return null;
 
   return (
     <div className="space-y-3">

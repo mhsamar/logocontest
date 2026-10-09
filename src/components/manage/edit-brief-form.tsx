@@ -20,6 +20,8 @@ const STEPS = [
 ] as const;
 
 /** C-13b Edit details (owner, 2026-10-08): the wizard's brief fields on one page; saving tells the designers. */
+const ALL_CHOICES = { businessTypes: [], swatches: [] };
+
 export function EditBriefForm({ contestId, initial, backHref }: { contestId: string; initial: Brief; backHref: string }) {
   const { t } = useI18n();
   const toast = useToast();
@@ -54,7 +56,8 @@ export function EditBriefForm({ contestId, initial, backHref }: { contestId: str
       {STEPS.map(({ key, Step }, i) => (
         <section key={key} className="animate-rise rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6" style={{ animationDelay: `${i * 60}ms` }}>
           <h2 className="mb-4 text-lg font-bold text-ink">{t(`wizard.${key}.heading`)}</h2>
-          <Step brief={brief} update={update} errors={errors} touched={touched} touch={touch} />
+          {/* Editing a live brief offers every business type and the built-in colours. */}
+          <Step brief={brief} update={update} errors={errors} touched={touched} touch={touch} choices={ALL_CHOICES} />
         </section>
       ))}
       <div className="sticky bottom-3 z-10 rounded-2xl bg-white/90 p-3 shadow-raised ring-1 ring-line backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-4">

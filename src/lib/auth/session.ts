@@ -14,12 +14,29 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, mobile, name, role, status, locale, email, email_verified_at, username, avatar_path")
+    .select("id, mobile, name, role, status, locale, email, email_verified_at, username, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title")
     .eq("id", data.user.id)
-    .maybeSingle<Omit<CurrentUser, "emailVerifiedAt" | "avatarUrl"> & { email_verified_at: string | null; avatar_path: string | null }>();
+    .maybeSingle<
+      Omit<CurrentUser, "emailVerifiedAt" | "avatarUrl" | "isSuperAdmin" | "adminActive" | "adminPermissions" | "adminTitle"> & {
+        email_verified_at: string | null;
+        avatar_path: string | null;
+        is_super_admin: boolean | null;
+        admin_active: boolean | null;
+        admin_permissions: string[] | null;
+        admin_title: string | null;
+      }
+    >();
   if (!profile) return null;
-  const { email_verified_at, avatar_path, ...rest } = profile;
-  return { ...rest, emailVerifiedAt: email_verified_at, avatarUrl: avatarUrl(avatar_path) };
+  const { email_verified_at, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title, ...rest } = profile;
+  return {
+    ...rest,
+    emailVerifiedAt: email_verified_at,
+    avatarUrl: avatarUrl(avatar_path),
+    isSuperAdmin: !!is_super_admin,
+    adminActive: admin_active !== false,
+    adminPermissions: admin_permissions ?? [],
+    adminTitle: admin_title,
+  };
 });
 
 /** Throws a 404 when the current user may not do this, so hidden pages stay hidden. */

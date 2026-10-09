@@ -442,6 +442,66 @@ export const SETTINGS = {
     group: "site", type: "string", schema: z.string().regex(/^([a-z0-9]{6,32})?$/, "The Tawk.to widget ID"), default: "",
     description: "Tawk.to widget ID (the second part of the widget link).",
   },
+
+  // ---- Brand & notice (owner, 2026-10-09; BLUEPRINT §13.1, A-17) — edited in /admin/brand, not Settings ----
+  "contact.phone": {
+    group: "contact", type: "string", schema: z.string().regex(/^0\d{9,10}$/, "A Bangladesh phone number like 01712028511"), default: "01712028511",
+    description: "Support phone: footer, Help page, How it works, home page and legal pages.",
+  },
+  "contact.email": {
+    group: "contact", type: "string", schema: z.union([z.literal(""), z.string().email("A valid email address").max(120)]), default: "",
+    description: "Support email shown in the footer and on the Help page. Empty hides it.",
+  },
+  "contact.address_en": {
+    group: "contact", type: "string", schema: z.string().max(300), default: "",
+    description: "Office address in English (footer and Help page). Empty hides it.",
+  },
+  "contact.address_bn": {
+    group: "contact", type: "string", schema: z.string().max(300), default: "",
+    description: "Office address in Bangla. Empty uses the English one.",
+  },
+  "brand.logo": {
+    group: "brand", type: "string", schema: z.string().regex(/^(logo\/[0-9a-f-]{36}\.(png|jpg|webp|svg))?$/), default: "",
+    description: "Site logo in the header and footer (a file in the site bucket). Empty uses the built-in logo.",
+  },
+  "brand.icon": {
+    group: "brand", type: "string", schema: z.string().regex(/^(icon\/[0-9a-f-]{36}\.png)?$/), default: "",
+    description: "App icon and browser tab icon (square PNG). Empty uses the built-in icon.",
+  },
+  "brand.hero": {
+    group: "brand", type: "string", schema: z.string().regex(/^(hero\/[0-9a-f-]{36}\.(png|jpg|webp))?$/), default: "",
+    description: "Home page hero picture, in place of the example panel. Empty shows the example panel.",
+  },
+  "brand.share": {
+    group: "brand", type: "string", schema: z.string().regex(/^(share\/[0-9a-f-]{36}\.(png|jpg))?$/), default: "",
+    description: "Share picture for Facebook and Google (1200×630). Empty uses the built-in card.",
+  },
+  "legal.agreement_resign_since": {
+    group: "legal", type: "string", schema: z.union([z.literal(""), z.string().datetime({ offset: true })]), default: "",
+    description: "Set by Legal pages → Publish with \"Ask every designer to sign again\": agreements signed before this time must be signed again.",
+  },
+  "notice.on": {
+    group: "notice", type: "bool", schema: z.boolean(), default: false,
+    description: "Show the notice bar at the top of every page.",
+  },
+  "notice.text_en": {
+    group: "notice", type: "string", schema: z.string().max(200), default: "",
+    description: "Notice text in English (up to 200 characters).",
+  },
+  "notice.text_bn": {
+    group: "notice", type: "string", schema: z.string().max(200), default: "",
+    description: "Notice text in Bangla. Empty uses the English one.",
+  },
+  "notice.link": {
+    group: "notice", type: "string",
+    schema: z.string().max(300).refine((v) => v === "" || /^\/(?!\/)/.test(v) || /^https:\/\/[^\s]+$/.test(v), "Empty, a page on this site (/contests) or an https link"),
+    default: "",
+    description: "Optional link when the notice is clicked: a page on this site like /contests, or an https link.",
+  },
+  "notice.tone": {
+    group: "notice", type: "string", schema: z.enum(["info", "warning", "offer"]), default: "info",
+    description: "Notice colour: info (dark), warning (amber) or offer (red).",
+  },
 } as const satisfies Record<string, SettingDefinition>;
 
 export type SettingDefinition = {

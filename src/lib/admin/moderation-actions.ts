@@ -20,7 +20,7 @@ async function entryInfo(entryId: string) {
 
 /** A-03 Remove a design (reason required). The winning design can't be removed here; use a copy claim. */
 export async function removeEntry(entryId: string, f: Fields): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("designs.manage");
   if (!admin || !UUID.test(entryId)) return fail("auth.errors.generic");
   const reason = cleanReason(f.reason);
   if (!reason) return fail("admin.errors.reason");
@@ -37,7 +37,7 @@ export async function removeEntry(entryId: string, f: Fields): Promise<Result> {
 
 /** A-03 Not a copy: clears the near-duplicate flag on a design's images. */
 export async function clearDuplicate(entryId: string): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("designs.manage");
   if (!admin || !UUID.test(entryId)) return fail("auth.errors.generic");
   const { error } = await createAdminClient().from("entry_images").update({ duplicate_of_entry_id: null }).eq("entry_id", entryId);
   if (error) return fail("admin.errors.generic");
@@ -48,7 +48,7 @@ export async function clearDuplicate(entryId: string): Promise<Result> {
 
 /** A-04 Decide a report (BLUEPRINT §10): uphold (with none / strike / ban), dismiss, or dismiss as false. */
 export async function resolveReport(reportId: string, decision: string, f: Fields): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("reports.manage");
   if (!admin || !UUID.test(reportId) || !["upheld", "dismissed", "dismissed_false"].includes(decision)) return fail("auth.errors.generic");
   const reason = cleanReason(f.reason);
   if (!reason) return fail("admin.errors.reason");

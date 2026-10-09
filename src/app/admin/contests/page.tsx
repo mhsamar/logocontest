@@ -6,6 +6,7 @@ import { ADMIN_CONTEST_STATUSES, listAdminContests } from "@/lib/admin/contests"
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-02 Contests (BLUEPRINT §13.3).
 export default async function AdminContestsPage({ searchParams }: PageProps<"/admin/contests">) {
+  await requirePermission("contests.view");
   const sp = await searchParams;
   const q = { search: str(sp.q), status: str(sp.status), page: pageNum(sp.page) };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAdminContests(q)]);

@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -17,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-02 Contest detail: summary, designs, payments; Edit brief, Extend, Force-award, Cancel.
 export default async function AdminContestPage({ params }: PageProps<"/admin/contests/[slug]">) {
+  await requirePermission("contests.view");
   const { slug } = await params;
   const [{ t, locale }, c] = await Promise.all([getI18n(), getAdminContest(slug)]);
   if (!c) notFound();

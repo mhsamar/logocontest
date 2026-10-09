@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/ui/logo";
+import { brandPictures } from "@/lib/content/brand";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
-import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
-import { LEGAL_NAV } from "./nav-items";
+import { getContact } from "@/lib/content/contact";
+import { visibleList } from "@/lib/content/lists";
 
 const LINK = "inline-flex min-h-10 items-center text-sm text-muted transition-colors hover:text-primary";
 
@@ -59,48 +60,40 @@ const SOCIAL = [
 /** Footer on the page background, no separate colour (UI-JOURNEY §1.1, owner 2026-10-08). */
 export async function SiteFooter() {
   const [{ t, locale }, links] = await Promise.all([getI18n(), getSettings(SOCIAL.map((x) => x.key))]);
+  const contact = await getContact(locale);
   const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
   const social = SOCIAL.filter((x) => links[x.key]);
 
-  const columns: { title: string; links: { href: string; label: string }[] }[] = [
-    {
-      title: t("footer.clients"),
-      links: [
-        { href: "/start", label: t("footer.startContest") },
-        { href: "/contests", label: t("nav.browse") },
-        { href: "/design-studio", label: t("nav.studio") },
-        { href: "/winners", label: t("footer.winners") },
-        { href: "/how-it-works", label: t("nav.how") },
-        { href: "/help", label: t("nav.help") },
-      ],
-    },
-    {
-      title: t("footer.designers"),
-      links: [
-        { href: "/designers/signup", label: t("nav.becomeDesigner") },
-        { href: "/how-it-works?for=designers", label: t("footer.howDesigners") },
-        { href: "/leaderboard", label: t("footer.leaderboard") },
-        { href: "/login?as=designer", label: t("nav.login") },
-      ],
-    },
-    { title: t("footer.legal"), links: LEGAL_NAV.map((item) => ({ href: item.href, label: t(item.label) })) },
-  ];
+  // Footer links list (A-15), in its three columns.
+  const footerLinks = await visibleList("footer_links", locale);
+  const columns: { title: string; links: { href: string; label: string }[] }[] = (["clients", "designers", "legal"] as const)
+    .map((column) => ({
+      title: t(column === "legal" ? "footer.legal" : `footer.${column}`),
+      links: footerLinks.filter((l) => l.column === column).map((l) => ({ href: l.href ?? "/", label: l.text.label })),
+    }))
+    .filter((col) => col.links.length > 0);
 
   return (
     <footer className="mt-auto border-t border-line">
       <div className="reveal mx-auto grid max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 max-w-xs lg:col-span-1">
-          <Wordmark />
+          <Wordmark src={(await brandPictures()).logo} />
           <p className="mt-3 text-sm leading-relaxed text-muted">{t("footer.blurb")}</p>
           <a
-            href={SUPPORT_PHONE_HREF}
+            href={contact.phoneHref}
             className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-surface px-4 text-sm font-semibold text-ink shadow-card ring-1 ring-line transition-colors hover:ring-primary"
           >
             <svg viewBox="0 0 24 24" className="size-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
               <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
             </svg>
-            {SUPPORT_PHONE}
+            {contact.phone}
           </a>
+          {contact.email && (
+            <a href={`mailto:${contact.email}`} className="mt-2 block break-all text-sm text-muted hover:text-primary">
+              {contact.email}
+            </a>
+          )}
+          {contact.address && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">{contact.address}</p>}
         </div>
         {columns.map((col) => (
           <nav key={col.title} aria-label={col.title}>

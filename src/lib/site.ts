@@ -1,7 +1,3 @@
-/** Support line on the Help page, How It Works, the home trust bar and the footer. */
-export const SUPPORT_PHONE = "01712028511";
-export const SUPPORT_PHONE_HREF = "tel:+8801712028511";
-
 /** WhatsApp click-to-chat link for a Bangladesh mobile number, with an optional greeting filled in. */
 export function whatsappLink(mobile: string, text?: string): string {
   const intl = `880${mobile.replace(/\D/g, "").replace(/^0/, "")}`;

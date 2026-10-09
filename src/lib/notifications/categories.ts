@@ -19,6 +19,7 @@ export const CATEGORIES = [
   "approved",
   "money",
   "safety",
+  "support",
   "admin",
 ] as const;
 export type NotificationCategory = (typeof CATEGORIES)[number];
@@ -84,7 +85,11 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   claim_upheld_client: "safety",
   claim_fined: "safety",
   claim_banned: "safety",
+  // Support chat and team messages
+  support_reply: "support",
+  admin_message: "support",
   // Admins
+  support_message_admin: "admin",
   claim_opened_admin: "admin",
   monthly_proposed: "admin",
   gift_address_given: "admin",
@@ -122,6 +127,7 @@ export const CATEGORY_STYLE: Record<NotificationCategory, { d: string; tile: str
   files: { d: P.upload, tile: "bg-[#e9e7ff] text-[#4338ca]", chip: "bg-[#e9e7ff] text-[#4338ca]", bar: "bg-[#6366f1]" },
   approved: { d: P.check, tile: "bg-[#e7f8f0] text-[#0f6b45]", chip: "bg-[#e7f8f0] text-[#0f6b45]", bar: "bg-[#22c55e]" },
   money: { d: P.wallet, tile: "bg-[#d1fae5] text-[#047857]", chip: "bg-[#d1fae5] text-[#047857]", bar: "bg-[#10b981]" },
+  support: { d: P.bubble, tile: "bg-[#ede9fe] text-[#6d28d9]", chip: "bg-[#ede9fe] text-[#6d28d9]", bar: "bg-[#8b5cf6]" },
   safety: { d: P.shield, tile: "bg-danger/10 text-danger", chip: "bg-danger/10 text-danger", bar: "bg-danger" },
   admin: { d: P.gear, tile: "bg-[#e2e8f0] text-[#334155]", chip: "bg-[#e2e8f0] text-[#334155]", bar: "bg-[#64748b]" },
 };

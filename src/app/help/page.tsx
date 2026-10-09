@@ -4,7 +4,8 @@ import { LiveChatButton } from "@/components/help/live-chat-button";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
-import { liveChatConfig, messengerLink, SUPPORT_PHONE, SUPPORT_PHONE_HREF, whatsappLink } from "@/lib/site";
+import { getContact } from "@/lib/content/contact";
+import { liveChatConfig, messengerLink, whatsappLink } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -41,7 +42,8 @@ const CTA = "btn-sheen relative inline-flex min-h-12 w-full items-center justify
 
 // P-14 Help & contact (owner, 2026-10-08): live chat, WhatsApp, Messenger and phone.
 export default async function HelpPage() {
-  const [{ t }, s] = await Promise.all([getI18n(), getSettings(["contact.whatsapp", "social.facebook", "chat.driver", "chat.tawk_property_id", "chat.tawk_widget_id"])]);
+  const [{ t, locale }, s] = await Promise.all([getI18n(), getSettings(["contact.whatsapp", "social.facebook", "chat.driver", "chat.tawk_property_id", "chat.tawk_widget_id"])]);
+  const contact = await getContact(locale);
   const chat = liveChatConfig({ driver: s["chat.driver"], tawkPropertyId: s["chat.tawk_property_id"], tawkWidgetId: s["chat.tawk_widget_id"] });
   const whatsapp = whatsappLink(s["contact.whatsapp"], t("help.whatsapp.greeting"));
   const messenger = messengerLink(s["social.facebook"]);
@@ -90,8 +92,8 @@ export default async function HelpPage() {
       title: t("help.call.title"),
       body: t("help.call.body"),
       action: (
-        <a href={SUPPORT_PHONE_HREF} className={cx(CTA, "bg-surface text-ink ring-1 ring-inset ring-line hover:bg-canvas")}>
-          {t("help.call.cta", { number: SUPPORT_PHONE })}
+        <a href={contact.phoneHref} className={cx(CTA, "bg-surface text-ink ring-1 ring-inset ring-line hover:bg-canvas")}>
+          {t("help.call.cta", { number: contact.phone })}
         </a>
       ),
     },

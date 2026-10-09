@@ -460,6 +460,38 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 13. Copy claims (owner, 2026-10-09, §7.6): open claims with the winning design, the client's note and links; Reject (with note) or Uphold with Correction / Fine (amount) / Ban
 14. Designer agreements (owner, 2026-10-09, §9.6): list with name, ID type, masked number and signed date; **Show full number** is logged
 
+### 13.1 Site content (milestone 12, owner 2026-10-09)
+
+The owner controls the site's words, pictures, lists and links from the admin panel, without code. Everything stays in English and Bangla, and every change can be reset to the built-in default.
+
+1. **Texts** (`/admin/texts`): every word on the site (home page, How it works, Help, footer, menu labels, SEO titles and descriptions, notifications, emails and SMS, wizard labels, everything else) grouped by page, with search. Each text shows the English and Bangla default; the admin types a new version, and **Reset** brings the default back. Placeholders such as `{phone}` must stay: a change that drops or adds one is refused. Stored in `site_texts` (key, locale, value); the texts in the code are the defaults.
+2. **Lists** (`/admin/lists`): until a list is edited the built-in items show; **Reset to default** brings them back.
+   - **Home Q&A** (also used on How it works): add, edit (en + bn), hide, reorder, delete. Answers may use the price placeholders the built-in answers use, such as `{fee}`.
+   - **Header menu** (up to 6) and **footer links** (For clients / For designers / Legal columns): label en + bn and a link (a page on this site such as `/contests`, or an https link); add, hide, reorder, delete.
+   - **Business types** (wizard, browse filter, winners filter): hide and reorder; rename in Texts. New types are not added here, because every contest stores its type and the filters depend on them; "Other" always stays.
+   - **Colour choices** (wizard step 5 suggestions, up to 16): add, reorder, delete.
+   - The How-it-works steps stay three per side (each has its own picture); their words are edited in Texts. Logo styles, "used on", deliverables and requirements keep their fixed items (they have example pictures and rules) but can be renamed in Texts.
+3. **Legal pages** (`/admin/legal`): edit Terms, Privacy, Payment & No-Refund Policy, Designer Rules and the designer originality agreement, en + bn, as simple text (`## heading`, paragraphs, `- list item`, `{placeholders}`). Publishing sets a new version date. For the agreement, the option **Ask every designer to sign again** makes designers sign the new version before their next design.
+4. **Pictures and brand** (`/admin/brand`): site logo, app icon/favicon, home hero picture and the default share picture (Facebook/Google), uploaded to a public `site` storage bucket (PNG, JPG, WebP or SVG for the logo; size-limited); support phone, support email and office address, used in the footer, Help page and legal pages.
+5. **Notice bar** (in `/admin/brand`): on/off, en + bn text, optional link, colour (info, warning, offer); shown at the top of every page; a visitor can close it for the day.
+6. Every save goes to `audit_logs`, and the change shows on the site at once (its cache is cleared on save).
+7. Not content, so not here: prices, fees, timers and limits (they are in Settings), page layout and design, and the contest rules themselves.
+
+Built in four steps: (a) Texts, notice bar, contact details; (b) pictures; (c) lists; (d) legal pages.
+
+### 13.2 Admin panel 2.0 (milestone 13, owner 2026-10-09)
+
+1. **Own panel:** the admin area has its own top bar and grouped sidebar (a drawer on phones), not the public header and footer. **View site** opens the site in a new tab; the public avatar menu has **Admin panel** for admins. Admins are never asked to confirm their email by code.
+2. **Super admin and staff:** the owner's account is the **Super admin** and sees and does everything. Only the Super admin adds, edits or removes other admins (staff), from **Admins & roles**: name, mobile, email and a starting password, a title (for example "Manager", "Support"), and permissions. Start from a preset (**Manager**, **Support**, **Moderator**), then tick or untick each area's **View** and **Manage**. Areas: Dashboard & analytics, Live visitors, Contests, Designs, Reports, Copy claims, Users, Unpaid contests, Payments, Withdrawals, Agreements (ID numbers), Monthly winner, Support inbox, Messages to users, Site content (texts, lists, legal, brand, homepage, blocked terms), Settings, Audit log. A staff member only sees the menu items and buttons they are allowed; every page and every action checks the permission on the server. Staff can be switched off at once.
+3. **Live visitors and analytics** (owner's choice: members by name, guests anonymous):
+   - Every page view on the public site is recorded: an anonymous visitor id (a cookie), the signed-in user if any, the page, where they came from, device type and country (from the host). **No IP address is stored.** Admin pages are not recorded. Page views older than 180 days are deleted by the 15-minute job. The Privacy page says this.
+   - **Live now:** who is on the site in the last 2 minutes: member name and role (linked to their profile) or "Guest", the page they are on, device, country, and how long ago; refreshes every 10 seconds.
+   - **Analytics:** visitors and page views today / 7 / 30 days with a daily chart, top pages, where visitors come from, devices, new sign-ups, and the wizard drop-off.
+   - **Activity feed:** the latest things people did: sign-ups, contests created and paid, designs sent, comments, winners picked, withdrawals asked.
+4. **Unpaid contests:** clients who started a contest but did not pay (draft or waiting for payment): name, mobile, brand, how far they got, amount, last activity, with **Call** and **Send message**. Anonymous wizard drop-off stays on the dashboard.
+5. **Support chat** (owner's choice: chat button on every page): signed-in clients and designers get a chat button in the corner of every page and a **Support** page; each user has one conversation with the support team. The admin **Support inbox** lists conversations (open / closed, newest first, unread counts), shows the user's details next to the chat, and staff can reply, close and reopen. New messages update every few seconds and send a bell and push notification to the other side. The no-contact filter does not apply to support chat.
+6. **Messages to users** (owner's choice: notification + inbox): an admin can message **all designers**, **all clients**, **everyone**, or **one person** (from their profile or by mobile / username). Each message arrives as a bell + push notification and also appears in the user's support chat, so they can reply. Every message is logged in the audit log.
+
 ## 14. Public pages
 
 **Header menu (exactly four items):** Browse Contests | How It Works | Call: 01712028511 | Log In
@@ -515,6 +547,8 @@ Finish, test and commit each milestone before starting the next.
 9. **Real integrations:** payment gateway driver, SMS provider, email, S3 storage
 10. **Profiles and gamification:** public designer profile with QR and total earned, public client profile with total spent, badges, leaderboard, monthly winner
 11. **Launch polish:** Bangla translations, SEO basics (titles, sitemap, `noindex` for private contests), legal pages, performance pass, backups
+12. **Site content (owner, 2026-10-09):** texts, lists, legal pages, pictures, contact details and a notice bar, all editable in the admin panel (section 13.1)
+13. **Admin panel 2.0 (owner, 2026-10-09):** own admin layout, Super admin and staff permissions, live visitors and analytics, unpaid contests, support chat and messages to users (section 13.2)
 
 ## 17. Out of scope for now
 

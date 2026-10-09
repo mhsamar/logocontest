@@ -8,14 +8,17 @@ import { useToast } from "@/components/ui/toast";
 import { saveSettings } from "@/lib/admin/site-actions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { useReadOnly } from "./read-only";
 
-export type SettingItem = { key: string; type: "int" | "bool" | "string" | "json"; value: string; description: string; updatedAt: string | null };
+export type SettingItem = { key: string; type: "int" | "bool" | "string" | "json"; value: string; description: string; updatedAt: string | null; options?: { value: string; label: string }[] };
 
 const INPUT = "block w-full min-h-10 rounded-lg bg-canvas px-3 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary";
 
 /** A-11: one settings group. Saved together, with a reason for the audit log. */
-export function SettingsGroup({ group, title, items }: { group: string; title: string; items: SettingItem[] }) {
+/** `reasonOptional`: site content (Brand & notice) saves without a reason; it is still written to the audit log. */
+export function SettingsGroup({ group, title, items, reasonOptional = false }: { group: string; title: string; items: SettingItem[]; reasonOptional?: boolean }) {
   const { t } = useI18n();
+  const readOnly = useReadOnly();
   const router = useRouter();
   const toast = useToast();
   const start = Object.fromEntries(items.map((i) => [i.key, i.value]));
@@ -53,13 +56,22 @@ export function SettingsGroup({ group, title, items }: { group: string; title: s
             </label>
             <div>
               {i.type === "bool" ? (
-                <select id={`s-${i.key}`} value={values[i.key]} onChange={(e) => setValues((v) => ({ ...v, [i.key]: e.target.value }))} className={INPUT}>
+                <select id={`s-${i.key}`} disabled={readOnly} value={values[i.key]} onChange={(e) => setValues((v) => ({ ...v, [i.key]: e.target.value }))} className={INPUT}>
                   <option value="true">{t("admin.settings.on")}</option>
                   <option value="false">{t("admin.settings.off")}</option>
+                </select>
+              ) : i.options ? (
+                <select id={`s-${i.key}`} disabled={readOnly} value={values[i.key]} onChange={(e) => setValues((v) => ({ ...v, [i.key]: e.target.value }))} className={INPUT}>
+                  {i.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <input
                   id={`s-${i.key}`}
+                  readOnly={readOnly}
                   value={values[i.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [i.key]: e.target.value }))}
                   inputMode={i.type === "int" ? "numeric" : undefined}
@@ -73,13 +85,17 @@ export function SettingsGroup({ group, title, items }: { group: string; title: s
       </div>
       {dirty && (
         <div className="mt-4 space-y-2 rounded-xl bg-canvas p-3">
-          <label className="block text-sm font-medium text-ink" htmlFor={`r-${group}`}>
-            {t("admin.reason")}
-          </label>
-          <input id={`r-${group}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("admin.settings.reasonPlaceholder")} className={INPUT} />
+          {!reasonOptional && (
+            <>
+              <label className="block text-sm font-medium text-ink" htmlFor={`r-${group}`}>
+                {t("admin.reason")}
+              </label>
+              <input id={`r-${group}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("admin.settings.reasonPlaceholder")} className={INPUT} />
+            </>
+          )}
           {error && <Alert tone="danger">{error}</Alert>}
           <div className="flex gap-2">
-            <Button onClick={save} loading={busy} disabled={reason.trim().length < 3}>
+            <Button onClick={save} loading={busy} disabled={!reasonOptional && reason.trim().length < 3}>
               {t("admin.settings.save")}
             </Button>
             <Button variant="ghost" onClick={() => (setValues(start), setErrors({}), setError(null))}>

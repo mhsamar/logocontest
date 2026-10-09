@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { agreementText } from "@/lib/legal";
+import { resignSince } from "@/lib/legal/store";
 import { formatBdMobile } from "@/lib/phone";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,12 +24,15 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
   const user = await getCurrentUser();
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/dashboard/agreement?next=${next}`)}`);
   if (user.role !== "designer") redirect("/dashboard");
-  const [{ t, locale }, signed] = await Promise.all([getI18n(), getAgreement(user.id)]);
-  const text = agreementText(locale);
+  const [{ t, locale }, found, since] = await Promise.all([getI18n(), getAgreement(user.id), resignSince()]);
+  const text = await agreementText(locale);
+  // An admin can publish a new agreement and ask everyone to sign again (A-16).
+  const outdated = !!found && !!since && found.signedAt < since;
+  const signed = outdated ? null : found;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-6 sm:pt-10">
-      <p className="animate-rise text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t("agreement.eyebrow")}</p>
+      <p className="animate-rise text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t(outdated ? "agreement.eyebrowUpdated" : "agreement.eyebrow")}</p>
       <h1 className="mt-2 animate-rise text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{text.title}</h1>
 
       {signed ? (
@@ -81,7 +85,7 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
         </>
       ) : (
         <>
-          <p className="mt-2 animate-rise text-muted">{t("agreement.lead")}</p>
+          <p className="mt-2 animate-rise text-muted">{t(outdated ? "agreement.updated" : "agreement.lead")}</p>
           <div className="mt-6">
             <AgreementForm defaults={{ fullName: user.name, mobile: user.mobile ? `0${user.mobile.replace(/^\+880/, "")}` : "" }} text={text} next={next} />
           </div>

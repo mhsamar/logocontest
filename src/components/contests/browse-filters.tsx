@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BUSINESS_TYPES } from "@/lib/contests/brief";
 import { BROWSE_SORTS, browseHref, type BrowseQuery, type BrowseSort } from "@/lib/contests/browse-query";
 import type { BusinessType } from "@/lib/contests/brief";
 import { useI18n } from "@/lib/i18n/client";
@@ -9,8 +8,8 @@ import { useI18n } from "@/lib/i18n/client";
 const SELECT =
   "min-h-11 w-full rounded-md bg-surface pl-3 pr-8 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary sm:w-auto";
 
-/** P-02 business type and sort. Changes apply at once; without JavaScript the form's button does it. */
-export function BrowseFilters({ query }: { query: BrowseQuery }) {
+/** P-02 business type (the admin's Business types list, A-15) and sort. Changes apply at once; without JavaScript the form's button does it. */
+export function BrowseFilters({ query, types }: { query: BrowseQuery; types: BusinessType[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const sorts = BROWSE_SORTS.filter((s) => query.tab === "open" || s !== "ending");
@@ -29,7 +28,7 @@ export function BrowseFilters({ query }: { query: BrowseQuery }) {
         className={SELECT}
       >
         <option value="">{t("browse.type.all")}</option>
-        {BUSINESS_TYPES.map((type) => (
+        {types.map((type) => (
           <option key={type} value={type}>
             {t(`wizard.businessTypes.${type}`)}
           </option>

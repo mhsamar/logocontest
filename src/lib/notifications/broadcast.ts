@@ -1,7 +1,6 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
-import { MESSAGES } from "@/lib/i18n/messages";
-import { createTranslator } from "@/lib/i18n/translate";
+import { translatorFor } from "@/lib/content/texts";
 import { notifyUser } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify, type NotificationData, type NotificationType } from "./index";
@@ -25,7 +24,7 @@ export async function broadcastToDesigners(type: NotificationType, data: Notific
     for (const d of list) {
       if (!withPush.has(d.id as string)) continue;
       const locale = d.locale === "bn" ? "bn" : "en";
-      const t = createTranslator(locale, MESSAGES[locale]);
+      const t = await translatorFor(locale);
       const body = renderNotification({ id: "", type, data, link, read: false, createdAt: now }, t, locale, now).text;
       await notifyUser(d.id as string, { title: t("brand.name"), body, url: link });
     }
@@ -33,5 +32,28 @@ export async function broadcastToDesigners(type: NotificationType, data: Notific
   } catch (e) {
     console.error("[broadcast]", e instanceof Error ? e.message : e);
     return 0;
+  }
+}
+
+/** Bell + browser push to these people, each in their own language (support chat, team messages). Never throws. */
+export async function notifyWithPush(userIds: string[], type: NotificationType, data: NotificationData, link: string, actorId?: string): Promise<void> {
+  const ids = [...new Set(userIds)].filter((id) => id !== actorId);
+  if (!ids.length || !isSupabaseConfigured()) return;
+  try {
+    await notify(ids, type, data, link, actorId);
+    const db = createAdminClient();
+    const { data: subs } = await db.from("push_subscriptions").select("user_id").in("user_id", ids.slice(0, 5000));
+    const withPush = [...new Set((subs ?? []).map((s) => s.user_id as string))];
+    if (!withPush.length) return;
+    const { data: people } = await db.from("profiles").select("id, locale").in("id", withPush);
+    const now = new Date();
+    for (const p of people ?? []) {
+      const locale = p.locale === "bn" ? "bn" : "en";
+      const t = await translatorFor(locale);
+      const body = renderNotification({ id: "", type, data, link, read: false, createdAt: now }, t, locale, now).text;
+      await notifyUser(p.id as string, { title: t("brand.name"), body, url: link });
+    }
+  } catch (e) {
+    console.error("[notifyWithPush]", e instanceof Error ? e.message : e);
   }
 }

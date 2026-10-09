@@ -8,9 +8,11 @@ import { TextField } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import { markWithdrawalPaid, rejectWithdrawal } from "@/lib/wallet/actions";
+import { useReadOnly } from "./read-only";
 
 /** Admin: pay a withdrawal by hand (record the transaction ID) or reject it (money goes back). */
 export function WithdrawalActions({ id }: { id: string }) {
+  const readOnly = useReadOnly();
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -28,6 +30,7 @@ export function WithdrawalActions({ id }: { id: string }) {
       setMode(null);
       router.refresh();
     });
+  if (readOnly) return null;
 
   if (!mode)
     return (

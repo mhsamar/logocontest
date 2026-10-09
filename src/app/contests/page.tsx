@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowseFilters } from "@/components/contests/browse-filters";
+import { visibleBusinessTypes } from "@/lib/content/lists";
 import { ContestRow } from "@/components/contests/contest-row";
 import { FeaturedCard } from "@/components/contests/featured-card";
 import { ButtonLink } from "@/components/ui/button";
@@ -24,7 +25,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
   const query = parseBrowseQuery(await searchParams);
   // Featured contests only sit on top of the plain, unfiltered first page.
   const showFeatured = query.tab === "open" && query.page === 1 && !query.type;
-  const [{ t, locale }, list, featured] = await Promise.all([getI18n(), listContests(query), showFeatured ? featuredContests(3) : []]);
+  const [{ t, locale }, list, featured, types] = await Promise.all([getI18n(), listContests(query), showFeatured ? featuredContests(3) : [], visibleBusinessTypes(query.type)]);
   const now = new Date();
   // Designers get a heart on each row (BLUEPRINT §10 saved contests).
   const user = await getCurrentUser();
@@ -191,7 +192,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
               })}
             </ul>
           </nav>
-          <BrowseFilters query={query} />
+          <BrowseFilters query={query} types={types} />
         </div>
 
         {list.rows.length > 0 ? (

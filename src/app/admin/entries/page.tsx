@@ -9,6 +9,7 @@ import { duplicatePairs, recentEntries } from "@/lib/admin/moderation";
 import { clearDuplicate, removeEntry } from "@/lib/admin/moderation-actions";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -17,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-03 Entries (BLUEPRINT §13.4): flagged near-duplicates side by side, and the latest designs.
 export default async function AdminEntriesPage({ searchParams }: PageProps<"/admin/entries">) {
+  await requirePermission("designs.view");
   const sp = await searchParams;
   const tab = sp.tab === "recent" ? "recent" : "duplicates";
   const { t } = await getI18n();

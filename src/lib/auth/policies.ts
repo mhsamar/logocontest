@@ -1,3 +1,5 @@
+import { isActiveAdmin } from "@/lib/admin/permissions";
+
 export type Role = "client" | "designer" | "admin";
 export type UserStatus = "active" | "suspended" | "banned";
 
@@ -13,6 +15,11 @@ export type CurrentUser = {
   username: string | null;
   /** Public URL of the profile photo, if any. */
   avatarUrl: string | null;
+  /** Admin panel 2.0 (BLUEPRINT §13.2): the owner's account, and what a staff admin may do. */
+  isSuperAdmin: boolean;
+  adminActive: boolean;
+  adminPermissions: string[];
+  adminTitle: string | null;
 };
 
 /**
@@ -31,7 +38,8 @@ export type PolicyContext = {
 const active = (user: CurrentUser | null): user is CurrentUser => user?.status === "active";
 
 const POLICIES = {
-  "admin.access": (user: CurrentUser | null) => user?.role === "admin" && user.status === "active",
+  // Admins: the Super admin, or a staff admin who is switched on (BLUEPRINT §13.2).
+  "admin.access": (user: CurrentUser | null) => isActiveAdmin(user),
   // Guests may start the wizard; signed-in users must be active clients (one account = one role).
   "contest.create": (user: CurrentUser | null) => user === null || (user.role === "client" && user.status === "active"),
   // Public contest comments: the contest's own client, or any designer (BLUEPRINT §10, owner 2026-10-08).

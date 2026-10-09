@@ -285,6 +285,73 @@ Change a value, write a reason, **Save changes**. Changes apply at once and are 
 ### 14. Audit log
 A read-only list of every admin action: who, what, when, and the details. Filter by action.
 
+### 15. Texts (change any word on the site)
+Every word on the site, grouped by page (Home page, How it works, Help, Menu & footer, Google & sharing, Notifications,
+Emails…), with a search box. Each text shows English and Bangla side by side.
+1. Pick a page group, or search a word (in English or Bangla).
+2. Type the new wording in either box and press **Save**. The site shows it at once.
+3. Words in curly brackets such as `{phone}` or `{fee}` are filled in by the site. Keep them: the editor refuses a text
+   that drops or adds one.
+4. **Reset to default** brings the built-in wording back. Tick **Changed only** to see everything you have changed.
+
+### 16. Lists (questions, menus, links, business types, colours)
+- **Home Q&A**: add, edit, hide, reorder or delete questions (English + Bangla). Answers may use the price words listed
+  on the page, such as `{fee}`. The How it works page uses the same questions.
+- **Header menu** (up to 6) and **Footer links** (For clients / For designers / Legal): a label and a link, either a page
+  on this site like `/contests` or an `https://` link.
+- **Business types**: hide or move them (rename them in Texts). "Other" always stays on.
+- **Colour choices**: the suggested colours in step 5 of the contest wizard.
+Nothing changes until you press **Save list**. **Reset to default** brings the built-in list back.
+
+### 17. Legal pages
+Terms, Privacy, Payment & No-Refund Policy, Designer Rules and the designer agreement, each in English and Bangla.
+Write as plain text: `# Title`, `> description`, `## Heading`, `- list item`, an empty line for a new paragraph.
+The preview on the right shows how it will look. **Publish** puts it live and sets "Last updated" to today.
+For the designer agreement, tick **Ask every designer to sign again** if the change matters: designers then sign the new
+agreement before their next design. Have a lawyer check big changes.
+
+### 18. Brand & notice
+- **Pictures**: site logo (header and footer), app icon (browser tab and phone home screen), home page picture (in place
+  of the example contest panel) and share picture (Facebook, WhatsApp, Google). **Upload picture**, or **Use default**.
+- **Notice bar**: a line at the top of every page, for example an offer or a holiday notice. Switch it on, write the text
+  in English and Bangla, add a link if you like, pick a colour, **Save changes**. Visitors can close it for the day.
+- **Contact details**: the support phone, email and office address shown in the footer, Help page and legal pages.
+
+
+### 19. The admin layout
+The admin panel has its own dark top bar and a grouped menu on the left (on a phone, tap ☰). **View site ↗** opens the
+public site in a new tab, so the admin panel stays open. Your chip says **Super admin**.
+
+### 20. Live now, Analytics, Activity
+- **Live now**: who is on the site in the last 2 minutes: member name and role (click for their profile) or "Guest", the
+  page they are on, device and country. It updates every 10 seconds.
+- **Analytics**: visitors, page views, sign-ups and paid contests for today / 7 / 30 days, a daily chart, top pages,
+  where visitors come from (Facebook, Google…), devices and countries. Admin pages are not counted; no IP addresses are
+  kept; visit records are deleted after 180 days by the 15-minute job.
+- **Activity**: the latest things people did: sign-ups, contests started and paid, designs sent, comments, final files
+  approved, withdrawals asked.
+
+### 21. Unpaid contests
+Clients who started a contest but did not pay, with their mobile number, how far they got and the amount. **Call** them,
+or **Message** them (it goes to their support chat and as a notification).
+
+### 22. Admins & roles (only you)
+Add a manager or support person: name, mobile, email, a starting password (give it to them privately), a title, and what
+they may do. Start from **Manager**, **Support** or **Moderator**, then tick **View** / **Manage** per area. They log in at
+`/admin` with that email and password and only see what you allowed; on a view-only page they see a yellow note and no
+buttons. **Switch off** removes their access at once; **Edit** changes permissions or sets a new password.
+
+### 23. Support inbox
+Every client and designer who is logged in has a round chat button in the corner of the site (and a **Support** page).
+Their messages arrive here: **Open** and **Closed** tabs, unread counts, the person's details and a link to their
+profile. Type a reply and press Enter (Shift+Enter for a new line). They get a notification. **Close** a conversation when
+it is done; it reopens by itself if they write again.
+
+### 24. Send message
+Write once to **All designers**, **All clients**, **Everyone** or **One person** (mobile number, username or email). It
+arrives as a notification and in their support chat, where they can reply. Every message is listed under
+**Sent messages** and in the audit log. From a user's profile you can also press **Send message** or **Open support chat**.
+
 ---
 
 ## Part F — Your routine

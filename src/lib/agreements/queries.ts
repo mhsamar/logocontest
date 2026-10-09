@@ -1,6 +1,7 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
 import { maskIdNumber, type IdType } from "@/lib/legal/agreement-rules";
+import { resignSince } from "@/lib/legal/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** A signed originality agreement as shown to its designer or an admin: the ID number is always masked (§9.6). */
@@ -34,8 +35,12 @@ function toAgreement(r: Record<string, unknown>): SignedAgreement {
 
 export async function hasSignedAgreement(designerId: string): Promise<boolean> {
   if (!isSupabaseConfigured()) return true;
-  const { count } = await createAdminClient().from("designer_agreements").select("designer_id", { count: "exact", head: true }).eq("designer_id", designerId);
-  return (count ?? 0) > 0;
+  const [{ data }, since] = await Promise.all([
+    createAdminClient().from("designer_agreements").select("signed_at").eq("designer_id", designerId).maybeSingle(),
+    resignSince(),
+  ]);
+  // Signed, and not before the admin asked everyone to sign a new agreement again (A-16).
+  return !!data && (!since || new Date(data.signed_at as string) >= since);
 }
 
 export async function getAgreement(designerId: string): Promise<SignedAgreement | null> {

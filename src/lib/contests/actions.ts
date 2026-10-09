@@ -12,9 +12,8 @@ import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@
 import { normalizeBdMobile } from "@/lib/phone";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
-import { MESSAGES } from "@/lib/i18n/messages";
+import { translatorFor } from "@/lib/content/texts";
 import { getI18n } from "@/lib/i18n/server";
-import { createTranslator } from "@/lib/i18n/translate";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
@@ -199,7 +198,7 @@ export async function createAccountAndDraft(input: {
   const userId = created.data.user.id;
   await sendVerificationEmail({ userId, email, name: brandName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
   if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent")))) {
-    const t = createTranslator(locale, MESSAGES[locale]);
+    const t = await translatorFor(locale);
     await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
   }
 

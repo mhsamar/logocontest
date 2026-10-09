@@ -467,6 +467,19 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-11 | Settings | Grouped form: Fees and tiers, Packages, Upgrades, Timers, Limits, Monthly prize, Site (footer social links: Facebook page, Facebook group, Instagram, YouTube, LinkedIn; an empty link hides its icon) |
 | A-12 | Audit log | Read-only table of admin actions |
 | A-13 | Copy claims & agreements (owner, 2026-10-09) | `/admin/claims`: open claims with the winning design, client note and links; Reject (note) or Uphold → Correction / Fine (amount) / Ban, with a note. `/admin/agreements`: designer agreements with masked ID numbers and **Show full number** (logged) |
+| A-14 | Texts (owner, 2026-10-09, BLUEPRINT §13.1) | `/admin/texts`: page groups on the left (chips on phones) and a search box; each text shows its key, the English and Bangla default and two boxes; **Save** and **Reset to default**; changed texts are marked; placeholders such as `{phone}` are listed under the boxes |
+| A-15 | Lists | `/admin/lists`: pick a list (Home Q&A, Header menu, Footer links, Business types, Colour choices); rows with en + bn fields (and link or colour), show/hide switch, ↑ ↓, delete, **Add item** (not for business types), **Save**, **Reset to default** |
+| A-16 | Legal pages | `/admin/legal`: pick a page and language; one big text box with a live preview; **Publish** (sets a new version date); for the agreement, a tick box **Ask every designer to sign again** |
+| A-17 | Brand & notice bar | `/admin/brand`: upload boxes for site logo, app icon, hero picture and share picture with a preview and **Use default**; support phone, email and address; notice bar on/off, en + bn text, link and colour with a live preview |
+| A-18 | Admin shell (owner, 2026-10-09, BLUEPRINT §13.2) | Own top bar (Admin logo, role chip, **View site ↗** in a new tab, avatar menu) and a grouped sidebar: Overview (Dashboard, Live now, Analytics, Activity) · Work (Contests, Designs, Reports, Copy claims, Unpaid contests) · People (Users, Admins & roles) · Money (Payments, Withdrawals) · Messages (Support inbox, Send message) · Site content (Texts, Lists, Legal pages, Brand & notice, Homepage, Blocked terms) · System (Settings, Audit log). Phones: a menu button opens the sidebar as a drawer. Items the staff member may not see are hidden |
+| A-19 | Live now | Counters (online now, members, guests) and a table: who (name + role, or Guest), page, device, country, last seen; refreshes every 10 s |
+| A-20 | Analytics | Period chips (today, 7, 30 days); tiles (visitors, page views, sign-ups, contests paid); daily bar chart; top pages; sources; devices |
+| A-21 | Activity | Newest-first feed of what people did, with links |
+| A-22 | Unpaid contests | Table: client, mobile, brand, step / status, amount, last activity; **Call** and **Send message** |
+| A-23 | Admins & roles (Super admin only) | Staff list with title, permissions summary, on/off; **Add admin** form (name, mobile, email, starting password, title, preset, View / Manage checkboxes per area) |
+| A-24 | Support inbox | Two panes: conversation list (Open / Closed, unread badges) and the chat with the user's card (role, link to profile); reply box, Close / Reopen. Phones: list, then chat |
+| A-25 | Send message | Audience (All designers, All clients, Everyone, One person), message text, **Send**; history of sent messages |
+| S-01 | Support chat (users) | Signed-in users: a round chat button bottom-right on every page (not on admin pages) opening a chat panel; full page at `/support`. Unread badge on the button |
 
 Every destructive admin action asks for confirmation and a short reason.
 

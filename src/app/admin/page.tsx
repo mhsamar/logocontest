@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import { AdminHead } from "@/components/admin/page-head";
+import { adminUser } from "@/lib/admin/core";
+import { firstAdminPage } from "@/lib/admin/nav";
+import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
 import { dashboardStats } from "@/lib/admin/dashboard";
 import { getI18n } from "@/lib/i18n/server";
@@ -17,6 +21,10 @@ type Range = keyof typeof RANGES;
 
 // A-01 Dashboard (BLUEPRINT §13.1, owner 2026-10-09).
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
+  // Staff without the Dashboard go to the first page they may see (BLUEPRINT §13.2).
+  const me = await adminUser();
+  if (!me) notFound();
+  if (!hasPermission(me, "dashboard.view")) redirect(firstAdminPage(me) ?? "/");
   const sp = await searchParams;
   const range: Range = typeof sp.range === "string" && sp.range in RANGES ? (sp.range as Range) : "30";
   const [{ t, locale }, s] = await Promise.all([getI18n(), dashboardStats(RANGES[range])]);

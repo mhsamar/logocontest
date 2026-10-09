@@ -60,5 +60,9 @@ export const NOTIFICATION_TYPES = [
   "design_liked_client",
   "files_due",
   "contest_ended_entered",
+  // Support chat and messages from the team (owner, 2026-10-09; BLUEPRINT §13.2 items 5–6).
+  "support_reply",
+  "admin_message",
+  "support_message_admin",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

@@ -18,7 +18,7 @@ export function contestIndexable(c: { status: string; isPrivate: boolean; isNda:
 }
 
 /** Paths kept out of search engines (robots.txt). */
-export const PRIVATE_PATHS = ["/dashboard", "/admin", "/api", "/dev", "/auth", "/notifications", "/start/result", "/verify-email", "/reset-password", "/forgot-password", "/styleguide"];
+export const PRIVATE_PATHS = ["/dashboard", "/admin", "/api", "/dev", "/auth", "/notifications", "/support", "/start/result", "/verify-email", "/reset-password", "/forgot-password", "/styleguide"];
 
 /** Open Graph for one page. A page that sets openGraph replaces the layout's, so this keeps the shared fields. */
 export function openGraphFor(o: { title: string; description?: string; path: string; locale: "en" | "bn"; images?: string[] }) {

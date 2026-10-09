@@ -169,7 +169,10 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
       {
         id: "cookies",
         heading: "Cookies",
-        blocks: ["We use cookies to keep you logged in and remember your language. We do not use advertising cookies."],
+        blocks: [
+          "We use cookies to keep you logged in and remember your language. We do not use advertising cookies.",
+          "To see how the site is used, we count page visits with an anonymous visitor cookie: the page, the site you came from, your device type and your country. If you are logged in, the visit is linked to your account so our team can help you. We do not store your IP address, and visit records are deleted after 180 days.",
+        ],
       },
       {
         id: "keep",

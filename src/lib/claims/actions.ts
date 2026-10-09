@@ -1,7 +1,8 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { can } from "@/lib/auth/policies";
+import { adminUser } from "@/lib/admin/core";
+import { adminIdsWith } from "@/lib/admin/recipients";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
@@ -13,10 +14,7 @@ type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
 const UUID = /^[0-9a-f-]{36}$/i;
 
-async function adminIds(): Promise<string[]> {
-  const { data } = await createAdminClient().from("profiles").select("id").eq("role", "admin").eq("status", "active");
-  return (data ?? []).map((r) => r.id as string);
-}
+const adminIds = () => adminIdsWith("claims.view");
 
 /** C-17: the client reports the winning design as copied, within the claim days (BLUEPRINT §7.6). */
 export async function openCopyClaim(input: { handoverId: string; note: string; links: string[] }): Promise<{ ok: true } | Fail> {
@@ -61,8 +59,8 @@ export async function openCopyClaim(input: { handoverId: string; note: string; l
 
 /** A-13: an admin rejects a claim or upholds it with a correction, a fine or a ban (BLUEPRINT §7.6). */
 export async function resolveCopyClaim(input: { claimId: string; decision: string; fine: number; note: string }): Promise<{ ok: true } | Fail> {
-  const user = await getCurrentUser();
-  if (!can(user, "admin.access") || !user || !UUID.test(input.claimId) || !isClaimDecision(input.decision)) return fail("auth.errors.generic");
+  const user = await adminUser("claims.manage");
+  if (!user || !UUID.test(input.claimId) || !isClaimDecision(input.decision)) return fail("auth.errors.generic");
   const note = input.note.replace(/\r\n/g, "\n").trim();
   if (note.length < 5 || note.length > 1000) return fail("claims.errors.adminNote");
   const fine = Math.floor(Number(input.fine) || 0);

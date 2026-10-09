@@ -6,6 +6,7 @@ import { Wizard, type WizardProps } from "@/components/wizard/wizard";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPricingConfig } from "@/lib/contests/pricing-config";
+import { visibleList } from "@/lib/content/lists";
 import { contestRepository } from "@/lib/contests/services";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
@@ -30,9 +31,11 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     );
   }
 
-  const [pricing, s] = await Promise.all([
+  const [pricing, s, businessTypes, colours] = await Promise.all([
     getPricingConfig(),
     getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length"]),
+    visibleList("business_types", "en"),
+    visibleList("colours", "en"),
   ]);
 
   let wizardUser: WizardProps["user"] = null;
@@ -84,6 +87,7 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
       resume={resume}
       initialStep={Number.isInteger(step) && step >= 1 && step <= 11 ? step : null}
       prefillName={typeof params.name === "string" ? params.name : ""}
+      choices={{ businessTypes: businessTypes.map((b) => b.id), swatches: colours.map((c) => c.value ?? "").filter(Boolean) }}
     />
   );
 }

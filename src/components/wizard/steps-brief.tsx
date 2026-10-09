@@ -6,6 +6,7 @@ import { Checkbox, SelectField, TextAreaField, TextField } from "@/components/ui
 import { Modal } from "@/components/ui/modal";
 import {
   BUSINESS_TYPES,
+  type BusinessType,
   DELIVERABLES,
   LIMITS,
   LOGO_STYLES,
@@ -23,13 +24,23 @@ import { StyleExamples } from "./style-art";
 import { Suggestions } from "./suggestions";
 import { audienceSuggestions, descriptionSuggestions } from "@/lib/contests/suggestions";
 
+export type BriefChoices = { businessTypes: string[]; swatches: string[] };
+
 export type BriefStepProps = {
+  choices: BriefChoices;
   brief: Brief;
   update: (patch: Partial<Brief>) => void;
   errors: FieldErrors;
   touched: Set<string>;
   touch: (field: string) => void;
 };
+
+/** Visible business types in the admin's order; a hidden type a draft already uses stays selectable. */
+function businessTypeOptions(visible: string[], current: string): BusinessType[] {
+  const known = visible.filter((v): v is BusinessType => (BUSINESS_TYPES as readonly string[]).includes(v));
+  const list = known.length ? known : [...BUSINESS_TYPES];
+  return current && !list.includes(current as BusinessType) && (BUSINESS_TYPES as readonly string[]).includes(current) ? [...list, current as BusinessType] : list;
+}
 
 function useError({ errors, touched }: Pick<BriefStepProps, "errors" | "touched">) {
   const { t } = useI18n();
@@ -137,7 +148,7 @@ export function BusinessStep(p: BriefStepProps) {
           p.update({ businessType: e.target.value as Brief["businessType"] });
           p.touch("businessType");
         }}
-        options={BUSINESS_TYPES.map((v) => ({ value: v, label: t(`wizard.businessTypes.${v}`) }))}
+        options={businessTypeOptions(p.choices.businessTypes, p.brief.businessType).map((v) => ({ value: v, label: t(`wizard.businessTypes.${v}`) }))}
         error={error("businessType")}
       />
       <TextAreaField
@@ -273,7 +284,7 @@ export function StylesStep(p: BriefStepProps) {
   );
 }
 
-// C-05
+// C-05 (the admin's Colour choices list replaces these when set, A-15)
 const SUGGESTED = ["#0f766e", "#1d4ed8", "#dc2626", "#f59e0b", "#16a34a", "#7c3aed", "#db2777", "#111827", "#ffffff", "#a16207"];
 
 export function ColorsStep(p: BriefStepProps) {
@@ -431,7 +442,7 @@ export function ColorsStep(p: BriefStepProps) {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {SUGGESTED.map((c) => (
+            {(p.choices.swatches.length ? p.choices.swatches : SUGGESTED).map((c) => (
               <button
                 key={c}
                 type="button"

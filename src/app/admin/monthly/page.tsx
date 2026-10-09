@@ -11,6 +11,7 @@ import { formatBdMobile } from "@/lib/phone";
 import { markGiftSent, pickMonthlyDesign } from "@/lib/rewards/actions";
 import { monthRecord, thisMonth, winningDesigns } from "@/lib/rewards/queries";
 import { isMonthKey, previousMonth, recentMonths } from "@/lib/rewards/rules";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -19,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-08 Monthly winner (owner, 2026-10-09): the month's winning designs by likes; pick one; then send the gift box.
 export default async function AdminMonthlyPage({ searchParams }: PageProps<"/admin/monthly">) {
+  await requirePermission("monthly.view");
   const sp = await searchParams;
   const current = thisMonth();
   const month = typeof sp.month === "string" && isMonthKey(sp.month) && sp.month <= current ? sp.month : previousMonth(current);

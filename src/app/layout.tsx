@@ -3,10 +3,15 @@ import { Hind_Siliguri, Instrument_Serif, Inter, Tiro_Bangla } from "next/font/g
 import { PointerFx } from "@/components/layout/pointer-fx";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
+import { SiteChrome } from "@/components/layout/site-chrome";
 import { SiteHeader } from "@/components/layout/site-header";
+import { VisitTracker } from "@/components/layout/visit-tracker";
+import { SupportSlot } from "@/components/support/support-slot";
 import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/lib/i18n/client";
-import { MESSAGES } from "@/lib/i18n/messages";
+import { NoticeBar } from "@/components/layout/notice-bar";
+import { currentNotice } from "@/lib/content/notice";
+import { getMessages } from "@/lib/content/texts";
 import { getI18n } from "@/lib/i18n/server";
 import { openGraphFor, searchIndexingOn, siteUrl } from "@/lib/seo";
 import "./globals.css";
@@ -44,17 +49,25 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { locale } = await getI18n();
+  const [messages, notice] = await Promise.all([getMessages(locale), currentNotice(locale)]);
   return (
     <html lang={locale} data-scroll-behavior="smooth" className={`${latin.variable} ${bangla.variable} ${displayLatin.variable} ${displayBangla.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <I18nProvider locale={locale} messages={MESSAGES[locale]}>
+        <I18nProvider locale={locale} messages={messages}>
           <ToastProvider>
             {/* Pastel aurora wash behind every page (UI-JOURNEY §1.1) */}
             <div className="page-aurora pointer-events-none fixed inset-0 -z-10" aria-hidden />
-            <EmailBannerSlot />
-            <SiteHeader />
+            <SiteChrome>
+              {notice && <NoticeBar notice={notice} />}
+              <EmailBannerSlot />
+              <SiteHeader />
+            </SiteChrome>
             <main className="flex flex-1 flex-col">{children}</main>
-            <SiteFooter />
+            <SiteChrome>
+              <SiteFooter />
+              <VisitTracker />
+              <SupportSlot />
+            </SiteChrome>
             <PointerFx />
           </ToastProvider>
         </I18nProvider>

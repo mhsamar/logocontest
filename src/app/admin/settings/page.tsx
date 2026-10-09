@@ -6,6 +6,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -16,6 +17,7 @@ const GROUPS = ["fees", "packages", "upgrades", "timers", "limits", "monthly", "
 
 // A-11 Settings (BLUEPRINT §13.8): every admin-changeable number, grouped; each save asks for a reason.
 export default async function AdminSettingsPage() {
+  await requirePermission("settings.view");
   const { t } = await getI18n();
   const { data } = isSupabaseConfigured() ? await createAdminClient().from("settings").select("key, value, updated_at") : { data: [] };
   const stored = new Map((data ?? []).map((r) => [r.key as string, r]));

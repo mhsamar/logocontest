@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ClaimActions } from "@/components/admin/claim-actions";
-import { authorize } from "@/lib/auth/session";
 import { listOpenClaims } from "@/lib/claims/queries";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-13 Copy claims (BLUEPRINT §7.6, owner 2026-10-09).
 export default async function AdminClaimsPage() {
-  await authorize("admin.access");
+  await requirePermission("claims.view");
   const [{ t, locale }, claims] = await Promise.all([getI18n(), listOpenClaims()]);
   return (
     <div>

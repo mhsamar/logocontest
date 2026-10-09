@@ -6,13 +6,13 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { legalDoc, legalParams } from "@/lib/legal";
-import { isLegalSlug, LEGAL_VERSION } from "@/lib/legal/types";
+import { isLegalSlug } from "@/lib/legal/types";
 
 export async function generateMetadata({ params }: PageProps<"/legal/[page]">): Promise<Metadata> {
   const { page } = await params;
   if (!isLegalSlug(page)) return {};
   const { t, locale } = await getI18n();
-  const doc = legalDoc(page, locale, await legalParams(t, locale));
+  const doc = await legalDoc(page, locale, await legalParams(t, locale));
   return { title: doc.title, description: doc.description, alternates: { canonical: `/legal/${page}` } };
 }
 
@@ -21,7 +21,7 @@ export default async function LegalPage({ params }: PageProps<"/legal/[page]">) 
   const { page } = await params;
   if (!isLegalSlug(page)) notFound();
   const { t, locale } = await getI18n();
-  const doc = legalDoc(page, locale, await legalParams(t, locale));
+  const doc = await legalDoc(page, locale, await legalParams(t, locale));
   const num = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
 
   const contents = (
@@ -51,7 +51,7 @@ export default async function LegalPage({ params }: PageProps<"/legal/[page]">) 
           <header className="animate-rise">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t("footer.legal")}</p>
             <h1 className="mt-2 text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{doc.title}</h1>
-            <p className="mt-2 text-sm text-muted">{t("legal.lastUpdated", { date: formatDate(new Date(LEGAL_VERSION), locale, "long") })}</p>
+            <p className="mt-2 text-sm text-muted">{t("legal.lastUpdated", { date: formatDate(new Date(doc.version), locale, "long") })}</p>
           </header>
 
           <section aria-labelledby="in-short" className="mt-6 animate-rise rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line" style={{ animationDelay: "80ms" }}>

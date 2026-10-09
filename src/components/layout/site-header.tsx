@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ButtonLink, buttonClasses } from "@/components/ui/button";
 import { Wordmark } from "@/components/ui/logo";
+import { brandPictures } from "@/lib/content/brand";
+import { visibleList } from "@/lib/content/lists";
 import { logout } from "@/lib/auth/actions";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -14,7 +16,6 @@ import { NotificationBell } from "./notification-bell";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { NavLinks } from "./nav-links";
-import { GUEST_NAV } from "./nav-items";
 
 /**
  * Avatar menu items (UI-JOURNEY §2.1). Client and designer items (Dashboard,
@@ -38,7 +39,8 @@ export async function SiteHeader() {
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
   const now = new Date();
   const bell = user ? <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} /> : null;
-  const links = GUEST_NAV.map((item) => ({ href: item.href, label: t(item.label) }));
+  // Header menu list (A-15).
+  const links = (await visibleList("header_menu", locale)).map((item) => ({ href: item.href ?? "/", label: item.text.label }));
   const toggle = (tone: "light" | "dark") => <LocaleToggle locale={locale} label={t("nav.switchTo")} ariaLabel={t("nav.switchToLabel")} tone={tone} />;
 
   const logoutForm = (variant: "menu" | "block") => (
@@ -60,7 +62,7 @@ export async function SiteHeader() {
     <HeaderShell>
       <div className="relative flex h-16 items-center gap-2 pl-1 pr-2 sm:pl-3">
         <Link href="/" aria-label={t("brand.home")} className="flex min-h-11 shrink-0 items-center rounded-full px-1">
-          <Wordmark />
+          <Wordmark src={(await brandPictures()).logo} />
         </Link>
 
         {/* Desktop: links centred in the space between the logo and the right side, so both gaps match (owner, 2026-10-08) */}

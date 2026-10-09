@@ -11,7 +11,9 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
 import { qrSvg } from "@/lib/profile/qr";
-import { SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
+import { getContact } from "@/lib/content/contact";
+import { visibleList } from "@/lib/content/lists";
+import { fillLegal } from "@/lib/legal/types";
 
 const BLOBS: BlobShape[] = ["sun", "lens", "dome", "petals"];
 
@@ -25,10 +27,15 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
   const sp = await searchParams;
   const designers = sp.for === "designers";
   const { t, locale } = await getI18n();
-  const { pricing, params } = await faqParams(t, locale);
+  const [{ pricing, params }, contact, homeFaq] = await Promise.all([faqParams(t, locale), getContact(locale), visibleList("home_faq", locale)]);
   const tk = (key: string, p?: Record<string, string | number>) => t(key as MessageKey, p);
 
-  const faq = (n: number): StepFaq => ({ q: tk(`home.faq.q${n}.q`), a: tk(`home.faq.q${n}.a`, params) });
+  // Built-in Q&A items from the home list (A-15); a hidden or deleted one is left out here too.
+  const faqById = new Map(homeFaq.map((f) => [f.id, f.text]));
+  const faq = (n: number): StepFaq[] => {
+    const f = faqById.get(`q${n}`);
+    return f ? [{ q: f.q, a: fillLegal(f.a, params) }] : [];
+  };
   const dfaq = (step: number, n: number): StepFaq => ({ q: tk(`howPage.d${step}.q${n}.q`), a: tk(`howPage.d${step}.q${n}.a`, params) });
 
   const prize = pricing.packagePrizes.standard;
@@ -46,9 +53,9 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
         },
       ]
     : [
-        { key: "c1", faqs: [faq(2), faq(3), faq(9)], mock: <BriefMock t={t} /> },
-        { key: "c2", faqs: [faq(1), faq(4), faq(7)], mock: <ReviewMock t={t} locale={locale} /> },
-        { key: "c3", faqs: [faq(6), faq(8), faq(5)], mock: <WinnerMock t={t} locale={locale} /> },
+        { key: "c1", faqs: [...faq(2), ...faq(3), ...faq(9)], mock: <BriefMock t={t} /> },
+        { key: "c2", faqs: [...faq(1), ...faq(4), ...faq(7)], mock: <ReviewMock t={t} locale={locale} /> },
+        { key: "c3", faqs: [...faq(6), ...faq(8), ...faq(5)], mock: <WinnerMock t={t} locale={locale} /> },
       ];
 
   const cta = designers ? { href: "/designers/signup", label: t("howPage.becomeDesigner") } : { href: "/start", label: t("howPage.getStarted") };
@@ -187,11 +194,11 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
         <SectionHeading eyebrow={t("home.faq.eyebrow")} lead={t("howPage.questions.lead")} accent={t("howPage.questions.accent")} subtitle={t("howPage.questions.body")} />
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
-            href={SUPPORT_PHONE_HREF}
+            href={contact.phoneHref}
             className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 font-semibold text-white transition-colors hover:bg-primary-dark"
           >
             <Icon d={ICONS.phone} className="size-4" />
-            {t("howPage.questions.call", { phone: SUPPORT_PHONE })}
+            {t("howPage.questions.call", { phone: contact.phone })}
           </a>
           <Link href="/#faq" className="inline-flex min-h-12 items-center rounded-full px-6 font-semibold text-ink ring-1 ring-line hover:ring-primary">
             {t("howPage.moreQuestions")}

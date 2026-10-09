@@ -9,8 +9,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "logocontest.bd", {
       body: data.body || "",
-      icon: "/apple-icon.png",
-      badge: "/apple-icon.png",
+      icon: "/brand/apple-icon.png",
+      badge: "/brand/apple-icon.png",
       data: { url: data.url || "/" },
     }),
   );

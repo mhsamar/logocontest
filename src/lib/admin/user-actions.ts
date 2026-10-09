@@ -14,7 +14,7 @@ const fail = (error: MessageKey): Result => ({ ok: false, error });
 /** A-05: a strike from an admin (BLUEPRINT §10: 1 warning, 2 suspension, 3 ban). */
 export async function giveStrike(userId: string, f: Fields): Promise<Result> {
   const input = { userId, reason: f.reason ?? "" };
-  const admin = await adminUser();
+  const admin = await adminUser("users.manage");
   if (!admin || !UUID.test(input.userId) || input.userId === admin.id) return fail("auth.errors.generic");
   const reason = cleanReason(input.reason);
   if (!reason) return fail("admin.errors.reason");
@@ -38,7 +38,7 @@ export async function giveStrike(userId: string, f: Fields): Promise<Result> {
 
 export async function removeStrike(strikeId: string, f: Fields): Promise<Result> {
   const input = { strikeId, reason: f.reason ?? "" };
-  const admin = await adminUser();
+  const admin = await adminUser("users.manage");
   if (!admin || !UUID.test(input.strikeId)) return fail("auth.errors.generic");
   const reason = cleanReason(input.reason);
   if (!reason) return fail("admin.errors.reason");
@@ -54,7 +54,7 @@ export async function removeStrike(strikeId: string, f: Fields): Promise<Result>
 /** A-05: suspend (for N days), ban, or make active again. Never your own account. */
 export async function setUserStatus(userId: string, status: string, f: Fields): Promise<Result> {
   const input = { userId, status, days: Number(f.days ?? 0), reason: f.reason ?? "" };
-  const admin = await adminUser();
+  const admin = await adminUser("users.manage");
   if (!admin || !UUID.test(input.userId) || input.userId === admin.id || !["active", "suspended", "banned"].includes(input.status)) return fail("auth.errors.generic");
   const reason = cleanReason(input.reason);
   if (!reason) return fail("admin.errors.reason");

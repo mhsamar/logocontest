@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { useReadOnly } from "./read-only";
 
 export type ActionField =
   | { name: string; kind: "reason"; label?: string }
@@ -43,6 +44,7 @@ export function AdminAction({
   fields?: ActionField[];
   run: (f: Record<string, string>) => Promise<Result>;
 }) {
+  const readOnly = useReadOnly();
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -62,6 +64,7 @@ export function AdminAction({
       toast(done ?? t("admin.saved"));
       router.refresh();
     });
+  if (readOnly) return null;
 
   return (
     <>

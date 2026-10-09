@@ -20,7 +20,7 @@ async function loadContest(id: string) {
 
 /** A-02 Extend: free, admin only, open contests, with a reason. */
 export async function extendContest(contestId: string, f: Fields): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("contests.manage");
   const c = admin ? await loadContest(contestId) : null;
   if (!admin || !c) return fail("auth.errors.generic");
   const reason = cleanReason(f.reason);
@@ -37,7 +37,7 @@ export async function extendContest(contestId: string, f: Fields): Promise<Resul
 
 /** A-02 Cancel: reason required, no refund (owner, 2026-10-09). */
 export async function cancelContest(contestId: string, f: Fields): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("contests.manage");
   const c = admin ? await loadContest(contestId) : null;
   if (!admin || !c) return fail("auth.errors.generic");
   const reason = cleanReason(f.reason);
@@ -54,7 +54,7 @@ export async function cancelContest(contestId: string, f: Fields): Promise<Resul
 
 /** A-02 Force-award: an admin picks the winner for the client (same rules as the client's pick). */
 export async function forceAward(contestId: string, f: Fields): Promise<Result> {
-  const admin = await adminUser();
+  const admin = await adminUser("contests.manage");
   const c = admin ? await loadContest(contestId) : null;
   if (!admin || !c || !UUID.test(f.entry ?? "")) return fail("auth.errors.generic");
   const reason = cleanReason(f.reason);

@@ -3,8 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getEmailSender, siteOrigin } from "@/lib/email";
 import { requireEnv } from "@/lib/env";
 import type { Locale } from "@/lib/i18n/config";
-import { MESSAGES } from "@/lib/i18n/messages";
-import { createTranslator } from "@/lib/i18n/translate";
+import { translatorFor } from "@/lib/content/texts";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmailVerificationService, type EmailCodeConfig, type VerificationRecord, type VerificationRepository } from "./email-verification";
@@ -137,7 +136,7 @@ export async function sendVerificationEmail(input: {
   if (!(await underLimit("verify", input.email, input.ip))) return { status: "rate_limited" };
   const issued = await emailVerificationService().issue(input.userId, input.email);
   if (!issued.ok) return { status: "cooldown", retryAfterSeconds: issued.retryAfterSeconds };
-  const t = createTranslator(input.locale, MESSAGES[input.locale]);
+  const t = await translatorFor(input.locale);
   await getEmailSender().send({
     to: input.email,
     subject: t("email.verify.subject"),
@@ -165,7 +164,7 @@ export async function sendPasswordResetEmail(input: { email: string; locale: Loc
     console.error("[auth] could not create a recovery link:", error?.message);
     return "sent";
   }
-  const t = createTranslator(input.locale, MESSAGES[input.locale]);
+  const t = await translatorFor(input.locale);
   const link = `${await siteOrigin()}/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}`;
   await getEmailSender().send({
     to: input.email,

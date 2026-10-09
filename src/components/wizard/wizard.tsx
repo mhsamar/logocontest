@@ -30,7 +30,7 @@ import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadState, saveState, type ServerFile, type WizardState } from "./state";
 import { AccountStep, PasswordStep } from "./steps-account";
-import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefStepProps } from "./steps-brief";
+import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
 import { ReviewStep, type UploadState } from "./step-review";
 
@@ -43,6 +43,8 @@ export type WizardProps = {
   resume: { contestId: string; brief: Brief; order: Order; files: ServerFile[] } | null;
   initialStep: number | null;
   prefillName: string;
+  /** Admin lists (A-15): business types in order (hidden ones left out) and suggested colours. */
+  choices: BriefChoices;
 };
 
 /** One id per browser tab visit, so a reload continues the same visit. */
@@ -344,7 +346,7 @@ export function Wizard(props: WizardProps) {
     go(s);
   };
 
-  const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch };
+  const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch, choices: props.choices };
   const key = HEADINGS[step - 1];
   const showPrice = step >= 8 && price !== null;
   const nextLabel =

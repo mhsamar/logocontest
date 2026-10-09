@@ -6,6 +6,7 @@ import { homepageLogos } from "@/lib/admin/misc";
 import { entriesByIds } from "@/lib/admin/moderation";
 import { featureLogo, moveFeaturedLogo, unfeatureLogo } from "@/lib/admin/site-actions";
 import { getI18n } from "@/lib/i18n/server";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-09 Homepage (BLUEPRINT §13.11): pick and order the winning logos shown on the home page.
 export default async function AdminHomepagePage() {
+  await requirePermission("content.view");
   const { t } = await getI18n();
   const { featured, candidates } = await homepageLogos();
   const [picked, available] = await Promise.all([entriesByIds(featured.map((f) => f.entryId)), entriesByIds(candidates)]);

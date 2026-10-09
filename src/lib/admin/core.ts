@@ -1,12 +1,31 @@
 import "server-only";
 import { can } from "@/lib/auth/policies";
+import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { hasPermission, type Permission } from "./permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-/** The signed-in admin, or null. Every admin action starts here. */
-export async function adminUser() {
+/**
+ * The signed-in admin, or null. Every admin action starts here; pass the permission the action
+ * needs (BLUEPRINT §13.2), and staff without it get null like anyone else.
+ */
+export async function adminUser(perm?: Permission) {
   const user = await getCurrentUser();
-  return can(user, "admin.access") && user ? user : null;
+  if (!can(user, "admin.access") || !user) return null;
+  return !perm || hasPermission(user, perm) ? user : null;
+}
+
+/** For admin pages: a 404 unless the admin has this permission. */
+export async function requirePermission(perm: Permission) {
+  const user = await adminUser(perm);
+  if (!user) notFound();
+  return user;
+}
+
+/** Only the owner's account (Admins & roles). */
+export async function superAdmin() {
+  const user = await adminUser();
+  return user?.isSuperAdmin ? user : null;
 }
 
 /** Writes one row to the audit log (BLUEPRINT §13.12). Never throws: a failed log is reported, not fatal. */

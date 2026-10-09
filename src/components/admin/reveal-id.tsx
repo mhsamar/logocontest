@@ -3,13 +3,16 @@
 import { useState, useTransition } from "react";
 import { revealIdNumber } from "@/lib/agreements/admin-actions";
 import { useI18n } from "@/lib/i18n/client";
+import { useReadOnly } from "./read-only";
 
 /** A-13: the masked ID number, with "Show full number" (each reveal is logged). */
 export function RevealId({ designerId, masked }: { designerId: string; masked: string }) {
+  const readOnly = useReadOnly();
   const { t } = useI18n();
   const [full, setFull] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, start] = useTransition();
+  if (readOnly) return <span className="font-mono">{masked}</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span className="font-mono text-ink">{full ?? masked}</span>

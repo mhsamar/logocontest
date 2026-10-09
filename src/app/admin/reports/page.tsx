@@ -10,6 +10,7 @@ import { resolveReport } from "@/lib/admin/moderation-actions";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-04 Reports (BLUEPRINT §10, §13.5): the design, the reason, evidence image and links side by side.
 export default async function AdminReportsPage({ searchParams }: PageProps<"/admin/reports">) {
+  await requirePermission("reports.view");
   const sp = await searchParams;
   const view = sp.view === "closed" ? "closed" : "open";
   const [{ t, locale }, reports] = await Promise.all([getI18n(), listReports(view)]);

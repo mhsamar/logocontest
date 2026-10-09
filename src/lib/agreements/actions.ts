@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { checkAgreement, type AgreementField } from "@/lib/legal/agreement-rules";
-import { LEGAL_VERSION } from "@/lib/legal/types";
+import { currentAgreementVersion } from "@/lib/legal/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AgreementState = { ok: boolean; errors?: Partial<Record<AgreementField, MessageKey>>; error?: MessageKey; next?: string };
@@ -45,9 +45,10 @@ export async function signAgreement(_prev: AgreementState, formData: FormData): 
 
   const v = checked.values;
   const h = await headers();
+  // Upsert: signing again after the admin publishes a new agreement replaces the old signature (A-16).
   const { error } = await createAdminClient()
     .from("designer_agreements")
-    .insert({
+    .upsert({
       designer_id: user.id,
       full_name: v.fullName,
       mobile: v.mobile,
@@ -55,11 +56,11 @@ export async function signAgreement(_prev: AgreementState, formData: FormData): 
       id_type: v.idType,
       id_number: v.idNumber,
       signature_name: v.signature,
-      version: LEGAL_VERSION,
+      version: await currentAgreementVersion(),
+      signed_at: new Date().toISOString(),
       signed_ip: await clientIp(),
       user_agent: h.get("user-agent")?.slice(0, 400) ?? null,
     });
-  // 23505: already signed (for example in another tab). The signed one stands; carry on.
-  if (error && error.code !== "23505") return { ok: false, error: "agreement.errors.generic" };
+  if (error) return { ok: false, error: "agreement.errors.generic" };
   return { ok: true, next: safeNext(formData.get("next")) };
 }

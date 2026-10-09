@@ -6,6 +6,7 @@ import { listBlockedTerms } from "@/lib/admin/misc";
 import { addBlockedTerm, removeBlockedTerm } from "@/lib/admin/site-actions";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-10 Blocked terms (BLUEPRINT §10, §13.9): extra words the no-contact filter blocks, plus a test box.
 export default async function AdminBlockedTermsPage() {
+  await requirePermission("content.view");
   const [{ t }, terms] = await Promise.all([getI18n(), listBlockedTerms()]);
   return (
     <div className="space-y-4">

@@ -5,6 +5,7 @@ import { FILTER_INPUT, FilterBar, pageNum, Pager, qs, str } from "@/components/a
 import { listAudit } from "@/lib/admin/misc";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -21,6 +22,7 @@ const LINKS: Record<string, (id: string) => string> = {
 
 // A-12 Audit log (BLUEPRINT §13.12): read-only, newest first.
 export default async function AdminAuditPage({ searchParams }: PageProps<"/admin/audit">) {
+  await requirePermission("audit.view");
   const sp = await searchParams;
   const q = { action: str(sp.action), page: pageNum(sp.page) };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAudit(q)]);
