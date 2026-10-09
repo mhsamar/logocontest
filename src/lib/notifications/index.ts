@@ -7,55 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * from `type` and `data`, so they follow the reader's language.
  */
 
-export const NOTIFICATION_TYPES = [
-  "entry_new",
-  "entry_comment",
-  "contest_comment",
-  "brief_updated",
-  "contest_extended",
-  "entry_rated",
-  "entry_rejected",
-  "winner_picked",
-  "contest_closed",
-  "handover_submitted",
-  "handover_revision",
-  "handover_approved",
-  "withdrawal_paid",
-  "withdrawal_rejected",
-  "ending_soon",
-  "ending_soon_extend",
-  "ending_soon_designer",
-  "judging_started",
-  "judging_reminder",
-  "win_cancelled",
-  "repick_winner",
-  "no_result_client",
-  "no_result_share",
-  "handover_approved_held",
-  "prize_released",
-  "claim_opened",
-  "claim_opened_admin",
-  "claim_rejected_client",
-  "claim_rejected_designer",
-  "claim_correction_client",
-  "claim_correction_designer",
-  "claim_upheld_client",
-  "claim_fined",
-  "claim_banned",
-  "strike_received",
-  "account_suspended",
-  "account_banned",
-  "flag_warning",
-  "report_upheld",
-  "report_dismissed",
-  "entry_removed",
-  "contest_cancelled",
-  "contest_cancelled_client",
-  "winner_picked_by_admin",
-] as const;
-export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+import { NOTIFICATION_TYPES, type NotificationType } from "./types";
+export { NOTIFICATION_TYPES, type NotificationType };
 
-export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number; reason?: string };
+export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number; reason?: string; month?: string; hours?: number };
 
 export type AppNotification = { id: string; type: NotificationType; data: NotificationData; link: string | null; read: boolean; createdAt: Date };
 

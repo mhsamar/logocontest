@@ -46,3 +46,16 @@ export function endingSoonDue(endsAt: Date, now: Date, noticeHours: number): boo
   const ms = endsAt.getTime() - now.getTime();
   return ms > 0 && ms <= noticeHours * 3_600_000;
 }
+
+/** "designer_ending_12" — recorded in lifecycle_events so each designer notice goes out once. */
+export const designerEndingKind = (hours: number) => `designer_ending_${hours}`;
+
+/**
+ * Designer "ends in N hours" notices due now (owner, 2026-10-09: 12 and 6 hours): every notice whose window
+ * has started and that wasn't sent, smallest first. Only the first (the most urgent) is sent; the rest are recorded.
+ */
+export function designerNoticesDue(endsAt: Date, now: Date, hours: number[], sent: Set<string>): number[] {
+  const left = endsAt.getTime() - now.getTime();
+  if (left <= 0) return [];
+  return [...new Set(hours)].filter((h) => left <= h * 3_600_000 && !sent.has(designerEndingKind(h))).sort((a, b) => a - b);
+}

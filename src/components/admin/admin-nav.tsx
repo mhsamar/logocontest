@@ -6,7 +6,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
 
-// A-sidebar (UI-JOURNEY §7, owner 2026-10-09). Monthly winner comes with milestone 10.
+// A-sidebar (UI-JOURNEY §7, owner 2026-10-09).
 const ITEMS: { href: string; label: MessageKey; badge?: "reports" | "claims" | "withdrawals" }[] = [
   { href: "/admin", label: "admin.nav.dashboard" },
   { href: "/admin/contests", label: "admin.nav.contests" },
@@ -17,6 +17,7 @@ const ITEMS: { href: string; label: MessageKey; badge?: "reports" | "claims" | "
   { href: "/admin/payments", label: "admin.nav.payments" },
   { href: "/admin/withdrawals", label: "admin.nav.withdrawals", badge: "withdrawals" },
   { href: "/admin/agreements", label: "admin.nav.agreements" },
+  { href: "/admin/monthly", label: "admin.nav.monthly" },
   { href: "/admin/homepage", label: "admin.nav.homepage" },
   { href: "/admin/blocked-terms", label: "admin.nav.blockedTerms" },
   { href: "/admin/settings", label: "admin.nav.settings" },

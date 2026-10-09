@@ -44,7 +44,8 @@ export default async function ProfileSettingsPage() {
     };
   }
   // Designers have a public profile page (P-06); the client one (P-12) comes later.
-  const profileUrl = user.role === "designer" && user.username ? `${await siteOrigin()}/d/${user.username}` : null;
+  // The public profile: /d/ for designers, /c/ for clients (P-06, P-12).
+  const profileUrl = user.username ? `${await siteOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-6">

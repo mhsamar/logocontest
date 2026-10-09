@@ -25,7 +25,9 @@ import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
 import { entryScope } from "@/lib/entries/rules";
 import { siteOrigin } from "@/lib/email";
+import { LikeButton } from "@/components/rewards/like-button";
 import { getI18n } from "@/lib/i18n/server";
+import { canLike } from "@/lib/rewards/rules";
 import { contestIndexable, openGraphFor } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
@@ -366,6 +368,14 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           closeHref={entriesHref}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
         >
+          {/* Likes on the winning design, next to its stars (owner, 2026-10-09) */}
+          {entry.status === "winner" && contest.status === "completed" && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-[#fff7e0] px-4 py-3 ring-1 ring-[#f4d58a]">
+              {entry.rating ? <span className="text-[#c99512]">{"★".repeat(entry.rating)}</span> : null}
+              <LikeButton entryId={entry.id} likes={entry.likes} liked={entry.liked} canLike={canLike(user, entry.designerId)} />
+              <span className="text-xs text-muted">{t(canLike(user, entry.designerId) ? "likes.hint" : "likes.designersOnly")}</span>
+            </div>
+          )}
           <EntryComments
             entryId={entry.id}
             comments={entry.comments}

@@ -156,7 +156,7 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
   // Paid now when the copy-claim days are already over; otherwise held until they are (§7.3).
   const paid = (data as { amount?: number } | null)?.amount;
   const amount = paid ?? payoutFor(own.h.prize, own.h.fee_rate).credit;
-  await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount }, "/dashboard/wallet", own.user.id);
+  await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount, stars: input.rating }, "/dashboard/wallet", own.user.id);
   refresh();
   return { ok: true };
 }

@@ -174,6 +174,16 @@ export const SETTINGS = {
     group: "timers", type: "json", schema: intList, default: [1, 3, 5],
     description: "Judging days on which the client gets a pick-a-winner reminder.",
   },
+  // Owner, 2026-10-09: every designer hears 12 and 6 hours before a contest ends.
+  "timers.designer_ending_notice_hours": {
+    group: "timers", type: "json", schema: intList, default: [12, 6],
+    description: "Hours before a contest ends when every designer is told to submit.",
+  },
+  // Owner, 2026-10-09: the winner is reminded to send the final files before the deadline.
+  "timers.files_due_notice_hours": {
+    group: "timers", type: "int", schema: int(1, 72), default: 24,
+    description: "Hours before the file deadline when the winner is reminded to send the final files.",
+  },
   "timers.ending_soon_notice_hours": {
     group: "timers", type: "int", schema: int(1), default: 24,
     description: "Hours before the end when the 'contest ends soon' notice goes out.",
@@ -270,10 +280,6 @@ export const SETTINGS = {
   },
 
   // ---- Monthly Champion (§11) ---------------------------------------------
-  "monthly.champion_prize": {
-    group: "monthly", type: "int", schema: int(), default: 5000,
-    description: "Monthly Champion bonus, added to the wallet (taka).",
-  },
 
   // ---- Auth (§4, §15) -----------------------------------------------------
   "otp.length": {

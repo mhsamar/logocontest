@@ -73,7 +73,17 @@ export function EntryCard({ entry, href, t, fmt }: { entry: Entry; href: string;
       <div className="px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-bold text-ink">#{fmt(entry.number)}</span>
-          {entry.rating ? <Stars value={entry.rating} /> : null}
+          <span className="flex items-center gap-2">
+            {entry.rating ? <Stars value={entry.rating} /> : null}
+            {winner && entry.likes > 0 && (
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-primary" aria-label={t("likes.count", { n: fmt(entry.likes) })}>
+                <svg viewBox="0 0 24 24" className="size-3.5" fill="currentColor" aria-hidden>
+                  <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z" />
+                </svg>
+                {fmt(entry.likes)}
+              </span>
+            )}
+          </span>
         </div>
         <p className="mt-0.5 truncate text-xs text-muted">
           {entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}

@@ -51,6 +51,8 @@ export async function listStudio({ filter, before }: { filter: StudioFilter; bef
     )
     .in("status", filter === "winners" ? ["winner"] : SHOWN_STATUSES)
     .eq("contest.is_private", false)
+    // NDA contests include everything Private does (§7.4), so their designs stay out too.
+    .eq("contest.is_nda", false)
     .in("contest.status", [...PUBLIC_STATUSES])
     .order("created_at", { ascending: false })
     .limit(BATCH);
@@ -103,6 +105,7 @@ export async function studioStats(): Promise<StudioStats> {
       .select(SELECT, { count: "exact", head: true })
       .in("status", opts.winnersOnly ? ["winner"] : SHOWN_STATUSES)
       .eq("contest.is_private", false)
+      .eq("contest.is_nda", false)
       .eq("contest.is_blind", false)
       .in("contest.status", [...PUBLIC_STATUSES]);
     let blind = db
@@ -110,6 +113,7 @@ export async function studioStats(): Promise<StudioStats> {
       .select(SELECT, { count: "exact", head: true })
       .eq("status", "winner")
       .eq("contest.is_private", false)
+      .eq("contest.is_nda", false)
       .eq("contest.is_blind", true)
       .eq("contest.status", "completed")
       .eq("contest.winner_is_public", true);

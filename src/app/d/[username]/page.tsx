@@ -9,7 +9,9 @@ import { formatDate } from "@/lib/dates";
 import { isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { designerByUsername, publicDesigns } from "@/lib/designers/profile";
 import { siteOrigin } from "@/lib/email";
+import { DesignerBadges } from "@/components/designers/badges";
 import { getI18n } from "@/lib/i18n/server";
+import { championMonths } from "@/lib/rewards/queries";
 import { openGraphFor } from "@/lib/seo";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { qrSvg } from "@/lib/profile/qr";
@@ -32,6 +34,7 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
 export default async function DesignerProfilePage({ params, searchParams }: PageProps<"/d/[username]">) {
   const [{ username }, sp] = await Promise.all([params, searchParams]);
   const [{ t, locale }, designer] = await Promise.all([getI18n(), designerByUsername(username)]);
+  const champion = designer ? await championMonths(designer.id) : [];
   if (!designer) notFound();
   const url = `${await siteOrigin()}/d/${designer.username}`;
   const qr = await qrSvg(url);
@@ -78,7 +81,7 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
           <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:gap-10">
             <div className="min-w-0">
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              {designer.isTopDesigner && <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">{t("designerProfile.topDesigner")}</span>}
+              <DesignerBadges top={designer.isTopDesigner} months={champion} t={t} locale={locale} />
               <span className="text-sm text-muted">{t("dashboard.memberSince", { date: formatDate(designer.memberSince, locale, "month") })}</span>
             </div>
             {designer.bio && <p className="mt-3 max-w-2xl whitespace-pre-line leading-relaxed text-ink">{designer.bio}</p>}

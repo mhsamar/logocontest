@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAddonPayment, settleAddonPayment } from "@/lib/contests/addon-payments";
+import { announceForPayment } from "@/lib/contests/announce";
 import { contestService } from "@/lib/contests/services";
 import { getFakeGateway } from "@/lib/payments";
 
@@ -23,5 +24,7 @@ export async function POST(request: NextRequest) {
   if (!result.ok) {
     return new NextResponse(`Payment could not be verified (${result.error}).`, { status: 400 });
   }
+  // Every designer hears about the new contest (owner, 2026-10-09). The real gateway callback must do the same.
+  if (result.status === "paid") await announceForPayment(result.paymentId);
   return NextResponse.redirect(new URL(`/start/result?payment=${result.paymentId}`, request.url), 303);
 }

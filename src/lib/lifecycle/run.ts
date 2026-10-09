@@ -3,20 +3,24 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, type SplitEntry } from "./rules";
+import { announceContest } from "@/lib/contests/announce";
+import { broadcastToDesigners } from "@/lib/notifications/broadcast";
+import { winningDesigns } from "@/lib/rewards/queries";
+import { monthKey, previousMonth } from "@/lib/rewards/rules";
+import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, type SplitEntry } from "./rules";
 
 /**
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; errors: string[] };
+export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; proposed: number; announced: number; designerReminders: number; filesDue: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
 const DAY = 86_400_000;
 
 export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
-  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, errors: [] };
+  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, proposed: 0, announced: 0, designerReminders: 0, filesDue: 0, errors: [] };
   if (!isSupabaseConfigured()) return report;
   const db = createAdminClient();
   const s = await getSettings([
@@ -27,6 +31,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     "limits.low_entry_prompt_threshold",
     "fees.designer_tiers",
     "timers.copy_claim_days",
+    "timers.designer_ending_notice_hours",
+    "timers.files_due_notice_hours",
   ]);
   const iso = now.toISOString();
   const fail = (step: string, id: string, e: unknown) => report.errors.push(`${step} ${id}: ${e instanceof Error ? e.message : String(e)}`);
@@ -39,7 +45,44 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
   const manageLink = (c: ContestRow) => `/dashboard/contests/${c.slug}`;
   const SELECT = "id, slug, brand_name, client_id, status, ends_at, judging_ends_at, prize_amount";
 
-  // 1. Ending soon: client (with Extend when designs are few) and the designers who entered.
+  // 0. New contests every designer hasn't heard about yet (the payment usually announces them at once).
+  {
+    const { data } = await db.from("contests").select("id").eq("status", "open").gt("ends_at", iso).gte("starts_at", new Date(now.getTime() - 2 * DAY).toISOString());
+    const ids = (data ?? []).map((c) => c.id as string);
+    const { data: done } = ids.length ? await db.from("lifecycle_events").select("contest_id").in("contest_id", ids).eq("kind", "announced") : { data: [] };
+    const announced = new Set((done ?? []).map((r) => r.contest_id as string));
+    for (const id of ids.filter((x) => !announced.has(x))) {
+      try {
+        if (await announceContest(id)) report.announced++;
+      } catch (e) {
+        fail("announce", id, e);
+      }
+    }
+  }
+
+  // 1b. Every designer: "ends in 12 hours" and "6 hours left, quickly submit" (owner, 2026-10-09).
+  {
+    const hours = s["timers.designer_ending_notice_hours"];
+    const until = new Date(now.getTime() + Math.max(...hours) * 3_600_000).toISOString();
+    const { data } = await db.from("contests").select("id, slug, brand_name, prize_amount, is_private, is_nda, ends_at").eq("status", "open").gt("ends_at", iso).lte("ends_at", until);
+    const rows = data ?? [];
+    const { data: sentRows } = rows.length ? await db.from("lifecycle_events").select("contest_id, kind").in("contest_id", rows.map((c) => c.id as string)) : { data: [] };
+    for (const c of rows) {
+      try {
+        const sent = new Set((sentRows ?? []).filter((r) => r.contest_id === c.id).map((r) => r.kind as string));
+        const due = designerNoticesDue(new Date(c.ends_at as string), now, hours, sent);
+        if (!due.length) continue;
+        for (const h of due) await once(c.id as string, designerEndingKind(h));
+        const brand = c.is_private || c.is_nda ? undefined : (c.brand_name as string);
+        await broadcastToDesigners(brand ? "contest_ending" : "contest_ending_private", { brand, hours: due[0], amount: c.prize_amount as number }, `/contest/${c.slug}`);
+        report.designerReminders++;
+      } catch (e) {
+        fail("designer-ending", c.id as string, e);
+      }
+    }
+  }
+
+  // 1. Ending soon: the client (with Extend when designs are few).
   {
     const until = new Date(now.getTime() + s["timers.ending_soon_notice_hours"] * 3_600_000).toISOString();
     const { data } = await db.from("contests").select(SELECT).eq("status", "open").gt("ends_at", iso).lte("ends_at", until);
@@ -49,7 +92,6 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         const { count } = await db.from("entries").select("id", { count: "exact", head: true }).eq("contest_id", c.id).eq("status", "active");
         const few = (count ?? 0) < s["limits.low_entry_prompt_threshold"];
         await notify([c.client_id], few ? "ending_soon_extend" : "ending_soon", { brand: c.brand_name }, manageLink(c));
-        await notify(await contestDesignerIds(c.id), "ending_soon_designer", { brand: c.brand_name }, `/contest/${c.slug}`);
         report.endingSoon++;
       } catch (e) {
         fail("ending-soon", c.id, e);
@@ -66,6 +108,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         if (error) throw new Error(error.message);
         if (!moved || !(moved as ContestRow).id) continue;
         await notify([c.client_id], "judging_started", { brand: c.brand_name, days: s["timers.judging_window_days"] }, manageLink(c));
+        // Designers who entered hear it ended and the client is choosing (owner, 2026-10-09).
+        await notify(await contestDesignerIds(c.id), "contest_ended_entered", { brand: c.brand_name }, `/contest/${c.slug}`);
         report.judging++;
       } catch (e) {
         fail("judging", c.id, e);
@@ -91,6 +135,28 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         report.reminders++;
       } catch (e) {
         fail("reminder", c.id, e);
+      }
+    }
+  }
+
+  // 4b. The winner hasn't sent the final files and the deadline is near (owner, 2026-10-09).
+  {
+    const before = new Date(now.getTime() + s["timers.files_due_notice_hours"] * 3_600_000).toISOString();
+    const { data } = await db
+      .from("handovers")
+      .select("id, designer_id, due_at, contest:contests!contest_id(id, slug, brand_name)")
+      .in("status", ["awaiting_files", "revision_requested"])
+      .gt("due_at", iso)
+      .lte("due_at", before);
+    for (const h of data ?? []) {
+      const c = (Array.isArray(h.contest) ? h.contest[0] : h.contest) as { id: string; slug: string; brand_name: string } | null;
+      try {
+        if (!c || !(await once(c.id, `files_due_${h.id}`))) continue;
+        const hours = Math.max(1, Math.round((new Date(h.due_at as string).getTime() - now.getTime()) / 3_600_000));
+        await notify([h.designer_id as string], "files_due", { brand: c.brand_name, hours }, `/dashboard/handover/${c.slug}`);
+        report.filesDue++;
+      } catch (e) {
+        fail("files-due", h.id as string, e);
       }
     }
   }
@@ -178,6 +244,25 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const { data, error } = await db.rpc("lift_expired_suspensions");
     if (error) fail("unsuspend", "-", error.message);
     else report.unsuspended = (data as number) ?? 0;
+  }
+
+  // 9. Monthly Winner: once a month has ended, propose its most-liked winning design for an admin to pick (§11).
+  try {
+    const month = previousMonth(monthKey(now));
+    const { data: existing } = await db.from("monthly_winners").select("month").eq("month", month).maybeSingle();
+    if (!existing) {
+      const [top] = await winningDesigns({ month, limit: 1 });
+      if (top) {
+        const { error } = await db.from("monthly_winners").insert({ month, entry_id: top.entryId, designer_id: top.designerId, likes: top.likes, status: "proposed" });
+        if (!error) {
+          const { data: admins } = await db.from("profiles").select("id").eq("role", "admin").eq("status", "active");
+          await notify((admins ?? []).map((a) => a.id as string), "monthly_proposed", { month }, `/admin/monthly?month=${month}`);
+          report.proposed++;
+        }
+      }
+    }
+  } catch (e) {
+    fail("monthly", "-", e);
   }
 
   return report;

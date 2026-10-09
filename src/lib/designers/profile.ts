@@ -53,7 +53,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   const { data, error } = await createAdminClient()
     .from("entries")
     .select(
-      "number, status, rating, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
+      "number, status, rating, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
     )
     .eq("designer_id", designerId)
     .neq("status", "removed")
@@ -62,7 +62,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   if (error) throw new Error(error.message);
   return (data ?? []).flatMap((r) => {
     const c = (Array.isArray(r.contest) ? r.contest[0] : r.contest) as
-      | { id: string; slug: string; brand_name: string; status: string; is_private: boolean; is_blind: boolean; winner_is_public: boolean }
+      | { id: string; slug: string; brand_name: string; status: string; is_private: boolean; is_nda: boolean; is_blind: boolean; winner_is_public: boolean }
       | null;
     if (!c) return [];
     const images = ((r.images ?? []) as { position: number; preview_path: string }[]).sort((a, b) => a.position - b.position);
@@ -72,7 +72,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
         status: r.status as EntryStatus,
         rating: r.rating as number | null,
         createdAt: r.created_at as string,
-        contest: { id: c.id, slug: c.slug, brandName: c.brand_name, status: c.status, isPrivate: c.is_private, isBlind: c.is_blind, winnerIsPublic: c.winner_is_public },
+        contest: { id: c.id, slug: c.slug, brandName: c.brand_name, status: c.status, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public },
         coverPath: images[0]?.preview_path ?? null,
         imageCount: images.length,
       },

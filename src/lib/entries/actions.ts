@@ -227,8 +227,15 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const { error } = await db.from("entry_comments").insert({ entry_id: entryId, user_id: user.id, body });
   if (error) return commentFail("auth.errors.generic");
   const n = { brand: c.brand_name, number: data.number as number };
-  await notify([c.client_id], "entry_comment", n, `/dashboard/contests/${c.slug}?entry=${data.number}`, user.id);
-  await notify([data.designer_id], "entry_comment", n, `/contest/${c.slug}?tab=entries&entry=${data.number}`, user.id);
+  // Who wrote it decides the kind (owner, 2026-10-09): the client's feedback, the designer's reply, or someone else's comment.
+  const clientLink = `/dashboard/contests/${c.slug}?entry=${data.number}`;
+  const designerLink = `/contest/${c.slug}?tab=entries&entry=${data.number}`;
+  if (user.id === c.client_id) await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
+  else if (user.id === data.designer_id) await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
+  else {
+    await notify([data.designer_id], "entry_comment_other", n, designerLink, user.id);
+    await notify([c.client_id], "entry_comment_other", n, clientLink, user.id);
+  }
   refresh();
   return { status: "ok" };
 }

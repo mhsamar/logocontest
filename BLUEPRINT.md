@@ -128,7 +128,9 @@ Designers also get `rules_accepted_at` on users: when they ticked the Designer R
 
 **email_verifications**: user_id, email, code hash, attempts, expires_at, used_at — the 6-digit confirm-your-email codes
 
-**monthly_winners**: designer_id, month (YYYY-MM), wins, prize_amount
+**monthly_winners**: month (YYYY-MM, one row per month), entry_id (the winning design), designer_id, likes, status (proposed/confirmed), gift_status (awaiting_address/address_given/sent), ship_name, ship_phone, ship_address, address_at, sent_at, sent_note, proposed_at, confirmed_by, confirmed_at (owner, 2026-10-09; the older wins/prize_total/avg_rating/bonus_amount columns are unused)
+
+**design_likes** (owner, 2026-10-09): entry_id, user_id (a designer), created_at; one per designer per design
 
 **settings**: key, value (json) — every number in this document that an admin might change
 
@@ -166,7 +168,7 @@ A scheduled command runs every 15 minutes to move contests between states and se
 
 **How it runs (owner, 2026-10-08):** `/api/cron/lifecycle`, protected by `CRON_SECRET` (sent as `Authorization: Bearer …`), does everything that is due and is safe to run again: each step is one database function that checks the state first, and each reminder is recorded (`lifecycle_events`) so it is sent once. Any scheduler can call it every 15 minutes (Supabase `pg_cron` + `pg_net`, or the host's cron). Each run, in order:
 
-1. **Ending soon** (`timers.ending_soon_notice_hours` before `ends_at`): one notice to the client (with **Extend** when there are fewer than `limits.low_entry_prompt_threshold` active designs) and to the designers who entered.
+1. **Ending soon** (`timers.ending_soon_notice_hours` before `ends_at`): one notice to the client (with **Extend** when there are fewer than `limits.low_entry_prompt_threshold` active designs). Owner, 2026-10-09: every active designer gets "ends in 12 hours" and "6 hours left, quickly submit your logo" (`timers.designer_ending_notice_hours`); if the job runs late, only the latest due notice goes out. New contests are announced to every designer the moment they go live (the job also announces any it finds unannounced).
 2. **Open → judging** when `ends_at` has passed: `judging_ends_at = ends_at + timers.judging_window_days`; the client is told to pick a winner by then.
 3. **Pick-a-winner reminders** on the judging days in `timers.judging_reminder_days` (1, 3, 5).
 4. **Judging → no result** when `judging_ends_at` has passed with no winner (§2 case 1).
@@ -175,6 +177,7 @@ A scheduled command runs every 15 minutes to move contests between states and se
 
 7. **Release held prizes** (owner, 2026-10-09): an approved handover not yet credited, whose copy-claim days (§7.3) are over and with no open claim, is credited to the wallet and the designer is told.
 8. **Lift suspensions** (2026-10-09): accounts suspended by strikes become active again when `suspended_until` has passed.
+9. **Monthly Winner proposal** (owner, 2026-10-09): after a month ends, its most-liked winning design is stored as `proposed` for an admin to pick (§11).
 
 If no designer qualifies for a share, the contest still ends as `no_result` but is marked for an admin to decide (`admin_review`).
 
@@ -386,6 +389,13 @@ False flags: if the admin finds that a flag was false, the person who flagged ge
 
 Monthly winner: ties are broken by total prize value, then by average rating of winning entries. The system proposes the winner on the 1st; an admin confirms; the prize is added to the wallet as a `bonus` transaction. Prize amount is a setting (default ৳5,000).
 
+**Owner, 2026-10-09 (replaces the counted-wins champion above):**
+- **Likes on winning designs:** every signed-in, active designer can like a winning design (a heart next to the stars), once per design, and take the like back; nobody can like their own design. Only winning designs anyone may see can be liked (completed public contests; never private or NDA; blind only when the client made the winner public). The like count shows to everyone.
+- **Leaderboard** (`/leaderboard`, public) shows **winning designs**, not designers: **This month** (designs whose contest finished this month, Bangladesh time) and **All time**, ranked by likes, then the client's star rating, then who finished first. Each shows the logo, brand, designer and likes, with the like button. Below: past Monthly Winners. No counted-win note.
+- **Monthly Winner = the best-liked winning design of the month.** A design competes in the month its contest finished; its likes keep counting until an admin picks the winner early the next month. The lifecycle job proposes the most-liked design after the month ends; on **A-08 Monthly winner** an admin picks the winner (the proposed design or another one) with a reason.
+- **Prize: a gift box, no money** (the ৳5,000 wallet bonus is removed). The winner gets a notice and confirms the delivery details on `/dashboard/gift` (name, phone, address; prefilled from their originality agreement); admins see them on A-08 and mark the gift **Sent** (with a courier note); the winner is told. Profiles show the badge **Monthly Winner · [month year]**.
+- Top Designer (10 counted wins) is unchanged.
+
 ## 12. Notifications
 
 Channels: in-app for everything, plus SMS, email and browser push where marked. Browser push (Web Push) reaches every browser where the user allowed notifications; their subscriptions are kept in `push_subscriptions` (user, endpoint, keys) and removed when the browser says they are gone.
@@ -397,7 +407,10 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 | Password reset link | User | Email |
 | Contest live / payment received | Client | Yes |
 | New entry (batched every 3 hours) | Client | Email |
-| Contest ends in 24 hours (client copy offers **Extend** when entries are low) | Client and entered designers | Email |
+| Contest ends in 24 hours (offers **Extend** when entries are low) | Client | Email |
+| New contest is live: "New logo contest: {brand}. Submit your logo and win {prize}" (owner, 2026-10-09) | Every active designer | Push |
+| Contest ends in 12 hours and in 6 hours: "Quickly submit your logo" (owner, 2026-10-09; replaces the 24-hour designer notice; hours are the setting `timers.designer_ending_notice_hours`) | Every active designer | Push |
+| Monthly Winner picked / gift sent (owner, 2026-10-09) | The winner; all designers hear who won | Push |
 | Contest extended (new end date) | Client and entered designers | No |
 | Pick-a-winner reminders (day 1, 3, 5) | Client | Yes |
 | Strike received (with reason) | Designer | Yes |
@@ -409,6 +422,8 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 | Comment on the contest | The client and designers who submitted (not the author) | No |
 | Design rejected (with reason) | Designer | No |
 | Winner picked | The winner ("You won!") and the other designers ("A winner was picked") | No |
+
+**Notification kinds (owner, 2026-10-09):** every notification belongs to one kind, shown with its own colour, icon and label in the bell and on `/notifications` (which can be filtered by kind). Designers: brief changed, rating, client feedback (the client's comment on their design), new contest, contest ending (every contest at 12h/6h; and "ended, the client is choosing" for contests they entered), winner, final files (reminder `timers.files_due_notice_hours`, 24, before the file deadline; change requests), logo received (the client approved, with their stars), money (prize released, shares, withdrawals), like (someone liked their winning logo), comment (someone else commented). Clients: new design, designer reply (the designer answered on a design), like (a designer liked their winning logo), plus contest ending, winner, final files and comments. Account & safety and Admin are kinds of their own.
 
 **In-app notifications (owner, 2026-10-08):** a bell in the header with the unread count opens the latest ones; each one links to the place it is about; "Mark all as read"; `/notifications` lists them all. Stored in `notifications` (user_id, type, data json, link, read_at).
 | New comment or reply | Other party | Email |

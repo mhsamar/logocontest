@@ -35,7 +35,9 @@ describe("BLUEPRINT defaults", () => {
     // Extension is a paid add-on, never free (owner, 2026-10-07)
     expect(d("upgrades.extension_price_per_day")).toBe(500);
     expect([d("upgrades.blind_price"), d("upgrades.private_price"), d("upgrades.promoted_price")]).toEqual([1000, 1000, 1000]);
-    expect(d("monthly.champion_prize")).toBe(5000);
+    // Owner, 2026-10-09: the Monthly Winner gets a gift box, not money.
+    expect(Object.keys(SETTINGS).includes("monthly.champion_prize")).toBe(false);
+    expect(d("timers.designer_ending_notice_hours")).toEqual([12, 6]);
     expect([d("fees.counted_win_min_prize"), d("fees.counted_win_min_designers"), d("fees.counted_wins_max_per_client")]).toEqual([3000, 3, 2]);
     expect(d("upgrades.extension_days_options")).toEqual([3, 5, 7]);
     expect(Object.keys(SETTINGS).some((k) => k.includes("low_entry_extension"))).toBe(false);
@@ -66,6 +68,7 @@ describe("BLUEPRINT defaults", () => {
 
   it("every setting belongs to an A-11 group or auth", () => {
     const groups = new Set(Object.values(SETTINGS).map((s) => s.group));
-    expect([...groups].sort()).toEqual(["auth", "fees", "limits", "monthly", "packages", "site", "timers", "upgrades"]);
+    // "monthly" has no settings since the Monthly Winner prize became a gift box (owner, 2026-10-09).
+    expect([...groups].sort()).toEqual(["auth", "fees", "limits", "packages", "site", "timers", "upgrades"]);
   });
 });

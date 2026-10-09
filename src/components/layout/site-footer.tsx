@@ -69,6 +69,7 @@ export async function SiteFooter() {
         { href: "/start", label: t("footer.startContest") },
         { href: "/contests", label: t("nav.browse") },
         { href: "/design-studio", label: t("nav.studio") },
+        { href: "/winners", label: t("footer.winners") },
         { href: "/how-it-works", label: t("nav.how") },
         { href: "/help", label: t("nav.help") },
       ],
@@ -78,6 +79,7 @@ export async function SiteFooter() {
       links: [
         { href: "/designers/signup", label: t("nav.becomeDesigner") },
         { href: "/how-it-works?for=designers", label: t("footer.howDesigners") },
+        { href: "/leaderboard", label: t("footer.leaderboard") },
         { href: "/login?as=designer", label: t("nav.login") },
       ],
     },
