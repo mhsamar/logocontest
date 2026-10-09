@@ -1,6 +1,6 @@
 /**
  * Client charge (BLUEPRINT §7.1):
- *   service_fee = round(prize × fee%)
+ *   service_fee = round(prize × fee%), fee% = 25%, or 15% when the prize is above ৳30,000 (settings)
  *   total       = prize + service_fee + upgrades
  * All amounts are whole taka. Every number comes from settings.
  */
@@ -9,6 +9,9 @@ import { noUpgrades, UPGRADES } from "./brief";
 
 export type PricingConfig = {
   serviceFeePercent: number;
+  /** Lower fee for big prizes (owner, 2026-10-08): prizes above largeFeeFrom pay largeFeePercent. */
+  largeFeePercent: number;
+  largeFeeFrom: number;
   packagePrizes: Record<Exclude<PackageKey, "custom">, number>;
   customMin: number;
   customStep: number;
@@ -22,6 +25,8 @@ export type PricingConfig = {
 
 export type Price = {
   prize: number;
+  /** The fee percent used for this prize. */
+  feePercent: number;
   serviceFee: number;
   upgrades: { key: UpgradeKey; price: number }[];
   upgradesTotal: number;
@@ -32,6 +37,16 @@ export type OrderError = "custom_min" | "custom_step" | "custom_missing" | "dura
 
 export function serviceFee(prize: number, percent: number): number {
   return Math.round((prize * percent) / 100);
+}
+
+/** The service fee percent for this prize: the normal rate, or the lower one above the threshold. */
+export function feePercentFor(prize: number, cfg: Pick<PricingConfig, "serviceFeePercent" | "largeFeePercent" | "largeFeeFrom">): number {
+  return prize > cfg.largeFeeFrom ? cfg.largeFeePercent : cfg.serviceFeePercent;
+}
+
+/** What the client pays for this prize before add-ons. */
+export function prizeWithFee(prize: number, cfg: Pick<PricingConfig, "serviceFeePercent" | "largeFeePercent" | "largeFeeFrom">): number {
+  return prize + serviceFee(prize, feePercentFor(prize, cfg));
 }
 
 export function validateOrder(order: Order, cfg: PricingConfig): OrderError | null {
@@ -54,10 +69,11 @@ export function calculatePrice(order: Order, cfg: PricingConfig): Price {
   const error = validateOrder(order, cfg);
   if (error) throw new Error(`Invalid order: ${error}`);
   const prize = prizeFor(order, cfg);
-  const fee = serviceFee(prize, cfg.serviceFeePercent);
+  const feePercent = feePercentFor(prize, cfg);
+  const fee = serviceFee(prize, feePercent);
   const upgrades = chargedUpgrades(order).map((key) => ({ key, price: cfg.upgradePrices[key] }));
   const upgradesTotal = upgrades.reduce((sum, u) => sum + u.price, 0);
-  return { prize, serviceFee: fee, upgrades, upgradesTotal, total: prize + fee + upgradesTotal };
+  return { prize, feePercent, serviceFee: fee, upgrades, upgradesTotal, total: prize + fee + upgradesTotal };
 }
 
 /** NDA includes Private (owner, 2026-10-08): Private is switched on and not charged on top. */

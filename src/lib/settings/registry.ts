@@ -26,9 +26,18 @@ const socialUrl = (hosts: string[]) =>
  */
 export const SETTINGS = {
   // ---- Fees and tiers (§2, §7.1, §7.2) ------------------------------------
+  // Owner, 2026-10-08: 25%, or 15% when the prize is above ৳30,000.
   "fees.client_service_fee_percent": {
-    group: "fees", type: "int", schema: int(0, 100), default: 20,
+    group: "fees", type: "int", schema: int(0, 100), default: 25,
     description: "Service fee added on top of the prize, in percent.",
+  },
+  "fees.client_service_fee_large_percent": {
+    group: "fees", type: "int", schema: int(0, 100), default: 15,
+    description: "Service fee for prizes above the amount below, in percent.",
+  },
+  "fees.client_service_fee_large_from": {
+    group: "fees", type: "int", schema: int(1), default: 30000,
+    description: "Prizes above this amount (taka) get the lower service fee.",
   },
   "fees.designer_tiers": {
     group: "fees", type: "json",
@@ -225,6 +234,10 @@ export const SETTINGS = {
   "limits.brief_file_max_mb": {
     group: "limits", type: "int", schema: int(1), default: 5,
     description: "Largest wizard upload (MB).",
+  },
+  "limits.handover_file_max_mb": {
+    group: "limits", type: "int", schema: int(1, 500), default: 50,
+    description: "Largest final file the winner can upload (MB).",
   },
   "limits.withdrawal_min": {
     group: "limits", type: "int", schema: int(1), default: 500,

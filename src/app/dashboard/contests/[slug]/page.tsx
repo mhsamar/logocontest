@@ -5,6 +5,8 @@ import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@
 import { EntryComments } from "@/components/entries/entry-comments";
 import { Collage } from "@/components/entries/entry-card";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { ClientHandover } from "@/components/handover/client-handover";
+import { HandoverTracker } from "@/components/handover/tracker";
 import { AddonsPanel } from "@/components/manage/addons-panel";
 import { OwnerActions } from "@/components/manage/owner-actions";
 import { ScanPanel } from "@/components/manage/scan-panel";
@@ -18,6 +20,7 @@ import { addonPrices } from "@/lib/contests/addon-payments";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, latestScan, listEntries } from "@/lib/entries/queries";
+import { getHandoverByContest } from "@/lib/handover/queries";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
@@ -49,11 +52,12 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     winnerIsPublic: contest.winnerIsPublic,
   };
   const entryNumber = typeof sp.entry === "string" ? Number(sp.entry) : null;
-  const [entries, prices, s, entry] = await Promise.all([
+  const [entries, prices, s, entry, handover] = await Promise.all([
     listEntries(contest.id, entryContest, user),
     addonPrices(),
-    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length"]),
+    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words"]),
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
+    getHandoverByContest(contest.id),
   ]);
   const scan = entry ? await latestScan(entry.id) : null;
   const fileDays = s["timers.designer_file_upload_days"];
@@ -206,6 +210,35 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           ))}
         </dl>
       </section>
+
+      {/* C-17 Final files: the handover after a winner is picked (owner, 2026-10-08) */}
+      {handover && (
+        <section className="mt-10 animate-rise rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-h3 font-bold text-ink lg:text-h3-lg">{t("handover.section")}</h2>
+            <p className="text-sm text-muted">
+              #{fmt(handover.entryNumber)} · {handover.designer.username ? `@${handover.designer.username}` : handover.designer.name}
+            </p>
+          </div>
+          <div className="mt-4">
+            <HandoverTracker status={handover.status} t={t} />
+          </div>
+          <div className="mt-5">
+            <ClientHandover
+              handoverId={handover.id}
+              status={handover.status}
+              files={handover.files}
+              fontsNote={handover.fontsNote}
+              dueAt={handover.dueAt.toISOString()}
+              reviewDueAt={handover.reviewDueAt ? handover.reviewDueAt.toISOString() : null}
+              revisionCount={handover.revisionCount}
+              maxRevisions={s["limits.max_revision_requests"]}
+              maxWords={s["limits.approval_feedback_max_words"]}
+              rating={handover.rating}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Review designs on the left, add-ons in a sidebar on the right (owner, 2026-10-08) */}
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem]">

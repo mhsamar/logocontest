@@ -5,6 +5,8 @@ import type { PricingConfig } from "./pricing";
 export async function getPricingConfig(): Promise<PricingConfig> {
   const s = await getSettings([
     "fees.client_service_fee_percent",
+    "fees.client_service_fee_large_percent",
+    "fees.client_service_fee_large_from",
     "packages.economy_prize",
     "packages.standard_prize",
     "packages.pro_prize",
@@ -26,6 +28,8 @@ export async function getPricingConfig(): Promise<PricingConfig> {
   ]);
   return {
     serviceFeePercent: s["fees.client_service_fee_percent"],
+    largeFeePercent: s["fees.client_service_fee_large_percent"],
+    largeFeeFrom: s["fees.client_service_fee_large_from"],
     packagePrizes: {
       economy: s["packages.economy_prize"],
       standard: s["packages.standard_prize"],

@@ -22,7 +22,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 
 | Rule | Value |
 |---|---|
-| Client service fee | 20% of prize, added on top (prize 5,000 → client pays 6,000) |
+| Client service fee | 25% of the prize, added on top (prize 5,000 → client pays 6,250); 15% when the prize is above 30,000 (custom prizes) (owner, 2026-10-08; was 20%; both rates and the threshold are settings) |
 | Designer fee | 15% (0–9 wins), 10% (10–49 wins), 5% (50+ wins) (owner, 2026-10-08; was 7% / 5% / 2%) |
 | Refunds | None. All payments are non-refundable |
 | Entry visibility | Client chooses. Open is the default and free. Blind is a paid upgrade (only the client ever sees the entries, see §7.4) |
@@ -163,17 +163,20 @@ A scheduled command runs every 15 minutes to move contests between states and se
 ### 7.1 Client charge
 
 ```
-service_fee = round(prize * 0.20)
+fee_rate    = 0.15 if prize > 30,000 else 0.25      (owner, 2026-10-08)
+service_fee = round(prize * fee_rate)
 total       = prize + service_fee + upgrades_total
 ```
 
 | Package | Prize | Fee | Total (no upgrades) |
 |---|---|---|---|
-| Starter | 3,000 | 600 | 3,600 |
-| Growth | 5,000 | 1,000 | 6,000 |
-| Pro | 8,000 | 1,600 | 9,600 |
-| Premium | 12,000 | 2,400 | 14,400 |
-| Elite | 15,000 | 3,000 | 18,000 |
+| Starter | 3,000 | 750 | 3,750 |
+| Growth | 5,000 | 1,250 | 6,250 |
+| Pro | 8,000 | 2,000 | 10,000 |
+| Premium | 12,000 | 3,000 | 15,000 |
+| Elite | 15,000 | 3,750 | 18,750 |
+| Custom 30,000 | 30,000 | 7,500 | 37,500 |
+| Custom 35,000 | 35,000 | 5,250 | 40,250 |
 
 Always show the client the full breakdown before payment.
 
@@ -193,7 +196,8 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 
 - The wallet is a ledger. Never store a balance without a matching `wallet_transactions` row.
 - Credit happens once, inside a database transaction, when the handover becomes approved (or, for a no-result contest, once per designer share, §7.5).
-- Withdrawal: minimum 500; the request deducts the balance immediately; admin pays out manually by bKash or bank and records the transaction ID. A rejected withdrawal returns the amount.
+- Withdrawal: minimum 500; the request deducts the balance immediately. **Payout (owner, 2026-10-08): automatic for bKash** — behind a `PayoutGateway` interface with drivers `fake` (development: pays at once with a FAKE transaction ID, not allowed in production), `manual` (nothing is sent; the request waits for an admin) and `bkash` (bKash disbursement, switched on once the merchant payout credentials are set). Bank withdrawals, and any bKash payout that fails, wait in the admin's withdrawal queue: the admin pays by hand and records the transaction ID, or rejects with a reason. A rejected withdrawal returns the amount (an `adjustment` transaction).
+- Balance = the latest `balance_after`; every change locks the designer's profile row first, so two requests can't spend the same money. Pending = what open handovers will pay (prize − fee) once approved.
 
 ### 7.4 Upgrades (prices in settings)
 
@@ -293,7 +297,7 @@ Required checkboxes (store with timestamp and IP):
 
 ### 9.3 Handover
 
-The winner uploads AI, EPS, SVG, PDF, transparent PNG and JPG files plus font names, and accepts a copyright transfer agreement, within 3 days. All six file types are required before submitting. If the deadline passes, the win is cancelled (§6). When the client requests a revision, the designer uploads revised files. An admin can inspect the vector source if the entry was reported as AI.
+The winner uploads AI, EPS, SVG, PDF, transparent PNG and JPG files plus font names, and accepts a copyright transfer agreement, within 3 days. All six file types are required before submitting. If the client ticked extras in the brief (icon only, short logo, colour/white/black versions, app icon sizes), the winner also adds them as extra files (up to 10; the six types or ZIP) (owner, 2026-10-08). Files are private: only the winner, the client and admins can open them. If the deadline passes, the win is cancelled (§6). When the client requests a revision, the designer uploads revised files. An admin can inspect the vector source if the entry was reported as AI.
 
 ### 9.4 Public profile (`/d/{username}`)
 

@@ -420,7 +420,7 @@ export function Wizard(props: WizardProps) {
                 brief={state.brief}
                 order={state.order}
                 price={price}
-                feePercent={props.pricing.serviceFeePercent}
+                feePercent={price?.feePercent ?? props.pricing.serviceFeePercent}
                 name={name}
                 onName={setName}
                 method={method}
@@ -442,7 +442,7 @@ export function Wizard(props: WizardProps) {
 
           {/* Bottom bar: sticky on phones, inline on larger screens */}
           <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0">
-            {showPrice && <PriceBar key={step} price={price} feePercent={props.pricing.serviceFeePercent} />}
+            {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
             <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy && step !== 9}>
               {nextLabel}
             </Button>
@@ -451,7 +451,7 @@ export function Wizard(props: WizardProps) {
           </div>
         </div>
 
-        {showPrice && <PriceSidebar price={price} feePercent={props.pricing.serviceFeePercent} />}
+        {showPrice && <PriceSidebar price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
       </div>
     </div>
   );

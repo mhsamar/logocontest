@@ -26,6 +26,7 @@ function accountItems(user: CurrentUser, t: Translate) {
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
   if (user.role !== "admin") items.push({ href: "/dashboard", label: t("nav.dashboard") });
   if (can(user, "contest.save")) items.push({ href: "/dashboard/saved", label: t("nav.saved") });
+  if (user.role === "designer") items.push({ href: "/dashboard/wallet", label: t("nav.wallet") });
   if (user.role !== "admin") items.push({ href: "/dashboard/profile", label: t("nav.profile") });
   return items;
 }

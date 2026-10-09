@@ -93,11 +93,17 @@ async function coverUrls(paths: (string | null)[]): Promise<Map<string, string>>
     .catch(() => new Map<string, string>());
 }
 
-/** TODO(milestone 7): total earned from wallet transactions. */
+/** Total earned (BLUEPRINT §9.4): prize credits, shared prizes and bonuses in the wallet, after fees. */
+async function totalEarned(designerId: string): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  const { data } = await createAdminClient().from("wallet_transactions").select("amount").eq("designer_id", designerId).in("type", ["prize_credit", "split_share", "bonus"]);
+  return (data ?? []).reduce((sum, r) => sum + (r.amount as number), 0);
+}
+
 async function statsFor(designerId: string, winsCount: number, view: "own" | "public"): Promise<DesignerStats> {
-  const rows = await designerEntries(designerId);
+  const [rows, earned] = await Promise.all([designerEntries(designerId), totalEarned(designerId)]);
   const shown = view === "own" ? rows : rows.filter(isPublic);
-  return { contestsEntered: new Set(shown.map((e) => e.contest.id)).size, designs: shown.length, wins: winsCount, totalEarned: 0 };
+  return { contestsEntered: new Set(shown.map((e) => e.contest.id)).size, designs: shown.length, wins: winsCount, totalEarned: earned };
 }
 
 type Row = {

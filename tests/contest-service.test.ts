@@ -71,6 +71,8 @@ class MemoryRepo implements ContestRepository {
 
 const cfg: PricingConfig = {
   serviceFeePercent: 20,
+  largeFeePercent: 15,
+  largeFeeFrom: 30000,
   packagePrizes: { economy: 3000, standard: 5000, pro: 8000, premium: 12000, elite: 15000 },
   customMin: 3000,
   customStep: 500,

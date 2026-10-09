@@ -399,11 +399,11 @@ Carousel, rating, the design's comment box, and **Submit a new design** (opens `
 
 ### D-08 You won
 
-Full-screen celebration: "You won! ৳5,000 contest: [brand]". Shows the breakdown: prize, fee 7%, "You'll receive ৳4,650 after the client approves your files". Button **Deliver files now**. Deadline shown clearly, with: "If you don't upload your files by [date], your win is cancelled."
+Full-screen celebration: "You won! ৳5,000 contest: [brand]". Shows the breakdown: prize, the fee rate locked when they were picked (from the fee tiers in settings), "You'll receive ৳4,250 after the client approves your files". Button **Deliver files now**. Deadline shown clearly, with: "If you don't upload your files by [date], your win is cancelled."
 
 ### D-09 Deliver files
 
-Six required upload rows, one per file type (AI, EPS, SVG, PDF, PNG transparent, JPG), each with a tick when done. Font names field. A copyright transfer agreement in a scroll box with a checkbox. Button **Send files to client**.
+Six required upload rows, one per file type (AI, EPS, SVG, PDF, PNG transparent, JPG), each with a tick when done; when the client asked for extras, an **Extra files** row listing what they asked for (owner, 2026-10-08). Font names field. A copyright transfer agreement in a scroll box with a checkbox. Button **Send files to client**.
 
 After sending: the same four-step tracker as `C-17`, with "Waiting for the client until [date]. If they don't respond, the prize is shared equally among all designers." If a change is requested, the client's note appears at the top with the upload rows reopened.
 
@@ -416,7 +416,7 @@ After sending: the same four-step tracker as `C-17`, with "Waiting for the clien
 
 ### D-11 Withdraw
 
-Amount input with a "Max" shortcut, payout method selector, summary, and **Request withdrawal**. Confirmation: "Request received. We'll send it to your [bKash/bank] soon." Status chips in history: Requested, Paid (with transaction ID), Rejected (with reason).
+Amount input with a "Max" shortcut, payout method selector, summary, and **Request withdrawal**. bKash withdrawals are sent automatically when the bKash payout is switched on (owner, 2026-10-08): "Sent to your bKash 01XXXXXXXXX" with the transaction ID. Otherwise, and for bank: "Request received. We'll send it to your [bKash/bank] soon." Status chips in history: Requested, Paid (with transaction ID), Rejected (with reason).
 
 ### D-12 My profile (edit)
 

@@ -18,6 +18,11 @@ const ICON: Record<ShownNotification["type"], { d: string; tone: string }> = {
   entry_rejected: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
   winner_picked: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
   contest_closed: { d: "M5 12.5l4.5 4.5L19 7.5", tone: "bg-canvas text-ink" },
+  handover_submitted: { d: "M12 3v12M7 10l5 5 5-5M5 21h14", tone: "bg-[#e8f1ff] text-[#1d4ed8]" },
+  handover_revision: { d: "M4 20h4L19 9l-4-4L4 16Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  handover_approved: { d: "M3 7h18v12H3ZM3 11h18M16 15h2", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
+  withdrawal_paid: { d: "M5 12.5l4.5 4.5L19 7.5", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
+  withdrawal_rejected: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
 };
 
 /** Header bell (owner, 2026-10-08): unread count, the latest notifications, mark all as read. */

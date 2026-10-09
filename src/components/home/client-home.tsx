@@ -2,7 +2,7 @@ import Link from "next/link";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "@/components/wizard/upgrade-meta";
 import { DELIVERABLES, PACKAGES, UPGRADES } from "@/lib/contests/brief";
 import { countRunningContests } from "@/lib/contests/dashboard";
-import { serviceFee } from "@/lib/contests/pricing";
+import { prizeWithFee } from "@/lib/contests/pricing";
 import { getPricingConfig } from "@/lib/contests/pricing-config";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
@@ -94,7 +94,7 @@ export async function ClientHome({ user }: { user: { id: string; name: string } 
       {/* Packages */}
       <section className="mt-14">
         <h2 className="text-h2 font-bold text-ink lg:text-h2-lg">{t("clientHome.packages.title")}</h2>
-        <p className="mt-1 text-muted">{t("clientHome.packages.sub", { fee: pricing.serviceFeePercent })}</p>
+        <p className="mt-1 text-muted">{t("clientHome.packages.sub", { fee: pricing.serviceFeePercent, largeFee: pricing.largeFeePercent, largeFrom: taka(pricing.largeFeeFrom) })}</p>
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {PACKAGES.map((pkg, i) => {
             const prize = pkg === "custom" ? null : pricing.packagePrizes[pkg];
@@ -119,7 +119,7 @@ export async function ClientHome({ user }: { user: { id: string; name: string } 
                     {prize ? taka(prize) : t("clientHome.packages.customFrom", { min: taka(pricing.customMin) })}
                   </span>
                   <span className="mt-1 text-sm leading-snug text-ink">{t(`wizard.packages.${pkg}.line`)}</span>
-                  {prize && <span className="mt-auto pt-2 text-xs text-muted">{t("wizard.packages.youPay", { total: taka(prize + serviceFee(prize, pricing.serviceFeePercent)) })}</span>}
+                  {prize && <span className="mt-auto pt-2 text-xs text-muted">{t("wizard.packages.youPay", { total: taka(prizeWithFee(prize, pricing)) })}</span>}
                 </Link>
               </li>
             );

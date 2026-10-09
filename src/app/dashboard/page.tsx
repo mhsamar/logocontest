@@ -17,6 +17,8 @@ import { addonPrices } from "@/lib/contests/addon-payments";
 import { countSaved } from "@/lib/contests/community";
 import { DASHBOARD_TABS, getClientDashboard, type DashboardTab } from "@/lib/contests/dashboard";
 import { designerById, designerContests } from "@/lib/designers/profile";
+import { openHandovers } from "@/lib/handover/queries";
+import { getWallet } from "@/lib/wallet/queries";
 import { siteOrigin } from "@/lib/email";
 import { qrSvg } from "@/lib/profile/qr";
 import { cx } from "@/lib/cx";
@@ -38,8 +40,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     const designer = await designerById(user.id);
     if (!designer) notFound();
     const profileUrl = `${await siteOrigin()}/d/${designer.username}`;
-    const [contests, savedCount, qr] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl)]);
-    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} />;
+    const [contests, savedCount, qr, handovers, wallet] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl), openHandovers(user.id), getWallet(user.id)]);
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} />;
   }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();

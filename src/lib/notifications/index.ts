@@ -17,10 +17,15 @@ export const NOTIFICATION_TYPES = [
   "entry_rejected",
   "winner_picked",
   "contest_closed",
+  "handover_submitted",
+  "handover_revision",
+  "handover_approved",
+  "withdrawal_paid",
+  "withdrawal_rejected",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number };
+export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number };
 
 export type AppNotification = { id: string; type: NotificationType; data: NotificationData; link: string | null; read: boolean; createdAt: Date };
 

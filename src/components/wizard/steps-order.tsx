@@ -5,7 +5,7 @@ import { GlideTrack } from "@/components/ui/glide-track";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "./upgrade-meta";
 import { Checkbox, TextField } from "@/components/ui/field";
 import { PACKAGES, UPGRADES, type Order } from "@/lib/contests/brief";
-import { activeUpgrades, includedByNda, serviceFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { activeUpgrades, includedByNda, prizeWithFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
@@ -260,7 +260,7 @@ export function PackageStep({
               <span className="mt-1 block text-sm leading-snug text-ink">{t(`wizard.packages.${pkg}.line`)}</span>
               {prize && (
                 <span className="mt-auto block pt-2 text-xs text-muted">
-                  {t("wizard.packages.youPay", { total: taka(prize + serviceFee(prize, config.serviceFeePercent)) })}
+                  {t("wizard.packages.youPay", { total: taka(prizeWithFee(prize, config)) })}
                 </span>
               )}
             </button>

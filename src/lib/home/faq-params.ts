@@ -33,6 +33,8 @@ export async function faqParams(t: Translate, locale: Locale) {
       elite: taka(pricing.packagePrizes.elite),
       customMin: taka(pricing.customMin),
       fee: pricing.serviceFeePercent,
+      largeFee: pricing.largeFeePercent,
+      largeFrom: taka(pricing.largeFeeFrom),
       durations: list(pricing.durationOptions.map((d) => num.format(d))),
       minDays: num.format(pricing.durationMin),
       maxDays: num.format(pricing.durationMax),

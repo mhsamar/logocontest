@@ -38,12 +38,17 @@ export async function DesignerDashboard({
   savedCount,
   profileUrl,
   qrSvg,
+  handovers,
+  balance,
 }: {
   designer: DesignerProfile;
   contests: DesignerContest[];
   savedCount: number;
   profileUrl: string;
   qrSvg: string;
+  /** Wins whose files are still to be delivered or approved (owner, 2026-10-08). */
+  handovers: { slug: string; brand: string; status: string; dueAt: Date; credit: number }[];
+  balance: number;
 }) {
   const { t, locale } = await getI18n();
   const wins = contests.filter((c) => c.won);
@@ -99,6 +104,45 @@ export async function DesignerDashboard({
         </dl>
       </section>
 
+      {/* You won: files to deliver (D-08), and the wallet (D-10) */}
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {handovers.length > 0 && (
+          <div className="space-y-3">
+            {handovers.map((h) => (
+              <Link
+                key={h.slug}
+                href={`/dashboard/handover/${h.slug}`}
+                className="group flex animate-rise items-center gap-4 rounded-2xl bg-gradient-to-br from-[#1f0a05] via-[#3a1208] to-primary-dark p-4 text-white shadow-raised transition-[translate] duration-300 hover:-translate-y-0.5"
+              >
+                <span className="text-3xl" aria-hidden>
+                  🏆
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold">{t("designerDash.won.title", { brand: h.brand })}</span>
+                  <span className="block text-sm text-white/75">
+                    {h.status === "submitted" ? t("designerDash.won.waiting") : t("designerDash.won.due", { date: formatDate(h.dueAt, locale, "short") })}
+                  </span>
+                </span>
+                <span className="prize-text shrink-0 text-xl font-extrabold tabular-nums">{formatTaka(h.credit, locale)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link
+          href="/dashboard/wallet"
+          className={cx(
+            "group flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line transition-shadow hover:shadow-raised",
+            handovers.length > 0 ? "lg:col-start-2" : "lg:col-span-2",
+          )}
+        >
+          <span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t("nav.wallet")}</span>
+            <span className="block text-2xl font-extrabold tabular-nums text-[#7a4300]">{formatTaka(balance, locale)}</span>
+          </span>
+          <span className="text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">→</span>
+        </Link>
+      </div>
+
       {/* Share */}
       <Panel title={t("designerDash.share.title")} className="mt-5">
         <p className="-mt-2 mb-4 text-sm text-muted">{t("designerDash.share.subtitle")}</p>
@@ -107,10 +151,16 @@ export async function DesignerDashboard({
         <div className="mt-5 flex flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted">{t("portfolio.subtitle")}</p>
           <div className="flex shrink-0 gap-2">
-            <Link href="/dashboard/profile" className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-primary ring-1 ring-inset ring-line hover:ring-primary">
+            <Link
+              href="/dashboard/profile"
+              className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-primary ring-1 ring-inset ring-line hover:ring-primary"
+            >
               {t("portfolio.title")}
             </Link>
-            <a href={`/d/${designer.username}/portfolio`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-white hover:bg-primary-dark">
+            <a
+              href={`/d/${designer.username}/portfolio`}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
               </svg>
@@ -135,7 +185,12 @@ export async function DesignerDashboard({
                 <li key={c.slug} className="flex items-center justify-between gap-3 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     {/* The designer's newest design in this contest (its preview) */}
-                    <Link href={`/contest/${c.slug}?tab=entries`} className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-canvas ring-1 ring-line" aria-hidden tabIndex={-1}>
+                    <Link
+                      href={`/contest/${c.slug}?tab=entries`}
+                      className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-canvas ring-1 ring-line"
+                      aria-hidden
+                      tabIndex={-1}
+                    >
                       {c.latestCoverUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={c.winningLogoUrl ?? c.latestCoverUrl} alt="" className="h-full w-full object-cover" />

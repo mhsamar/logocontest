@@ -7,7 +7,9 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { getLogoScanner, type ScanResult } from "@/lib/moderation/logo-scan";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getFileStorage } from "@/lib/storage";
+import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { feeRateFor } from "@/lib/wallet/fees";
 import { ENTRY_FILES_BUCKET } from "./queries";
 import { REJECT_REASONS } from "./review-options";
 
@@ -83,11 +85,19 @@ export async function pickWinner(entryId: string): Promise<Result> {
   const own = await ownEntry(entryId);
   if (!own) return { ok: false, error: "auth.errors.generic" };
   if (own.entry.status !== "active") return { ok: false, error: "manage.winner.notActive" };
-  const { error } = await createAdminClient().rpc("pick_winner", { p_contest_id: own.contest.id, p_entry_id: entryId });
+  // The fee rate is locked now, from the designer's counted wins so far (BLUEPRINT §7.2).
+  const db = createAdminClient();
+  const [{ data: designer }, s] = await Promise.all([
+    db.from("profiles").select("counted_wins_count").eq("id", own.entry.designer_id).single(),
+    getSettings(["fees.designer_tiers", "timers.designer_file_upload_days"]),
+  ]);
+  const feeRate = feeRateFor(designer?.counted_wins_count ?? 0, s["fees.designer_tiers"]);
+  const dueAt = new Date(Date.now() + s["timers.designer_file_upload_days"] * 86_400_000).toISOString();
+  const { error } = await db.rpc("pick_winner", { p_contest_id: own.contest.id, p_entry_id: entryId, p_fee_rate: feeRate, p_due_at: dueAt });
   if (error) return { ok: false, error: "manage.closed" };
   const n = { brand: own.contest.brand_name, number: own.entry.number };
   const link = `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`;
-  await notify([own.entry.designer_id], "winner_picked", n, link);
+  await notify([own.entry.designer_id], "winner_picked", n, `/dashboard/handover/${own.contest.slug}`);
   await notify((await contestDesignerIds(own.contest.id)).filter((id) => id !== own.entry.designer_id), "contest_closed", n, link);
   refresh();
   return { ok: true };

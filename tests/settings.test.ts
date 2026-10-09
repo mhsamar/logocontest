@@ -30,7 +30,8 @@ describe("BLUEPRINT defaults", () => {
     expect([d("timers.contest_duration_min_days"), d("timers.contest_duration_max_days")]).toEqual([3, 30]);
     expect([d("upgrades.logo_scan_price"), d("upgrades.highlight_price"), d("upgrades.urgent_price"), d("upgrades.nda_price")]).toEqual([500, 500, 500, 1500]);
     expect([d("packages.custom_min_prize"), d("packages.custom_step")]).toEqual([3000, 500]);
-    expect(d("fees.client_service_fee_percent")).toBe(20);
+    // Owner, 2026-10-08: 25%, or 15% for prizes above ৳30,000.
+    expect([d("fees.client_service_fee_percent"), d("fees.client_service_fee_large_percent"), d("fees.client_service_fee_large_from")]).toEqual([25, 15, 30000]);
     // Extension is a paid add-on, never free (owner, 2026-10-07)
     expect(d("upgrades.extension_price_per_day")).toBe(500);
     expect([d("upgrades.blind_price"), d("upgrades.private_price"), d("upgrades.promoted_price")]).toEqual([1000, 1000, 1000]);
