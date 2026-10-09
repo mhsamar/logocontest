@@ -9,14 +9,14 @@ import { dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, typ
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; errors: string[] };
+export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
 const DAY = 86_400_000;
 
 export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
-  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, errors: [] };
+  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, errors: [] };
   if (!isSupabaseConfigured()) return report;
   const db = createAdminClient();
   const s = await getSettings([
@@ -171,6 +171,13 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         fail("release", h.id as string, e);
       }
     }
+  }
+
+  // 8. Suspensions whose time is up (BLUEPRINT §13, strikes).
+  {
+    const { data, error } = await db.rpc("lift_expired_suspensions");
+    if (error) fail("unsuspend", "-", error.message);
+    else report.unsuspended = (data as number) ?? 0;
   }
 
   return report;

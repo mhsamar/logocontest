@@ -1,5 +1,6 @@
 "use server";
 
+import { audit } from "@/lib/admin/core";
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -18,9 +19,11 @@ import { briefDetailColumns } from "./supabase-repository";
 export async function saveContestBrief(contestId: string, input: Brief): Promise<{ ok: true } | { ok: false; error?: MessageKey; errors?: FieldErrors }> {
   if (!isSupabaseConfigured()) return { ok: false, error: "auth.errors.notConfigured" };
   const user = await getCurrentUser();
-  if (!user || user.role !== "client" || user.status !== "active" || !/^[0-9a-f-]{36}$/i.test(contestId)) return { ok: false, error: "auth.errors.generic" };
+  // The client, or an admin (A-02 Edit brief, BLUEPRINT §13.3).
+  const isAdmin = user?.role === "admin";
+  if (!user || (user.role !== "client" && !isAdmin) || user.status !== "active" || !/^[0-9a-f-]{36}$/i.test(contestId)) return { ok: false, error: "auth.errors.generic" };
   const contest = await contestRepository().findContest(contestId);
-  if (!contest || contest.clientId !== user.id) return { ok: false, error: "auth.errors.generic" };
+  if (!contest || (contest.clientId !== user.id && !isAdmin)) return { ok: false, error: "auth.errors.generic" };
   if (contest.status !== "open") return { ok: false, error: "manage.edit.closed" };
 
   const brief = cleanBrief(input);
@@ -51,6 +54,7 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
     .eq("status", "open");
   if (error) return { ok: false, error: "auth.errors.generic" };
 
+  if (isAdmin) await audit(user.id, "edit_brief", "contest", contest.id, { brand: brief.brandName });
   await notify(await contestDesignerIds(contest.id), "brief_updated", { brand: brief.brandName }, `/contest/${contest.slug}?tab=brief`, user.id);
   refresh();
   return { ok: true };

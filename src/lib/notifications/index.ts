@@ -42,10 +42,20 @@ export const NOTIFICATION_TYPES = [
   "claim_upheld_client",
   "claim_fined",
   "claim_banned",
+  "strike_received",
+  "account_suspended",
+  "account_banned",
+  "flag_warning",
+  "report_upheld",
+  "report_dismissed",
+  "entry_removed",
+  "contest_cancelled",
+  "contest_cancelled_client",
+  "winner_picked_by_admin",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number };
+export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number; reason?: string };
 
 export type AppNotification = { id: string; type: NotificationType; data: NotificationData; link: string | null; read: boolean; createdAt: Date };
 

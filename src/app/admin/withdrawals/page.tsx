@@ -16,8 +16,8 @@ export default async function AdminWithdrawalsPage() {
   await authorize("admin.access");
   const [{ t, locale }, list] = await Promise.all([getI18n(), pendingWithdrawals()]);
   return (
-    <div className="mx-auto w-full max-w-page px-4 py-8">
-      <h1 className="text-h1 font-bold tracking-tight text-ink">{t("admin.withdrawals.title")}</h1>
+    <div>
+      <h1 className="text-h2 font-bold tracking-tight text-ink lg:text-h2-lg">{t("admin.withdrawals.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("admin.withdrawals.lead")}</p>
       {list.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t("admin.withdrawals.empty")}</p>

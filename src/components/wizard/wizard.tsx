@@ -1,5 +1,6 @@
 "use client";
 
+import { recordWizardStep } from "@/lib/wizard-tracking";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
@@ -43,6 +44,17 @@ export type WizardProps = {
   initialStep: number | null;
   prefillName: string;
 };
+
+/** One id per browser tab visit, so a reload continues the same visit. */
+function wizardVisitId(): string {
+  try {
+    let id = sessionStorage.getItem("lc-wizard-visit");
+    if (!id) sessionStorage.setItem("lc-wizard-visit", (id = crypto.randomUUID()));
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
 
 const HEADINGS = ["c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09", "c10", "c11"] as const;
 const BUCKET = "contest-files";
@@ -99,6 +111,13 @@ export function Wizard(props: WizardProps) {
   useEffect(() => {
     if (state) saveState(state);
   }, [state]);
+
+  // Drop-off tracking for the admin dashboard: the furthest step this visit reached (no personal data).
+  const contestId = state?.contestId ?? null;
+  useEffect(() => {
+    if (!state) return;
+    void recordWizardStep(wizardVisitId(), step, contestId);
+  }, [step, contestId, state === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = useCallback(
     (to: number, push = true) => {
@@ -289,6 +308,7 @@ export function Wizard(props: WizardProps) {
     }
     if (step === 11) {
       startBusy(async () => {
+        void recordWizardStep(wizardVisitId(), 12, state.contestId);
         const res = await startCheckout({ contestId: state.contestId!, method: method!, name, acceptedTerms: terms });
         // On success the action redirects to the gateway, so we only get here on failure.
         if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));

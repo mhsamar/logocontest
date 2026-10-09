@@ -14,6 +14,7 @@ export function renderNotification(n: AppNotification, t: Translate, locale: Loc
     stars: fmt(n.data.stars),
     days: fmt(n.data.days),
     amount: typeof n.data.amount === "number" ? `৳${fmt(n.data.amount)}` : "",
+    reason: n.data.reason ?? "",
   });
   return { id: n.id, type: n.type, text, ago: timeAgo(n.createdAt, now, locale), link: n.link, read: n.read };
 }

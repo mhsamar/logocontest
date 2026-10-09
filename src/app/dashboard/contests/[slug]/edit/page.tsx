@@ -19,10 +19,11 @@ export default async function EditContestPage({ params }: PageProps<"/dashboard/
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/dashboard/contests/${slug}/edit`)}`);
   const contest = await getContestBySlug(slug, user);
-  if (!contest || !contest.isOwner) notFound();
+  const isAdmin = user.role === "admin";
+  if (!contest || !(contest.isOwner || isAdmin)) notFound();
   const record = await contestRepository().findContest(contest.id);
   if (!record) notFound();
-  const back = `/dashboard/contests/${contest.slug}`;
+  const back = isAdmin && !contest.isOwner ? `/admin/contests/${contest.slug}` : `/dashboard/contests/${contest.slug}`;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-4">

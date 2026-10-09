@@ -1,5 +1,6 @@
 "use server";
 
+import { audit } from "@/lib/admin/core";
 import { refresh } from "next/cache";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -62,6 +63,7 @@ export async function markWithdrawalPaid(input: { id: string; txnId: string }): 
   const { data, error } = await createAdminClient().rpc("mark_withdrawal_paid", { p_withdrawal_id: input.id, p_txn_id: txn, p_gateway: "manual", p_by: user.id });
   if (error || !data) return fail("auth.errors.generic");
   const w = data as { designer_id: string; amount: number };
+  await audit(user.id, "mark_withdrawal_paid", "withdrawal", input.id, { amount: w.amount, txn });
   await notify([w.designer_id], "withdrawal_paid", { amount: w.amount }, "/dashboard/wallet");
   refresh();
   return { ok: true };
@@ -76,6 +78,7 @@ export async function rejectWithdrawal(input: { id: string; reason: string }): P
   const { data, error } = await createAdminClient().rpc("reject_withdrawal", { p_withdrawal_id: input.id, p_reason: reason, p_by: user.id });
   if (error || !data) return fail("auth.errors.generic");
   const w = data as { designer_id: string; amount: number };
+  await audit(user.id, "reject_withdrawal", "withdrawal", input.id, { amount: w.amount, reason });
   await notify([w.designer_id], "withdrawal_rejected", { amount: w.amount }, "/dashboard/wallet");
   refresh();
   return { ok: true };

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { RevealId } from "@/components/admin/reveal-id";
 import { listAgreements } from "@/lib/agreements/queries";
 import { authorize } from "@/lib/auth/session";
@@ -17,11 +16,8 @@ export default async function AdminAgreementsPage() {
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAgreements()]);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   return (
-    <div className="mx-auto w-full max-w-page px-4 py-8">
-      <Link href="/admin" className="text-sm font-semibold text-primary hover:underline">
-        ← {t("admin.title")}
-      </Link>
-      <h1 className="mt-2 text-h1 font-bold tracking-tight text-ink">{t("admin.agreements.title")}</h1>
+    <div>
+      <h1 className="text-h2 font-bold tracking-tight text-ink lg:text-h2-lg">{t("admin.agreements.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("admin.agreements.lead")}</p>
       {list.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t("admin.agreements.empty")}</p>

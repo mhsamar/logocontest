@@ -174,6 +174,7 @@ A scheduled command runs every 15 minutes to move contests between states and se
 6. **Handover → no result** when the client neither approved nor asked for a change by `review_due_at` (§2 case 2); files already uploaded are not released.
 
 7. **Release held prizes** (owner, 2026-10-09): an approved handover not yet credited, whose copy-claim days (§7.3) are over and with no open claim, is credited to the wallet and the designer is told.
+8. **Lift suspensions** (2026-10-09): accounts suspended by strikes become active again when `suspended_until` has passed.
 
 If no designer qualifies for a share, the contest still ends as `no_result` but is marked for an admin to decide (`admin_review`).
 
@@ -434,6 +435,13 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 10. Monthly winner: review and confirm
 11. Homepage: choose featured winning logos
 12. Audit log of every money or settings change
+**M8 decisions (owner, 2026-10-09):**
+- **Cancel a contest (admin):** needs a reason; the contest becomes `cancelled` and disappears from public pages. **No refund**: the payment stays (no-refund policy); any money given back is done by hand outside the site. The client and designers who entered are told.
+- **Wizard drop-off:** each wizard visit records the furthest step reached (`wizard_visits`: anonymous visit id, furthest step, started/updated time, contest id once a draft exists; no personal data). The dashboard shows how many visits reached each step in the chosen period.
+- **Monthly winner** (item 10) is built with the leaderboard in milestone 10.
+- **Strikes** are stored one per row (`strikes`) so the history shows who gave each and why; `profiles.strikes` is the count of active ones. 1 = warning, 2 = suspension for `timers.strike_suspension_days` (`profiles.suspended_until`; the lifecycle job lifts it), 3 = permanent ban. Removing a strike lowers the count but never lifts a ban by itself.
+- **Admin pages** share a left sidebar (desktop-first, a menu on phones). Every money, settings, strike, ban, cancel, extend and force-award action asks for a short reason and is written to `audit_logs`.
+
 13. Copy claims (owner, 2026-10-09, §7.6): open claims with the winning design, the client's note and links; Reject (with note) or Uphold with Correction / Fine (amount) / Ban
 14. Designer agreements (owner, 2026-10-09, §9.6): list with name, ID type, masked number and signed date; **Show full number** is logged
 

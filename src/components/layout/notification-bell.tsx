@@ -43,6 +43,16 @@ const ICON: Record<ShownNotification["type"], { d: string; tone: string }> = {
   claim_upheld_client: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-primary/10 text-primary" },
   claim_fined: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
   claim_banned: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  strike_received: { d: "M12 8v5M12 16.5h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z", tone: "bg-danger/10 text-danger" },
+  account_suspended: { d: "M12 8v5M12 16.5h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z", tone: "bg-danger/10 text-danger" },
+  account_banned: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  flag_warning: { d: "M12 8v5M12 16.5h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  report_upheld: { d: "M5 12.5l4.5 4.5L19 7.5", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
+  report_dismissed: { d: "M5 12h14", tone: "bg-canvas text-ink" },
+  entry_removed: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  contest_cancelled: { d: "M6 6l12 12M18 6L6 18", tone: "bg-canvas text-ink" },
+  contest_cancelled_client: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  winner_picked_by_admin: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
 };
 
 /** Header bell (owner, 2026-10-08): unread count, the latest notifications, mark all as read. */
