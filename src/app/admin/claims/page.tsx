@@ -8,7 +8,10 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 
-export const metadata: Metadata = { robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("admin.claims.title"), robots: { index: false } };
+}
 
 // A-13 Copy claims (BLUEPRINT §7.6, owner 2026-10-09).
 export default async function AdminClaimsPage() {

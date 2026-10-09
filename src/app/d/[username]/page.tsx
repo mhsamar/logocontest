@@ -10,17 +10,21 @@ import { isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { designerByUsername, publicDesigns } from "@/lib/designers/profile";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
+import { openGraphFor } from "@/lib/seo";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { qrSvg } from "@/lib/profile/qr";
 
 export async function generateMetadata({ params }: PageProps<"/d/[username]">): Promise<Metadata> {
   const { username } = await params;
-  const [{ t }, designer] = await Promise.all([getI18n(), designerByUsername(username)]);
+  const [{ t, locale }, designer] = await Promise.all([getI18n(), designerByUsername(username)]);
   if (!designer) return { title: t("notFound.title"), robots: { index: false } };
+  const title = t("designerProfile.metaTitle", { name: designer.name });
+  const path = `/d/${username.toLowerCase()}`;
   return {
-    title: t("designerProfile.metaTitle", { name: designer.name }),
+    title,
     description: designer.bio ?? undefined,
-    openGraph: designer.avatarUrl ? { images: [designer.avatarUrl] } : undefined,
+    alternates: { canonical: path },
+    openGraph: openGraphFor({ title, description: designer.bio ?? undefined, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
   };
 }
 

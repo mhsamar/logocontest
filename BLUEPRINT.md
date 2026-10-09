@@ -259,6 +259,7 @@ Credits happen once, inside one database transaction (`finish_no_result` locks t
   - **Ban:** as Fine without the money, and the designer's account is banned permanently.
   - If the files were already approved, the win counts are undone. If the client does not pick again in time, the contest ends with no result (§7.5) and the removed designer gets no share.
 - This is not a money refund: the client's payment stays with the contest.
+- **Payment errors** (owner confirmed, 2026-10-09): money taken twice by mistake, or taken without the contest going live, is checked with the payment provider and corrected. This is stated in the Payment & No-Refund Policy and is not a refund.
 
 ## 8. Client flow
 
@@ -329,7 +330,7 @@ Required checkboxes (store with timestamp and IP):
 
 ### 9.6 Originality agreement (owner, 2026-10-09)
 
-Filled in once, before the designer's **first** design (the submit page sends them to `/dashboard/agreement` and back). Fields: full name, mobile number (prefilled), address, ID type (NID, passport or birth certificate) and its number. NID: 10, 13 or 17 digits; birth certificate: 17 digits; passport: 6–9 letters and digits. Then the full declaration in English and Bangla: the designs are their own original work; if a copied design is found after winning, the platform may cancel the win, withhold or fine the prize, ban the account, and take legal action under the laws of Bangladesh; the details given are true. They sign by typing their full name (must match the name above) and ticking **I agree**; the server saves the date, time, IP address, browser and the agreement version. The designer can view (not edit) their signed agreement with the ID number masked; changes go through support. Admins see every agreement (A-13). The Privacy page says why the ID number is collected and who can see it.
+Filled in once, before the designer's **first** design (the submit page sends them to `/dashboard/agreement` and back). Designers who joined before this rule sign it before their next design (owner confirmed, 2026-10-09). Fields: full name, mobile number (prefilled), address, ID type (NID, passport or birth certificate) and its number. NID: 10, 13 or 17 digits; birth certificate: 17 digits; passport: 6–9 letters and digits. Then the full declaration in English and Bangla: the designs are their own original work; if a copied design is found after winning, the platform may cancel the win, withhold or fine the prize, ban the account, and take legal action under the laws of Bangladesh; the details given are true. They sign by typing their full name (must match the name above) and ticking **I agree**; the server saves the date, time, IP address, browser and the agreement version. The designer can view (not edit) their signed agreement with the ID number masked; changes go through support. Admins see every agreement (A-13). The Privacy page says why the ID number is collected and who can see it.
 
 ### 9.3 Handover
 
@@ -463,6 +464,19 @@ Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`,
 - Verify payment gateway callbacks server-side before marking anything paid
 - Feature tests are required for: fee calculation, tier changes at 10 and 50 wins, contest state transitions (including the missed file deadline and both no-result cases), the no-result split (equal shares, exclusions, rounding), wallet credit happening exactly once, the contact filter, blind-contest visibility
 
+### 15.1 SEO and launch basics (milestone 11, 2026-10-09)
+
+- **Site address:** `SITE_URL` (for example `https://logocontest.bd`) is the base for canonical links, the sitemap and share previews. A staging copy sets `SEO_NOINDEX=true` so search engines skip it.
+- **Titles and descriptions:** every page has its own title (`Page · logocontest.bd`) and the public ones a description, in the visitor's language. Pages behind a login, admin pages, the wizard result and the auth pages are `noindex`.
+- **Hidden from search:** private contests, NDA contests, contests not yet live, dashboards, admin, `/api`, `/dev`. They are left out of the sitemap too.
+- **`/sitemap.xml`:** home, Browse, Design Studio, How It Works (both tabs), Help, designer sign-up, the four legal pages, every public live or finished contest and every active designer profile with at least one public design. **`/robots.txt`** points to it and blocks the private areas.
+- **Canonical links** on contest pages (without `?tab=` / `?entry=`), designer profiles, Browse and the legal pages, so one address is indexed per page.
+- **Share previews (Open Graph):** a site card for every page, and a contest card (brand name, prize in BDT, status) so links shared on Facebook and WhatsApp look right. Contests hidden from search get the site card only.
+- **Structured data:** Organization and WebSite on the home page.
+- **One address for both languages:** English and Bangla share each URL (the language is a cookie), so search engines index the English version; there are no separate language URLs for now.
+- **Performance:** Bangla fonts load only the Bengali characters, and the Bangla display font loads only when used; images are lazy-loaded; a production build is checked for oversized pages.
+- **Backups:** see §18.4.
+
 ## 16. Build milestones
 
 Finish, test and commit each milestone before starting the next.
@@ -488,3 +502,4 @@ Direct messaging, refunds, NID verification, international payments, design cate
 1. All **[CONFIRM]** items are settled (owner, 2026-10-07): counted wins (prize ≥ 3,000, at least 3 designers, at most 2 wins per client); upgrades ৳1,000 each; Monthly Champion ৳5,000; payment gateway SSLCommerz. (Also settled: no free or automatic extension; extension price ৳500 per day, 3/5/7 days, prompt under 5 entries; the normal designer fee applies to no-result shares; entries per designer unlimited; fee rate locked at winner pick; no-result rule; 3-day re-pick after a missed deadline.)
 2. SSLCommerz merchant account and its documents (needed for milestone 9)
 3. Legal check with a CA/lawyer: holding client funds, tax on designer payouts, VAT on the service fee, and the wording of the no-refund policy. Owner, 2026-10-09: the lawyer also checks the four legal pages and the designer originality agreement (especially the legal-action clause and storing ID numbers) before launch
+4. **Backups (2026-10-09):** the Supabase Free plan keeps no downloadable daily backups. Before launch, move the project to **Supabase Pro** (daily backups kept 7 days; point-in-time recovery is an extra). Until then, and as a second copy afterwards, `npm run backup:db` (a `pg_dump` of the database, needs `SUPABASE_DB_URL` in `.env.local`) and `npm run backup:files` (downloads the storage buckets) save to `backups/`, which is never committed. Keep a copy off this computer.

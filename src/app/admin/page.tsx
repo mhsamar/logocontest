@@ -4,7 +4,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { authorize } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("admin.title"), robots: { index: false } };
+}
 
 export default async function AdminPage() {
   const user = await authorize("admin.access");

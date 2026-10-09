@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Production build checks (NEXT_DIST_DIR=.next-check) and local backups.
+    ".next-check/**",
+    "backups/**",
   ]),
 ]);
 

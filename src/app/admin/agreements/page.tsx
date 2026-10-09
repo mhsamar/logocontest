@@ -6,7 +6,10 @@ import { authorize } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { formatBdMobile } from "@/lib/phone";
 
-export const metadata: Metadata = { robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("admin.agreements.title"), robots: { index: false } };
+}
 
 // A-13 Designer agreements (BLUEPRINT §9.6, owner 2026-10-09): ID numbers masked; each full reveal is logged.
 export default async function AdminAgreementsPage() {

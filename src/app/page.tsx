@@ -8,6 +8,9 @@ import { getFeaturedDesigners } from "@/lib/designers/featured";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { faqParams } from "@/lib/home/faq-params";
+import { siteUrl } from "@/lib/seo";
+import { getSettings } from "@/lib/settings";
+import { SUPPORT_PHONE } from "@/lib/site";
 
 // P-01 Home for visitors (and admins): hero, recent winning logos, how it works, designers you can trust, why us, two ways in, Q&A (UI-JOURNEY P-01).
 export default async function HomePage() {
@@ -17,10 +20,31 @@ export default async function HomePage() {
   if (user?.role === "designer") return <DesignerHome user={user} />;
 
   const { t, locale } = await getI18n();
-  const [{ pricing, params }, showcase, designers] = await Promise.all([faqParams(t, locale), getHomeShowcase(12), getFeaturedDesigners(3)]);
+  const [{ pricing, params }, showcase, designers, social] = await Promise.all([
+    faqParams(t, locale),
+    getHomeShowcase(12),
+    getFeaturedDesigners(3),
+    getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
+  ]);
+  // Structured data for search engines (BLUEPRINT §15.1): who we are and the site itself.
+  const base = siteUrl();
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "logocontest.bd",
+      url: base,
+      logo: `${base}/brand/logo-icon.png`,
+      contactPoint: { "@type": "ContactPoint", telephone: "+88" + SUPPORT_PHONE, contactType: "customer support", areaServed: "BD", availableLanguage: ["en", "bn"] },
+      sameAs: Object.values(social).filter(Boolean),
+    },
+    { "@context": "https://schema.org", "@type": "WebSite", name: "logocontest.bd", url: base, inLanguage: ["en", "bn"] },
+  ];
 
   return (
     <>
+      {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Hero premiumPrize={pricing.packagePrizes.premium} />
       <Showcase kind={showcase.kind} contests={showcase.contests} />
       <HowItWorks />

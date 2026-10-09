@@ -98,7 +98,7 @@ export function EntryViewer({
               {images.map((src, j) => (
                 <li key={src} className="shrink-0">
                   <button type="button" onClick={() => setI(j)} aria-label={t("submit.mockups.image", { n: j + 1 })} aria-current={i === j} className={cx("block size-14 overflow-hidden rounded-md ring-2 transition sm:size-16", i === j ? "ring-primary" : "ring-transparent opacity-70 hover:opacity-100")}>
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
                   </button>
                 </li>
               ))}

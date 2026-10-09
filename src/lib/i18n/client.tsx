@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react";
 import type { Locale } from "./config";
-import { MESSAGES } from "./messages";
+import type { Messages } from "./messages/en";
 import { createTranslator, type Translate } from "./translate";
 
 type I18nValue = { locale: Locale; t: Translate };
@@ -13,8 +13,12 @@ type I18nValue = { locale: Locale; t: Translate };
 const store = globalThis as typeof globalThis & { __lcI18nContext?: React.Context<I18nValue | null> };
 const I18nContext = (store.__lcI18nContext ??= createContext<I18nValue | null>(null));
 
-export function I18nProvider({ locale, children }: { locale: Locale; children: React.ReactNode }) {
-  const value = useMemo(() => ({ locale, t: createTranslator(locale, MESSAGES[locale]) }), [locale]);
+/**
+ * Takes the messages of one language only, passed down from the server layout, so each visitor
+ * downloads just their own language's texts (BLUEPRINT §15.1) instead of both in the JavaScript.
+ */
+export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: Messages; children: React.ReactNode }) {
+  const value = useMemo(() => ({ locale, t: createTranslator(locale, messages) }), [locale, messages]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

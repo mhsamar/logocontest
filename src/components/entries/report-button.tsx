@@ -12,7 +12,6 @@ import { cx } from "@/lib/cx";
 import { prepareReportImageUpload, reportEntry } from "@/lib/entries/actions";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from "@/lib/entries/report-reasons";
 import { useI18n } from "@/lib/i18n/client";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 function FlagIcon({ className }: { className?: string }) {
   return (
@@ -66,6 +65,8 @@ export function ReportButton({ entryId, number, loginHref }: { entryId: string; 
         setImage(null);
         return setError(t(prepared.error.key, prepared.error.params));
       }
+      // Loaded only when someone attaches evidence, so the public contest page stays light (BLUEPRINT §15.1).
+      const { createBrowserSupabase } = await import("@/lib/supabase/browser");
       const { error: upError } = await createBrowserSupabase().storage.from("entry-files").uploadToSignedUrl(prepared.path, prepared.token, f, { contentType: f.type });
       if (upError) {
         setImage(null);

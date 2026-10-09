@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/legal/[page]">): 
   if (!isLegalSlug(page)) return {};
   const { t, locale } = await getI18n();
   const doc = legalDoc(page, locale, await legalParams(t, locale));
-  return { title: doc.title, description: doc.description };
+  return { title: doc.title, description: doc.description, alternates: { canonical: `/legal/${page}` } };
 }
 
 // P-10 legal pages (UI-JOURNEY, owner 2026-10-09): Terms, Privacy, Payment & No-Refund Policy, Designer Rules.

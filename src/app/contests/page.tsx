@@ -16,7 +16,7 @@ import { formatNumber } from "@/lib/money";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("browse.meta.title"), description: t("browse.meta.description") };
+  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: { canonical: "/contests" } };
 }
 
 // P-02 Browse contests

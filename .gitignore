@@ -41,3 +41,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Database and storage backups (BLUEPRINT §18.4): personal data, never commit
+/backups/

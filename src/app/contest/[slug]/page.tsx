@@ -26,6 +26,7 @@ import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib
 import { entryScope } from "@/lib/entries/rules";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
+import { contestIndexable, openGraphFor } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { getSetting } from "@/lib/settings";
@@ -33,14 +34,18 @@ import { can, type CurrentUser } from "@/lib/auth/policies";
 
 export async function generateMetadata({ params }: PageProps<"/contest/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const contest = await getContestBySlug(slug, user);
   if (!contest) return { title: t("notFound.title"), robots: { index: false } };
+  const title = contestTitle(contest, t);
+  const description = contest.brief?.description.slice(0, 160);
   return {
-    title: contestTitle(contest, t),
-    description: contest.brief?.description.slice(0, 160),
-    // Private contests are hidden from search engines (upgrade description).
-    robots: contest.isPrivate || contest.rawStatus !== contest.status ? { index: false } : undefined,
+    title,
+    description,
+    openGraph: openGraphFor({ title, description, path: `/contest/${contest.slug}`, locale }),
+    alternates: { canonical: `/contest/${contest.slug}` },
+    // Private and NDA contests, and anything not yet live, are hidden from search engines (BLUEPRINT §15.1).
+    robots: contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda }) ? undefined : { index: false },
   };
 }
 

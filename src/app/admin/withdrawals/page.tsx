@@ -6,7 +6,10 @@ import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
 import { pendingWithdrawals } from "@/lib/wallet/queries";
 
-export const metadata: Metadata = { robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("admin.withdrawals.title"), robots: { index: false } };
+}
 
 // Admin withdrawal queue (BLUEPRINT §7.3): bank requests, and bKash when the automatic payout is off or failed.
 export default async function AdminWithdrawalsPage() {

@@ -67,7 +67,7 @@ export async function TrustedDesigners({ designers }: { designers: FeaturedDesig
                   <div className="flex flex-col gap-1.5 overflow-hidden rounded-xl shadow-card sm:gap-2">
                     {d
                       ? d.logos.slice(0, 3).map((url) => (
-                          <img key={url} src={url} alt={t("home.trust.logoBy", { name: d.name })} className="aspect-square w-full bg-white object-contain" />
+                          <img key={url} src={url} loading="lazy" alt={t("home.trust.logoBy", { name: d.name })} className="aspect-square w-full bg-white object-contain" />
                         ))
                       : (col as React.ReactNode[]).map((logo, j) => <div key={j}>{logo}</div>)}
                   </div>

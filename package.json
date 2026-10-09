@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "backup:db": "bash scripts/backup-db.sh",
+    "backup:files": "node scripts/backup-files.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

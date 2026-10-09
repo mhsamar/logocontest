@@ -193,7 +193,7 @@ export async function DesignerDashboard({
                     >
                       {c.latestCoverUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={c.winningLogoUrl ?? c.latestCoverUrl} alt="" className="h-full w-full object-cover" />
+                        <img src={c.winningLogoUrl ?? c.latestCoverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                       )}
                       {c.won && <WinnerTrophy size="sm" className="absolute -right-0.5 -top-0.5 scale-75" />}
                     </Link>
@@ -223,7 +223,7 @@ export async function DesignerDashboard({
                       <WinnerTrophy size="sm" className="absolute right-1.5 top-1.5" />
                       {w.winningLogoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={w.winningLogoUrl} alt="" className="aspect-square w-full bg-white object-contain p-2" />
+                        <img src={w.winningLogoUrl} alt="" loading="lazy" className="aspect-square w-full bg-white object-contain p-2" />
                       )}
                       <span className="block truncate border-t border-line px-2 py-1.5 text-xs font-medium text-ink">{w.brandName}</span>
                     </Link>
