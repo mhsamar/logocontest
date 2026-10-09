@@ -54,6 +54,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const nextPath = typeof sp.next === "string" ? sp.next : undefined;
   const as: As | null = sp.as === "client" || sp.as === "designer" ? sp.as : null;
 
+  // Admin links skip the client/designer choice: the form is the same, and an admin is neither.
+  if (!as && (nextPath === "/admin" || nextPath?.startsWith("/admin/"))) {
+    return (
+      <AuthCard title={t("auth.login.adminTitle")} subtitle={t("auth.login.adminSubtitle")}>
+        <LoginForm next={nextPath} />
+      </AuthCard>
+    );
+  }
+
   if (!as) {
     return (
       <AuthCard title={t("auth.login.title")} subtitle={t("auth.login.chooseSubtitle")}>

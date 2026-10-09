@@ -283,6 +283,8 @@ const bn: Messages = {
       forgot: "পাসওয়ার্ড ভুলে গেছেন?",
       chooseSubtitle: "আপনি কে হিসেবে লগ ইন করছেন?",
       newHere: "নতুন?",
+      adminTitle: "অ্যাডমিন লগ ইন",
+      adminSubtitle: "অ্যাডমিন মোবাইল নম্বর বা ইমেইল আর পাসওয়ার্ড দিয়ে লগ ইন করুন।",
       client: {
         choice: "আমি ক্লায়েন্ট",
         choiceLine: "আমার ব্যবসার জন্য লোগো চাই",

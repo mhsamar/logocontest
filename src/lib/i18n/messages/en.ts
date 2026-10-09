@@ -281,6 +281,8 @@ const en = {
       forgot: "Forgot password?",
       chooseSubtitle: "Who are you logging in as?",
       newHere: "New here?",
+      adminTitle: "Admin log in",
+      adminSubtitle: "Log in with your admin mobile number or email and password.",
       client: {
         choice: "I'm a client",
         choiceLine: "I want a logo for my business",
