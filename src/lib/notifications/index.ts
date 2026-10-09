@@ -22,6 +22,15 @@ export const NOTIFICATION_TYPES = [
   "handover_approved",
   "withdrawal_paid",
   "withdrawal_rejected",
+  "ending_soon",
+  "ending_soon_extend",
+  "ending_soon_designer",
+  "judging_started",
+  "judging_reminder",
+  "win_cancelled",
+  "repick_winner",
+  "no_result_client",
+  "no_result_share",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

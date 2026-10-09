@@ -723,6 +723,15 @@ const en = {
       handover_approved: "{brand} approved your files. {amount} was added to your wallet.",
       withdrawal_paid: "Your withdrawal of {amount} was sent",
       withdrawal_rejected: "Your withdrawal of {amount} was returned to your wallet",
+      ending_soon: "{brand} ends within a day",
+      ending_soon_extend: "{brand} ends within a day and has few designs. Extend it to get more.",
+      ending_soon_designer: "{brand} ends within a day. Last chance to submit.",
+      judging_started: "{brand} has ended. Pick your winner within {days} days.",
+      judging_reminder: "Pick a winner for {brand}: {days} days left",
+      win_cancelled: "Your win in {brand} was cancelled because the files weren't uploaded in time",
+      repick_winner: "The winner of {brand} didn't deliver the files. Pick another winner within {days} days.",
+      no_result_client: "{brand} ended with no result. The prize was shared among the designers.",
+      no_result_share: "{brand} ended with no result. Your share, {amount}, was added to your wallet.",
     },
   },
   manage: {
@@ -1724,6 +1733,11 @@ const en = {
       txn: "Enter the transaction ID.",
       reason: "Write a short reason.",
     },
+  },
+  lifecycle: {
+    pickBy: "Your contest has ended. Pick your winner by {date}, or it ends with no result and the prize is shared among the designers.",
+    noResultClient: "This contest ended with no result. The prize was shared equally among the designers who took part, and no final files or copyright were transferred.",
+    noResultDesigner: "This contest ended with no result. If you had a design in it, your equal share of the prize was added to your wallet.",
   },
 };
 

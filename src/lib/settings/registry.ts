@@ -151,7 +151,7 @@ export const SETTINGS = {
   },
   "timers.judging_window_days": {
     group: "timers", type: "int", schema: int(1), default: 5,
-    description: "Days the client has to pick a winner; then the highest-rated entry wins.",
+    description: "Days the client has to pick a winner after the contest ends; then it ends with no result and the prize is shared.",
   },
   "timers.repick_window_days": {
     group: "timers", type: "int", schema: int(1), default: 3,

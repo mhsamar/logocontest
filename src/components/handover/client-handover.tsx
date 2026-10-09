@@ -69,6 +69,8 @@ export function ClientHandover({
       router.refresh();
     });
 
+  // No result (§2): files already uploaded are not released to the client.
+  if (status === "no_result") return <p className="rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultClient")}</p>;
   if (status === "awaiting_files") return <p className="rounded-2xl bg-[#e8f1ff] p-4 text-[#1d4ed8] ring-1 ring-[#bcd0ff]">{t("handover.waiting.client", { date: date(dueAt) })}</p>;
   if (status === "revision_requested") return <p className="rounded-2xl bg-[#fff7e0] p-4 text-[#8a5105] ring-1 ring-[#f1c75c]/60">{t("handover.waiting.revision")}</p>;
 

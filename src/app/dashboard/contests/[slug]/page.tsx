@@ -21,6 +21,7 @@ import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, latestScan, listEntries } from "@/lib/entries/queries";
 import { getHandoverByContest } from "@/lib/handover/queries";
+import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
@@ -211,6 +212,14 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
         </dl>
       </section>
 
+      {/* Lifecycle (BLUEPRINT §6): pick a winner by the deadline, or the contest ended with no result */}
+      {contest.status === "judging" && contest.judgingEndsAt && (
+        <p className="mt-6 animate-rise rounded-2xl bg-[#fff7e0] p-4 font-medium text-[#8a5105] ring-1 ring-[#f1c75c]/60">
+          {t("lifecycle.pickBy", { date: formatDate(contest.judgingEndsAt, locale, "long") })}
+        </p>
+      )}
+      {contest.status === "no_result" && <p className="mt-6 animate-rise rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultClient")}</p>}
+
       {/* C-17 Final files: the handover after a winner is picked (owner, 2026-10-08) */}
       {handover && (
         <section className="mt-10 animate-rise rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
@@ -227,7 +236,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             <ClientHandover
               handoverId={handover.id}
               status={handover.status}
-              files={handover.files}
+              // No result (§2): uploaded files are never released, so their links don't even reach the page.
+              files={handover.status === "no_result" ? [] : handover.files}
               fontsNote={handover.fontsNote}
               dueAt={handover.dueAt.toISOString()}
               reviewDueAt={handover.reviewDueAt ? handover.reviewDueAt.toISOString() : null}

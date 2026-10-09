@@ -23,6 +23,15 @@ const ICON: Record<ShownNotification["type"], { d: string; tone: string }> = {
   handover_approved: { d: "M3 7h18v12H3ZM3 11h18M16 15h2", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
   withdrawal_paid: { d: "M5 12.5l4.5 4.5L19 7.5", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
   withdrawal_rejected: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  ending_soon: { d: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  ending_soon_extend: { d: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  ending_soon_designer: { d: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  judging_started: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-[#fff7e0] text-[#8a5105]" },
+  judging_reminder: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-primary/10 text-primary" },
+  win_cancelled: { d: "M6 6l12 12M18 6L6 18", tone: "bg-danger/10 text-danger" },
+  repick_winner: { d: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z", tone: "bg-primary/10 text-primary" },
+  no_result_client: { d: "M5 12h14", tone: "bg-canvas text-ink" },
+  no_result_share: { d: "M3 7h18v12H3ZM3 11h18M16 15h2", tone: "bg-[#e7f8f0] text-[#0f6b45]" },
 };
 
 /** Header bell (owner, 2026-10-08): unread count, the latest notifications, mark all as read. */

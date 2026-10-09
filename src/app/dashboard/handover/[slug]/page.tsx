@@ -56,6 +56,7 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
         <HandoverTracker status={h.status} t={t} />
       </div>
 
+      {h.status === "no_result" && <p className="mt-6 rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultDesigner")}</p>}
       {h.status === "revision_requested" && h.revisionNote && (
         <div className="mt-6 animate-rise rounded-2xl bg-[#fff7e0] p-4 ring-1 ring-[#f1c75c]/60">
           <p className="font-semibold text-[#8a5105]">{t("handover.revision.title")}</p>

@@ -158,6 +158,17 @@ Missed file deadline: the winning entry becomes `forfeited`, the handover `cance
 
 A scheduled command runs every 15 minutes to move contests between states and send reminders.
 
+**How it runs (owner, 2026-10-08):** `/api/cron/lifecycle`, protected by `CRON_SECRET` (sent as `Authorization: Bearer …`), does everything that is due and is safe to run again: each step is one database function that checks the state first, and each reminder is recorded (`lifecycle_events`) so it is sent once. Any scheduler can call it every 15 minutes (Supabase `pg_cron` + `pg_net`, or the host's cron). Each run, in order:
+
+1. **Ending soon** (`timers.ending_soon_notice_hours` before `ends_at`): one notice to the client (with **Extend** when there are fewer than `limits.low_entry_prompt_threshold` active designs) and to the designers who entered.
+2. **Open → judging** when `ends_at` has passed: `judging_ends_at = ends_at + timers.judging_window_days`; the client is told to pick a winner by then.
+3. **Pick-a-winner reminders** on the judging days in `timers.judging_reminder_days` (1, 3, 5).
+4. **Judging → no result** when `judging_ends_at` has passed with no winner (§2 case 1).
+5. **Missed file deadline:** a handover still waiting for files after `due_at` → the entry is `forfeited`, the handover `cancelled`, the contest back to `judging` with `judging_ends_at = now + timers.repick_window_days`; the designer and the client are told. When the client asks for a change, the designer gets a new `due_at` (`timers.designer_file_upload_days`) for the revised files.
+6. **Handover → no result** when the client neither approved nor asked for a change by `review_due_at` (§2 case 2); files already uploaded are not released.
+
+If no designer qualifies for a share, the contest still ends as `no_result` but is marked for an admin to decide (`admin_review`).
+
 ## 7. Money
 
 ### 7.1 Client charge
@@ -226,7 +237,7 @@ fee       = round(share * rate)                 rate = each designer's normal ti
 credit    = share - fee                         → one `split_share` wallet transaction per designer
 ```
 
-Credits happen once, inside one database transaction. If no designer qualifies, an admin decides.
+Credits happen once, inside one database transaction (`finish_no_result` locks the contest and only runs while it is still judging or in handover). If no designer qualifies, an admin decides (the contest is marked `admin_review`). Eligible = designers with an `active` or `winner` entry, minus any designer whose entry was `forfeited` in this contest.
 
 ## 8. Client flow
 
