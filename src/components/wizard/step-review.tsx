@@ -179,7 +179,11 @@ export function ReviewStep({
             <Link href="/legal/terms" target="_blank" className="font-semibold text-primary underline">
               {t("footer.terms")}
             </Link>{" "}
-            {t("wizard.c11.termsAfter")}
+            {t("wizard.c11.termsAfter")}{" "}
+            <Link href="/legal/payment-refund" target="_blank" className="font-semibold text-primary underline">
+              {t("footer.refund")}
+            </Link>{" "}
+            {t("wizard.c11.termsEnd")}
           </>
         }
       />

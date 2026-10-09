@@ -9,14 +9,14 @@ import { dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, typ
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; errors: string[] };
+export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
 const DAY = 86_400_000;
 
 export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
-  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, errors: [] };
+  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, errors: [] };
   if (!isSupabaseConfigured()) return report;
   const db = createAdminClient();
   const s = await getSettings([
@@ -26,6 +26,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     "timers.repick_window_days",
     "limits.low_entry_prompt_threshold",
     "fees.designer_tiers",
+    "timers.copy_claim_days",
   ]);
   const iso = now.toISOString();
   const fail = (step: string, id: string, e: unknown) => report.errors.push(`${step} ${id}: ${e instanceof Error ? e.message : String(e)}`);
@@ -144,6 +145,30 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         report.noResult++;
       } catch (e) {
         fail("no-result", c.id, e);
+      }
+    }
+  }
+
+  // 7. Release held prizes: approved, copy-claim days over, no open claim (§7.3). The function re-checks all of it.
+  {
+    const heldBefore = new Date(now.getTime() - s["timers.copy_claim_days"] * DAY).toISOString();
+    const { data } = await db
+      .from("handovers")
+      .select("id, designer_id, contest:contests!contest_id(brand_name)")
+      .eq("status", "approved")
+      .is("credited_at", null)
+      .lte("created_at", heldBefore);
+    for (const h of data ?? []) {
+      try {
+        const { data: tx, error } = await db.rpc("release_prize_credit", { p_handover_id: h.id });
+        if (error) throw new Error(error.message);
+        const amount = (tx as { amount?: number } | null)?.amount;
+        if (!amount) continue;
+        const brand = (Array.isArray(h.contest) ? h.contest[0] : h.contest)?.brand_name as string | undefined;
+        await notify([h.designer_id as string], "prize_released", { brand, amount }, "/dashboard/wallet");
+        report.released++;
+      } catch (e) {
+        fail("release", h.id as string, e);
       }
     }
   }

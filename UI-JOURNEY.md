@@ -223,6 +223,8 @@ Headline "Design logos. Win contests. Get paid in bKash." Three steps, the fee t
 
 FAQ and legal pages stay simple text pages. Legal pages: Terms, Privacy, Payment & No-Refund Policy, Designer Rules.
 
+**P-10 legal pages (owner, 2026-10-09):** `/legal/[page]`. A narrow reading column: title, "Last updated [date]", a short summary box ("In short") and numbered sections with headings; on wide screens a sticky contents list on the left, on phones a contents list under the summary. A row of links to the other three legal pages at the bottom. Same text in English and Bangla (the language switch).
+
 ### P-11 Log in
 
 After logging in (owner, 2026-10-08): clients go to their dashboard (`C-13`), designers to **Browse contests** (`P-02`), admins to the admin panel — unless the login was started from a specific page (`?next=`), which wins. A logged-in person who opens `/login` is sent to the same place.
@@ -322,6 +324,8 @@ A four-step tracker: Winner picked → Files uploaded → Your review → Done.
 - **Missed deadline state:** "The designer didn't deliver the files in time. Please pick another winner." Button **Pick another winner** → `C-14` (the forfeited entry is marked and cannot be picked), shown with "Pick by [date] (3 days)". A secondary link **Give the designer a strike** opens the strike sheet.
 - **Files ready state:** list of files with type icons (AI, EPS, SVG, PDF, PNG, JPG) and download buttons, **Download all**, font names. Two buttons: **Approve files** and **Request a change** (opens a note field; shows "1 of 2 change requests left"). **Approve files** opens a sheet: 5 tappable stars (required) and "Feedback for the designer" (required, max 120 words, live word counter), then **Approve and release payment**. A note: "Please approve or ask for a change by [date]. If you don't respond, the contest ends with no result and you won't receive the files."
 
+Owner, 2026-10-09: for `timers.copy_claim_days` days after the pick, the handover section shows a quiet link **Report copied design** ("Is the winning design copied? Tell us by [date]"). It opens a sheet: what's wrong (required, 20–1000 characters), up to 5 links, and **Send claim**. While a claim is open the section shows "Claim under review"; afterwards the result (rejected with the admin's note, or upheld with what happens next).
+
 ### C-18 Completed
 
 "Your logo is ready." Download buttons stay available, plus a copyright transfer summary with a download link, and **Start another contest**. Blind contests also show a switch "Show the winning logo publicly" (off by default); when on, the logo appears with the designer's name.
@@ -385,6 +389,12 @@ Owner, 2026-10-08. At `/contest/[slug]/submit`, for designers while the contest 
 
 A designer can submit any number of designs to the same contest; each design holds up to 8 mockups.
 
+Owner, 2026-10-09: a designer who has not signed the originality agreement is sent to `D-12` first and comes back here after signing.
+
+### D-12 Originality agreement (owner, 2026-10-09)
+
+At `/dashboard/agreement`. Intro: "One-time agreement before your first design." A card with the fields (full name, mobile, address, ID type as three chips NID · Passport · Birth certificate, ID number with the format hint), then the declaration in a scroll box, then **Type your full name to sign**, the **I agree** checkbox and **Sign and continue**. After signing: a read-only summary (name, ID type, number as `••••••3456`, signed date and time) and a link to the Designer Rules.
+
 ### D-05 Submitted
 
 "Design submitted. You're #14 in this contest." Buttons **View my design** (opens it on the contest page) and **Find more contests**.
@@ -409,7 +419,7 @@ After sending: the same four-step tracker as `C-17`, with "Waiting for the clien
 
 ### D-10 Wallet
 
-- Balance card: **Available ৳4,650** and "Pending ৳0" with a tooltip explaining pending.
+- Balance card: **Available ৳4,650** and "Pending ৳0" with a tooltip explaining pending. Owner, 2026-10-09: an approved prize still in its copy-claim hold shows under Pending as "৳4,250 · available [date]" (or "on hold: claim under review").
 - Fee tier card with progress bar and the three tiers shown as steps.
 - **Withdraw** button (disabled under ৳500 with the reason shown).
 - Transaction list: date, description, amount in green or red, running balance. Each prize row expands to show prize, fee rate, fee amount.
@@ -456,6 +466,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-10 | Blocked terms | List with add/remove and a test box that shows whether sample text would be blocked |
 | A-11 | Settings | Grouped form: Fees and tiers, Packages, Upgrades, Timers, Limits, Monthly prize, Site (footer social links: Facebook page, Facebook group, Instagram, YouTube, LinkedIn; an empty link hides its icon) |
 | A-12 | Audit log | Read-only table of admin actions |
+| A-13 | Copy claims & agreements (owner, 2026-10-09) | `/admin/claims`: open claims with the winning design, client note and links; Reject (note) or Uphold → Correction / Fine (amount) / Ban, with a note. `/admin/agreements`: designer agreements with masked ID numbers and **Show full number** (logged) |
 
 Every destructive admin action asks for confirmation and a short reason.
 

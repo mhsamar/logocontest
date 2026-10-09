@@ -14,6 +14,7 @@ export type HandoverView = {
   contestSlug: string;
   brandName: string;
   clientId: string;
+  entryId: string;
   entryNumber: number;
   designerId: string;
   designer: { name: string; username: string | null };
@@ -29,6 +30,9 @@ export type HandoverView = {
   submittedAt: Date | null;
   reviewDueAt: Date | null;
   approvedAt: Date | null;
+  /** When the winner was picked (the handover is made then): the copy-claim days count from here (§7.6). */
+  pickedAt: Date;
+  creditedAt: Date | null;
   rating: number | null;
   feedback: string | null;
   deliverables: Deliverable[];
@@ -36,15 +40,18 @@ export type HandoverView = {
 };
 
 const SELECT =
-  "id, contest_id, entry_id, designer_id, status, prize, fee_rate, revision_count, revision_note, fonts_note, due_at, submitted_at, review_due_at, approved_at, client_rating, client_feedback, " +
+  "id, contest_id, entry_id, designer_id, status, created_at, credited_at, prize, fee_rate, revision_count, revision_note, fonts_note, due_at, submitted_at, review_due_at, approved_at, client_rating, client_feedback, " +
   "contest:contests!contest_id(slug, brand_name, client_id, deliverables), entry:entries!entry_id(number), designer:profiles!designer_id(name, username), " +
   "files:handover_files!handover_id(id, file_type, path, original_name, size_bytes, created_at)";
 
 type Row = {
   id: string;
   contest_id: string;
+  entry_id: string;
   designer_id: string;
   status: HandoverStatus;
+  created_at: string;
+  credited_at: string | null;
   prize: number;
   fee_rate: number;
   revision_count: number;
@@ -78,6 +85,7 @@ async function toView(r: Row): Promise<HandoverView> {
     contestSlug: contest?.slug ?? "",
     brandName: contest?.brand_name ?? "",
     clientId: contest?.client_id ?? "",
+    entryId: r.entry_id,
     entryNumber: one(r.entry)?.number ?? 0,
     designerId: r.designer_id,
     designer: one(r.designer) ?? { name: "—", username: null },
@@ -93,6 +101,8 @@ async function toView(r: Row): Promise<HandoverView> {
     submittedAt: date(r.submitted_at),
     reviewDueAt: date(r.review_due_at),
     approvedAt: date(r.approved_at),
+    pickedAt: new Date(r.created_at),
+    creditedAt: date(r.credited_at),
     rating: r.client_rating,
     feedback: r.client_feedback,
     deliverables: contest?.deliverables ?? [],

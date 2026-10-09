@@ -31,6 +31,17 @@ export const NOTIFICATION_TYPES = [
   "repick_winner",
   "no_result_client",
   "no_result_share",
+  "handover_approved_held",
+  "prize_released",
+  "claim_opened",
+  "claim_opened_admin",
+  "claim_rejected_client",
+  "claim_rejected_designer",
+  "claim_correction_client",
+  "claim_correction_designer",
+  "claim_upheld_client",
+  "claim_fined",
+  "claim_banned",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

@@ -24,18 +24,19 @@ Marketing targets clients. Designers are expected to arrive on their own.
 |---|---|
 | Client service fee | 25% of the prize, added on top (prize 5,000 → client pays 6,250); 15% when the prize is above 30,000 (custom prizes) (owner, 2026-10-08; was 20%; both rates and the threshold are settings) |
 | Designer fee | 15% (0–9 wins), 10% (10–49 wins), 5% (50+ wins) (owner, 2026-10-08; was 7% / 5% / 2%) |
-| Refunds | None. All payments are non-refundable |
+| Refunds | None. All payments are non-refundable. One exception, which is not a money refund (owner, 2026-10-09): a proven copy claim on the winning design lets the client pick another design (§7.6) |
+| Copy claim (owner, 2026-10-09) | Within `timers.copy_claim_days` (3) days of picking the winner, the client can claim the winning design is copied or breaks someone's copyright (§7.6). The winner's prize stays on hold for the same days |
 | Entry visibility | Client chooses. Open is the default and free. Blind is a paid upgrade (only the client ever sees the entries, see §7.4) |
 | Entries per designer | Unlimited. To answer client feedback, a designer submits a new entry |
 | Late delivery | If the winner does not upload the final files within 3 days, the win is cancelled and the client picks another entry |
 | Copy flags | Any designer can flag an entry as copied, with a reason, a similar-logo image and links. Admin upholds or dismisses |
-| NID verification | Not used |
+| NID verification | Not verified. Owner, 2026-10-09: before their first design, every designer signs the originality agreement with their full name, mobile, address and an ID number (NID, passport or birth certificate), §9.6. The number is stored for legal follow-up, not checked |
 | Funds | Platform holds the client's payment until handover is approved |
-| Payout | Win → deliver files → client approves with a 1–5 star rating and feedback (max 120 words) → wallet credit → designer withdraws |
+| Payout | Win → deliver files → client approves with a 1–5 star rating and feedback (max 120 words) → wallet credit once the copy-claim days are over and no claim is open (owner, 2026-10-09) → designer withdraws |
 | AI | AI-generated logos are banned. AI-generated mockups/backgrounds are allowed |
 | Reject | Client can reject any entry to keep the contest clean |
 | Messaging | No direct messaging. Only a comment + reply thread on each entry |
-| Copied logo | Permanent ban |
+| Copied logo | Permanent ban. A proven copy claim on a winning design: the admin talks with the designer and decides a correction, a fine or a ban (owner, 2026-10-09; §7.6) |
 | Packages | Starter 3,000 / Growth 5,000 / Pro 8,000 / Premium 12,000 / Elite 15,000 / Custom (min 3,000, step 500) (owner, 2026-10-08; database keys economy, standard, pro, premium, elite, custom) |
 | Contest number (owner, 2026-10-08) | Every contest gets a running number shown as "Contest #00001" (five digits, more when needed) on its page, cards, dashboard and manage page, so everyone sees how many contests have run. The number is given when the contest is published (payment confirmed), so unpaid drafts never leave gaps. Existing contests were numbered in the order they started |
 | Contest length | Any whole number of days from 3 to 30 (owner, 2026-10-08; min, max and the quick-pick chips are settings) |
@@ -87,6 +88,10 @@ All tables have `id`, `created_at`, `updated_at`. Money columns are unsigned int
 
 Designers also get `rules_accepted_at` on users: when they ticked the Designer Rules at sign-up (D-01).
 
+**designer_agreements** (owner, 2026-10-09, §9.6): designer_id (one per designer), full_name, mobile, address, id_type (nid/passport/birth_certificate), id_number, signature_name (the typed full name), version (of the agreement text), signed_at, signed_ip, user_agent. Only the server and admins read it; the ID number is shown masked (`••••••3456`) and an admin's "show full number" is written to `audit_logs`
+
+**copy_claims** (owner, 2026-10-09, §7.6): contest_id, handover_id, entry_id, client_id, designer_id, note, evidence_urls (json, up to 5), status (open/upheld/rejected), outcome (correction/fine/ban, when upheld), fine_amount, admin_note, resolved_by, resolved_at. One open claim per handover
+
 **contests**: client_id, slug, status, brand_name, logo_text, slogan, business_type, business_description, website_url, styles (json), style_sliders (json), colors (json, up to 5 hex), let_designers_choose_colors (bool), used_on (json), likes_text, dislikes_text, short_name, target_audience, deliverables (text[]: icon_only, short_logo, versions, app_icons), requirements (text[]: no_stock, home_mockup), requirements_note, package (economy/standard/premium/custom), prize_amount, service_fee_amount, upgrades_amount, total_amount, duration_days, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, logo_scan, winner_is_public (bool, blind contests only, set by the client after completion), starts_at, ends_at, judging_ends_at, extensions_count (int), extension_days_total (int), winner_entry_id, completed_at
 
 **contest_files**: contest_id, type (example/current_logo), path, original_name
@@ -101,7 +106,7 @@ Designers also get `rules_accepted_at` on users: when they ticked the Designer R
 
 **contest_favorites**: user_id, contest_id, created_at — contests a designer saved (§10)
 
-**handovers**: contest_id, entry_id, status (awaiting_files/submitted/revision_requested/approved/cancelled/no_result), fee_rate (locked when the winner is picked), revision_count, fonts_note, agreement_accepted_at, due_at, approved_at, client_rating (1–5), client_feedback (max 120 words)
+**handovers**: contest_id, entry_id, status (awaiting_files/submitted/revision_requested/approved/cancelled/no_result), fee_rate (locked when the winner is picked), credited_at (when the prize reached the wallet, §7.3), revision_count, fonts_note, agreement_accepted_at, due_at, approved_at, client_rating (1–5), client_feedback (max 120 words)
 
 **handover_files**: handover_id, file_type (ai/eps/svg/pdf/png/jpg), path
 
@@ -138,6 +143,7 @@ draft → pending_payment → open → judging → winner_selected → handover 
                                     judging → no_result (client picked no winner, §2)
                                     handover → no_result (client silent 5 days after files, §2)
 handover → judging (winner missed the 3-day file deadline; win cancelled)
+handover/completed → judging (copy claim upheld with a fine or ban, §7.6)
 any state → cancelled (admin only)
 ```
 
@@ -166,6 +172,8 @@ A scheduled command runs every 15 minutes to move contests between states and se
 4. **Judging → no result** when `judging_ends_at` has passed with no winner (§2 case 1).
 5. **Missed file deadline:** a handover still waiting for files after `due_at` → the entry is `forfeited`, the handover `cancelled`, the contest back to `judging` with `judging_ends_at = now + timers.repick_window_days`; the designer and the client are told. When the client asks for a change, the designer gets a new `due_at` (`timers.designer_file_upload_days`) for the revised files.
 6. **Handover → no result** when the client neither approved nor asked for a change by `review_due_at` (§2 case 2); files already uploaded are not released.
+
+7. **Release held prizes** (owner, 2026-10-09): an approved handover not yet credited, whose copy-claim days (§7.3) are over and with no open claim, is credited to the wallet and the designer is told.
 
 If no designer qualifies for a share, the contest still ends as `no_result` but is marked for an admin to decide (`admin_review`).
 
@@ -207,6 +215,7 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 
 - The wallet is a ledger. Never store a balance without a matching `wallet_transactions` row.
 - Credit happens once, inside a database transaction, when the handover becomes approved (or, for a no-result contest, once per designer share, §7.5).
+- **Copy-claim hold (owner, 2026-10-09):** a prize is credited only when the handover is approved **and** `timers.copy_claim_days` (3) days have passed since the winner was picked **and** no copy claim is open. Until then it shows as Pending with the date it becomes available. If the client approves after the hold is over, the credit is immediate; otherwise the lifecycle job credits it when the hold ends (`release_prize_credit`, sets `handovers.credited_at`). No-result shares are not held (no files change hands).
 - Withdrawal: minimum 500; the request deducts the balance immediately. **Payout (owner, 2026-10-08): automatic for bKash** — behind a `PayoutGateway` interface with drivers `fake` (development: pays at once with a FAKE transaction ID, not allowed in production), `manual` (nothing is sent; the request waits for an admin) and `bkash` (bKash disbursement, switched on once the merchant payout credentials are set). Bank withdrawals, and any bKash payout that fails, wait in the admin's withdrawal queue: the admin pays by hand and records the transaction ID, or rejects with a reason. A rejected withdrawal returns the amount (an `adjustment` transaction).
 - Balance = the latest `balance_after`; every change locks the designer's profile row first, so two requests can't spend the same money. Pending = what open handovers will pay (prize − fee) once approved.
 
@@ -238,6 +247,18 @@ credit    = share - fee                         → one `split_share` wallet tra
 ```
 
 Credits happen once, inside one database transaction (`finish_no_result` locks the contest and only runs while it is still judging or in handover). If no designer qualifies, an admin decides (the contest is marked `admin_review`). Eligible = designers with an `active` or `winner` entry, minus any designer whose entry was `forfeited` in this contest.
+
+### 7.6 Copy claim on the winning design (owner, 2026-10-09)
+
+- **Who and when:** the client, within `timers.copy_claim_days` (3) days of picking the winner, from the handover section of their contest page (**Report copied design**) or through support (an admin can file it for them). They describe the problem and add up to 5 links (the original logo, a stock page, etc.). One open claim per handover.
+- **While open:** the prize is frozen (no credit, even after the hold days); the handover itself carries on. The designer and admins are told.
+- **Rejected:** the claim is closed with the admin's note; the prize is credited as normal once the hold is over.
+- **Upheld:** the admin talks with the designer and picks one outcome:
+  - **Correction** (owner confirmed, 2026-10-09: the designer fixes the design and the client keeps that win): the win stays. The designer must send corrected files: the handover goes back to *change requested* with a new deadline (`timers.designer_file_upload_days`) and the admin's note; if the files were already approved, the approval and the win count are undone so the client approves again.
+  - **Fine:** the win is cancelled and the client picks another design (`timers.repick_window_days`, as after a missed deadline). The designer's designs in this contest are removed, no prize is paid, and the fine (taka, at most the wallet balance) is taken as an `adjustment`.
+  - **Ban:** as Fine without the money, and the designer's account is banned permanently.
+  - If the files were already approved, the win counts are undone. If the client does not pick again in time, the contest ends with no result (§7.5) and the removed designer gets no share.
+- This is not a money refund: the client's payment stays with the contest.
 
 ## 8. Client flow
 
@@ -305,6 +326,10 @@ Required checkboxes (store with timestamp and IP):
 5. If I win, I will deliver AI, EPS, SVG, PDF, PNG and JPG files within 3 days.
 6. I will not share or ask for any contact details.
 7. I understand that a copied or AI-generated logo means removal and a permanent ban.
+
+### 9.6 Originality agreement (owner, 2026-10-09)
+
+Filled in once, before the designer's **first** design (the submit page sends them to `/dashboard/agreement` and back). Fields: full name, mobile number (prefilled), address, ID type (NID, passport or birth certificate) and its number. NID: 10, 13 or 17 digits; birth certificate: 17 digits; passport: 6–9 letters and digits. Then the full declaration in English and Bangla: the designs are their own original work; if a copied design is found after winning, the platform may cancel the win, withhold or fine the prize, ban the account, and take legal action under the laws of Bangladesh; the details given are true. They sign by typing their full name (must match the name above) and ticking **I agree**; the server saves the date, time, IP address, browser and the agreement version. The designer can view (not edit) their signed agreement with the ID number masked; changes go through support. Admins see every agreement (A-13). The Privacy page says why the ID number is collected and who can see it.
 
 ### 9.3 Handover
 
@@ -408,6 +433,8 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 10. Monthly winner: review and confirm
 11. Homepage: choose featured winning logos
 12. Audit log of every money or settings change
+13. Copy claims (owner, 2026-10-09, §7.6): open claims with the winning design, the client's note and links; Reject (with note) or Uphold with Correction / Fine (amount) / Ban
+14. Designer agreements (owner, 2026-10-09, §9.6): list with name, ID type, masked number and signed date; **Show full number** is logged
 
 ## 14. Public pages
 
@@ -423,6 +450,8 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 6. Footer: Terms, Privacy, Payment & No-Refund Policy, Designer Rules, Contact
 
 Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`, `/winners`, `/d/{username}`, `/c/{username}`, `/how-it-works`, `/designers` (designer landing + signup), `/faq`, legal pages.
+
+**Legal pages (owner, 2026-10-09):** `/legal/terms`, `/legal/privacy`, `/legal/payment-refund`, `/legal/designer-rules`, in English and Bangla, each with a version date, linked from the footer, the wizard's payment checkbox, designer sign-up and the originality agreement. The texts are drafts written for this site; **a Bangladeshi lawyer must check them before launch** (§18), especially the legal-action clause.
 
 ## 15. Non-functional requirements
 
@@ -458,4 +487,4 @@ Direct messaging, refunds, NID verification, international payments, design cate
 
 1. All **[CONFIRM]** items are settled (owner, 2026-10-07): counted wins (prize ≥ 3,000, at least 3 designers, at most 2 wins per client); upgrades ৳1,000 each; Monthly Champion ৳5,000; payment gateway SSLCommerz. (Also settled: no free or automatic extension; extension price ৳500 per day, 3/5/7 days, prompt under 5 entries; the normal designer fee applies to no-result shares; entries per designer unlimited; fee rate locked at winner pick; no-result rule; 3-day re-pick after a missed deadline.)
 2. SSLCommerz merchant account and its documents (needed for milestone 9)
-3. Legal check with a CA/lawyer: holding client funds, tax on designer payouts, VAT on the service fee, and the wording of the no-refund policy
+3. Legal check with a CA/lawyer: holding client funds, tax on designer payouts, VAT on the service fee, and the wording of the no-refund policy. Owner, 2026-10-09: the lawyer also checks the four legal pages and the designer originality agreement (especially the legal-action clause and storing ID numbers) before launch

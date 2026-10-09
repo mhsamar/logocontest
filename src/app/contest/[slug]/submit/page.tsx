@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { SubmitForm } from "@/components/entries/submit-form";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { hasSignedAgreement } from "@/lib/agreements/queries";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug } from "@/lib/contests/browse";
@@ -23,6 +24,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   if (!contest) notFound();
   // NDA contests: the confidentiality agreement comes first, on the contest page (owner, 2026-10-08).
   if (contest.isNda && !contest.canSeeBrief) redirect(`/contest/${slug}?tab=brief`);
+  // The originality agreement comes before the first design (BLUEPRINT §9.6, owner 2026-10-09).
+  if (user.role === "designer" && !(await hasSignedAgreement(user.id))) redirect(`/dashboard/agreement?next=${encodeURIComponent(`/contest/${slug}/submit`)}`);
 
   const open = contest.status === "open" && (!contest.endsAt || contest.endsAt > new Date());
   const blocked = !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : null;

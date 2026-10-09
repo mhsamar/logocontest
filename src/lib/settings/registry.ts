@@ -161,6 +161,11 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the winner has to upload the final files.",
   },
+  // Owner, 2026-10-09 (§7.3, §7.6): copy-claim window and payout hold, counted from the winner pick.
+  "timers.copy_claim_days": {
+    group: "timers", type: "int", schema: int(1, 30), default: 3,
+    description: "Days after the winner is picked when the client can claim the design is copied. The prize is held until they pass.",
+  },
   "timers.client_response_days": {
     group: "timers", type: "int", schema: int(1), default: 5,
     description: "Days the client has to approve or request a change after files are submitted; then the contest ends with no result.",

@@ -42,6 +42,20 @@ export default async function WalletPage() {
           <p className="mt-3 text-sm text-white/75" title={t("wallet.pendingHint")}>
             {t("wallet.pending")}: <b className="text-white">{taka(w.pending)}</b> <span className="text-white/60">· {t("wallet.pendingHint")}</span>
           </p>
+          {w.held.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {w.held.map((h, i) => (
+                <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-white/10 px-3 py-2 text-sm text-white/85 ring-1 ring-white/15">
+                  <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-[#f6d98b]" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+                    <path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" strokeLinecap="round" />
+                  </svg>
+                  <b className="tabular-nums text-white">{taka(h.credit)}</b>
+                  <span>{h.brand}</span>
+                  <span className="text-white/60">· {h.availableAt ? t("wallet.heldUntil", { date: formatDate(h.availableAt, locale, "short") }) : t("wallet.heldClaim")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="mt-6 [&_p]:text-white/70">
             <WithdrawButton balance={w.balance} min={w.minWithdrawal} methods={w.methods} />
           </div>
@@ -78,7 +92,7 @@ export default async function WalletPage() {
               {w.transactions.map((tx, i) => (
                 <li key={tx.id} className="reveal flex items-start justify-between gap-3 px-4 py-3" style={{ animationDelay: `${i * 30}ms` }}>
                   <div className="min-w-0">
-                    <p className="font-semibold text-ink">{t(`wallet.types.${tx.type}`, { brand: tx.brand ?? "" })}</p>
+                    <p className="font-semibold text-ink">{t(tx.note === "copy_claim_fine" ? "wallet.types.fine" : `wallet.types.${tx.type}`, { brand: tx.brand ?? "" })}</p>
                     {tx.feeRate !== null && tx.feeAmount !== null && (
                       <p className="text-xs text-muted">{t("wallet.feeLine", { prize: taka(tx.amount + tx.feeAmount), rate: fmt(tx.feeRate), fee: taka(tx.feeAmount) })}</p>
                     )}

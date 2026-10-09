@@ -12,6 +12,7 @@ import { getSetting, getSettings } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { HANDOVER_FILES_BUCKET } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { payoutFor } from "@/lib/wallet/fees";
 import { acceptsFile, countWords, extensionOf, isHandoverType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
@@ -132,7 +133,7 @@ export async function requestHandoverRevision(input: { handoverId: string; note:
   return { ok: true };
 }
 
-/** C-17: the client approves with stars and feedback; the designer is paid at once. */
+/** C-17: the client approves with stars and feedback; the designer is paid once the copy-claim days are over. */
 export async function approveHandover(input: { handoverId: string; rating: number; feedback: string }): Promise<{ ok: true } | Fail> {
   const own = await forClient(input.handoverId);
   if (!own) return fail("auth.errors.generic");
@@ -152,8 +153,10 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
     p_max_per_client: s["fees.counted_wins_max_per_client"],
   });
   if (error) return fail("handover.errors.closed");
-  const amount = (data as { amount?: number } | null)?.amount;
-  await notify([own.h.designer_id], "handover_approved", { brand: own.h.contest?.brand_name, amount }, "/dashboard/wallet", own.user.id);
+  // Paid now when the copy-claim days are already over; otherwise held until they are (§7.3).
+  const paid = (data as { amount?: number } | null)?.amount;
+  const amount = paid ?? payoutFor(own.h.prize, own.h.fee_rate).credit;
+  await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount }, "/dashboard/wallet", own.user.id);
   refresh();
   return { ok: true };
 }

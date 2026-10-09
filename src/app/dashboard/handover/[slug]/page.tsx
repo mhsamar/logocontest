@@ -5,6 +5,7 @@ import { DeliverFiles } from "@/components/handover/deliver-files";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
+import { latestClaim } from "@/lib/claims/queries";
 import { getDesignerHandover } from "@/lib/handover/queries";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
@@ -22,7 +23,7 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/dashboard/handover/${slug}`)}`);
   const h = await getDesignerHandover(slug, user.id);
   if (!h) notFound();
-  const [{ t, locale }, maxMb] = await Promise.all([getI18n(), getSetting("limits.handover_file_max_mb")]);
+  const [{ t, locale }, maxMb, claim] = await Promise.all([getI18n(), getSetting("limits.handover_file_max_mb"), latestClaim(h.id)]);
   const taka = (n: number) => formatTaka(n, locale);
   const editable = h.status === "awaiting_files" || h.status === "revision_requested";
 
@@ -57,6 +58,9 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
       </div>
 
       {h.status === "no_result" && <p className="mt-6 rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultDesigner")}</p>}
+      {claim?.status === "open" && (
+        <p className="mt-6 rounded-2xl bg-[#fff7e0] p-4 text-sm text-[#8a5105] ring-1 ring-[#f4d58a]">{t("claims.designer.open")}</p>
+      )}
       {h.status === "revision_requested" && h.revisionNote && (
         <div className="mt-6 animate-rise rounded-2xl bg-[#fff7e0] p-4 ring-1 ring-[#f1c75c]/60">
           <p className="font-semibold text-[#8a5105]">{t("handover.revision.title")}</p>

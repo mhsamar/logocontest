@@ -14,6 +14,7 @@ import { getSetting } from "@/lib/settings";
 import { notify } from "@/lib/notifications";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasSignedAgreement } from "@/lib/agreements/queries";
 import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
@@ -43,6 +44,7 @@ export async function prepareEntryImageUpload(input: { contestId: string; type: 
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
+  if (!(await hasSignedAgreement(user!.id))) return fail("agreement.errors.required");
   const ext = ENTRY_IMAGE_TYPES[input.type];
   if (!ext) return fail("submit.errors.type");
   const mb = await getSetting("limits.entry_image_max_mb");
@@ -73,6 +75,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
+  if (!(await hasSignedAgreement(user!.id))) return fail("agreement.errors.required");
 
   const [minImages, maxImages, px, previewPx, maxPerDesigner] = await Promise.all([
     getSetting("limits.entry_min_images"),

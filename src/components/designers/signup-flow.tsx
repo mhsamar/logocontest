@@ -321,8 +321,11 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
                 </li>
               ))}
             </ol>
+            <a href="/legal/designer-rules" target="_blank" className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
+              {t("designerSignup.rules.readAll")} →
+            </a>
             <Checkbox
-              className="mt-3"
+              className="mt-1"
               label={t("designerSignup.rules.accept")}
               checked={form.acceptedRules}
               onChange={(e) => set("acceptedRules", e.target.checked)}

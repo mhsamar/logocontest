@@ -5,6 +5,7 @@ import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@
 import { EntryComments } from "@/components/entries/entry-comments";
 import { Collage } from "@/components/entries/entry-card";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { CopyClaim } from "@/components/claims/copy-claim";
 import { ClientHandover } from "@/components/handover/client-handover";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { AddonsPanel } from "@/components/manage/addons-panel";
@@ -20,6 +21,8 @@ import { addonPrices } from "@/lib/contests/addon-payments";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, latestScan, listEntries } from "@/lib/entries/queries";
+import { latestClaim } from "@/lib/claims/queries";
+import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
 import { getHandoverByContest } from "@/lib/handover/queries";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -56,11 +59,13 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const [entries, prices, s, entry, handover] = await Promise.all([
     listEntries(contest.id, entryContest, user),
     addonPrices(),
-    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words"]),
+    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days"]),
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
     getHandoverByContest(contest.id),
   ]);
-  const scan = entry ? await latestScan(entry.id) : null;
+  const [scan, claim] = await Promise.all([entry ? latestScan(entry.id) : null, handover ? latestClaim(handover.id) : null]);
+  const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
+  const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const fileDays = s["timers.designer_file_upload_days"];
   const reviewing = contest.status === "open" || contest.status === "judging";
   const fmt = (n: number) => formatNumber(n, locale);
@@ -247,6 +252,17 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rating={handover.rating}
             />
           </div>
+          {/* Copy claim on the winning design (BLUEPRINT §7.6, owner 2026-10-09) */}
+          {claimUntil && (claimable || claim) && (
+            <div className="mt-5 border-t border-line pt-4">
+              <CopyClaim
+                handoverId={handover.id}
+                canClaim={claimable}
+                until={claimUntil.toISOString()}
+                claim={claim ? { status: claim.status, outcome: claim.outcome, adminNote: claim.adminNote } : null}
+              />
+            </div>
+          )}
         </section>
       )}
 

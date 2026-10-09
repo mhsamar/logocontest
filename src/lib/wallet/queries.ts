@@ -1,4 +1,6 @@
 import "server-only";
+import { openClaimHandoverIds } from "@/lib/claims/queries";
+import { heldPrizeAvailableAt } from "@/lib/claims/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,6 +35,8 @@ export type PayoutMethod = { id: string; type: "bkash" | "bank"; label: string; 
 export type Wallet = {
   balance: number;
   pending: number;
+  /** Approved prizes still in the copy-claim hold (§7.3): available from the date, or frozen (null) while a claim is open. */
+  held: { brand: string; credit: number; availableAt: Date | null }[];
   countedWins: number;
   rate: number;
   next: { tier: FeeTier; winsToGo: number } | null;
@@ -56,13 +60,13 @@ export function maskDestination(type: string, d: Record<string, string | undefin
 }
 
 export async function getWallet(designerId: string): Promise<Wallet> {
-  const s = await getSettings(["fees.designer_tiers", "limits.withdrawal_min"]);
+  const s = await getSettings(["fees.designer_tiers", "limits.withdrawal_min", "timers.copy_claim_days"]);
   const tiers = [...s["fees.designer_tiers"]].sort((a, b) => a.min_wins - b.min_wins);
-  const empty: Wallet = { balance: 0, pending: 0, countedWins: 0, rate: feeRateFor(0, tiers), next: nextTier(0, tiers), tiers, minWithdrawal: s["limits.withdrawal_min"], transactions: [], withdrawals: [], methods: [] };
+  const empty: Wallet = { balance: 0, pending: 0, held: [], countedWins: 0, rate: feeRateFor(0, tiers), next: nextTier(0, tiers), tiers, minWithdrawal: s["limits.withdrawal_min"], transactions: [], withdrawals: [], methods: [] };
   if (!isSupabaseConfigured()) return empty;
 
   const db = createAdminClient();
-  const [profile, txs, withdrawals, open, methods] = await Promise.all([
+  const [profile, txs, withdrawals, open, methods, approved, claimed] = await Promise.all([
     db.from("profiles").select("counted_wins_count").eq("id", designerId).single(),
     db
       .from("wallet_transactions")
@@ -73,7 +77,15 @@ export async function getWallet(designerId: string): Promise<Wallet> {
     db.from("withdrawals").select("id, amount, method_type, destination, status, paid_txn_id, reject_reason, created_at").eq("designer_id", designerId).order("created_at", { ascending: false }).limit(20),
     db.from("handovers").select("prize, fee_rate").eq("designer_id", designerId).in("status", ["awaiting_files", "submitted", "revision_requested"]),
     db.from("designer_payout_methods").select("id, type, bkash_number, bank_name, account_number, is_default").eq("user_id", designerId).order("is_default", { ascending: false }),
+    db.from("handovers").select("id, prize, fee_rate, created_at, contest:contests!contest_id(brand_name)").eq("designer_id", designerId).eq("status", "approved").is("credited_at", null),
+    openClaimHandoverIds(designerId),
   ]);
+
+  const held = (approved.data ?? []).map((h) => ({
+    brand: one(h.contest as { brand_name: string } | { brand_name: string }[] | null)?.brand_name ?? "",
+    credit: payoutFor(h.prize as number, h.fee_rate as number).credit,
+    availableAt: heldPrizeAvailableAt(new Date(h.created_at as string), s["timers.copy_claim_days"], claimed.has(h.id as string)),
+  }));
 
   const countedWins = (profile.data?.counted_wins_count as number) ?? 0;
   const transactions: WalletTx[] = (txs.data ?? []).map((r) => ({
@@ -90,7 +102,8 @@ export async function getWallet(designerId: string): Promise<Wallet> {
 
   return {
     balance: transactions[0]?.balanceAfter ?? 0,
-    pending: (open.data ?? []).reduce((sum, h) => sum + payoutFor(h.prize as number, h.fee_rate as number).credit, 0),
+    pending: (open.data ?? []).reduce((sum, h) => sum + payoutFor(h.prize as number, h.fee_rate as number).credit, 0) + held.reduce((sum, h) => sum + h.credit, 0),
+    held,
     countedWins,
     rate: feeRateFor(countedWins, tiers),
     next: nextTier(countedWins, tiers),
