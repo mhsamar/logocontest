@@ -18,6 +18,7 @@ import { createTranslator } from "@/lib/i18n/translate";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
+import { paymentsAvailable } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   BUSINESS_TYPES,
@@ -222,6 +223,8 @@ export async function startCheckout(input: {
   if (name.length < 2 || name.length > 80) return err("wizard.errors.name");
   if (!input.acceptedTerms) return err("wizard.errors.terms");
   if (input.method !== "bkash" && input.method !== "card") return err("wizard.errors.generic");
+  // Live site before SSLCommerz is connected: the draft stays saved; the client is told payments open soon.
+  if (!paymentsAvailable()) return err("wizard.errors.paymentsClosed");
 
   // The draft was checked when saved, but the admin may have blocked more terms since.
   const contest = await contestRepository().findContest(input.contestId);

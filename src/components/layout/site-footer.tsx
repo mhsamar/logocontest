@@ -59,7 +59,7 @@ const SOCIAL = [
 /** Footer on the page background, no separate colour (UI-JOURNEY §1.1, owner 2026-10-08). */
 export async function SiteFooter() {
   const [{ t, locale }, links] = await Promise.all([getI18n(), getSettings(SOCIAL.map((x) => x.key))]);
-  const year = new Date().getFullYear();
+  const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
   const social = SOCIAL.filter((x) => links[x.key]);
 
   const columns: { title: string; links: { href: string; label: string }[] }[] = [

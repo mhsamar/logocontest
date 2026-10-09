@@ -20,6 +20,16 @@ export function getPaymentGateway(): PaymentGateway {
   }
 }
 
+/** False until a real gateway is set on the live site (SSLCommerz, milestone 9): checkout says so instead of failing. */
+export function paymentsAvailable(): boolean {
+  try {
+    getPaymentGateway();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getFakeGateway(): FakeGateway | null {
   const gateway = paymentDriver() === "fake" && process.env.NODE_ENV !== "production" ? getPaymentGateway() : null;
   return gateway instanceof FakeGateway ? gateway : null;

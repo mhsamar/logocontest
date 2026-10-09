@@ -22,7 +22,7 @@ export function ScanPanel({ entryId, unlocked, scan, unlockHref, price }: { entr
   const [result, setResult] = useState<Scan | null>(scan);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
-  const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+  const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" }).format(new Date(iso));
 
   const run = () =>
     start(async () => {

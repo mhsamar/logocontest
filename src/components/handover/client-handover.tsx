@@ -47,7 +47,7 @@ export function ClientHandover({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
-  const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+  const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" }).format(new Date(iso));
   const words = countWords(feedback);
   const changesLeft = Math.max(0, maxRevisions - revisionCount);
 

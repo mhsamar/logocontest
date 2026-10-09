@@ -33,7 +33,7 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/st
     return (
       <ContestLive
         url={`${origin}/contest/${contest.slug}`}
-        pickBy={new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric" }).format(pickBy)}
+        pickBy={new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }).format(pickBy)}
       />
     );
   }

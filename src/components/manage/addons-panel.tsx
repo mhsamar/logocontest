@@ -76,6 +76,7 @@ export function AddonsPanel({
     new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", {
       day: "numeric",
       month: "long",
+      timeZone: "Asia/Dhaka",
     }).format(d);
   const price = (item: Item) => (item === "extend" ? prices.extensionPerDay * days : prices[item]);
   const items: Item[] = ["promote", "extend", "logo_scan", "private", "blind"];

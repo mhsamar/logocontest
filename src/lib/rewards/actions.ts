@@ -28,8 +28,11 @@ export async function toggleLike(entryId: string): Promise<{ ok: true; liked: bo
   const { count } = await db.from("design_likes").select("entry_id", { count: "exact", head: true }).eq("entry_id", entryId);
   // A new like tells the designer, and the client whose contest it won (owner, 2026-10-09). Taking a like back is silent.
   if (!design.liked && !error) {
+    const n = { brand: design.brandName, number: design.number, name: user.username ? `@${user.username}` : user.name, liker: user.id, entry: entryId };
+    // Liking, unliking and liking again tells them only once.
+    const { count: told } = await db.from("notifications").select("id", { count: "exact", head: true }).eq("type", "design_liked").eq("data->>entry", entryId).eq("data->>liker", user.id);
+    if (told) return { ok: true, liked: true, likes: count ?? 0 };
     const { data: c } = await db.from("contests").select("client_id").eq("slug", design.contestSlug).maybeSingle();
-    const n = { brand: design.brandName, number: design.number, name: user.username ? `@${user.username}` : user.name };
     await notify([design.designerId], "design_liked", n, `/contest/${design.contestSlug}?tab=entries&entry=${design.number}`, user.id);
     if (c?.client_id) await notify([c.client_id as string], "design_liked_client", n, `/contest/${design.contestSlug}?tab=entries&entry=${design.number}`, user.id);
   }

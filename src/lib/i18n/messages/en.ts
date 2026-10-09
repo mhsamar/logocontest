@@ -1744,6 +1744,7 @@ const en = {
       emailTaken: "This email already has an account.",
       name: "Enter your name.",
       terms: "Please accept the Terms to continue.",
+      paymentsClosed: "Online payment is being set up. Your contest is saved as a draft, and we'll let you know as soon as you can pay.",
       payment: "We couldn't start the payment. Please try again.",
       designerAccount: "Designer accounts can't start contests. Log in with a client account to start one.",
       contact: "Contact details aren't allowed in the brief. Please remove phone numbers, emails, links or social media names.",

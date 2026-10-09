@@ -197,7 +197,7 @@ export function PackageStep({
   const active = activeUpgrades(order);
   // "Today" is read once, so the end date shown under the slider stays put while the client picks.
   const [today] = useState(() => Date.now());
-  const endDate = new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long" }).format(new Date(today + order.durationDays * 86_400_000));
+  const endDate = new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", timeZone: "Asia/Dhaka" }).format(new Date(today + order.durationDays * 86_400_000));
   const fill = ((order.durationDays - config.durationMin) / Math.max(1, config.durationMax - config.durationMin)) * 100;
 
   const customError =
