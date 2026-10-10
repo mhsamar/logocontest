@@ -44,6 +44,28 @@
   --color-aurora-rose: #ffcfdc;
   --color-page: #f7f8fb;
 
+  /* Admin (design/admin/ADMIN-HANDOFF.md, owner 2026-10-10) */
+  --color-adm-bg: #f4f5f7;
+  --color-adm-line: #e9eaee;
+  --color-adm-line-soft: #eeeff2;
+  --color-adm-strong: #3a3c45;
+  --color-adm-soft: #6a6d76;
+  --color-adm-row: #fdf6f5;
+  --color-adm-deep: #5c0a0c;
+  --color-adm-good: #14633c;
+  --color-adm-good-bg: #e3f3ea;
+  --color-adm-warn: #9a3412;
+  --color-adm-warn-bg: #ffedd5;
+  --color-adm-bad: #a3121b;
+  --color-adm-bad-bg: #fde3e1;
+  --color-adm-sample: #6b4e00;
+  --color-adm-sample-bg: #fff4d1;
+  --color-adm-pay: #1f7a4d;
+  --color-adm-addon: #d9822b;
+  --color-adm-chart-prize: #2f6db5;
+  --color-adm-chart-fee: #b3261e;
+  --color-adm-chart-addon: #d08a1e;
+
   /* Type scale (mobile → desktop): H1 28→44, H2 22→30, H3 18→20 */
   --text-h1: 1.75rem;
   --text-h1-lg: 2.75rem;

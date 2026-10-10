@@ -1,30 +1,30 @@
 import Link from "next/link";
-import { cx } from "@/lib/cx";
+import { Pill } from "./ui";
 
 /** Small shared pieces for admin lists (server components). */
 
+/** The older status pill, now drawn with the shared admin Pill (ok = good, muted = neutral). */
 export function StatusPill({ tone, children }: { tone: "ok" | "warn" | "bad" | "muted"; children: React.ReactNode }) {
-  const tones = { ok: "bg-success/10 text-success", warn: "bg-[#fff7e0] text-[#8a5105]", bad: "bg-danger/10 text-danger", muted: "bg-canvas text-muted" };
-  return <span className={cx("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", tones[tone])}>{children}</span>;
+  return <Pill tone={tone === "ok" ? "good" : tone === "muted" ? "neutral" : tone}>{children}</Pill>;
 }
 
 /** A GET form for filters: changing anything reloads the list with the new query. */
 export function FilterBar({ action, children }: { action: string; children: React.ReactNode }) {
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2 rounded-2xl bg-surface p-3 shadow-card ring-1 ring-line">
+    <form action={action} className="flex flex-wrap items-end gap-2 rounded-[16px] border border-adm-line bg-surface p-3">
       {children}
     </form>
   );
 }
 
-export const FILTER_INPUT = "min-h-10 rounded-lg bg-canvas px-3 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary";
+export const FILTER_INPUT = "h-11 rounded-[12px] border border-[#dcdee3] bg-surface px-3 text-[15px] font-medium text-ink focus:outline-2 focus:outline-offset-1 focus:outline-primary";
 
 export function Pager({ page, pages, href, prev, next, label }: { page: number; pages: number; href: (p: number) => string; prev: string; next: string; label: string }) {
   if (pages <= 1) return null;
   return (
     <nav className="mt-4 flex items-center justify-between text-sm" aria-label={label}>
       {page > 1 ? (
-        <Link href={href(page - 1)} className="inline-flex min-h-10 items-center rounded-full bg-surface px-4 font-semibold ring-1 ring-line hover:ring-primary">
+        <Link href={href(page - 1)} className="inline-flex h-11 items-center rounded-[12px] border border-adm-line bg-surface px-4 font-bold text-adm-strong hover:border-primary hover:text-primary">
           ← {prev}
         </Link>
       ) : (
@@ -34,7 +34,7 @@ export function Pager({ page, pages, href, prev, next, label }: { page: number; 
         {page} / {pages}
       </span>
       {page < pages ? (
-        <Link href={href(page + 1)} className="inline-flex min-h-10 items-center rounded-full bg-surface px-4 font-semibold ring-1 ring-line hover:ring-primary">
+        <Link href={href(page + 1)} className="inline-flex h-11 items-center rounded-[12px] border border-adm-line bg-surface px-4 font-bold text-adm-strong hover:border-primary hover:text-primary">
           {next} →
         </Link>
       ) : (

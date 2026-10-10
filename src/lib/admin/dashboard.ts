@@ -22,23 +22,27 @@ export type DashboardStats = {
 
 const LIVE_OR_LATER = ["open", "judging", "winner_selected", "handover", "completed", "no_result"];
 
-export async function dashboardStats(days: number | null): Promise<DashboardStats | null> {
+/** The period the dashboard counts: from `since` (null = all time) up to `until` (null = now). */
+export type StatsPeriod = { since: Date | null; until: Date | null };
+
+export async function dashboardStats(period: StatsPeriod): Promise<DashboardStats | null> {
   if (!isSupabaseConfigured()) return null;
   const db = createAdminClient();
-  const since = days ? new Date(Date.now() - days * 86_400_000).toISOString() : "1970-01-01T00:00:00Z";
+  const since = period.since ? period.since.toISOString() : "1970-01-01T00:00:00Z";
+  const until = (period.until ?? new Date(Date.now() + 86_400_000)).toISOString();
   const head = { count: "exact" as const, head: true };
 
   const [posted, live, completed, payments, fees, finished, withdrawals, reports, claims, visits, recent] = await Promise.all([
-    db.from("contests").select("id", head).in("status", LIVE_OR_LATER).gte("starts_at", since),
+    db.from("contests").select("id", head).in("status", LIVE_OR_LATER).gte("starts_at", since).lt("starts_at", until),
     db.from("contests").select("id", head).eq("status", "open"),
-    db.from("contests").select("id", head).eq("status", "completed").gte("completed_at", since),
-    db.from("payments").select("amount, purpose, contest:contests!contest_id(service_fee_amount, upgrades_amount)").eq("status", "paid").gte("paid_at", since).limit(10000),
-    db.from("wallet_transactions").select("fee_amount").in("type", ["prize_credit", "split_share"]).gte("created_at", since).limit(10000),
-    db.from("contests").select("id").in("status", ["judging", "winner_selected", "handover", "completed", "no_result"]).gte("starts_at", since).limit(5000),
+    db.from("contests").select("id", head).eq("status", "completed").gte("completed_at", since).lt("completed_at", until),
+    db.from("payments").select("amount, purpose, contest:contests!contest_id(service_fee_amount, upgrades_amount)").eq("status", "paid").gte("paid_at", since).lt("paid_at", until).limit(10000),
+    db.from("wallet_transactions").select("fee_amount").in("type", ["prize_credit", "split_share"]).gte("created_at", since).lt("created_at", until).limit(10000),
+    db.from("contests").select("id").in("status", ["judging", "winner_selected", "handover", "completed", "no_result"]).gte("starts_at", since).lt("starts_at", until).limit(5000),
     db.from("withdrawals").select("amount").eq("status", "requested"),
     db.from("reports").select("id", head).eq("status", "open"),
     db.from("copy_claims").select("id", head).eq("status", "open"),
-    db.from("wizard_visits").select("furthest_step, contest_id").gte("created_at", since).limit(20000),
+    db.from("wizard_visits").select("furthest_step, contest_id").gte("created_at", since).lt("created_at", until).limit(20000),
     db.from("audit_logs").select("action, subject_type, created_at, admin:profiles!admin_id(name)").order("created_at", { ascending: false }).limit(8),
   ]);
 

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
+import { AdmCard, AdmEmpty, ADM_INPUT, CardTitle, KpiGrid, KpiTile, Tabs } from "@/components/admin/ui";
+import { dhakaStart } from "@/lib/admin/analytics";
 import { adminUser } from "@/lib/admin/core";
+import { dashboardStats, type StatsPeriod } from "@/lib/admin/dashboard";
 import { firstAdminPage } from "@/lib/admin/nav";
 import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
-import { dashboardStats } from "@/lib/admin/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
@@ -16,143 +19,204 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("admin.title"), robots: { index: false } };
 }
 
-const RANGES = { "7": 7, "30": 30, all: null } as const;
-type Range = keyof typeof RANGES;
+// Period switcher (design/admin/dashboard.html): Today / 3 days / 7 days / 30 days / All time / Custom.
+const RANGES = ["today", "3", "7", "30", "all", "custom"] as const;
+type Range = (typeof RANGES)[number];
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-// A-01 Dashboard (BLUEPRINT §13.1, owner 2026-10-09).
+/** The period to count, from the ?range= (and ?from=&to= for Custom, Dhaka days). */
+function periodOf(range: Range, from: string, to: string): StatsPeriod | null {
+  if (range === "today") return { since: dhakaStart(0), until: null };
+  if (range === "all") return { since: null, until: null };
+  if (range === "custom") {
+    if (!DAY.test(from) || !DAY.test(to)) return null;
+    const since = new Date(`${from}T00:00:00+06:00`);
+    const until = new Date(new Date(`${to}T00:00:00+06:00`).getTime() + 86_400_000);
+    return Number.isNaN(since.getTime()) || Number.isNaN(until.getTime()) || until <= since ? null : { since, until };
+  }
+  return { since: dhakaStart(Number(range) - 1), until: null };
+}
+
+// A-01 Dashboard (BLUEPRINT §13.1, owner 2026-10-09; design/admin/dashboard.html, owner 2026-10-10).
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
   // Staff without the Dashboard go to the first page they may see (BLUEPRINT §13.2).
   const me = await adminUser();
   if (!me) notFound();
   if (!hasPermission(me, "dashboard.view")) redirect(firstAdminPage(me) ?? "/");
   const sp = await searchParams;
-  const range: Range = typeof sp.range === "string" && sp.range in RANGES ? (sp.range as Range) : "30";
-  const [{ t, locale }, s] = await Promise.all([getI18n(), dashboardStats(RANGES[range])]);
+  const range: Range = RANGES.find((r) => r === sp.range) ?? "30";
+  const from = typeof sp.from === "string" ? sp.from : "";
+  const to = typeof sp.to === "string" ? sp.to : "";
+  const period = periodOf(range, from, to);
+  const [{ t, locale }, s] = await Promise.all([getI18n(), period ? dashboardStats(period) : dashboardStats({ since: dhakaStart(29), until: null })]);
   const taka = (n: number) => formatTaka(n, locale);
   const num = (n: number) => formatNumber(n, locale);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
 
-  const rangeLinks = (
-    <div className="flex rounded-full bg-surface p-1 ring-1 ring-line" role="group" aria-label={t("admin.dashboard.range")}>
-      {(Object.keys(RANGES) as Range[]).map((r) => (
-        <Link
-          key={r}
-          href={r === "30" ? "/admin" : `/admin?range=${r}`}
-          aria-current={r === range ? "true" : undefined}
-          className={cx("inline-flex min-h-9 items-center rounded-full px-4 text-sm font-semibold", r === range ? "bg-ink text-white" : "text-ink hover:bg-canvas")}
-        >
-          {t(`admin.dashboard.ranges.${r}`)}
-        </Link>
-      ))}
-    </div>
+  const switcher = (
+    <Tabs
+      label={t("admin.dashboard.range")}
+      items={RANGES.map((r) => ({
+        href: r === "30" ? "/admin" : `/admin?range=${r}`,
+        label: t(`admin.dashboard.ranges.${r}`),
+        active: r === range,
+        icon: r === "custom" ? ("calendar" as const) : undefined,
+      }))}
+    />
   );
 
-  if (!s) return <AdminHead title={t("admin.title")} lead={t("admin.dashboard.notConfigured")} />;
+  if (!s) return <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.notConfigured")} />;
 
-  const tiles: { label: string; value: string; hint?: string; href?: string; tone?: "alert" }[] = [
-    { label: t("admin.dashboard.tiles.live"), value: num(s.contestsLive), href: "/admin/contests?status=open" },
-    { label: t("admin.dashboard.tiles.posted"), value: num(s.contestsPosted) },
-    { label: t("admin.dashboard.tiles.completed"), value: num(s.contestsCompleted) },
-    { label: t("admin.dashboard.tiles.avgEntries"), value: s.avgEntries === null ? "—" : num(s.avgEntries) },
-    { label: t("admin.dashboard.tiles.payments"), value: taka(s.clientPayments), hint: t("admin.dashboard.tiles.paymentsHint", { n: num(s.paymentsCount) }), href: "/admin/payments" },
-    {
-      label: t("admin.dashboard.tiles.revenue"),
-      value: taka(s.revenue.total),
-      hint: t("admin.dashboard.tiles.revenueHint", { fees: taka(s.revenue.serviceFees), addons: taka(s.revenue.addons), designer: taka(s.revenue.designerFees) }),
-    },
-    {
-      label: t("admin.dashboard.tiles.withdrawals"),
-      value: num(s.pendingWithdrawals.count),
-      hint: taka(s.pendingWithdrawals.amount),
-      href: "/admin/withdrawals",
-      tone: s.pendingWithdrawals.count ? "alert" : undefined,
-    },
-    {
-      label: t("admin.dashboard.tiles.reports"),
-      value: num(s.openReports + s.openClaims),
-      hint: t("admin.dashboard.tiles.reportsHint", { reports: num(s.openReports), claims: num(s.openClaims) }),
-      href: "/admin/reports",
-      tone: s.openReports + s.openClaims ? "alert" : undefined,
-    },
-  ];
   const top = Math.max(1, s.funnel[0]?.visits ?? 0);
+  const rev = s.revenue;
+  const parts = [
+    { key: "serviceFees", value: rev.serviceFees, color: "bg-primary" },
+    { key: "addons", value: rev.addons, color: "bg-adm-addon" },
+    { key: "designerFees", value: rev.designerFees, color: "bg-adm-strong" },
+  ] as const;
 
   return (
-    <div className="space-y-6">
-      <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.lead")} actions={rangeLinks} />
+    <div className="flex flex-col gap-5">
+      <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.lead")} actions={switcher} />
 
-      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {tiles.map((tile) => {
-          const body = (
-            <>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{tile.label}</p>
-              <p className={cx("mt-1 text-3xl font-extrabold tabular-nums tracking-tight", tile.tone === "alert" ? "text-primary" : "text-ink")}>{tile.value}</p>
-              {tile.hint && <p className="mt-1 text-xs text-muted">{tile.hint}</p>}
-            </>
-          );
-          return (
-            <li key={tile.label}>
-              {tile.href ? (
-                <Link href={tile.href} className="block h-full rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line transition-shadow hover:shadow-raised">
-                  {body}
-                </Link>
-              ) : (
-                <div className="h-full rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line">{body}</div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      {range === "custom" && (
+        <AdmCard className="p-4">
+          <form action="/admin" className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="range" value="custom" />
+            <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-semibold text-adm-strong sm:flex-none">
+              {t("admin.dashboard.from")}
+              <input type="date" name="from" defaultValue={from} required className={ADM_INPUT} />
+            </label>
+            <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-semibold text-adm-strong sm:flex-none">
+              {t("admin.dashboard.to")}
+              <input type="date" name="to" defaultValue={to} required className={ADM_INPUT} />
+            </label>
+            <button type="submit" className="h-12 rounded-[12px] bg-primary px-6 text-[15px] font-bold text-white hover:bg-adm-deep">
+              {t("admin.dashboard.show")}
+            </button>
+            {!period && <p className="m-0 w-full text-sm text-muted">{t("admin.dashboard.customHint")}</p>}
+          </form>
+        </AdmCard>
+      )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
-          <h2 className="font-semibold text-ink">{t("admin.dashboard.funnel")}</h2>
-          <p className="mt-1 text-xs text-muted">{t("admin.dashboard.funnelLead")}</p>
+      <KpiGrid>
+        <KpiTile label={t("admin.dashboard.tiles.live")} value={num(s.contestsLive)} icon="live" href="/admin/contests?status=open" />
+        <KpiTile label={t("admin.dashboard.tiles.posted")} value={num(s.contestsPosted)} icon="contests" />
+        <KpiTile label={t("admin.dashboard.tiles.completed")} value={num(s.contestsCompleted)} icon="check" />
+        <KpiTile label={t("admin.dashboard.tiles.avgEntries")} value={s.avgEntries === null ? "—" : num(s.avgEntries)} icon="designs" />
+        <KpiTile label={t("admin.dashboard.tiles.payments")} value={taka(s.clientPayments)} hint={t("admin.dashboard.tiles.paymentsHint", { n: num(s.paymentsCount) })} icon="payments" href="/admin/payments" />
+        <KpiTile label={t("admin.dashboard.tiles.revenue")} value={taka(rev.total)} hint={t("admin.dashboard.tiles.revenueSub")} icon="revenue" accent />
+        <KpiTile label={t("admin.dashboard.tiles.withdrawals")} value={num(s.pendingWithdrawals.count)} hint={taka(s.pendingWithdrawals.amount)} icon="withdrawals" href="/admin/withdrawals" />
+        <KpiTile
+          label={t("admin.dashboard.tiles.reports")}
+          value={num(s.openReports + s.openClaims)}
+          hint={t("admin.dashboard.tiles.reportsHint", { reports: num(s.openReports), claims: num(s.openClaims) })}
+          icon="reports"
+          href="/admin/reports"
+        />
+      </KpiGrid>
+
+      <div className="flex flex-wrap items-start gap-4">
+        {/* Wizard drop-off */}
+        <AdmCard className="flex min-w-0 flex-[3_1_520px] flex-col gap-[18px] p-5 sm:p-6">
+          <CardTitle
+            title={t("admin.dashboard.funnel")}
+            sub={t("admin.dashboard.funnelLead")}
+            action={
+              <div className="flex gap-3.5 text-[13.5px] font-semibold text-adm-strong">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="size-2.5 rounded-[3px] bg-primary" />
+                  {t("admin.dashboard.legendStep")}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="size-2.5 rounded-[3px] bg-adm-pay" />
+                  {t("admin.dashboard.legendPayment")}
+                </span>
+              </div>
+            }
+          />
           {(s.funnel[0]?.visits ?? 0) === 0 ? (
-            <p className="mt-6 text-sm text-muted">{t("admin.dashboard.funnelEmpty")}</p>
+            <AdmEmpty>{t("admin.dashboard.funnelEmpty")}</AdmEmpty>
           ) : (
-            <ol className="mt-4 space-y-1.5">
+            <ol className="m-0 flex list-none flex-col gap-[11px] p-0 text-[14.5px]">
               {s.funnel.map((f) => {
                 const pct = Math.round((f.visits / top) * 100);
                 return (
-                  <li key={f.step} className="grid grid-cols-[9.5rem_minmax(0,1fr)_5rem] items-center gap-3 text-sm">
-                    <span className="truncate text-muted">{t(`admin.dashboard.steps.s${f.step}` as MessageKey)}</span>
-                    <span className="h-5 overflow-clip rounded-md bg-canvas">
-                      <span className={cx("block h-full rounded-md", f.step >= 12 ? "bg-success" : "bg-primary/80")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
+                  <li key={f.step} className="flex items-center gap-3.5">
+                    <span className="w-[92px] shrink-0 truncate text-[13px] font-semibold text-adm-strong sm:w-32 sm:text-[14.5px]">{t(`admin.dashboard.steps.s${f.step}` as MessageKey)}</span>
+                    <span className="h-3 flex-1 overflow-hidden rounded-full bg-[#f0f1f4]">
+                      <span className={cx("block h-full rounded-full", f.step >= 12 ? "bg-adm-pay" : "bg-primary")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
                     </span>
-                    <span className="text-right tabular-nums text-ink">
-                      {num(f.visits)} <span className="text-xs text-muted">{num(pct)}%</span>
+                    <span className="w-[72px] shrink-0 text-right tabular-nums">
+                      <strong>{num(f.visits)}</strong> <span className="text-muted">{num(pct)}%</span>
                     </span>
                   </li>
                 );
               })}
             </ol>
           )}
-        </section>
+        </AdmCard>
 
-        <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold text-ink">{t("admin.dashboard.recent")}</h2>
-            <Link href="/admin/audit" className="text-sm font-semibold text-primary hover:underline">
-              {t("admin.nav.audit")} →
-            </Link>
-          </div>
-          {s.recent.length === 0 ? (
-            <p className="mt-6 text-sm text-muted">{t("admin.audit.empty")}</p>
-          ) : (
-            <ul className="mt-3 divide-y divide-line text-sm">
-              {s.recent.map((r, i) => (
-                <li key={i} className="flex items-start justify-between gap-3 py-2">
-                  <span className="text-ink">
-                    {t(`admin.audit.actions.${r.action}` as MessageKey)}
-                    {r.admin && <span className="text-muted"> · {r.admin}</span>}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted">{when(r.createdAt)}</span>
-                </li>
+        <div className="flex min-w-0 flex-[2_1_340px] flex-col gap-4">
+          {/* Revenue breakdown */}
+          <AdmCard className="flex flex-col gap-4 p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="m-0 text-[21px] font-semibold tracking-[-0.025em]">{t("admin.dashboard.breakdown")}</h2>
+              <span className="lc-d text-[21px] font-semibold tracking-[-0.02em] tabular-nums">{taka(rev.total)}</span>
+            </div>
+            {rev.total > 0 ? (
+              <div aria-hidden className="flex h-3.5 gap-[3px] overflow-hidden rounded-full">
+                {parts
+                  .filter((p) => p.value > 0)
+                  .map((p) => (
+                    <span key={p.key} className={cx("rounded-[4px] first:rounded-l-full last:rounded-r-full", p.color)} style={{ flex: p.value }} />
+                  ))}
+              </div>
+            ) : (
+              <div aria-hidden className="h-3.5 rounded-full bg-[#f0f1f4]" />
+            )}
+            <dl className="m-0 flex flex-col text-[15.5px]">
+              {parts.map((p, i) => (
+                <div key={p.key} className={cx("flex items-center gap-2.5 py-2.5", i < parts.length - 1 && "border-b border-adm-line-soft", i === parts.length - 1 && "pb-0")}>
+                  <span className={cx("size-2.5 shrink-0 rounded-[3px]", p.color)} />
+                  <dt className="flex-1 font-semibold">{t(`admin.dashboard.parts.${p.key}`)}</dt>
+                  <dd className="m-0 font-bold tabular-nums">{taka(p.value)}</dd>
+                </div>
               ))}
-            </ul>
-          )}
-        </section>
+            </dl>
+          </AdmCard>
+
+          {/* Latest admin actions */}
+          <AdmCard className="flex flex-col gap-3.5 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="m-0 text-[21px] font-semibold tracking-[-0.025em]">{t("admin.dashboard.recent")}</h2>
+              {hasPermission(me, "audit.view") && (
+                <Link href="/admin/audit" className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary">
+                  {t("admin.nav.audit")}
+                  <AdminIcon name="arrow" size={16} />
+                </Link>
+              )}
+            </div>
+            {s.recent.length === 0 ? (
+              <AdmEmpty>{t("admin.audit.empty")}</AdmEmpty>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                {s.recent.map((r, i) => (
+                  <li key={i} className="flex items-center gap-3 rounded-[12px] bg-adm-bg p-3">
+                    <span className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] bg-surface text-primary">
+                      <AdminIcon name="audit" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                      <strong className="truncate text-[15.5px] font-bold">{t(`admin.audit.actions.${r.action}` as MessageKey)}</strong>
+                      <span className="truncate text-sm text-muted">{r.admin ?? "—"}</span>
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-sm text-muted max-sm:hidden">{when(r.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdmCard>
+        </div>
       </div>
     </div>
   );

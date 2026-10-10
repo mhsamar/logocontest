@@ -1,0 +1,236 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600&family=Urbanist:wght@400;500;600;700&family=Hind+Siliguri:wght@500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Urbanist','Hind Siliguri',sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+h1,h2,h3,.d{font-family:'Instrument Sans','Hind Siliguri',sans-serif}
+a{color:inherit;text-decoration:none}a:hover{opacity:.75}
+button{font-family:inherit;cursor:pointer}
+.card{background:#FFFFFF;border:1px solid #E9EAEE;border-radius:16px;box-shadow:0 1px 2px rgba(17,18,22,.03)}
+.gh{padding:18px 14px 8px;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#6A6D76}
+.mi{display:flex;align-items:center;gap:12px;min-height:42px;padding:0 14px;border-radius:12px;font-size:15.5px;font-weight:600;color:#3A3C45}
+.mi svg{flex:none;color:#6A6D76}
+.mi:hover{background:#F4F5F7;opacity:1}
+.mi.on{background:#FBECEB;color:#8B0000}
+.mi.on svg{color:#8B0000}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:1px solid #E9EAEE;border-radius:12px;background:#FFFFFF;color:#3A3C45}
+.av{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border-radius:12px;font:600 17px 'Instrument Sans',sans-serif}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.smp{background:#FFF4D1;color:#6B4E00}
+.row{display:flex;gap:14px;padding:16px 20px;border-top:1px solid #EEEFF2;align-items:flex-start}
+.row:hover{background:#FAFAFB;opacity:1}
+.mbx>a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:10px;font-weight:600;font-size:15.5px;color:#3A3C45}
+.mbx>a.on{background:#FBECEB;color:#8B0000}
+.cnt{margin-left:auto;min-width:24px;padding:1px 7px;border-radius:7px;background:#F0F1F4;font-size:12.5px;font-weight:700;text-align:center;color:#3A3C45}
+.cid{display:inline-flex;align-items:center;align-self:flex-start;padding:2px 8px;border:1px solid #E3E4E8;border-radius:7px;background:#FFFFFF;font:600 12.5px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:#3A3C45}
+.stp{display:flex;gap:4px}
+.stp>span{width:26px;height:6px;border-radius:99px;background:#E3E4E8}
+.stp>span.on{background:#8B0000}
+.stp.done>span.on{background:#1F7A4D}
+.tl{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:14px;font-weight:700;white-space:nowrap}
+.in{width:100%;height:48px;padding:0 14px;border:1px solid #DCDEE3;border-radius:12px;background:#FFFFFF;font-family:inherit;font-size:15.5px;font-weight:500;color:#111216}
+.in:focus,textarea:focus{outline:2px solid #8B0000;outline-offset:1px}
+.cb{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:10px;background:none}
+.cb:hover{background:#F4F5F7}
+.cbx{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:2px solid #B9BCC4;border-radius:7px;background:#FFFFFF;color:#FFFFFF}
+.cb .cbx.on{position:absolute;left:10px;top:10px}
+.cbx.on{border-color:#8B0000;background:#8B0000}
+.cc{display:flex;align-items:center;justify-content:center;width:76px;flex:none;text-align:center}
+.pre{display:flex;flex-direction:column;gap:4px;padding:14px;border:1px solid #E3E4E8;border-radius:14px;background:#FFFFFF;text-align:left;color:#111216}
+.pre:hover{border-color:#8B0000;background:#FDF6F5}
+.mb{display:none}
+.bar{height:12px;border-radius:99px;background:#F0F1F4;overflow:hidden}
+.bar>span{display:block;height:100%;border-radius:99px}
+@media(max-width:1180px){.inf{display:none!important}}
+@media(max-width:980px){.sb{display:none!important}.mb{display:inline-flex}.srch{display:none!important}}
+@media(max-width:640px){.cl{display:none!important}.mbx{max-width:none!important}.cc{width:58px!important}.pad{padding:16px!important}.hd{padding:10px 16px!important}.dl{width:92px!important;font-size:13px!important}.ki{display:none!important}.kg{gap:10px!important;grid-template-columns:1fr 1fr!important}.kg>div{padding:16px!important}.kg .d{font-size:28px!important}}
+</style></head><body>
+<!-- DESIGN REFERENCE ONLY. Static HTML. Sample/placeholder data is labelled. Do not copy data from this file; use real data from the database. -->
+<div style="width: 100%; min-height: 100vh; display: flex; background: #F4F5F7; color: #111216; font-size: 16px; line-height: 1.45">
+
+<!-- SIDEBAR -->
+<aside class="sb" style="flex: none; width: 256px; display: flex; flex-direction: column; background: #FFFFFF; border-right: 1px solid #E9EAEE">
+<a href="dashboard.html" style="display: flex; align-items: center; gap: 10px; height: 68px; padding: 0 22px; border-bottom: 1px solid #E9EAEE">
+<svg aria-hidden="true" width="30" height="30" viewBox="0 0 34 34" style="flex: none"><rect width="34" height="34" rx="10" fill="#8B0000"/><path d="M11 9v16h6" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M25.5 13.5a5.500 5.500 0 1 0 0 7" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/></svg>
+<span class="d" style="font-size: 19px; font-weight: 600; letter-spacing: -0.03em">logocontest.bd</span>
+<span style="margin-left: auto; padding: 2px 8px; border-radius: 6px; background: #F0F1F4; font-size: 12px; font-weight: 700; color: #3A3C45">Admin</span>
+</a>
+<nav aria-label="Admin" style="flex: 1; padding: 4px 12px 16px">
+<div class="gh">Overview</div>
+<a href="dashboard.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="3.500" width="7" height="8" rx="2"/><rect x="13.500" y="3.500" width="7" height="5" rx="2"/><rect x="13.500" y="12.500" width="7" height="8" rx="2"/><rect x="3.500" y="15.500" width="7" height="5" rx="2"/></svg>Dashboard</a>
+<a href="live-now.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M6 6a8.500 8.500 0 0 0 0 12M18 6a8.500 8.500 0 0 1 0 12"/></svg>Live now</a>
+<a href="analytics.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>Analytics</a>
+<a href="activity.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Activity</a>
+<div class="gh">Work</div>
+<a href="tickets.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12"/></svg>Tickets</a>
+<a href="contests.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 14v4M8.500 20h7"/></svg>Contests</a>
+<a href="designs.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.500 4.500a2.100 2.100 0 0 1 3 3L8 19z"/><path d="M14 7l3 3"/></svg>Designs</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.500 4L16 12H5"/></svg>Reports</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.500"/><path d="M16 8V6.500A2.500 2.500 0 0 0 13.500 4h-7A2.500 2.500 0 0 0 4 6.500v7A2.500 2.500 0 0 0 6.500 16H8"/></svg>Copy claims</a>
+<a href="copyright-checker.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z"/><path d="M9 12l2.200 2.200L15.500 10"/></svg>Copyright checker</a>
+<a href="unpaid-contests.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Unpaid contests</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l2.400 5 5.600.700-4.100 3.800 1.100 5.500L12 16.300 7 19l1.100-5.500L4 9.700 9.600 9z"/></svg>Monthly winner</a>
+<div class="gh">People</div>
+<a href="user-profile.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.200"/><path d="M3 19a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.500"/><path d="M16.500 14.200A5 5 0 0 1 21 19"/></svg>Users</a>
+<a href="agreements.html" class="mi on"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h4"/></svg>Agreements</a>
+<a href="admins-roles.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.500-3.200 8-8 9-4.800-1-8-4.500-8-9V6z"/></svg>Admins &amp; roles</a>
+<div class="gh">Money</div>
+<a href="payments.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.500"/><path d="M3 10.500h18M7 15h3"/></svg>Payments</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.500 10.500L12 15l4.500-4.500M5 20h14"/></svg>Withdrawals</a>
+<div class="gh">Messages</div>
+<a href="support-inbox.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5a3 3 0 0 0 6 0h5"/></svg>Support inbox</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4L3 11l7 3 3 7z"/></svg>Send message</a>
+<a href="auto-share.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.500"/><circle cx="18" cy="6" r="2.500"/><circle cx="18" cy="18" r="2.500"/><path d="M8.200 10.900l7.600-3.800M8.200 13.100l7.600 3.800"/></svg>Auto share</a>
+<div class="gh">Site content</div>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Texts</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4.500 6h.010M4.500 12h.010M4.500 18h.010"/></svg>Lists</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 20h12M5 8l7-3 7 3M5 8l-2 6a3 3 0 0 0 4 0zM19 8l-2 6a3 3 0 0 0 4 0z"/></svg>Legal pages</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6l-6 4zM17 9a4 4 0 0 1 0 6"/></svg>Brand &amp; notice</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>Homepage</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.700 5.700l12.600 12.600"/></svg>Blocked terms</a>
+<div class="gh">System</div>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Settings</a>
+<a href="#" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Audit log</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 12px; margin: 0 12px 14px; padding: 12px; background: #F4F5F7; border-radius: 14px">
+<span class="d" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: #8B0000; color: #FFFFFF; font-weight: 600">A</span>
+<div style="display: flex; flex-direction: column; line-height: 1.25"><strong style="font-size: 15px; font-weight: 700">Admin</strong><span style="font-size: 13px; color: #5F626B">Super admin</span></div>
+</div>
+</aside>
+
+<!-- MAIN -->
+<div style="position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column">
+<header class="hd" style="display: flex; align-items: center; gap: 12px; height: 68px; padding: 0 28px; background: #FFFFFF; border-bottom: 1px solid #E9EAEE">
+<button type="button" class="ib mb" aria-label="Open menu"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+<div class="srch" style="flex: 0 1 420px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; background: #F4F5F7; border-radius: 12px; color: #6A6D76">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.500"/><path d="M16 16l4 4"/></svg>
+<label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden">Search</label>
+<input id="q" type="search" placeholder="Search contests, users, payments" style="flex: 1; min-width: 0; height: 40px; border: 0; background: transparent; font: 500 15.5px 'Urbanist', sans-serif; color: #111216">
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 8px">
+<a href="#" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid #E9EAEE; border-radius: 12px; font-size: 15px; font-weight: 700">View site<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+<button type="button" class="ib" aria-label="Recent activity"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.500 2h-15zM10 21h4"/></svg></button>
+<button type="button" class="d" aria-label="Account menu" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: #8B0000; color: #FFFFFF; font-size: 16px; font-weight: 600">A</button>
+</div>
+</header>
+
+
+
+
+
+<main class="pad" style="flex: 1; padding: 28px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #6A6D76"><a href="dashboard.html">Admin</a><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span style="color: #8B0000">Agreements</span></nav>
+<h1 style="margin: 0; font-size: 32px; line-height: 1.1; font-weight: 600; letter-spacing: -0.035em">Designer agreements</h1>
+<p style="margin: 0; max-width: 820px; font-size: 15.5px; color: #5F626B">Originality agreements signed before a designer's first design, with a photo of their ID. ID numbers and photos are hidden until you open them, and every view is recorded in the audit log.</p>
+</div>
+
+<div class="kg" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 16px">
+<div class="card" style="display: flex; flex-direction: column; gap: 6px; padding: 20px"><span style="font-size: 14.5px; font-weight: 600; color: #5F626B">Agreements signed</span><span class="d" style="font-size: 34px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">1</span><span style="font-size: 14px; color: #5F626B">Latest: today, 11:39</span></div>
+<div class="card" style="display: flex; flex-direction: column; gap: 6px; padding: 20px; background: #FFF7EC; border-color: #F6D9B4"><span style="font-size: 14.5px; font-weight: 600; color: #9A3412">Waiting for your check</span><span class="d" style="font-size: 34px; line-height: 1; font-weight: 600; letter-spacing: -0.03em; color: #9A3412">1</span><span style="font-size: 14px; color: #9A3412">ID photo to review</span></div>
+<div class="card" style="display: flex; flex-direction: column; gap: 6px; padding: 20px"><span style="font-size: 14.5px; font-weight: 600; color: #5F626B">Verified</span><span class="d" style="font-size: 34px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">0</span><span style="font-size: 14px; color: #5F626B">ID checked and approved</span></div>
+<div class="card" style="display: flex; flex-direction: column; gap: 6px; padding: 20px"><span style="font-size: 14.5px; font-weight: 600; color: #5F626B">Asked for a new photo</span><span class="d" style="font-size: 34px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">0</span><span style="font-size: 14px; color: #5F626B">Unclear or rejected</span></div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px">
+<!-- list -->
+<section class="card" style="flex: 1 1 300px; max-width: 380px; min-width: 0; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 14px">
+<div role="tablist" aria-label="Status" style="display: flex; flex-wrap: wrap; gap: 6px">
+<button type="button" role="tab" aria-selected="true" style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: #8B0000; font-size: 14.5px; font-weight: 700; color: #FFFFFF">Waiting<span style="padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.2); font-size: 13px">1</span></button>
+<button type="button" role="tab" aria-selected="false" style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: #F4F5F7; font-size: 14.5px; font-weight: 700; color: #3A3C45">Verified<span style="padding: 1px 8px; border-radius: 999px; background: #FFFFFF; font-size: 13px">0</span></button>
+<button type="button" role="tab" aria-selected="false" style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: #F4F5F7; font-size: 14.5px; font-weight: 700; color: #3A3C45">All<span style="padding: 1px 8px; border-radius: 999px; background: #FFFFFF; font-size: 13px">1</span></button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; background: #F4F5F7; border-radius: 12px; color: #6A6D76"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><label for="gq" style="position: absolute; width: 1px; height: 1px; overflow: hidden">Search agreements</label><input id="gq" type="search" placeholder="Name, username or phone" style="flex: 1; min-width: 0; height: 40px; border: 0; background: transparent; font: 500 15.5px 'Urbanist', sans-serif; color: #111216"></div>
+</div>
+<a href="#" class="row" style="background: #FDF6F5">
+<span class="av" style="background: #D9E6F7; color: #24406B">M</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px"><strong style="font-size: 16.5px">md asif</strong><span style="font-size: 14.5px; color: #5F626B">@md_asif</span></div>
+<span style="font-size: 14.5px; color: #5F626B">National ID card · signed today, 11:39</span>
+<span class="pill" style="align-self: flex-start; background: #FFEDD5; color: #9A3412">Waiting for your check</span>
+</div>
+</a>
+<p style="margin: 0; padding: 16px 20px; border-top: 1px solid #EEEFF2; font-size: 14.5px; color: #5F626B">Only 1 designer has signed so far.</p>
+</section>
+
+<!-- detail -->
+<section class="card" style="flex: 3 1 560px; min-width: 0; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 24px">
+<span class="av" style="width: 60px; height: 60px; border-radius: 16px; font-size: 24px; background: #D9E6F7; color: #24406B">M</span>
+<div style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong class="d" style="font-size: 23px; font-weight: 600; letter-spacing: -0.025em">md asif</strong><span style="font-size: 15.5px; color: #5F626B">@md_asif</span><span class="pill" style="background: #F0F1F4; color: #3A3C45">Designer</span></div>
+<span style="font-size: 15.5px; color: #5F626B">01712-639849 · Barishal, Bangladesh</span>
+</div>
+<span class="tl" style="background: #FFEDD5; color: #9A3412"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Waiting for your check</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; border-top: 1px solid #EEEFF2">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px"><h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">Identity document</h2><span class="pill smp">Sample photos</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; font-weight: 700; color: #5F626B">Document type</span>
+<div role="radiogroup" aria-label="Document type" style="display: flex; flex-wrap: wrap; gap: 8px">
+<span role="radio" aria-checked="true" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1.5px solid #8B0000; border-radius: 12px; background: #FDF1F0; font-size: 15px; font-weight: 700; color: #8B0000"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0M15 10h3M15 14h3"/></svg>National ID card</span>
+<span role="radio" aria-checked="false" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid #E9EAEE; border-radius: 12px; font-size: 15px; font-weight: 700; color: #3A3C45"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><circle cx="12" cy="10" r="3"/><path d="M9 17h6"/></svg>Passport</span>
+<span role="radio" aria-checked="false" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid #E9EAEE; border-radius: 12px; font-size: 15px; font-weight: 700; color: #3A3C45"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h4"/></svg>Birth certificate</span>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px; background: #F4F5F7; border-radius: 14px">
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700; color: #5F626B">NID number</span><span style="font: 600 22px ui-monospace, Menlo, monospace; letter-spacing: 0.08em">•••• •• 2061</span></div>
+<button type="button" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid #E9EAEE; border-radius: 12px; background: #FFFFFF; font-size: 15px; font-weight: 700; color: #111216"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><circle cx="12" cy="12" r="3"/></svg>Show full number</button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; font-weight: 700; color: #5F626B">Front of the card</span>
+<div style="position: relative; aspect-ratio: 16 / 10; border-radius: 14px; background: #E3E4E8; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+<div aria-hidden="true" style="position: absolute; inset: 18px; border-radius: 10px; background: #D2D4DA; display: flex; gap: 14px; padding: 16px"><span style="width: 28%; border-radius: 8px; background: #BFC2CA"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 6px"><span style="height: 10px; width: 80%; border-radius: 99px; background: #BFC2CA"></span><span style="height: 10px; width: 60%; border-radius: 99px; background: #BFC2CA"></span><span style="height: 10px; width: 70%; border-radius: 99px; background: #BFC2CA"></span></span></div>
+<button type="button" style="position: relative; display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: #111216; font-size: 15px; font-weight: 700; color: #FFFFFF"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.500"/><path d="M8 10.500V7.500a4 4 0 0 1 8 0v3"/></svg>View photo</button>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; font-weight: 700; color: #5F626B">Back of the card</span>
+<div style="position: relative; aspect-ratio: 16 / 10; border-radius: 14px; background: #E3E4E8; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+<div aria-hidden="true" style="position: absolute; inset: 18px; border-radius: 10px; background: #D2D4DA; display: flex; flex-direction: column; gap: 10px; padding: 18px"><span style="height: 10px; width: 90%; border-radius: 99px; background: #BFC2CA"></span><span style="height: 10px; width: 70%; border-radius: 99px; background: #BFC2CA"></span><span style="margin-top: auto; height: 26px; width: 100%; border-radius: 6px; background: #BFC2CA"></span></div>
+<button type="button" style="position: relative; display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: #111216; font-size: 15px; font-weight: 700; color: #FFFFFF"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.500"/><path d="M8 10.500V7.500a4 4 0 0 1 8 0v3"/></svg>View photo</button>
+</div>
+</div>
+</div>
+<p style="margin: 0; display: flex; gap: 8px; font-size: 14.5px; color: #5F626B"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.800-1-8-4.500-8-9V6z"/></svg>Photos stay hidden until you press View photo. Each view and each "Show full number" is saved in the audit log with your name and the time.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px 24px; border-top: 1px solid #EEEFF2">
+<h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">Check before you approve</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; font-size: 15.5px">
+<label style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid #E9EAEE; border-radius: 12px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #8B0000">The name on the ID matches the account</label>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid #E9EAEE; border-radius: 12px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #8B0000">The photo is clear and easy to read</label>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid #E9EAEE; border-radius: 12px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #8B0000">The number matches the one they typed</label>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid #E9EAEE; border-radius: 12px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #8B0000">The document is the type they chose</label>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px 24px; border-top: 1px solid #EEEFF2">
+<h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">Agreement record</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 10px 24px; font-size: 15.5px">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">Agreement</span><strong>Originality agreement</strong></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">Version</span><strong>v2026-10-09</strong></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">Signed</span><strong>10 Oct 2026, 11:39</strong></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">Signed from IP</span><strong>202.136.89.74</strong></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">Joined</span><strong>10 Oct 2026, 11:31</strong></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #EEEFF2"><span style="color: #5F626B">First design sent</span><strong>10 Oct 2026, 12:09</strong></div>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #14633C"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Signed 30 minutes before the first design</span>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; padding: 18px 24px; border-top: 1px solid #EEEFF2; background: #FAFAFB">
+<button type="button" style="display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; border: 0; border-radius: 12px; background: #14633C; font-size: 15.5px; font-weight: 700; color: #FFFFFF"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Approve ID</button>
+<button type="button" style="height: 48px; padding: 0 22px; border: 1px solid #E9EAEE; border-radius: 12px; background: #FFFFFF; font-size: 15.5px; font-weight: 700; color: #111216">Ask for a clearer photo</button>
+<button type="button" style="height: 48px; padding: 0 22px; border: 0; border-radius: 12px; background: #FBECEB; font-size: 15.5px; font-weight: 700; color: #8B0000">Reject</button>
+<a href="user-profile.html" style="margin-left: auto; display: inline-flex; align-items: center; height: 48px; padding: 0 8px; font-size: 15.5px; font-weight: 700; color: #5F626B">Open profile</a>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</body></html>

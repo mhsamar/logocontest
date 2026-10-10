@@ -6,6 +6,9 @@ import { authorize } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/** The top-bar search covers these lists (admin/search). */
+const SEARCH_AREAS = ["contests.view", "users.view", "payments.view"] as const;
+
 /** Badge counts, only for the queues this admin may see. */
 async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number>> {
   const zero = { reports: 0, claims: 0, withdrawals: 0, support: 0 };
@@ -21,12 +24,19 @@ async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number
   return { reports: r?.count ?? 0, claims: c?.count ?? 0, withdrawals: w?.count ?? 0, support: s?.count ?? 0 };
 }
 
-// Admin area (BLUEPRINT §13, §13.2): its own top bar and grouped sidebar; items follow the admin's permissions.
+// Admin area (BLUEPRINT §13, §13.2; design/admin, owner 2026-10-10): sidebar, top bar with search, activity and
+// account menu; items follow the admin's permissions.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await authorize("admin.access");
   const counts = await queueCounts(user);
   return (
-    <AdminShell groups={navFor(user)} counts={counts} me={{ name: user.name, title: user.adminTitle, isSuper: user.isSuperAdmin, permissions: user.adminPermissions }}>
+    <AdminShell
+      groups={navFor(user)}
+      counts={counts}
+      me={{ name: user.name, title: user.adminTitle, isSuper: user.isSuperAdmin, permissions: user.adminPermissions }}
+      canSearch={SEARCH_AREAS.some((p) => hasPermission(user, p))}
+      canSeeActivity={hasPermission(user, "dashboard.view")}
+    >
       {children}
     </AdminShell>
   );
