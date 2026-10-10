@@ -368,6 +368,20 @@ flowchart LR
   E --> F[D-08 You won] --> G[D-09 Deliver files] --> H[D-10 Wallet] --> I[D-11 Withdraw]
 ```
 
+### C-22 AI copyright checker (owner, 2026-10-10; BLUEPRINT §7.7)
+
+On the client's contest page: a **Check with AI** button under every design card (a checked design shows its result and **Certificate** instead) and an **AI copyright checker** box above the add-ons, in four states: active (checks used, each checked logo with its result, **Check a logo**), free and unused (prize at or over the free limit), locked add-on (price, **Add to this contest**, the same bKash / card payment as other add-ons, also while judging), and all used (**See my logo checks**). The box is hidden on finished contests that never had a check. The old Logo Scan panel is gone.
+
+The pop-up has four steps with the step indicator on top, full screen on phones: **1 Choose** (the clicked design pre-chosen, other designs, already-checked ones disabled, or upload PNG/JPG/SVG; footer says how many checks are left), **2 Check** (logo, progress bar, the AI's tags, five rows Done / Searching / Waiting; can be closed, the check keeps running), **3 Result** (verdict banner, what the AI sees, similar logos on a dark panel with percentages, closest match side by side with same / different, font check saying "looks like", four score rings, How we checked naming only the searches that ran, advice; **Ask designer for changes** opens that design's comments, **Check another logo**, **Get certificate**), **4 Certificate** (preview, **Download PDF**, **Download image**, the verify link). A check that fails says why and **Try again**; it doesn't count.
+
+### C-23 My logo checks (`/dashboard/logo-checks`)
+
+In the client's account menu. Totals (logos checked, certificates, checks left), one row per check (logo, design, CC number, contest, date, free or add-on, result, overall score, **See result** opening the pop-up on step 3, **PDF**), and checks left in each contest.
+
+### P-16 Verify a certificate (`/verify/CC-0001`)
+
+Public, not indexed. Shows only whether the number is real, the date, the checked logo and the result, with the fixed note. Unknown numbers say so.
+
 ### D-01 Signup
 
 Four short screens with a stepper:
@@ -495,6 +509,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-23 | Admins & roles (Super admin only) | Staff list with title, permissions summary, on/off; **Add admin** form (name, mobile, email, starting password, title, preset, View / Manage checkboxes per area) |
 | A-24 | Support inbox | Two panes: conversation list (Open / Closed, unread badges) and the chat with the user's card (role, link to profile); reply box, Close / Reopen. Phones: list, then chat |
 | A-25 | Send message | Audience (All designers, All clients, Everyone, One person), message text, **Send**; history of sent messages. One person (owner, 2026-10-10): clicking the field opens a list of the newest 30 clients and designers with All / Designers / Clients filters; typing searches name, username, email or mobile; each row shows photo or initial, name, role tag, @username, mobile and email. **Designers are blue and clients are red** (dot, tag and initial). The chosen person shows as a card with **Change** |
+| A-26 | Copyright checker (`/admin/copyright`, view-only permission "Copyright checker") | Owner, 2026-10-10: totals (checks run, no match, similar, high risk), the rules from Settings with **Change in Settings**, tabs by result and a search, a table (logo and CC number, contest and design, who checked and free / paid, result and which check of the contest it was), a details panel (matches with links, AI and search cost, PDF and image), and checks left per contest. "Make a ticket" comes when Tickets exist |
 | S-01 | Support chat (users) | Signed-in users: a round chat button bottom-right on every page (not on admin pages) opening a chat panel; full page at `/support`. Unread badge on the button |
 
 Every destructive admin action asks for confirmation and a short reason.

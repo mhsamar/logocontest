@@ -10,7 +10,6 @@ import { ClientHandover } from "@/components/handover/client-handover";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { AddonsPanel } from "@/components/manage/addons-panel";
 import { OwnerActions } from "@/components/manage/owner-actions";
-import { ScanPanel } from "@/components/manage/scan-panel";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BackLink } from "@/components/ui/back-link";
@@ -20,16 +19,20 @@ import { CountUp } from "@/components/ui/count-up";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import { WinnerTrophy } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
+import { CheckerBox, CheckCardAction } from "@/components/logo-check/checker-box";
+import { CheckerProvider } from "@/components/logo-check/checker-context";
 import { addonPrices } from "@/lib/contests/addon-payments";
+import { contestChecks } from "@/lib/logo-check/queries";
+import { checkerReady } from "@/lib/logo-check/start";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
-import { getEntryDetail, latestScan, listEntries } from "@/lib/entries/queries";
+import { getEntryDetail, listEntries } from "@/lib/entries/queries";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
 import { getHandoverByContest } from "@/lib/handover/queries";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -59,14 +62,23 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     winnerIsPublic: contest.winnerIsPublic,
   };
   const entryNumber = typeof sp.entry === "string" ? Number(sp.entry) : null;
-  const [entries, prices, s, entry, handover] = await Promise.all([
+  const [entries, prices, s, entry, handover, checks] = await Promise.all([
     listEntries(contest.id, entryContest, user),
     addonPrices(),
     getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days"]),
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
     getHandoverByContest(contest.id),
+    // AI copyright checker (owner, 2026-10-10): the client's checks for this contest.
+    contestChecks({ id: contest.id, prize: contest.prize, logoScan: contest.logoScan, status: contest.rawStatus }),
   ]);
-  const [scan, claim] = await Promise.all([entry ? latestScan(entry.id) : null, handover ? latestClaim(handover.id) : null]);
+  const claim = handover ? await latestClaim(handover.id) : null;
+  const checker = {
+    contest: { id: contest.id, slug: contest.slug, brand: contest.brandName },
+    designs: entries.filter((e) => e.status !== "rejected").map((e) => ({ id: e.id, number: e.number, coverUrl: e.previews[0] ?? null, designer: e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? null) })),
+    state: checks,
+    ready: checkerReady(),
+    lens: Boolean(process.env.SEARCHAPI_API_KEY),
+  };
   const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const fileDays = s["timers.designer_file_upload_days"];
@@ -254,6 +266,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
       )}
 
       {/* Review designs on the left, add-ons in a sidebar on the right (owner, 2026-10-08) */}
+      <CheckerProvider setup={checker} lens={checker.lens}>
       <Panel tone="grey" className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] max-[720px]:py-6">
         <section className="min-w-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -321,6 +334,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         fileDays={fileDays}
                         variant="card"
                       />
+                      <CheckCardAction entryId={e.id} />
                     </div>
                   </div>
                 </li>
@@ -333,8 +347,9 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           )}
         </section>
 
-        <aside id="addons" className="scroll-mt-32 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto lg:rounded-[28px] lg:[scrollbar-width:thin]">
-          <div className="lc-card overflow-hidden p-4 sm:p-5">
+        <aside id="addons" className="flex scroll-mt-32 flex-col gap-3 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto lg:rounded-[28px] lg:[scrollbar-width:thin]">
+          <CheckerBox />
+          <div className="lc-card shrink-0 overflow-hidden p-4 sm:p-5">
             <div className="flex items-start gap-3">
               <span className="lc-g flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-[image:var(--gradient-red-icon)] text-white">
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -365,6 +380,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           </div>
         </aside>
       </Panel>
+      </CheckerProvider>
 
       {/* C-15: one design with the owner tools */}
       {entry && (
@@ -389,13 +405,6 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               canAct={reviewing && entry.status === "active"}
               fileDays={fileDays}
               variant="panel"
-            />
-            <ScanPanel
-              entryId={entry.id}
-              unlocked={contest.logoScan}
-              scan={scan ? { ...scan, createdAt: scan.createdAt.toISOString() } : null}
-              unlockHref={base}
-              price={formatTaka(prices.logo_scan, locale)}
             />
             <EntryComments entryId={entry.id} comments={entry.comments} canComment reason="notAllowed" loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
           </div>

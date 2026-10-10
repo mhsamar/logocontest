@@ -11,6 +11,8 @@ export const ADMIN_AREAS = {
   designs: { manage: true },
   reports: { manage: true },
   claims: { manage: true },
+  /** AI copyright checker (owner, 2026-10-10): view only. */
+  copyright: { manage: false },
   users: { manage: true },
   unpaid: { manage: false },
   payments: { manage: false },
@@ -40,11 +42,11 @@ const viewOnly = (...areas: AdminArea[]): Permission[] => areas.map((a) => `${a}
 
 export const PRESETS = {
   /** Runs the site day to day: everything except fees/settings and full ID numbers. */
-  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit"), ...viewOnly("agreements", "settings")],
+  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "copyright", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit"), ...viewOnly("agreements", "settings")],
   /** Answers people: support chat, messages to one person, unpaid contests, read-only context. */
   support: [...both("support", "unpaid"), ...viewOnly("dashboard", "live", "contests", "designs", "users", "messages", "payments")],
   /** Keeps designs clean: reports, copy claims, designs and strikes. */
-  moderator: [...both("designs", "reports", "claims", "users"), ...viewOnly("dashboard", "contests", "support")],
+  moderator: [...both("designs", "reports", "claims", "users"), ...viewOnly("dashboard", "contests", "support", "copyright")],
 } satisfies Record<string, Permission[]>;
 
 export type Preset = keyof typeof PRESETS;

@@ -5,7 +5,7 @@ import { GlideTrack } from "@/components/ui/glide-track";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "./upgrade-meta";
 import { Checkbox, TextField } from "@/components/ui/field";
 import { PACKAGES, UPGRADES, type Order } from "@/lib/contests/brief";
-import { activeUpgrades, includedByNda, prizeWithFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { activeUpgrades, includedByNda, includedByPrize, prizeWithFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
@@ -343,17 +343,19 @@ export function PackageStep({
           {UPGRADES.map((u) => {
             const on = active[u];
             const included = includedByNda(order, u);
+            // The AI copyright checker comes with bigger prizes: shown as included, nothing to switch (owner, 2026-10-10).
+            const free = includedByPrize(order, u, config);
             return (
               <button
                 key={u}
                 type="button"
                 role="switch"
-                aria-checked={on}
-                disabled={included}
+                aria-checked={on || free}
+                disabled={included || free}
                 onClick={() => update({ upgrades: { ...order.upgrades, [u]: !order.upgrades[u] } })}
                 className={cx(
                   "group relative flex items-start gap-3 overflow-clip rounded-[22px] p-4 text-left transition-[box-shadow,background-color] duration-300 disabled:cursor-default",
-                  on ? "bg-tint/50 shadow-card ring-2 ring-primary" : "bg-surface ring-1 ring-line hover:shadow-card",
+                  on || free ? "bg-tint/50 shadow-card ring-2 ring-primary" : "bg-surface ring-1 ring-line hover:shadow-card",
                 )}
               >
                 <span
@@ -369,8 +371,8 @@ export function PackageStep({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-semibold text-ink">{t(`wizard.upgrades.${u}.name`)}</span>
-                    <span className={cx("text-sm font-bold tabular-nums", included ? "text-success" : AMOUNT)}>
-                      {included ? t("wizard.c08.included") : `+${taka(config.upgradePrices[u])}`}
+                    <span className={cx("text-sm font-bold tabular-nums", included || free ? "text-success" : AMOUNT)}>
+                      {free ? t("wizard.c08.freeWithPrize") : included ? t("wizard.c08.included") : `+${taka(config.upgradePrices[u])}`}
                     </span>
                   </span>
                   <span className="mt-0.5 block text-sm leading-snug text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>
@@ -378,12 +380,12 @@ export function PackageStep({
                 {/* Switch */}
                 <span
                   aria-hidden
-                  className={cx("relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors duration-300", on ? (included ? "bg-success" : "bg-primary") : "bg-line")}
+                  className={cx("relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors duration-300", on || free ? (included || free ? "bg-success" : "bg-primary") : "bg-line")}
                 >
                   <span
                     className={cx(
                       "absolute top-0.5 size-5 rounded-full bg-white shadow-card transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                      on ? "left-[1.375rem]" : "left-0.5",
+                      on || free ? "left-[1.375rem]" : "left-0.5",
                     )}
                   />
                 </span>

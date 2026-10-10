@@ -24,6 +24,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view" },
       { href: "/admin/reports", icon: "reports", label: "admin.nav.reports", perm: "reports.view", badge: "reports" },
       { href: "/admin/claims", icon: "claims", label: "admin.nav.claims", perm: "claims.view", badge: "claims" },
+      { href: "/admin/copyright", icon: "checker", label: "admin.nav.copyright", perm: "copyright.view" },
       { href: "/admin/unpaid", icon: "unpaid", label: "admin.nav.unpaid", perm: "unpaid.view" },
       { href: "/admin/monthly", icon: "monthly", label: "admin.nav.monthly", perm: "monthly.view" },
     ],

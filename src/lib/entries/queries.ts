@@ -253,33 +253,3 @@ export async function designerFaces(
   }
   return out;
 }
-
-export type StoredScan = {
-  driver: string;
-  createdAt: Date;
-  full: { url: string }[];
-  partial: { url: string }[];
-  similar: { url: string }[];
-  pages: { url: string; title: string | null }[];
-};
-
-/** The newest Logo Scan of a design, for its client. */
-export async function latestScan(entryId: string): Promise<StoredScan | null> {
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await createAdminClient()
-    .from("logo_scans")
-    .select("driver, created_at, full_matches, partial_matches, similar_images, pages")
-    .eq("entry_id", entryId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return {
-    driver: data.driver as string,
-    createdAt: new Date(data.created_at as string),
-    full: (data.full_matches ?? []) as StoredScan["full"],
-    partial: (data.partial_matches ?? []) as StoredScan["partial"],
-    similar: (data.similar_images ?? []) as StoredScan["similar"],
-    pages: (data.pages ?? []) as StoredScan["pages"],
-  };
-}

@@ -11,6 +11,8 @@ export interface FileStorage {
   remove(bucket: string, paths: string[]): Promise<void>;
   /** Reads a stored file (for server-side checks such as image moderation). */
   download(bucket: string, path: string): Promise<Uint8Array>;
+  /** Writes a file from the server (overwrites). */
+  upload(bucket: string, path: string, bytes: Uint8Array, contentType: string): Promise<void>;
   /** Short-lived links to read private files. Missing files are left out. */
   createReadUrls(bucket: string, paths: string[], seconds: number): Promise<Map<string, string>>;
 }
@@ -44,6 +46,11 @@ class SupabaseFileStorage implements FileStorage {
     const { data, error } = await this.db.storage.from(bucket).download(path);
     if (error || !data) throw new Error(error?.message ?? "Could not read file");
     return new Uint8Array(await data.arrayBuffer());
+  }
+
+  async upload(bucket: string, path: string, bytes: Uint8Array, contentType: string) {
+    const { error } = await this.db.storage.from(bucket).upload(path, bytes, { contentType, upsert: true });
+    if (error) throw new Error(error.message);
   }
 
   async createReadUrls(bucket: string, paths: string[], seconds: number) {

@@ -133,3 +133,15 @@ describe("custom amount and duration validation", () => {
     expect(() => calculatePrice(order({ package: "custom", customPrize: 100 }), cfg)).toThrow();
   });
 });
+
+describe("AI copyright checker in the order (owner, 2026-10-10)", () => {
+  const free = { ...cfg, checkerFreeFrom: 8000 };
+  it("is not charged when the prize is at or over the free limit", () => {
+    const big = calculatePrice(order({ package: "custom", customPrize: 8000, upgrades: withUpgrades("logo_scan") }), free);
+    expect(big.upgrades.map((u) => u.key)).not.toContain("logo_scan");
+  });
+  it("is charged below the free limit", () => {
+    const small = calculatePrice(order({ package: "custom", customPrize: 7000, upgrades: withUpgrades("logo_scan") }), free);
+    expect(small.upgrades).toEqual([{ key: "logo_scan", price: cfg.upgradePrices.logo_scan }]);
+  });
+});

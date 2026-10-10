@@ -16,6 +16,8 @@ export type PricingConfig = {
   customMin: number;
   customStep: number;
   upgradePrices: Record<UpgradeKey, number>;
+  /** The AI copyright checker (add-on key `logo_scan`) is free from this prize (owner, 2026-10-10). */
+  checkerFreeFrom?: number;
   /** Quick-pick chips; any whole number of days from durationMin to durationMax is allowed (owner, 2026-10-08). */
   durationOptions: number[];
   durationMin: number;
@@ -71,7 +73,7 @@ export function calculatePrice(order: Order, cfg: PricingConfig): Price {
   const prize = prizeFor(order, cfg);
   const feePercent = feePercentFor(prize, cfg);
   const fee = serviceFee(prize, feePercent);
-  const upgrades = chargedUpgrades(order).map((key) => ({ key, price: cfg.upgradePrices[key] }));
+  const upgrades = chargedUpgrades(order, cfg).map((key) => ({ key, price: cfg.upgradePrices[key] }));
   const upgradesTotal = upgrades.reduce((sum, u) => sum + u.price, 0);
   return { prize, feePercent, serviceFee: fee, upgrades, upgradesTotal, total: prize + fee + upgradesTotal };
 }
@@ -81,9 +83,16 @@ export function includedByNda(order: Order, key: UpgradeKey): boolean {
   return key === "private" && Boolean(order.upgrades.nda);
 }
 
+/** The AI copyright checker comes with prizes at or over the free limit (owner, 2026-10-10). */
+export function includedByPrize(order: Order, key: UpgradeKey, cfg?: Pick<PricingConfig, "checkerFreeFrom" | "packagePrizes">): boolean {
+  if (key !== "logo_scan" || cfg?.checkerFreeFrom === undefined) return false;
+  const prize = order.package === "custom" ? (order.customPrize ?? 0) : cfg.packagePrizes[order.package];
+  return prize >= cfg.checkerFreeFrom;
+}
+
 /** The add-ons the client pays for, in display order. */
-export function chargedUpgrades(order: Order): UpgradeKey[] {
-  return UPGRADES.filter((k) => order.upgrades[k] && !includedByNda(order, k));
+export function chargedUpgrades(order: Order, cfg?: Pick<PricingConfig, "checkerFreeFrom" | "packagePrizes">): UpgradeKey[] {
+  return UPGRADES.filter((k) => order.upgrades[k] && !includedByNda(order, k) && !includedByPrize(order, k, cfg));
 }
 
 /** The add-ons that will be on: the chosen ones plus Private when NDA is chosen. */

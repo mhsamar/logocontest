@@ -4,13 +4,10 @@ import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { getLogoScanner, type ScanResult } from "@/lib/moderation/logo-scan";
 import { contestDesignerIds, notify } from "@/lib/notifications";
-import { getFileStorage } from "@/lib/storage";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { feeRateFor } from "@/lib/wallet/fees";
-import { ENTRY_FILES_BUCKET } from "./queries";
 import { REJECT_REASONS } from "./review-options";
 
 /** The client's review tools (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
@@ -101,33 +98,4 @@ export async function pickWinner(entryId: string): Promise<Result> {
   await notify((await contestDesignerIds(own.contest.id)).filter((id) => id !== own.entry.designer_id), "contest_closed", n, link);
   refresh();
   return { ok: true };
-}
-
-/** Logo Scan of the design's cover (the original upload, not the resized preview). */
-export async function scanEntry(entryId: string): Promise<{ ok: true; result: ScanResult } | { ok: false; error: MessageKey }> {
-  const own = await ownEntry(entryId);
-  if (!own) return { ok: false, error: "auth.errors.generic" };
-  if (!own.contest.logo_scan) return { ok: false, error: "manage.scan.locked" };
-  const db = createAdminClient();
-  const { data: img } = await db.from("entry_images").select("original_path").eq("entry_id", entryId).order("position").limit(1).maybeSingle();
-  if (!img) return { ok: false, error: "auth.errors.generic" };
-  let result: ScanResult;
-  try {
-    const bytes = await getFileStorage().download(ENTRY_FILES_BUCKET, img.original_path as string);
-    result = await getLogoScanner().scan(bytes);
-  } catch (e) {
-    console.error("[logo-scan] failed:", e instanceof Error ? e.message : e);
-    return { ok: false, error: "manage.scan.failed" };
-  }
-  await db.from("logo_scans").insert({
-    entry_id: entryId,
-    requested_by: own.user.id,
-    driver: result.driver,
-    full_matches: result.full,
-    partial_matches: result.partial,
-    similar_images: result.similar,
-    pages: result.pages,
-  });
-  refresh();
-  return { ok: true, result };
 }

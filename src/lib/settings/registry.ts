@@ -117,7 +117,11 @@ export const SETTINGS = {
   },
   "upgrades.logo_scan_price": {
     group: "upgrades", type: "int", schema: int(), default: 500,
-    description: "Price of the Logo Scan add-on (taka, once per contest; owner, 2026-10-08).",
+    description: "Price of the AI copyright checker add-on (3 logo checks) for contests under the free prize (taka; owner, 2026-10-10).",
+  },
+  "upgrades.logo_check_free_from": {
+    group: "upgrades", type: "int", schema: int(), default: 8000,
+    description: "Contests with this prize (taka) or more get the AI copyright checker free.",
   },
   "upgrades.highlight_price": {
     group: "upgrades", type: "int", schema: int(), default: 500,
@@ -201,6 +205,18 @@ export const SETTINGS = {
   "limits.low_entry_prompt_threshold": {
     group: "limits", type: "int", schema: int(1), default: 5,
     description: "Below this many active entries, the client is prompted to buy an extension.",
+  },
+  "limits.logo_checks_per_contest": {
+    group: "limits", type: "int", schema: int(1), default: 3,
+    description: "AI logo checks per contest (free or paid). Failed checks do not count.",
+  },
+  "limits.logo_check_close_from": {
+    group: "limits", type: "int", schema: int(1), default: 45,
+    description: "AI copyright checker: a found logo this similar (0-100) or more counts as a close match.",
+  },
+  "limits.logo_check_high_risk_from": {
+    group: "limits", type: "int", schema: int(1), default: 85,
+    description: "AI copyright checker: a found logo this similar (0-100) or more makes the result High risk.",
   },
   "limits.contest_comment_max_length": {
     group: "limits", type: "int", schema: int(50), default: 500,

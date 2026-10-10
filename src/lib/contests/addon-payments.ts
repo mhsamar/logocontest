@@ -5,6 +5,7 @@ import type { PaymentMethod, VerifiedCallback } from "@/lib/payments/gateway";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkLimits } from "@/lib/logo-check/run";
 import type { AddonKey } from "./addons";
 
 /** Add-ons and extensions bought after launch (BLUEPRINT §7.4, owner 2026-10-08). */
@@ -30,7 +31,7 @@ export async function addonPrices(): Promise<AddonPrices> {
   };
 }
 
-type ContestFlags = { id: string; slug: string; client_id: string; status: string; brand_name: string; is_promoted: boolean; is_private: boolean; is_blind: boolean; logo_scan: boolean };
+type ContestFlags = { id: string; slug: string; client_id: string; status: string; brand_name: string; prize_amount: number; is_promoted: boolean; is_private: boolean; is_blind: boolean; logo_scan: boolean };
 
 const ACTIVE: Record<AddonKey, keyof ContestFlags> = { promote: "is_promoted", private: "is_private", blind: "is_blind", logo_scan: "logo_scan" };
 
@@ -46,17 +47,21 @@ export async function startAddonCheckout(
   const db = createAdminClient();
   const { data: c } = await db
     .from("contests")
-    .select("id, slug, client_id, status, brand_name, is_promoted, is_private, is_blind, logo_scan")
+    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan")
     .eq("id", contestId)
     .maybeSingle<ContestFlags>();
   if (!c || c.client_id !== user.id) return { ok: false, error: "not_found" };
-  if (c.status !== "open") return { ok: false, error: "closed" };
+  // The AI copyright checker can also be bought while the client is judging (owner, 2026-10-10).
+  const checkerWhileJudging = "addon" in order && order.addon === "logo_scan" && c.status === "judging";
+  if (c.status !== "open" && !checkerWhileJudging) return { ok: false, error: "closed" };
 
   const prices = await addonPrices();
   let amount: number;
   let row: { purpose: "addon" | "extension"; addon: AddonKey | null; extension_days: number | null };
   if ("addon" in order) {
     if (c[ACTIVE[order.addon]]) return { ok: false, error: "active" };
+    // Free with this prize: nothing to buy (owner, 2026-10-10).
+    if (order.addon === "logo_scan" && c.prize_amount >= (await checkLimits()).freeFrom) return { ok: false, error: "active" };
     amount = prices[order.addon];
     row = { purpose: "addon", addon: order.addon, extension_days: null };
   } else {

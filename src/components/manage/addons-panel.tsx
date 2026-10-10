@@ -79,7 +79,8 @@ export function AddonsPanel({
       timeZone: "Asia/Dhaka",
     }).format(d);
   const price = (item: Item) => (item === "extend" ? prices.extensionPerDay * days : prices[item]);
-  const items: Item[] = ["promote", "extend", "logo_scan", "private", "blind"];
+  // The AI copyright checker (add-on key logo_scan) has its own box on the contest page (owner, 2026-10-10).
+  const items: Item[] = ["promote", "extend", "private", "blind"];
 
   const pay = () =>
     start(async () => {

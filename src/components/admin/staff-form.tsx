@@ -15,7 +15,7 @@ import { AdmCheckbox, ADM_INPUT, Pill } from "./ui";
 /** The permission rows, grouped as in the sidebar (design/admin/admins-roles.html). */
 const GROUPS: { key: "overview" | "work" | "people" | "money" | "messages" | "site"; areas: AdminArea[] }[] = [
   { key: "overview", areas: ["dashboard", "live"] },
-  { key: "work", areas: ["contests", "designs", "reports", "claims", "unpaid", "monthly"] },
+  { key: "work", areas: ["contests", "designs", "reports", "claims", "copyright", "unpaid", "monthly"] },
   { key: "people", areas: ["users", "agreements"] },
   { key: "money", areas: ["payments", "withdrawals"] },
   { key: "messages", areas: ["support", "messages"] },

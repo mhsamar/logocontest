@@ -18,6 +18,8 @@ export function accountItems(user: CurrentUser, t: Translate) {
   const items: { href: string; label: string }[] = [];
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
   if (user.role !== "admin") items.push({ href: "/dashboard", label: t("nav.dashboard") });
+  // AI copyright checker results and certificates (owner, 2026-10-10).
+  if (user.role === "client") items.push({ href: "/dashboard/logo-checks", label: t("nav.logoChecks") });
   if (can(user, "contest.save")) items.push({ href: "/dashboard/saved", label: t("nav.saved") });
   if (user.role === "designer") items.push({ href: "/dashboard/wallet", label: t("nav.wallet") });
   if (user.role !== "admin") items.push({ href: "/dashboard/profile", label: t("nav.profile") });
