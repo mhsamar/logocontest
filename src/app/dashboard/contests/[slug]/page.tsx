@@ -17,7 +17,7 @@ import { PageShell, Panel } from "@/components/ui/panel";
 import { GlideTrack } from "@/components/ui/glide-track";
 import { CountUp } from "@/components/ui/count-up";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
-import { WinnerTrophy } from "@/components/ui/trophy";
+import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
 import { CheckerBox, CheckCardAction } from "@/components/logo-check/checker-box";
 import { CheckerProvider } from "@/components/logo-check/checker-context";
@@ -312,8 +312,13 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                     aria-label={t("entry.open", { n: fmt(e.number) })}
                   >
                     <Collage previews={e.previews} total={e.imageCount} />
-                    {e.status === "winner" && <WinnerTrophy size="sm" className="absolute right-2 top-2" />}
-                    {e.isShortlisted && e.status !== "rejected" && (
+                    {e.status === "winner" && (
+                      <>
+                        <WinnerBadge label={t("entry.winner")} className="absolute left-2.5 top-2.5" />
+                        <WinnerTrophy className="absolute right-2.5 top-2.5" />
+                      </>
+                    )}
+                    {e.isShortlisted && e.status !== "rejected" && e.status !== "winner" && (
                       <span className="absolute left-2 top-2 rounded-full bg-[image:var(--gradient-red)] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
                         {t("manage.review.filters.shortlisted")}
                       </span>
@@ -375,6 +380,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                 extensionDays={prices.extensionDays}
                 endsAt={contest.endsAt ? contest.endsAt.toISOString() : null}
                 locale={locale}
+                prize={contest.prize}
               />
             </div>
           </div>
@@ -387,6 +393,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
         <EntryViewer
           number={entry.number}
           images={entry.previews}
+          winner={entry.status === "winner"}
           closeHref={filter !== "all" ? `${base}?filter=${filter}` : base}
           byline={
             entry.designer

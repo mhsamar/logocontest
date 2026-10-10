@@ -4,6 +4,8 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export const CLAIM_NOTE_MIN = 20;
 export const CLAIM_NOTE_MAX = 1000;
+/** Pictures that show the copy, on top of the links (owner, 2026-10-10). */
+export const CLAIM_MAX_PHOTOS = 3;
 export const CLAIM_MAX_LINKS = 5;
 export const CLAIM_DECISIONS = ["rejected", "correction", "fine", "ban"] as const;
 export type ClaimDecision = (typeof CLAIM_DECISIONS)[number];

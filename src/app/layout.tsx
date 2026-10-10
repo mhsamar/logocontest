@@ -58,19 +58,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} messages={messages}>
           <ToastProvider>
+            {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero.
+                It stays in one place, so the bars come after it (owner, 2026-10-10: the menu bar never moves). */}
+            <SiteChrome hideOnHome={guestHome}>
+              <div className="lc-nav-slot">
+                <SiteNav user={user} />
+              </div>
+            </SiteChrome>
             <SiteChrome>
-              {/* Measured by ScrollReveal so the floating nav sits below these bars. */}
               <div data-top-bars>
                 {/* Admins browsing the site: who they are and the way back (owner, 2026-10-10). */}
                 {can(user, "admin.access") && <AdminBar role={user!.isSuperAdmin ? t("admin.shell.superAdmin") : user!.adminTitle || t("admin.shell.staff")} />}
                 {notice && <NoticeBar notice={notice} />}
                 <EmailBannerSlot />
-              </div>
-            </SiteChrome>
-            {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero. */}
-            <SiteChrome hideOnHome={guestHome}>
-              <div className="lc-nav-slot">
-                <SiteNav user={user} />
               </div>
             </SiteChrome>
             <main className="flex flex-1 flex-col">{children}</main>

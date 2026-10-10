@@ -79,3 +79,19 @@ export function WinnerTrophy({ className, size = "md" }: { className?: string; s
     </span>
   );
 }
+
+/** The "Winner" label on a winning design (owner, 2026-10-10: bigger, with the trophy), for cards and the viewer. */
+export function WinnerBadge({ label, size = "md", className }: { label: string; size?: "md" | "lg"; className?: string }) {
+  return (
+    <span
+      className={cx(
+        "pointer-events-none inline-flex items-center gap-1.5 rounded-full bg-[image:var(--gradient-red)] font-bold uppercase tracking-wide text-white shadow-[0_6px_16px_rgb(139_0_0/0.35)] ring-2 ring-white",
+        size === "lg" ? "py-1.5 pl-2 pr-4 text-[15px]" : "py-1 pl-1.5 pr-3 text-[12.5px]",
+        className,
+      )}
+    >
+      <TrophyIcon className={size === "lg" ? "size-6" : "size-5"} />
+      {label}
+    </span>
+  );
+}

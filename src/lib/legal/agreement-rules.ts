@@ -56,3 +56,27 @@ export function checkAgreement(input: AgreementInput): { ok: true; values: Agree
   if (Object.keys(errors).length > 0 || !mobile || !isIdType(input.idType)) return { ok: false, errors };
   return { ok: true, values: { fullName, mobile, address, idType: input.idType, idNumber, signature } };
 }
+
+/** The address in parts (owner, 2026-10-10): house, road, area, post code and country. */
+export type AddressParts = { house: string; road: string; area: string; postCode: string; country: string };
+export type AddressField = "house" | "area" | "country";
+
+const clean = (s: string, max: number) => s.replace(/\s+/g, " ").trim().slice(0, max);
+
+/**
+ * Checks the parts and joins them into the one-line address the rest of the site shows. House, area and
+ * country are needed; the road and post code are not (villages often have neither).
+ */
+export function joinAddress(raw: AddressParts, countryName: (code: string) => string, isCountry: (code: string) => boolean): { ok: true; parts: AddressParts; line: string } | { ok: false; errors: Partial<Record<AddressField, true>> } {
+  const parts: AddressParts = { house: clean(raw.house, 80), road: clean(raw.road, 80), area: clean(raw.area, 80), postCode: clean(toAsciiDigits(raw.postCode), 12), country: raw.country.trim().toUpperCase() };
+  const errors: Partial<Record<AddressField, true>> = {};
+  if (parts.house.length < 1) errors.house = true;
+  if (parts.area.length < 2) errors.area = true;
+  if (!isCountry(parts.country)) errors.country = true;
+  if (Object.keys(errors).length) return { ok: false, errors };
+  const line = [parts.house, parts.road, parts.area, parts.postCode, countryName(parts.country)].filter(Boolean).join(", ");
+  return { ok: true, parts, line };
+}
+
+/** A national ID card needs both sides; a passport or birth certificate needs one photo (owner, 2026-10-10). */
+export const needsBackPhoto = (type: IdType) => type === "nid";

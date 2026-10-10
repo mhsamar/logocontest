@@ -4,22 +4,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
+import { Checkbox, PhoneField, TextField } from "@/components/ui/field";
+import { ImageDrop } from "@/components/ui/image-drop";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { signAgreement, type AgreementState } from "@/lib/agreements/actions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
-import { ID_TYPES, signatureMatches, type IdType } from "@/lib/legal/agreement-rules";
+import { ID_TYPES, needsBackPhoto, signatureMatches, type IdType } from "@/lib/legal/agreement-rules";
 import type { AgreementText } from "@/lib/legal/types";
 
 const IDLE: AgreementState = { ok: false };
 
 /** D-12 Originality agreement (UI-JOURNEY, owner 2026-10-09): details, declaration, typed signature. */
-export function AgreementForm({ defaults, text, next }: { defaults: { fullName: string; mobile: string }; text: AgreementText; next: string }) {
+/** `countries` comes from the server, so the names are the same on the server and in the browser. */
+export function AgreementForm({ defaults, text, next, countries }: { defaults: { fullName: string; mobile: string }; text: AgreementText; next: string; countries: { code: string; name: string }[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [state, action, pending] = useActionState(signAgreement, IDLE);
   const [fullName, setFullName] = useState(defaults.fullName);
-  const [address, setAddress] = useState("");
+  // The address in parts (owner, 2026-10-10).
+  const [addr, setAddr] = useState({ house: "", road: "", area: "", postCode: "", country: DEFAULT_COUNTRY });
+  const [front, setFront] = useState<File[]>([]);
+  const [back, setBack] = useState<File[]>([]);
   const [idType, setIdType] = useState<IdType>("nid");
   const [signature, setSignature] = useState("");
   // Every field is controlled, so nothing is lost when the server sends an error back.
@@ -27,7 +33,8 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
   const [idNumber, setIdNumber] = useState("");
   const [agreed, setAgreed] = useState(false);
   const matches = signatureMatches(fullName, signature);
-  const err = (f: keyof NonNullable<AgreementState["errors"]>) => (state.errors?.[f] ? t(state.errors[f]) : undefined);
+  const err = (f: keyof NonNullable<AgreementState["errors"]>) => (state.errors?.[f] ? t(state.errors[f]!) : undefined);
+  const setPart = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   useEffect(() => {
     if (state.ok && state.next) router.push(state.next);
@@ -39,6 +46,8 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
       onSubmit={(e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
+        if (front[0]) data.set("idFront", front[0]);
+        if (back[0] && needsBackPhoto(idType)) data.set("idBack", back[0]);
         startTransition(() => action(data));
       }}
       className="space-y-6"
@@ -59,17 +68,32 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
           error={err("fullName")}
         />
         <PhoneField name="mobile" label={t("agreement.mobile")} value={mobile} onChange={(e) => setMobile(e.target.value)} required error={err("mobile")} />
-        <TextAreaField
-          name="address"
-          label={t("agreement.address")}
-          hint={t("agreement.addressHint")}
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          maxLength={300}
-          rows={3}
-          required
-          error={err("address")}
-        />
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-medium text-ink">{t("agreement.address")}</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField name="house" label={t("agreement.addr.house")} value={addr.house} onChange={setPart("house")} maxLength={80} autoComplete="address-line1" required error={err("house")} />
+            <TextField name="road" label={t("agreement.addr.road")} value={addr.road} onChange={setPart("road")} maxLength={80} autoComplete="address-line2" error={err("address")} />
+            <TextField name="area" label={t("agreement.addr.area")} hint={t("agreement.addr.areaHint")} value={addr.area} onChange={setPart("area")} maxLength={80} autoComplete="address-level2" required error={err("area")} />
+            <TextField name="postCode" label={t("agreement.addr.postCode")} value={addr.postCode} onChange={setPart("postCode")} maxLength={12} inputMode="numeric" autoComplete="postal-code" />
+          </div>
+          <label className="block text-sm">
+            <span className="font-medium text-ink">{t("agreement.addr.country")}</span>
+            <select
+              name="country"
+              value={addr.country}
+              onChange={setPart("country")}
+              autoComplete="country"
+              className="mt-1.5 block min-h-12 w-full rounded-[14px] bg-surface px-3.5 text-[15px] text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {countries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {err("country") && <span className="mt-1 block text-sm text-danger">{err("country")}</span>}
+          </label>
+        </fieldset>
 
         <fieldset>
           <legend className="text-sm font-medium text-ink">{t("agreement.idType")}</legend>
@@ -100,6 +124,11 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
           required
           error={err("idNumber")}
         />
+        {/* A photo of the ID (owner, 2026-10-10): drag in, choose, or take one with the phone camera. */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ImageDrop label={t(`agreement.photo.front.${idType}`)} hint={t("agreement.photo.hint")} files={front} onChange={setFront} error={err("idFront")} />
+          {needsBackPhoto(idType) && <ImageDrop label={t("agreement.photo.back")} files={back} onChange={setBack} error={err("idBack")} />}
+        </div>
         <p className="flex items-start gap-2 rounded-[14px] bg-chip px-3 py-2.5 text-xs leading-relaxed text-muted">
           <svg viewBox="0 0 24 24" className="mt-px size-4 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
             <rect x="5" y="10" width="14" height="10" rx="2" />

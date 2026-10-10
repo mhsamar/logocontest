@@ -55,11 +55,14 @@ export function AddonsPanel({
   extensionDays,
   endsAt,
   locale,
+  prize,
 }: {
   contestId: string;
   open: boolean;
   active: Record<AddonKey, boolean>;
-  prices: Record<AddonKey, number> & { extensionPerDay: number };
+  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number };
+  /** The contest prize: the AI copyright checker is free from `prices.checkerFreeFrom` (owner, 2026-10-10). */
+  prize?: number;
   extensionDays: number[];
   endsAt: string | null;
   locale: "en" | "bn";
@@ -79,8 +82,9 @@ export function AddonsPanel({
       timeZone: "Asia/Dhaka",
     }).format(d);
   const price = (item: Item) => (item === "extend" ? prices.extensionPerDay * days : prices[item]);
-  // The AI copyright checker (add-on key logo_scan) has its own box on the contest page (owner, 2026-10-10).
-  const items: Item[] = ["promote", "extend", "private", "blind"];
+  // The AI copyright checker (add-on key logo_scan): shown free with bigger prizes, else bought here or in its box.
+  const items: Item[] = ["promote", "extend", "logo_scan", "private", "blind"];
+  const checkerFree = prize !== undefined && prices.checkerFreeFrom !== undefined && prize >= prices.checkerFreeFrom;
 
   const pay = () =>
     start(async () => {
@@ -96,7 +100,9 @@ export function AddonsPanel({
       <ul className="@container grid gap-2.5">
         {items.map((item) => {
           const isActive = item !== "extend" && active[item];
-          const status = isActive ? (
+          const status = item === "logo_scan" && checkerFree ? (
+            <span className="inline-flex items-center rounded-full bg-success/10 px-3 py-1 text-sm font-semibold text-success">{t("wizard.c08.freeWithPrize")}</span>
+          ) : isActive ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-sm font-semibold text-success">
               {/* A live dot that keeps pulsing while the add-on is on */}
               <span className="relative flex size-2" aria-hidden>

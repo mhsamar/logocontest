@@ -4,6 +4,7 @@ import { listAgreements } from "@/lib/agreements/queries";
 import { getI18n } from "@/lib/i18n/server";
 import { formatBdMobile } from "@/lib/phone";
 import { requirePermission } from "@/lib/admin/core";
+import { hasPermission } from "@/lib/admin/permissions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -12,7 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-13 Designer agreements (BLUEPRINT §9.6, owner 2026-10-09): ID numbers masked; each full reveal is logged.
 export default async function AdminAgreementsPage() {
-  await requirePermission("agreements.view");
+  const admin = await requirePermission("agreements.view");
+  // ID photos show the full number: Agreements "manage" only, and every view is logged (owner, 2026-10-10).
+  const canSeePhotos = hasPermission(admin, "agreements.manage");
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAgreements()]);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   return (
@@ -40,6 +43,23 @@ export default async function AdminAgreementsPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t(`agreement.idTypes.${a.idType}`)}</p>
                 <RevealId designerId={a.designerId} masked={a.idMasked} />
+                {a.idPhotos.front ? (
+                  canSeePhotos ? (
+                    <p className="mt-1.5 flex flex-wrap gap-3">
+                      {(["front", "back"] as const)
+                        .filter((side) => a.idPhotos[side])
+                        .map((side) => (
+                          <a key={side} href={`/admin/agreements/photo/${a.designerId}/${side}`} target="_blank" rel="noopener" className="font-semibold text-primary hover:underline">
+                            {t(`admin.agreements.photo.${side}`)} ↗
+                          </a>
+                        ))}
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-muted">{t("admin.agreements.photo.hidden")}</p>
+                  )
+                ) : (
+                  <p className="mt-1.5 text-xs text-muted">{t("admin.agreements.photo.none")}</p>
+                )}
               </div>
               <div className="text-muted">
                 <p>{t("admin.agreements.signed", { date: when(a.signedAt) })}</p>

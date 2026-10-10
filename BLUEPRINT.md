@@ -255,6 +255,8 @@ Credits happen once, inside one database transaction (`finish_no_result` locks t
 ### 7.6 Copy claim on the winning design (owner, 2026-10-09)
 
 - **Who and when:** the client, within `timers.copy_claim_days` (3) days of picking the winner, from the handover section of their contest page (**Report copied design**) or through support (an admin can file it for them). They describe the problem and add up to 5 links (the original logo, a stock page, etc.). One open claim per handover.
+
+**Pictures (owner, 2026-10-10):** besides links, the client can add up to 3 screenshots or photos that show the copy (drag in, choose, or camera). They are saved as JPEG in the private `claim-files` bucket; admins see them on the Copy claims page.
 - **While open:** the prize is frozen (no credit, even after the hold days); the handover itself carries on. The designer and admins are told.
 - **Rejected:** the claim is closed with the admin's note; the prize is credited as normal once the hold is over.
 - **Upheld:** the admin talks with the designer and picks one outcome:
@@ -346,6 +348,8 @@ Required checkboxes (store with timestamp and IP):
 ### 9.6 Originality agreement (owner, 2026-10-09)
 
 Filled in once, before the designer's **first** design (the submit page sends them to `/dashboard/agreement` and back). Designers who joined before this rule sign it before their next design (owner confirmed, 2026-10-09). Fields: full name, mobile number (prefilled), address, ID type (NID, passport or birth certificate) and its number. NID: 10, 13 or 17 digits; birth certificate: 17 digits; passport: 6–9 letters and digits. Then the full declaration in English and Bangla: the designs are their own original work; if a copied design is found after winning, the platform may cancel the win, withhold or fine the prize, ban the account, and take legal action under the laws of Bangladesh; the details given are true. They sign by typing their full name (must match the name above) and ticking **I agree**; the server saves the date, time, IP address, browser and the agreement version. The designer can view (not edit) their signed agreement with the ID number masked; changes go through support. Admins see every agreement (A-13). The Privacy page says why the ID number is collected and who can see it.
+
+**ID photo and address (owner, 2026-10-10):** the form asks for the address in parts (house / flat, road, area / thana / district, post code, and the country from a list of every country with Bangladesh first) and a photo of the ID: the photo page of a passport or birth certificate, or both sides of a national ID card. The designer can drag a photo in, choose one, or take one with the phone camera; the browser makes it small first and the server saves it as JPEG (dropping hidden data such as location) in the private `id-documents` bucket. Only admins with Agreements "manage" can open the photos, through a one-minute link, and every view is written to the audit log. Designers who signed before photos were asked for keep their agreement; asking them for a photo is a later decision.
 
 ### 9.3 Handover
 

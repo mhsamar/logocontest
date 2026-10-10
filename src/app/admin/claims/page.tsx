@@ -48,6 +48,18 @@ export default async function AdminClaimsPage() {
                   {t("admin.claims.filed", { date: formatDate(c.createdAt, locale, "short") })} · {t(`admin.claims.handover.${c.handoverStatus}` as MessageKey)}
                 </p>
                 <p className="whitespace-pre-line rounded-xl bg-canvas p-3 text-ink">{c.note}</p>
+                {c.photos.length > 0 && (
+                  <ul className="flex flex-wrap gap-2">
+                    {c.photos.map((src, i) => (
+                      <li key={src}>
+                        <a href={src} target="_blank" rel="noopener" aria-label={t("admin.claims.photo", { n: formatNumber(i + 1, locale) })}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={src} alt="" className="h-24 w-32 rounded-xl bg-canvas object-cover ring-1 ring-line hover:ring-primary" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {c.links.length > 0 && (
                   <ul className="space-y-1">
                     {c.links.map((l) => (

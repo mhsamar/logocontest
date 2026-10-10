@@ -15,9 +15,11 @@ export type SignedAgreement = {
   version: string;
   signedAt: Date;
   signedIp: string | null;
+  /** ID photos (owner, 2026-10-10): which sides were uploaded. The photos themselves open through an admin link. */
+  idPhotos: { front: boolean; back: boolean };
 };
 
-const COLUMNS = "designer_id, full_name, mobile, address, id_type, id_number, version, signed_at, signed_ip";
+const COLUMNS = "designer_id, full_name, mobile, address, id_type, id_number, version, signed_at, signed_ip, id_front_path, id_back_path";
 
 function toAgreement(r: Record<string, unknown>): SignedAgreement {
   return {
@@ -30,6 +32,7 @@ function toAgreement(r: Record<string, unknown>): SignedAgreement {
     version: r.version as string,
     signedAt: new Date(r.signed_at as string),
     signedIp: (r.signed_ip as string | null) ?? null,
+    idPhotos: { front: Boolean(r.id_front_path), back: Boolean(r.id_back_path) },
   };
 }
 

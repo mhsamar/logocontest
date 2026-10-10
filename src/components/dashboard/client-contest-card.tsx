@@ -58,6 +58,7 @@ export async function ClientContestCard({ contest: c, now, addons }: { contest: 
         prices={addons}
         extensionDays={addons.extensionDays}
         endsAt={c.endsAt ? c.endsAt.toISOString() : null}
+        prize={c.prize}
       />
     ) : null;
 

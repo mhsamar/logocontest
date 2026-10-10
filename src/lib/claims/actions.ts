@@ -8,7 +8,9 @@ import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canOpenClaim, CLAIM_NOTE_MAX, CLAIM_NOTE_MIN, cleanEvidenceUrls, isClaimDecision } from "./rules";
+import { CLAIM_FILES_BUCKET, formFiles, savePhoto } from "@/lib/uploads/photos";
+import { randomUUID } from "node:crypto";
+import { canOpenClaim, CLAIM_MAX_PHOTOS, CLAIM_NOTE_MAX, CLAIM_NOTE_MIN, cleanEvidenceUrls, isClaimDecision } from "./rules";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -17,7 +19,15 @@ const UUID = /^[0-9a-f-]{36}$/i;
 const adminIds = () => adminIdsWith("claims.view");
 
 /** C-17: the client reports the winning design as copied, within the claim days (BLUEPRINT §7.6). */
-export async function openCopyClaim(input: { handoverId: string; note: string; links: string[] }): Promise<{ ok: true } | Fail> {
+export async function openCopyClaim(form: FormData): Promise<{ ok: true } | Fail> {
+  const input = {
+    handoverId: String(form.get("handoverId") ?? ""),
+    note: String(form.get("note") ?? ""),
+    links: form.getAll("links").map(String),
+  };
+  // Up to 3 pictures that show the copy (owner, 2026-10-10).
+  const photos = formFiles(form, "photos");
+  if (photos.length > CLAIM_MAX_PHOTOS) return fail("claims.errors.photos");
   const user = await getCurrentUser();
   if (!user || user.status !== "active" || !UUID.test(input.handoverId)) return fail("auth.errors.generic");
   const db = createAdminClient();
@@ -38,7 +48,17 @@ export async function openCopyClaim(input: { handoverId: string; note: string; l
   const { count } = await db.from("copy_claims").select("id", { count: "exact", head: true }).eq("handover_id", h.id).eq("status", "open");
   if (!canOpenClaim({ status: h.status as string, pickedAt: new Date(h.created_at as string) }, new Date(), days, (count ?? 0) > 0)) return fail("claims.errors.closed");
 
+  const claimId = randomUUID();
+  const evidencePaths: string[] = [];
+  for (const [i, p] of photos.entries()) {
+    const path = `${claimId}/photo-${i + 1}.jpg`;
+    if (!(await savePhoto(CLAIM_FILES_BUCKET, path, p))) return fail("claims.errors.photoBad");
+    evidencePaths.push(path);
+  }
+
   const { error } = await db.from("copy_claims").insert({
+    id: claimId,
+    evidence_paths: evidencePaths,
     contest_id: h.contest_id,
     handover_id: h.id,
     entry_id: h.entry_id,

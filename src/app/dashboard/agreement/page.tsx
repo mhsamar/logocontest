@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AgreementForm } from "@/components/agreement/agreement-form";
+import { countryOptions } from "@/lib/countries";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { Arrow, PageTitle } from "@/components/ui/section-heading";
@@ -89,7 +90,7 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
               </div>
             </>
           ) : (
-            <AgreementForm defaults={{ fullName: user.name, mobile: user.mobile ? `0${user.mobile.replace(/^\+880/, "")}` : "" }} text={text} next={next} />
+            <AgreementForm defaults={{ fullName: user.name, mobile: user.mobile ? `0${user.mobile.replace(/^\+880/, "")}` : "" }} text={text} next={next} countries={countryOptions(locale)} />
           )}
         </div>
       </Panel>

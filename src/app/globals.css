@@ -222,13 +222,21 @@ body {
 }
 
 /* ---- The floating nav, on every page (owner, 2026-10-10) ----
-   Fixed and centred on wide screens, just below the notice/email bars while they are in view.
-   Below 940px it sits in the page (the slot on inner pages, the hero on the guest home). */
+   Fixed and centred on wide screens, always in the same place: it never moves while the page scrolls
+   (owner, 2026-10-10). The notice / email / admin bars sit under it. Below 940px it sticks to the top of
+   inner pages (the guest home keeps it in its hero). */
 .lc-nv {
   position: fixed;
-  top: max(26px, calc(var(--lc-notice-h, 0px) + 26px - var(--lc-sy, 0) * 1px));
+  top: 26px;
   left: 50%;
   transform: translateX(-50%);
+}
+/* On the guest home the nav floats over the top of the page, so the bars start below it. */
+[data-top-bars]:not(:empty) {
+  padding-top: 104px;
+}
+.lc-nav-slot ~ [data-top-bars] {
+  padding-top: 0;
 }
 .lc-mb {
   display: none;
@@ -249,8 +257,14 @@ body {
     max-width: none !important;
   }
   .lc-nav-slot {
+    position: sticky;
+    top: 0;
+    z-index: 50;
     height: auto;
     padding: 14px 14px 0;
+  }
+  [data-top-bars]:not(:empty) {
+    padding-top: 0;
   }
   .lc-nav-slot .lc-nv {
     width: 100% !important;

@@ -14,13 +14,15 @@ export function AddonsButton({
   prices,
   extensionDays,
   endsAt,
+  prize,
 }: {
   contestId: string;
   brand: string;
   active: Record<AddonKey, boolean>;
-  prices: Record<AddonKey, number> & { extensionPerDay: number };
+  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number };
   extensionDays: number[];
   endsAt: string | null;
+  prize?: number;
 }) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
@@ -34,7 +36,7 @@ export function AddonsButton({
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={t("manage.addonsFor", { brand })} closeLabel={t("common.close")} size="wide">
         <p className="-mt-1 mb-4 text-sm text-muted">{t("manage.addons.subtitle")}</p>
-        <AddonsPanel contestId={contestId} open active={active} prices={prices} extensionDays={extensionDays} endsAt={endsAt} locale={locale} />
+        <AddonsPanel contestId={contestId} open active={active} prices={prices} extensionDays={extensionDays} endsAt={endsAt} locale={locale} prize={prize} />
       </Modal>
     </>
   );

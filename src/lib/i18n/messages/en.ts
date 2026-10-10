@@ -2165,6 +2165,7 @@ const en = {
       rejected: "Rejected. The money is back in the designer's wallet.",
     },
     claims: {
+      photo: "Open picture {n}",
       title: "Copy claims",
       link: "Copy claims",
       lead: "Clients who say the winning design is copied. The prize stays frozen until you decide. Talk with the designer first.",
@@ -2196,6 +2197,7 @@ const en = {
       },
     },
     agreements: {
+      photo: { front: "ID photo (front)", back: "ID photo (back)", hidden: "ID photo uploaded (Agreements manage can open it).", none: "No ID photo (signed before photos were asked for)." },
       title: "Designer agreements",
       link: "Designer agreements",
       lead: "Originality agreements signed before a designer's first design. ID numbers are masked; every “Show full number” is recorded in the audit log.",
@@ -2384,6 +2386,16 @@ const en = {
       lockedLine: "Not added to this contest.",
     },
     card: { check: "Check with AI", certificate: "Certificate", checking: "AI checking…" },
+  },
+  upload: {
+    optional: "Optional",
+    remove: "Remove photo",
+    drop: "Drag a photo here, or",
+    choose: "Choose a photo",
+    camera: "Take a photo",
+    preparing: "Getting the photo ready…",
+    photoTypes: "Use a JPG, PNG or WebP photo.",
+    photoTooBig: "That photo is too big. Use one under 15 MB.",
   },
   verify: {
     title: "Verify certificate {no}",
@@ -3241,6 +3253,12 @@ const en = {
     mobile: "Mobile number",
     address: "Address",
     addressHint: "Your present address: house, road, area, district.",
+    addr: { house: "House / flat", road: "Road", area: "Area / thana / district", areaHint: "For example Dhanmondi, Dhaka.", postCode: "Post code", country: "Country" },
+    photo: {
+      front: { nid: "Photo of your NID card (front)", passport: "Photo of your passport (photo page)", birth_certificate: "Photo of your birth certificate" },
+      back: "Photo of your NID card (back)",
+      hint: "All four corners in the photo and the writing easy to read. Only the admin team can see it.",
+    },
     idType: "ID type",
     idTypes: { nid: "NID", passport: "Passport", birth_certificate: "Birth certificate" },
     idNumber: { nid: "NID number", passport: "Passport number", birth_certificate: "Birth certificate number" },
@@ -3264,6 +3282,12 @@ const en = {
       continue: "Continue",
     },
     errors: {
+      house: "Enter your house or flat.",
+      area: "Enter your area, thana or district.",
+      country: "Choose your country.",
+      idFront: "Add a photo of your ID.",
+      idBack: "Add a photo of the back of your NID card.",
+      idPhotoBad: "That photo couldn't be read. Try another photo.",
       fullName: "Enter your full name (3–80 characters).",
       mobile: "Enter a valid Bangladeshi mobile number.",
       address: "Enter your address (10–300 characters).",
@@ -3277,6 +3301,8 @@ const en = {
   },
   claims: {
     client: {
+      photos: "Pictures",
+      photosHint: "Up to {n} screenshots or photos that show the copy.",
       prompt: "Is the winning design copied? Tell us by {date}.",
       cta: "Report copied design",
       title: "Report a copied design",
@@ -3301,6 +3327,8 @@ const en = {
       open: "The client reported this design as copied. Our team will contact you. Your prize is on hold until we decide.",
     },
     errors: {
+      photos: "Add at most 3 pictures.",
+      photoBad: "A picture couldn't be read. Try another one.",
       note: "Describe the problem in {min}–{max} characters.",
       links: "One of the links isn't a valid web address.",
       closed: "A claim can't be made now: the claim period is over or a claim is already open.",

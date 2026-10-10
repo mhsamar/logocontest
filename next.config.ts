@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Every page reads per-request cookies (locale, Supabase session), so we use
   // the regular dynamic rendering model instead of Cache Components.
   cacheComponents: false,
+  // ID and copy-claim photos go through forms (owner, 2026-10-10); the browser makes them small first.
+  // Stays under the 4.5 MB request limit of the server functions.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   // Headless Chrome for the Logo Research Certificate (owner, 2026-10-10): loaded from node_modules at run time,
   // not bundled, so the Chromium binary ships with the server function.
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],

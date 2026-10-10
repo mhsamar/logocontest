@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CLAIM_FILES_BUCKET } from "@/lib/uploads/photos";
 import type { ClaimDecision } from "./rules";
 
 /** Copy claims (BLUEPRINT §7.6, owner 2026-10-09). */
@@ -51,6 +52,8 @@ export type AdminClaim = CopyClaim & {
   entryId: string;
   entryNumber: number;
   coverUrl: string | null;
+  /** Pictures the client added (owner, 2026-10-10): short signed links. */
+  photos: string[];
   designer: { id: string; name: string; username: string | null; balance: number };
   client: { name: string };
   handoverStatus: string;
@@ -65,13 +68,14 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
   const { data } = await db
     .from("copy_claims")
     .select(
-      `${COLUMNS}, designer_id, contest:contests!contest_id(slug, brand_name, contest_number), entry:entries!entry_id(id, number, images:entry_images!entry_id(position, preview_path)), ` +
+      `${COLUMNS}, designer_id, evidence_paths, contest:contests!contest_id(slug, brand_name, contest_number), entry:entries!entry_id(id, number, images:entry_images!entry_id(position, preview_path)), ` +
         "designer:profiles!designer_id(name, username), client:profiles!client_id(name), handover:handovers!handover_id(status)",
     )
     .eq("status", "open")
     .order("created_at", { ascending: true });
   const rows = (data ?? []) as unknown as (Record<string, unknown> & {
     designer_id: string;
+    evidence_paths: string[] | null;
     contest: { slug: string; brand_name: string; contest_number: number | null } | null;
     entry: { id: string; number: number; images: { position: number; preview_path: string }[] | null } | null;
     designer: { name: string; username: string | null } | null;
@@ -79,7 +83,8 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
     handover: { status: string } | null;
   })[];
   const covers = rows.map((r) => [...(one(r.entry)?.images ?? [])].sort((a, b) => a.position - b.position)[0]?.preview_path ?? null);
-  const [urls, balances] = await Promise.all([
+  const photoPaths = rows.flatMap((r) => r.evidence_paths ?? []);
+  const [urls, balances, photoUrls] = await Promise.all([
     getFileStorage()
       .createReadUrls(
         ENTRY_FILES_BUCKET,
@@ -88,6 +93,9 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
       )
       .catch(() => new Map<string, string>()),
     Promise.all(rows.map((r) => db.rpc("wallet_balance", { p_designer_id: r.designer_id }).then((x) => (x.data as number | null) ?? 0))),
+    getFileStorage()
+      .createReadUrls(CLAIM_FILES_BUCKET, photoPaths, 3600)
+      .catch(() => new Map<string, string>()),
   ]);
   return rows.map((r, i) => {
     const c = one(r.contest);
@@ -98,6 +106,7 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
       entryId: one(r.entry)?.id ?? "",
       entryNumber: one(r.entry)?.number ?? 0,
       coverUrl: covers[i] ? (urls.get(covers[i]!) ?? null) : null,
+      photos: (r.evidence_paths ?? []).map((p) => photoUrls.get(p)).filter((u): u is string => !!u),
       designer: { id: r.designer_id, name: d?.name ?? "—", username: d?.username ?? null, balance: balances[i] },
       client: { name: one(r.client)?.name ?? "—" },
       handoverStatus: one(r.handover)?.status ?? "",

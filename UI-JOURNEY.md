@@ -171,7 +171,7 @@ Header (owner, 2026-10-07, from the LogoArena reference): one white panel. Left:
 
 Owner, 2026-10-10 (fixes from the owner's screenshot): the menu bar stays still (no lean-toward-the-mouse on its links and buttons, site-wide). The stats card has three equal tiles (Designs, Prize in gold, Time left), value on top and label under it, so they line up; the card itself has no mouse tilt or light. The brief card has no empty middle: Text in the logo, Logo styles and Colours in one row (or "Designers can choose the colours."), then Where the logo will be used, then Target audience and Requirements side by side, then **Read the full brief →**. The stats card ends with **Contest details** (Started, Entries close, Winner picked by, Designs are Public / Hidden / Members only, Final files within N days) and **Questions? Ask in the comments →**, pinned to the bottom so both columns end together.
 
-Three tabs, **Entries** first when there are entries to show, otherwise **Brief**:
+Three tabs, **Entries** always first (owner, 2026-10-10: opening a contest shows its designs; with none yet it says so):
 
 - **Brief:** description, short name / app name, logo text and slogan, target audience, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, **What the client needs** (always-included items plus the ticked extras), **Requirements** next to it (owner, 2026-10-08: likes and dislikes are no longer shown, older contests included) (always-on rules plus the ticked ones and other requirements), reference files (owner, 2026-10-08).
 - **Entries:** grid of entry cards (2 columns on phones, 3 on tablets, 4 on desktop). Clicking a card opens `P-04`.

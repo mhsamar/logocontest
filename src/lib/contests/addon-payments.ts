@@ -10,7 +10,7 @@ import type { AddonKey } from "./addons";
 
 /** Add-ons and extensions bought after launch (BLUEPRINT §7.4, owner 2026-10-08). */
 
-export type AddonPrices = Record<AddonKey, number> & { extensionPerDay: number; extensionDays: number[] };
+export type AddonPrices = Record<AddonKey, number> & { extensionPerDay: number; extensionDays: number[]; checkerFreeFrom: number };
 
 export async function addonPrices(): Promise<AddonPrices> {
   const s = await getSettings([
@@ -20,6 +20,7 @@ export async function addonPrices(): Promise<AddonPrices> {
     "upgrades.logo_scan_price",
     "upgrades.extension_price_per_day",
     "upgrades.extension_days_options",
+    "upgrades.logo_check_free_from",
   ]);
   return {
     promote: s["upgrades.promoted_price"],
@@ -28,6 +29,7 @@ export async function addonPrices(): Promise<AddonPrices> {
     logo_scan: s["upgrades.logo_scan_price"],
     extensionPerDay: s["upgrades.extension_price_per_day"],
     extensionDays: s["upgrades.extension_days_options"],
+    checkerFreeFrom: s["upgrades.logo_check_free_from"],
   };
 }
 

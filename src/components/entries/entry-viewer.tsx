@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 
@@ -16,9 +17,12 @@ export function EntryViewer({
   images,
   closeHref,
   byline,
+  winner = false,
   children,
 }: {
   number: number;
+  /** The winning design shows the Winner badge and trophy on the picture (owner, 2026-10-10). */
+  winner?: boolean;
   images: string[];
   closeHref: string;
   byline: React.ReactNode;
@@ -82,7 +86,17 @@ export function EntryViewer({
               touch.current = null;
             }}
           >
-            {images[i] && <img src={images[i]} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]" />}
+            {images[i] && (
+              <div className="relative">
+                <img src={images[i]} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]" />
+                {winner && (
+                  <>
+                    <WinnerBadge label={t("entry.winner")} size="lg" className="absolute left-3 top-3" />
+                    <WinnerTrophy size="lg" className="absolute right-3 top-3" />
+                  </>
+                )}
+              </div>
+            )}
             {images.length > 1 && (
               <>
                 {arrow(-1)}

@@ -78,8 +78,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
   // Blind contests: designers still see their own designs (UI-JOURNEY P-03).
   const blindHidden = contest.isBlind && entryScope(entryContest, user).kind === "none";
-  // Entries first when there is something to show, otherwise the brief (UI-JOURNEY P-03).
-  const defaultTab = contest.entries > 0 && !blindHidden ? "entries" : "brief";
+  // Owner, 2026-10-10: opening a contest always shows its designs first (an empty list says so).
+  const defaultTab = "entries";
   const tab = sp.tab === "entries" || sp.tab === "brief" || sp.tab === "comments" ? sp.tab : defaultTab;
   const canSave = can(user, "contest.save");
   const entryNumber = tab === "entries" && typeof sp.entry === "string" ? Number(sp.entry) : null;
@@ -430,6 +430,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         <EntryViewer
           number={entry.number}
           images={entry.previews}
+          winner={entry.status === "winner"}
           closeHref={entriesHref}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
         >

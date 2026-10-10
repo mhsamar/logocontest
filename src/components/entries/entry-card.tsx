@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import { WinnerTrophy } from "@/components/ui/trophy";
+import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import type { EntryCard as Entry } from "@/lib/entries/queries";
 import type { Translate } from "@/lib/i18n/translate";
@@ -63,8 +63,8 @@ export function EntryCard({ entry, href, t, fmt }: { entry: Entry; href: string;
         <Collage previews={entry.previews} total={entry.imageCount} />
         {winner && (
           <>
-            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.winner")}</span>
-            <WinnerTrophy size="sm" className="absolute right-2 top-2" />
+            <WinnerBadge label={t("entry.winner")} className="absolute left-2.5 top-2.5" />
+            <WinnerTrophy className="absolute right-2.5 top-2.5" />
           </>
         )}
         {!winner && entry.mine && <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.yours")}</span>}

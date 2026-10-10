@@ -6,10 +6,11 @@ import { useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
+import { ImageDrop } from "@/components/ui/image-drop";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { openCopyClaim } from "@/lib/claims/actions";
-import { CLAIM_MAX_LINKS, CLAIM_NOTE_MAX, CLAIM_NOTE_MIN } from "@/lib/claims/rules";
+import { CLAIM_MAX_LINKS, CLAIM_MAX_PHOTOS, CLAIM_NOTE_MAX, CLAIM_NOTE_MIN } from "@/lib/claims/rules";
 import { useI18n } from "@/lib/i18n/client";
 
 type Claim = { status: "open" | "upheld" | "rejected"; outcome: "correction" | "fine" | "ban" | null; adminNote: string | null };
@@ -22,6 +23,8 @@ export function CopyClaim({ handoverId, canClaim, until, claim }: { handoverId: 
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [links, setLinks] = useState<string[]>([""]);
+  // Up to 3 pictures that show the copy (owner, 2026-10-10).
+  const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const num = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
@@ -46,7 +49,12 @@ export function CopyClaim({ handoverId, canClaim, until, claim }: { handoverId: 
   const send = () =>
     start(async () => {
       setError(null);
-      const res = await openCopyClaim({ handoverId, note, links });
+      const form = new FormData();
+      form.set("handoverId", handoverId);
+      form.set("note", note);
+      for (const l of links) form.append("links", l);
+      for (const p of photos) form.append("photos", p);
+      const res = await openCopyClaim(form);
       if (!res.ok) {
         setError(t(res.error.key, res.error.params));
         return;
@@ -118,6 +126,7 @@ export function CopyClaim({ handoverId, canClaim, until, claim }: { handoverId: 
               </button>
             )}
           </div>
+          <ImageDrop label={t("claims.client.photos")} hint={t("claims.client.photosHint", { n: num.format(CLAIM_MAX_PHOTOS) })} files={photos} onChange={setPhotos} max={CLAIM_MAX_PHOTOS} optional />
         </div>
       </Modal>
     </div>
