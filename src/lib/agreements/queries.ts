@@ -39,11 +39,12 @@ function toAgreement(r: Record<string, unknown>): SignedAgreement {
 export async function hasSignedAgreement(designerId: string): Promise<boolean> {
   if (!isSupabaseConfigured()) return true;
   const [{ data }, since] = await Promise.all([
-    createAdminClient().from("designer_agreements").select("signed_at").eq("designer_id", designerId).maybeSingle(),
+    createAdminClient().from("designer_agreements").select("signed_at, id_front_path").eq("designer_id", designerId).maybeSingle(),
     resignSince(),
   ]);
-  // Signed, and not before the admin asked everyone to sign a new agreement again (A-16).
-  return !!data && (!since || new Date(data.signed_at as string) >= since);
+  // Signed, and not before the admin asked everyone to sign a new agreement again (A-16), and with a photo of the
+  // ID (owner, 2026-10-11: designers who signed before photos were asked for add one before their next design).
+  return !!data && (!since || new Date(data.signed_at as string) >= since) && Boolean(data.id_front_path);
 }
 
 export async function getAgreement(designerId: string): Promise<SignedAgreement | null> {

@@ -3254,6 +3254,11 @@ const en = {
     address: "Address",
     addressHint: "Your present address: house, road, area, district.",
     addr: { house: "House / flat", road: "Road", area: "Area / thana / district", areaHint: "For example Dhanmondi, Dhaka.", postCode: "Post code", country: "Country" },
+    photoOnly: {
+      title: "Add a photo of your ID",
+      lead: "We now ask every designer for a photo of the ID they signed with. Add it once, then you can send designs again.",
+      submit: "Save photo and continue",
+    },
     photo: {
       front: { nid: "Photo of your NID card (front)", passport: "Photo of your passport (photo page)", birth_certificate: "Photo of your birth certificate" },
       back: "Photo of your NID card (back)",

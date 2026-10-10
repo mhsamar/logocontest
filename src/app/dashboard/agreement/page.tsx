@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AgreementForm } from "@/components/agreement/agreement-form";
+import { IdPhotoForm } from "@/components/agreement/id-photo-form";
 import { countryOptions } from "@/lib/countries";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
@@ -44,6 +45,12 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
         <div className="mx-auto w-full max-w-2xl">
           {signed ? (
             <>
+              {/* Signed before ID photos were asked for: add one before the next design (owner, 2026-10-11). */}
+              {!signed.idPhotos.front && (
+                <div className="mb-3.5">
+                  <IdPhotoForm idType={signed.idType} next={next} />
+                </div>
+              )}
               <section className="lc-card p-5 sm:p-7">
                 <p className="m-0 flex items-center gap-2 font-semibold text-success">
                   <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
@@ -81,9 +88,11 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
                 </ol>
               </details>
               <div className="mt-6 flex flex-wrap gap-3">
-                <ButtonLink href={next} size="lg">
-                  {t("agreement.signed.continue")}
-                </ButtonLink>
+                {signed.idPhotos.front && (
+                  <ButtonLink href={next} size="lg">
+                    {t("agreement.signed.continue")}
+                  </ButtonLink>
+                )}
                 <Link href="/legal/designer-rules" className="inline-flex min-h-12 items-center gap-1.5 rounded-full px-4 font-bold text-primary hover:underline">
                   {t("footer.designerRules")} <Arrow />
                 </Link>

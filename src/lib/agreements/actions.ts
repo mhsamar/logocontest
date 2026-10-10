@@ -87,3 +87,33 @@ export async function signAgreement(_prev: AgreementState, formData: FormData): 
   if (error) return { ok: false, error: "agreement.errors.generic" };
   return { ok: true, next: safeNext(formData.get("next")) };
 }
+
+export type IdPhotoState = { ok: boolean; errors?: { idFront?: MessageKey; idBack?: MessageKey }; error?: MessageKey; next?: string };
+
+/**
+ * A designer who signed before ID photos were asked for adds one now (owner, 2026-10-11): the front, and the
+ * back of a national ID card. The rest of the agreement stays as it was signed.
+ */
+export async function addIdPhoto(_prev: IdPhotoState, formData: FormData): Promise<IdPhotoState> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "designer" || user.status !== "active") return { ok: false, error: "auth.errors.generic" };
+  const db = createAdminClient();
+  const { data: a } = await db.from("designer_agreements").select("id_type").eq("designer_id", user.id).maybeSingle();
+  if (!a) return { ok: false, error: "agreement.errors.required" };
+  const idType = a.id_type as "nid" | "passport" | "birth_certificate";
+  const front = formFiles(formData, "idFront")[0];
+  const back = formFiles(formData, "idBack")[0];
+  const errors: IdPhotoState["errors"] = {};
+  if (!front) errors.idFront = "agreement.errors.idFront";
+  if (needsBackPhoto(idType) && !back) errors.idBack = "agreement.errors.idBack";
+  if (Object.keys(errors).length) return { ok: false, errors };
+
+  const stamp = Date.now();
+  const frontPath = `${user.id}/front-${stamp}.jpg`;
+  const backPath = needsBackPhoto(idType) ? `${user.id}/back-${stamp}.jpg` : null;
+  if (!(await savePhoto(ID_DOCUMENTS_BUCKET, frontPath, front!))) return { ok: false, errors: { idFront: "agreement.errors.idPhotoBad" } };
+  if (backPath && !(await savePhoto(ID_DOCUMENTS_BUCKET, backPath, back!))) return { ok: false, errors: { idBack: "agreement.errors.idPhotoBad" } };
+  const { error } = await db.from("designer_agreements").update({ id_front_path: frontPath, id_back_path: backPath, id_photo_at: new Date().toISOString() }).eq("designer_id", user.id);
+  if (error) return { ok: false, error: "agreement.errors.generic" };
+  return { ok: true, next: safeNext(formData.get("next")) };
+}
