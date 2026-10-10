@@ -119,6 +119,8 @@ Home section headings (owner, 2026-10-08): every section title ends with an acce
 
 ### P-01 Home
 
+**Approved design (owner, 2026-10-10):** the home for guests and admins follows `Design/logocontest-home-design.html`, on desktop and phone: its own floating nav (one line with logo, Log in and a menu button that opens a drawer under 720px) and its own footer with the large wordmark; hero, live contests, three steps, designers you can trust, why us with the comparison table, two ways in, Q&A. Instrument Sans headings, Urbanist body, Hind Siliguri for Bangla. Contests, prizes, design counts, days left and the Q&A come from the database; logo tiles show real winning logos (Homepage picks first, then the newest) and the design's placeholders where there are none. The mobile "Start a Contest" bar is gone; an admin's home picture (A-17) shows under the trust points. Other pages keep the site header and footer.
+
 **One home per role (owner, 2026-10-08).** Logged out, everyone sees the home below. After logging in or signing up, `/` shows a different home for each role:
 
 - **P-01c Client home:** for starting the next contest without the marketing page. A welcome line with the client's name, a big **Create a new contest** (with a "Your business name" box that carries the name into `C-01`) and **Go to my dashboard**; how a contest works in three steps; every package with its prize and what the client pays; contest length (3–30 days); every add-on with its price and what it does; what is always included (main logo, the six file types, full copyright) and the extras they can ask for; a short line with how many contests they have running. Ends with **Create a new contest** again.

@@ -22,7 +22,7 @@ import { NavLinks } from "./nav-links";
  * Create Contest, Payments, Wallet, …) are added with the milestones that build
  * those screens.
  */
-function accountItems(user: CurrentUser, t: Translate) {
+export function accountItems(user: CurrentUser, t: Translate) {
   const items: { href: string; label: string }[] = [];
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
   if (user.role !== "admin") items.push({ href: "/dashboard", label: t("nav.dashboard") });

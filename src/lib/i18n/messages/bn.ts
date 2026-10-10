@@ -74,6 +74,22 @@ const bn: Messages = {
     madeIn: "বাংলাদেশে তৈরি",
   },
   home: {
+    landing: {
+      namePlaceholder: "যেমন: নদী টি হাউস",
+      step: "ধাপ {n}",
+      compareHead: "আপনি কী পাচ্ছেন",
+      english: "English",
+      bangla: "বাংলা",
+      languages: "ভাষা",
+      float: {
+        newDesign: "নতুন ডিজাইন এসেছে",
+        entry: "এন্ট্রি #{n} · উদাহরণ",
+        winner: "বিজয়ী বাছাই হয়েছে",
+        prize: "{amount} পুরস্কার",
+        prizeSub: "উদাহরণ কনটেস্ট",
+        files: "ফাইনাল ফাইল তৈরি",
+      },
+    },
     eyebrow: "লোগো কনটেস্ট · বাংলাদেশ",
     title: "অনেক ডিজাইনার। অনেক আইডিয়া। একটি নিখুঁত লোগো।",
     titleLead: "অনেক ডিজাইনার। অনেক আইডিয়া।",

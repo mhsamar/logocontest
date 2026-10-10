@@ -72,6 +72,22 @@ const en = {
     madeIn: "Made in Bangladesh",
   },
   home: {
+    landing: {
+      namePlaceholder: "e.g. Nodi Tea House",
+      step: "Step {n}",
+      compareHead: "What you get",
+      english: "English",
+      bangla: "বাংলা",
+      languages: "Language",
+      float: {
+        newDesign: "New design received",
+        entry: "Entry #{n} · Example",
+        winner: "Winner picked",
+        prize: "{amount} prize",
+        prizeSub: "Example contest",
+        files: "Final files ready",
+      },
+    },
     eyebrow: "Logo contests · Bangladesh",
     title: "Many designers. Many ideas. One perfect logo.",
     titleLead: "Many designers. Many ideas.",

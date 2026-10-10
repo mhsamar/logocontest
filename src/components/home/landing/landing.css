@@ -1,0 +1,145 @@
+/*
+ * Home page design (owner, 2026-10-10; Design/logocontest-home-design.html). Everything is scoped to
+ * .lc-landing so no other page changes. The brand colour is the site token --color-primary (#8B0000).
+ */
+.lc-landing,
+.lc-landing-drawer {
+  --lc-canvas: #ecedf0;
+  --lc-panel: #ffffff;
+  --lc-panel-alt: #f5f6f8;
+  --lc-chip: #f4f5f7;
+  --lc-line: #e7e8ec;
+  --lc-line-soft: #eeeff2;
+  --lc-ink: #111216;
+  --lc-muted: #5f626b;
+  --lc-faint: #6a6d76;
+  --lc-tile: #f1f2f5;
+  --lc-tint: #fbeceb;
+  --lc-red-hi: #b3201b;
+  --lc-red-deep: #7a1010;
+  --lc-red-deeper: #4a0808;
+  --lc-gold: #ffe27a;
+  --lc-gold-ink: #4a3700;
+  --lc-red: var(--color-primary);
+  --lc-grad: linear-gradient(180deg, var(--lc-red-hi), var(--lc-red));
+  --lc-grad-icon: linear-gradient(160deg, var(--lc-red-hi), var(--lc-red));
+  --lc-grad-dark: linear-gradient(160deg, var(--lc-red-deep), var(--lc-red-deeper));
+  color: var(--lc-ink);
+  font-family: var(--font-lc-body), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+}
+.lc-landing {
+  width: 100%;
+  background: var(--lc-canvas);
+  color: var(--lc-ink);
+  font-family: var(--font-lc-body), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.lc-landing :is(h1, h2, h3, .lc-d) {
+  font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+}
+.lc-landing a:hover {
+  opacity: 0.72;
+}
+
+/* Shared surfaces */
+.lc-card { background: var(--lc-panel); border: 1px solid var(--lc-line); border-radius: 28px; }
+.lc-sh { box-shadow: 0 1px 2px rgb(17 18 22 / 0.04), 0 16px 40px rgb(17 18 22 / 0.06); }
+.lc-g { box-shadow: inset 0 1.5px 0 rgb(255 255 255 / 0.6), inset 0 -8px 14px rgb(0 0 0 / 0.09), 0 12px 26px rgb(17 18 22 / 0.16); }
+.lc-ph { border: 4px solid #fff; box-shadow: 0 10px 28px rgb(17 18 22 / 0.14); overflow: hidden; }
+
+.lc-faq[open] { box-shadow: 0 1px 2px rgb(17 18 22 / 0.04), 0 16px 40px rgb(17 18 22 / 0.06); }
+
+/* Floating hero tiles */
+.lc-fl {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 24%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--r, 0deg));
+  animation: lc-float 7s ease-in-out infinite;
+}
+@keyframes lc-float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-12px) rotate(calc(var(--r, 0deg) + 1.5deg)); }
+}
+@keyframes lc-blur-in {
+  from { opacity: 0; filter: blur(16px); transform: translateY(0.25em); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes lc-fade-in {
+  from { opacity: 0; filter: blur(18px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@keyframes lc-knob { from { left: 0; } }
+
+/* Hero headline word by word, then the rest of the hero */
+.lc-w { display: inline-block; animation: lc-blur-in 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 80ms + 0.15s); }
+.lc-hi { animation: lc-blur-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: var(--dl, 0.8s); }
+.lc-par { animation: lc-fade-in 1.6s 0.5s both; transform: translateY(calc(var(--lc-sy, 0) * -0.16px)); }
+
+/* Scroll reveal: only once JavaScript has added .lc-mo, so the page is complete without it */
+.lc-mo .lc-rv {
+  opacity: 0;
+  filter: blur(14px);
+  transform: translate(var(--x, 0px), var(--y, 34px)) scale(0.97);
+  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lc-mo .lc-rv.lc-in { opacity: 1; filter: none; transform: none; }
+.lc-mo .lc-rv:nth-child(2) { transition-delay: 0.1s; }
+.lc-mo .lc-rv:nth-child(3) { transition-delay: 0.2s; }
+.lc-mo .lc-rv:nth-child(4) { transition-delay: 0.3s; }
+.lc-mo .lc-sl { --x: -80px; --y: 0px; }
+.lc-mo .lc-sr { --x: 80px; --y: 0px; }
+.lc-mo .lc-big { --y: 0px; filter: blur(32px); transition-duration: 1.5s; }
+.lc-mo .lc-rv.lc-in .lc-knob { animation: lc-knob 1.3s 0.35s cubic-bezier(0.3, 1.3, 0.5, 1) both; }
+.lc-mo .lc-rv .lc-pop { opacity: 0; transform: scale(0.7) translateY(10px); transform-origin: 0 100%; transition: opacity 0.5s 0.7s, transform 0.6s 0.7s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.lc-mo .lc-rv.lc-in .lc-pop { opacity: 1; transform: none; }
+
+/* The floating nav: fixed on wide screens (below the notice bar while it is in view), in the hero below 940px */
+.lc-nv { position: fixed; top: max(26px, calc(var(--lc-notice-h, 0px) + 26px - var(--lc-sy, 0) * 1px)); left: 50%; transform: translateX(-50%); }
+.lc-mb { display: none; }
+
+@media (max-width: 1240px) { .lc-par { display: none !important; } }
+@media (max-width: 940px) {
+  .lc-wide { display: none !important; }
+  .lc-nv { position: static; transform: none; width: auto !important; max-width: none !important; }
+  .lc-hero { padding-top: 20px !important; }
+}
+@media (max-width: 720px) {
+  .lc-landing { padding: 8px !important; gap: 8px !important; }
+  .lc-landing :is(section, .lc-hero, footer) { border-radius: 24px !important; }
+  .lc-landing section { padding: 52px 16px !important; }
+  .lc-landing #join { padding: 0 !important; gap: 8px !important; }
+  .lc-landing #join > div { padding: 28px 22px !important; }
+  .lc-hero { padding: 8px 16px 44px !important; }
+  .lc-nv { width: calc(100% + 16px) !important; margin: 0 -8px 30px !important; justify-content: space-between !important; flex-wrap: nowrap !important; gap: 8px !important; padding: 8px 8px 8px 14px !important; }
+  .lc-nv .lc-nv-link, .lc-nv .lc-nv-join { display: none !important; }
+  .lc-mb { display: inline-flex; }
+  .lc-hero-form :is(input, button) { flex: 1 1 100% !important; }
+  .lc-hero-form input { text-align: center; }
+  .lc-hero-form button { justify-content: center; }
+  .lc-tc { flex-direction: column; align-items: stretch !important; width: 100%; font-size: 14px !important; }
+  .lc-tc > * { display: grid !important; grid-template-columns: 18px 1fr; column-gap: 12px; padding: 9px 16px !important; line-height: 1.3; }
+  .lc-tc > * svg { grid-row: 1 / 3; align-self: center; }
+  .lc-landing table { min-width: 0 !important; font-size: 14px !important; }
+  .lc-landing :is(th, td) { padding: 12px 5px !important; }
+  .lc-landing tr > th:first-child { padding-left: 10px !important; }
+  .lc-landing thead th { font-size: 11.5px !important; letter-spacing: -0.01em; }
+  .lc-mi { padding: 22px !important; min-width: 0; justify-content: center !important; }
+  .lc-mi .lc-ph { width: 62px !important; height: 62px !important; border-radius: 16px !important; }
+  .lc-landing #faq summary { font-size: 17px !important; }
+  .lc-landing footer { padding: 36px 22px 0 !important; }
+  .lc-fg { grid-template-columns: 1fr 1fr !important; gap: 30px 16px !important; }
+  .lc-fg > div:first-child { grid-column: 1 / -1; }
+  .lc-big { font-size: 12.5vw !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-fl, .lc-w, .lc-hi, .lc-par { animation: none !important; }
+  .lc-par { transform: none !important; }
+  .lc-mo .lc-rv, .lc-mo .lc-rv .lc-pop { opacity: 1 !important; filter: none !important; transform: none !important; transition: none !important; }
+  .lc-mo .lc-rv.lc-in .lc-knob { animation: none !important; }
+}

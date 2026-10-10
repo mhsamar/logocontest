@@ -7,7 +7,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 
 /**
- * Hero "Your business name" + Get Started (UI-JOURNEY P-01). The name must be
+ * Hero "Your business name" + Get Started (UI-JOURNEY P-01; look from the 2026-10-10 home design). The name must be
  * valid before continuing; it is carried into the wizard so C-01 is already done.
  */
 export function HeroForm() {
@@ -30,11 +30,11 @@ export function HeroForm() {
 
   return (
     // Without JavaScript the form still works and the browser enforces the length.
-    <form action="/start" method="get" onSubmit={submit} noValidate className="mx-auto mt-9 max-w-md">
-      <div className="flex flex-col gap-2.5 sm:flex-row">
-        <label htmlFor="hero-name" className="sr-only">
-          {t("home.nameLabel")}
-        </label>
+    <form action="/start" method="get" onSubmit={submit} noValidate className="flex w-full flex-col items-center gap-2">
+      <label htmlFor="hero-name" className="text-sm font-semibold text-[var(--lc-muted)]">
+        {t("home.nameLabel")}
+      </label>
+      <div className={cx("lc-sh lc-hero-form flex w-full flex-wrap gap-1.5 rounded-[20px] border bg-white p-1.5", error ? "border-danger" : "border-[var(--lc-line)]")}>
         <input
           ref={input}
           id="hero-name"
@@ -43,27 +43,21 @@ export function HeroForm() {
           minLength={LIMITS.brandName.min}
           maxLength={LIMITS.brandName.max}
           autoComplete="organization"
-          placeholder={t("home.namePlaceholder")}
+          placeholder={t("home.landing.namePlaceholder")}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           onChange={() => error && setError(null)}
-          className={cx(
-            "min-h-12 w-full rounded-full bg-surface px-5 text-base text-ink shadow-card ring-1 ring-inset placeholder:text-muted focus:outline-none focus:ring-2",
-            error ? "ring-2 ring-danger focus:ring-danger" : "ring-line focus:ring-primary",
-          )}
+          className="h-[52px] min-w-0 flex-[1_1_200px] rounded-[14px] border-0 bg-transparent px-4 text-lg font-medium text-[var(--lc-ink)] placeholder:text-[var(--lc-muted)]/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lc-red)]"
         />
-        <button
-          type="submit"
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-semibold text-white shadow-card transition-colors hover:bg-primary-dark"
-        >
+        <button type="submit" className="lc-g inline-flex h-[52px] flex-none items-center gap-2 rounded-[14px] border-0 bg-[image:var(--lc-grad)] px-[26px] text-[17px] font-bold text-white">
           {t("home.cta")}
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </button>
       </div>
       {error && (
-        <p id={errorId} role="alert" className="mt-2 text-left text-sm text-danger">
+        <p id={errorId} role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}

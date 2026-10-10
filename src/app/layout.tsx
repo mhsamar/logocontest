@@ -12,6 +12,8 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { NoticeBar } from "@/components/layout/notice-bar";
 import { currentNotice } from "@/lib/content/notice";
 import { getMessages } from "@/lib/content/texts";
+import { getCurrentUser } from "@/lib/auth/session";
+import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
 import { openGraphFor, searchIndexingOn, siteUrl } from "@/lib/seo";
 import "./globals.css";
@@ -49,7 +51,9 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { locale } = await getI18n();
-  const [messages, notice] = await Promise.all([getMessages(locale), currentNotice(locale)]);
+  const [messages, notice, user] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser()]);
+  // Guests and admins get the designed home page with its own nav and footer (owner, 2026-10-10).
+  const guestHome = showsLanding(user?.role);
   return (
     <html lang={locale} data-scroll-behavior="smooth" className={`${latin.variable} ${bangla.variable} ${displayLatin.variable} ${displayBangla.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
@@ -60,11 +64,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <SiteChrome>
               {notice && <NoticeBar notice={notice} />}
               <EmailBannerSlot />
+            </SiteChrome>
+            <SiteChrome hideOnHome={guestHome}>
               <SiteHeader />
             </SiteChrome>
             <main className="flex flex-1 flex-col">{children}</main>
-            <SiteChrome>
+            <SiteChrome hideOnHome={guestHome}>
               <SiteFooter />
+            </SiteChrome>
+            <SiteChrome>
               <VisitTracker />
               <SupportSlot />
             </SiteChrome>

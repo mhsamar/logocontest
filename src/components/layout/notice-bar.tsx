@@ -23,7 +23,7 @@ export function NoticeBar({ notice, preview = false }: { notice: Notice; preview
 
   const text = <span className="font-medium">{notice.text}</span>;
   return (
-    <div role="region" aria-label={t("notice.label")} className={cx("relative z-40 px-11 py-2 text-center text-sm leading-snug", NOTICE_TONES[notice.tone])}>
+    <div role="region" data-notice-bar aria-label={t("notice.label")} className={cx("relative z-40 px-11 py-2 text-center text-sm leading-snug", NOTICE_TONES[notice.tone])}>
       {notice.link ? (
         isExternal(notice.link) ? (
           <a href={notice.link} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">

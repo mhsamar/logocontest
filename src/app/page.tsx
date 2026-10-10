@@ -1,34 +1,50 @@
-import { Faq, Hero, HowItWorks, Showcase, WhyUs } from "@/components/home/sections";
 import { ClientHome } from "@/components/home/client-home";
 import { DesignerHome } from "@/components/home/designer-home";
-import { StickyStart } from "@/components/home/sticky-start";
-import { TrustedDesigners, TwoWays } from "@/components/home/designers-ways";
-import { getHomeShowcase } from "@/lib/contests/showcase";
-import { getFeaturedDesigners } from "@/lib/designers/featured";
+import { landingBody, landingHeading } from "@/components/home/landing/fonts";
+import { LandingFaq } from "@/components/home/landing/faq";
+import { LandingHero } from "@/components/home/landing/hero";
+import { HomeFooter } from "@/components/home/landing/home-footer";
+import { HomeNav } from "@/components/home/landing/home-nav";
+import { Join } from "@/components/home/landing/join";
+import { LandingMotion } from "@/components/home/landing/landing-motion";
+import { LiveContests } from "@/components/home/landing/live-contests";
+import { Steps } from "@/components/home/landing/steps";
+import { Trusted } from "@/components/home/landing/trusted";
+import { Why } from "@/components/home/landing/why";
+import "@/components/home/landing/landing.css";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getI18n } from "@/lib/i18n/server";
+import { brandPictures } from "@/lib/content/brand";
+import { getContact } from "@/lib/content/contact";
+import { liveContests } from "@/lib/contests/browse";
+import { cx } from "@/lib/cx";
 import { faqParams } from "@/lib/home/faq-params";
+import { showsLanding } from "@/lib/home/landing";
+import { homeLogos } from "@/lib/home/logos";
+import { getI18n } from "@/lib/i18n/server";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
-import { getContact } from "@/lib/content/contact";
 
-// P-01 Home for visitors (and admins): hero, recent winning logos, how it works, designers you can trust, why us, two ways in, Q&A (UI-JOURNEY P-01).
+// P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
+// Design/logocontest-home-design.html): hero, live contests, three steps, designers you can trust,
+// why us + comparison, two ways in, Q&A. Every number and contest comes from the database.
 export default async function HomePage() {
   // One home per role after logging in (owner, 2026-10-08): clients and designers each get their own.
   const user = await getCurrentUser();
   if (user?.role === "client") return <ClientHome user={user} />;
   if (user?.role === "designer") return <DesignerHome user={user} />;
+  if (!showsLanding(user?.role)) return null;
 
   const { t, locale } = await getI18n();
-  const [{ pricing, params }, showcase, designers, social] = await Promise.all([
+  const [{ pricing, params }, contests, logos, social, contact, pictures] = await Promise.all([
     faqParams(t, locale),
-    getHomeShowcase(12),
-    getFeaturedDesigners(3),
+    liveContests(3),
+    homeLogos(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
+    getContact(locale),
+    brandPictures(),
   ]);
   // Structured data for search engines (BLUEPRINT §15.1): who we are and the site itself.
   const base = siteUrl();
-  const contact = await getContact(locale);
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -43,17 +59,18 @@ export default async function HomePage() {
   ];
 
   return (
-    <>
+    <div data-lc-landing className={cx("lc-landing flex flex-1 flex-col gap-3.5 p-3.5", landingHeading.variable, landingBody.variable)}>
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <Hero premiumPrize={pricing.packagePrizes.premium} />
-      <Showcase kind={showcase.kind} contests={showcase.contests} />
-      <HowItWorks />
-      <TrustedDesigners designers={designers} />
-      <WhyUs />
-      <TwoWays />
-      <Faq params={params} />
-      <StickyStart label={t("home.sticky")} watchId="hero-end" />
-    </>
+      <LandingHero logos={logos} premiumPrize={pricing.packagePrizes.premium} picture={pictures.hero} nav={<HomeNav user={user} />} />
+      <LiveContests contests={contests} />
+      <Steps logos={logos} />
+      <Trusted logos={logos} />
+      <Why logos={logos} />
+      <Join />
+      <LandingFaq params={params} />
+      <HomeFooter />
+      <LandingMotion />
+    </div>
   );
 }
