@@ -1,24 +1,12 @@
 import Link from "next/link";
-import { ACCENT_TEXT, Icon } from "@/components/home/sections";
+import { Icon } from "@/components/home/sections";
 import { Arrow } from "@/components/ui/section-heading";
 import { MockCard, Stars } from "@/components/home/how-it-works";
 import { SAMPLE_LOGOS } from "@/components/home/sample-logos";
-import { Typewriter } from "@/components/home/typewriter";
 import { cx } from "@/lib/cx";
 import type { Translate } from "@/lib/i18n/translate";
 
 /** Pieces of the How It Works page (UI-JOURNEY P-08). */
-
-export function AccentTitle({ lead, accent, as: Tag = "h2", className, onView = true }: { lead: string; accent: string; as?: "h1" | "h2"; className?: string; onView?: boolean }) {
-  return (
-    <Tag className={cx("font-bold leading-tight tracking-tight text-ink", className)}>
-      {lead} <span className="sr-only">{accent}</span>
-      <span className="font-display text-[1.15em] font-normal italic tracking-normal">
-        <Typewriter phrases={[accent]} onView={onView} delay={onView ? 200 : 450} className={ACCENT_TEXT} />
-      </span>
-    </Tag>
-  );
-}
 
 export type StepFaq = { q: string; a: string };
 

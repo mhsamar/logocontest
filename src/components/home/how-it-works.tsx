@@ -1,26 +1,10 @@
-import { ButtonLink } from "@/components/ui/button";
 import { WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
-import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { SAMPLE_LOGOS } from "./sample-logos";
 
-/**
- * Home page section 3 (UI-JOURNEY P-01): steps on the left, numbered dots on a
- * wavy dashed line in the middle, and a small product mock on the right.
- */
-
-// The wave crosses the centre exactly where the three dots sit (1/6, 1/2, 5/6 of the height).
-const WAVE = (() => {
-  const H = 600;
-  const points = Array.from({ length: 121 }, (_, i) => {
-    const y = (i / 120) * H;
-    const x = 60 + 38 * Math.sin((3 * Math.PI * y) / H - Math.PI / 2);
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  });
-  return `M${points.join(" L")}`;
-})();
+/** Small product mocks for the How It Works steps (UI-JOURNEY P-08). */
 
 function Star({ on }: { on: boolean }) {
   return (
@@ -148,57 +132,5 @@ export function WinnerMock({ t, locale }: { t: Translate; locale: "en" | "bn" })
         </span>
       </div>
     </MockCard>
-  );
-}
-
-export async function HowItWorks({ heading }: { heading: React.ReactNode }) {
-  const { t, locale } = await getI18n();
-  const steps = [
-    { n: 1, art: <BriefMock t={t} /> },
-    { n: 2, art: <ReviewMock t={t} locale={locale} /> },
-    { n: 3, art: <WinnerMock t={t} locale={locale} /> },
-  ] as const;
-
-  return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto max-w-page px-4 py-16 sm:py-20">
-        {heading}
-
-        <div className="relative mx-auto mt-12 max-w-5xl lg:mt-6">
-          {/* Desktop: wavy dashed line down the middle */}
-          <svg
-            viewBox="0 0 120 600"
-            preserveAspectRatio="none"
-            className="pointer-events-none absolute inset-y-0 left-1/2 hidden h-full w-28 -translate-x-1/2 lg:block"
-            aria-hidden
-          >
-            <path d={WAVE} fill="none" stroke="var(--color-primary)" strokeOpacity="0.35" strokeWidth="2.5" strokeDasharray="7 9" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-          </svg>
-
-          <ol className="relative space-y-12 lg:space-y-0">
-            {steps.map(({ n, art }) => (
-              <li key={n} className="relative grid grid-cols-[2.5rem_1fr] gap-x-4 gap-y-6 lg:h-80 lg:grid-cols-[1fr_7rem_1fr] lg:items-center lg:gap-0">
-                {/* Phones: dashed line from this dot down to the next one */}
-                {n < steps.length && <span className="absolute -bottom-12 left-5 top-10 border-l-2 border-dashed border-primary/30 lg:hidden" aria-hidden />}
-                <span className="col-start-1 row-start-1 flex size-10 items-center justify-center self-start rounded-full bg-primary text-base font-bold text-white shadow-card ring-4 ring-white lg:col-start-2 lg:self-center lg:justify-self-center">
-                  {formatNumber(n, locale)}
-                </span>
-                <div className="col-start-2 row-start-1 lg:col-start-1 lg:max-w-sm lg:justify-self-end lg:pr-10">
-                  <h3 className="text-h3 font-bold leading-snug text-ink lg:text-[1.625rem]">{t(`home.how.step${n}.title`)}</h3>
-                  <p className="mt-2 leading-relaxed text-muted lg:mt-3 lg:text-lg">{t(`home.how.step${n}.body`)}</p>
-                </div>
-                <div className="col-start-2 row-start-2 lg:col-start-3 lg:row-start-1 lg:pl-10">{art}</div>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="mt-12 text-center">
-          <ButtonLink href="/start" size="lg">
-            {t("home.cta")}
-          </ButtonLink>
-        </div>
-      </div>
-    </section>
   );
 }
