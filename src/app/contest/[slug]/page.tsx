@@ -21,6 +21,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
+import { contestTimeline } from "@/lib/contests/browse-query";
+import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
@@ -53,6 +55,9 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
 }
 
 /** The main button changes with the viewer (UI-JOURNEY P-03). */
+/** Small uppercase label above a fact on this page. */
+const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted";
+
 function primaryAction(contest: ContestDetail, user: CurrentUser | null, t: Translate) {
   const open = contest.status === "open";
   if (contest.isOwner) return { href: `/dashboard/contests/${contest.slug}`, label: t("dashboard.manage") };
@@ -96,6 +101,15 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const entriesHref = `/contest/${contest.slug}?tab=entries`;
   const loginHref = `/login?next=${encodeURIComponent(`/contest/${contest.slug}?tab=comments`)}`;
   const statusKnown = contest.rawStatus === contest.status;
+
+  const judgingEnds = contestTimeline(contest, judgingDays, now)[1]?.endsAt ?? null;
+  const facts: [string, string][] = [
+    ...(contest.startsAt ? [[t("contest.facts.started"), formatDate(contest.startsAt, locale, "short")] as [string, string]] : []),
+    ...(contest.endsAt ? [[t("contest.facts.entriesClose"), formatDate(contest.endsAt, locale, "short")] as [string, string]] : []),
+    ...(judgingEnds ? [[t("contest.facts.winnerBy"), formatDate(judgingEnds, locale, "short")] as [string, string]] : []),
+    [t("contest.facts.visibility"), t(contest.isPrivate ? "contest.facts.private" : contest.isBlind ? "contest.facts.blind" : "contest.facts.public")],
+    [t("contest.facts.files"), t("contest.facts.filesValue", { days: fmt(fileDays) })],
+  ];
 
   return (
     <PageShell>
@@ -168,33 +182,49 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             </div>
           </div>
 
-          {/* What the client wants */}
+          {/* What the client wants (owner, 2026-10-10: one tidy card with no empty middle; the full brief is in the Brief tab) */}
           {contest.brief && (
-            <div className="lc-card mt-3.5 grid grid-cols-2 gap-5 !rounded-[24px] p-5 xl:grid-cols-[auto_1fr_auto] xl:gap-8">
-              {(contest.brief.logoText || contest.brandName) && (
+            <div className="lc-card mt-3.5 !rounded-[24px] p-5">
+              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
                 <div className="min-w-0">
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.brief.logoText")}</p>
+                  <p className={LABEL}>{t("contest.brief.logoText")}</p>
                   <p className="lc-d m-0 mt-1.5 truncate text-2xl font-semibold tracking-[-0.03em] text-ink">{contest.brief.logoText || contest.brandName}</p>
                   {contest.brief.slogan && <p className="truncate text-sm text-muted">{contest.brief.slogan}</p>}
                 </div>
-              )}
-              {contest.brief.styles.length > 0 && (
-                <div className="min-w-0">
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.brief.styles")}</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {contest.brief.styles.map((st) => (
-                      <span key={st} className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3 py-1 text-sm font-semibold text-primary">
-                        <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-                        {t(`wizard.styles.${st}`)}
-                      </span>
-                    ))}
+                {contest.brief.styles.length > 0 && (
+                  <div className="min-w-0">
+                    <p className={LABEL}>{t("contest.brief.styles")}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {contest.brief.styles.map((st) => (
+                        <span key={st} className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3 py-1 text-sm font-semibold text-primary">
+                          <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                          {t(`wizard.styles.${st}`)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
+                )}
+                <div className="min-w-0">
+                  <p className={LABEL}>{t("contest.brief.colors")}</p>
+                  {contest.brief.colors.length > 0 ? (
+                    <ul className="m-0 mt-2 flex list-none flex-wrap gap-2 p-0">
+                      {contest.brief.colors.map((hex) => (
+                        <li key={hex} className="flex flex-col items-center gap-1">
+                          <span className="size-9 rounded-xl shadow-card ring-1 ring-black/10" style={{ background: hex }} />
+                          <span className="font-mono text-[0.625rem] uppercase text-muted">{hex.replace("#", "")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="m-0 mt-1.5 text-sm text-ink">{t("contest.brief.designersChoose")}</p>
+                  )}
                 </div>
-              )}
+              </div>
+
               {contest.brief.usedOn.length > 0 && (
-                <div className={cx("min-w-0", contest.brief.colors.length > 0 ? "col-span-2 sm:col-span-1 xl:col-span-2" : "col-span-2 xl:col-span-3")}>
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.glance.usedTitle")}</p>
-                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-5 border-t border-line pt-5">
+                  <p className={LABEL}>{t("contest.glance.usedTitle")}</p>
+                  <ul className="m-0 mt-2 flex list-none flex-wrap gap-1.5 p-0">
                     {contest.brief.usedOn.map((u) => (
                       <li key={u} className="inline-flex items-center gap-1.5 rounded-full bg-chip py-1 pl-1 pr-3">
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-primary">
@@ -206,19 +236,35 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   </ul>
                 </div>
               )}
-              {contest.brief.colors.length > 0 && (
-                <div className={cx(contest.brief.usedOn.length > 0 ? "col-span-2 sm:col-span-1" : "col-span-2 xl:col-span-1")}>
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.brief.colors")}</p>
-                  <ul className="mt-2 flex gap-2">
-                    {contest.brief.colors.map((hex) => (
-                      <li key={hex} className="flex flex-col items-center gap-1">
-                        <span className="size-9 rounded-xl shadow-card ring-1 ring-black/10" style={{ background: hex }} />
-                        <span className="font-mono text-[0.625rem] uppercase text-muted">{hex.replace("#", "")}</span>
-                      </li>
-                    ))}
-                  </ul>
+
+              {(contest.brief.targetAudience || contest.brief.requirements.length > 0) && (
+                <div className="mt-5 grid gap-5 border-t border-line pt-5 sm:grid-cols-2">
+                  {contest.brief.targetAudience && (
+                    <div className="min-w-0">
+                      <p className={LABEL}>{t("contest.brief.audience")}</p>
+                      <p className="m-0 mt-1.5 line-clamp-3 text-[15px] leading-relaxed text-ink">{contest.brief.targetAudience}</p>
+                    </div>
+                  )}
+                  {contest.brief.requirements.length > 0 && (
+                    <div className="min-w-0">
+                      <p className={LABEL}>{t("contest.brief.requirements")}</p>
+                      <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0 text-[15px] text-ink">
+                        {contest.brief.requirements.slice(0, 4).map((r) => (
+                          <li key={r} className="flex items-start gap-2">
+                            <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                            {t(`wizard.requirements.${r}`)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
+
+              <Link href={`/contest/${contest.slug}?tab=brief#tabs`} scroll={false} className="mt-5 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary hover:underline">
+                {t("contest.brief.readFull")}
+                <span aria-hidden>→</span>
+              </Link>
             </div>
           )}
         </div>
@@ -267,11 +313,31 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               </div>
             </div>
           }
+          footer={
+            // Key facts at the bottom of the card, so it has no empty space under Share (owner, 2026-10-10).
+            <div>
+              <p className={LABEL}>{t("contest.facts.title")}</p>
+              <dl className="m-0 mt-2 divide-y divide-line rounded-[16px] bg-surface px-4 text-sm ring-1 ring-line">
+                {facts.map(([label, value]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-3 py-2.5">
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="m-0 text-right font-semibold text-ink">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {contest.canSeeBrief && (
+                <Link href={`/contest/${contest.slug}?tab=comments#tabs`} scroll={false} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                  {t("contest.facts.ask")}
+                  <span aria-hidden>→</span>
+                </Link>
+              )}
+            </div>
+          }
         />
       </section>
 
       {/* Tabs and their content in one panel */}
-      <section className="rounded-[32px] bg-surface p-5 sm:p-8 lg:p-10 max-[720px]:rounded-[24px]">
+      <section id="tabs" className="scroll-mt-28 rounded-[32px] bg-surface p-5 sm:p-8 lg:p-10 max-[720px]:rounded-[24px]">
       <nav aria-label={t("contest.tabs.label")} className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
         <ul className="m-0 flex w-max list-none gap-1 rounded-[18px] bg-chip p-1">
           {(["entries", "brief", "comments"] as const).map((key) => (

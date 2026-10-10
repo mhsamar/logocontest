@@ -70,7 +70,9 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const pill = "inline-flex min-h-11 items-center rounded-[14px] font-semibold";
 
   return (
+    // The menu bar stays still: no lean-toward-the-mouse on its links and buttons (owner, 2026-10-10).
     <nav
+      data-no-fx
       aria-label={t("nav.main")}
       className="lc-nv lc-sh z-50 flex w-max max-w-[calc(100%-28px)] flex-wrap items-center justify-center gap-x-7 gap-y-1 rounded-[22px] border border-line bg-white/90 py-2 pl-[22px] pr-2 text-base font-medium backdrop-blur-[16px]"
     >

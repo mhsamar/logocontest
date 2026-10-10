@@ -8,8 +8,8 @@ import { TrophyIcon } from "@/components/ui/trophy";
 import { PRIZE_TEXT } from "./contest-bits";
 import { timeLeft } from "./countdown-pill";
 
-/** P-03 stats card: designs, prize, time left, then the three-step timeline. */
-export async function ContestStats({ contest, judgingDays, now, action }: { contest: ContestDetail; judgingDays: number; now: Date; action?: React.ReactNode }) {
+/** P-03 stats card: designs, prize, time left, then the three-step timeline. `footer` sits at the bottom of the card. */
+export async function ContestStats({ contest, judgingDays, now, action, footer }: { contest: ContestDetail; judgingDays: number; now: Date; action?: React.ReactNode; footer?: React.ReactNode }) {
   const { t, locale } = await getI18n();
   const phases = contestTimeline(contest, judgingDays, now);
 
@@ -29,27 +29,28 @@ export async function ContestStats({ contest, judgingDays, now, action }: { cont
   ];
 
   return (
-    <div className="rounded-xl bg-frame p-5 ring-1 ring-line">
+    // Still card (owner, 2026-10-10): no tilt or light following the mouse here.
+    <div data-no-fx className="flex flex-col rounded-xl bg-frame p-5 ring-1 ring-line">
       <h2 className="text-sm font-semibold text-ink">{t("contest.stats.title")}</h2>
-      <dl className="mt-3 grid grid-cols-2 items-center gap-3 sm:grid-cols-[1fr_1.35fr_1fr]">
-        {stats.map((s) =>
+      {/* Three equal tiles, value on top and label under it, so all three line up (owner, 2026-10-10). */}
+      <dl className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-[1fr_1.3fr_1fr]">
+        {stats.map((s) => (
           // Label after the value on screen, but first in the markup (dt before dd).
-          s.prize ? (
-            // The prize stands out in a soft gold panel (owner, 2026-10-08).
-            <div key={s.label} className="relative order-first col-span-2 flex min-w-0 flex-col-reverse overflow-hidden rounded-xl sm:order-none sm:col-span-1 prize-glow bg-gradient-to-br from-[#fff9e8] via-[#fff0c7] to-[#ffe2a0] px-3 py-2.5 shadow-card ring-1 ring-[#f1c75c]/70">
-              <dt className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-[#8a5105]">
-                <TrophyIcon className="size-4" />
-                {s.label}
-              </dt>
-              <dd className={cx("truncate text-2xl font-extrabold leading-tight tabular-nums sm:text-[1.65rem]", PRIZE_TEXT)}>{s.value}</dd>
-            </div>
-          ) : (
-            <div key={s.label} className="flex min-w-0 flex-col-reverse">
-              <dt className="mt-0.5 text-xs text-muted">{s.label}</dt>
-              <dd className="text-lg font-bold leading-tight text-ink tabular-nums sm:text-2xl">{s.value}</dd>
-            </div>
-          ),
-        )}
+          <div
+            key={s.label}
+            className={cx(
+              "flex min-w-0 flex-col-reverse justify-end rounded-[14px] px-2.5 py-2.5 sm:px-3",
+              // The prize stands out in a soft gold panel (owner, 2026-10-08).
+              s.prize ? "prize-glow bg-gradient-to-br from-[#fff9e8] via-[#fff0c7] to-[#ffe2a0] ring-1 ring-[#f1c75c]/70" : "bg-surface ring-1 ring-line",
+            )}
+          >
+            <dt className={cx("mt-1 flex items-center gap-1 text-xs", s.prize ? "font-semibold text-[#8a5105]" : "text-muted")}>
+              {s.prize && <TrophyIcon className="size-3.5 shrink-0" />}
+              <span className="truncate">{s.label}</span>
+            </dt>
+            <dd className={cx("truncate text-[17px] font-bold leading-tight tabular-nums min-[420px]:text-xl sm:text-[1.4rem]", s.prize ? cx("font-extrabold", PRIZE_TEXT) : "text-ink")}>{s.value}</dd>
+          </div>
+        ))}
       </dl>
 
       <h3 className="mt-6 text-xs font-semibold uppercase tracking-wider text-muted">{t("contest.timeline.title")}</h3>
@@ -100,6 +101,7 @@ export async function ContestStats({ contest, judgingDays, now, action }: { cont
       </ol>
 
       {action && <div className="mt-6">{action}</div>}
+      {footer && <div className="mt-auto pt-6">{footer}</div>}
     </div>
   );
 }
