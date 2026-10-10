@@ -9,27 +9,28 @@ import { sendBroadcast } from "@/lib/support/actions";
 import { AUDIENCES, MESSAGE_MAX, type Audience } from "@/lib/support/rules";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { PersonPicker, type PickedPerson } from "./person-picker";
 import { useReadOnly } from "./read-only";
 
 /** A-25: write one message to a group or one person. */
-export function BroadcastForm({ toPerson }: { toPerson: { query: string; name: string } | null }) {
+export function BroadcastForm({ toPerson }: { toPerson: PickedPerson | null }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
   const router = useRouter();
   const toast = useToast();
   const [audience, setAudience] = useState<Audience>(toPerson ? "one" : "designers");
-  const [person, setPerson] = useState(toPerson?.query ?? "");
+  const [person, setPerson] = useState<PickedPerson | null>(toPerson);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, run] = useTransition();
   if (readOnly) return null;
 
-  const who = audience === "one" ? toPerson?.name || person : t(`admin.messages.audiences.${audience}`);
+  const who = audience === "one" ? (person?.name ?? "") : t(`admin.messages.audiences.${audience}`);
   const send = () => {
     if (!window.confirm(t("admin.messages.confirm", { who }))) return;
     run(async () => {
       setError(null);
-      const res = await sendBroadcast({ audience, person, body });
+      const res = await sendBroadcast({ audience, person: person?.id ?? "", body });
       if (!res.ok) return setError(t(res.error));
       setBody("");
       toast(t("admin.messages.sent", { n: res.recipients }));
@@ -55,15 +56,10 @@ export function BroadcastForm({ toPerson }: { toPerson: { query: string; name: s
         ))}
       </div>
       {audience === "one" && (
-        <label className="mt-4 block text-sm">
+        <div className="mt-4 block text-sm">
           <span className="font-medium text-ink">{t("admin.messages.person")}</span>
-          <input
-            value={toPerson && person === toPerson.query ? toPerson.name : person}
-            onChange={(e) => setPerson(e.target.value)}
-            onFocus={() => toPerson && person === toPerson.query && setPerson("")}
-            className="mt-1 block min-h-11 w-full rounded-xl bg-canvas px-3 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </label>
+          <PersonPicker value={person} onChange={setPerson} />
+        </div>
       )}
       <label className="mt-4 block text-sm">
         <span className="font-medium text-ink">{t("admin.messages.body")}</span>
@@ -84,7 +80,7 @@ export function BroadcastForm({ toPerson }: { toPerson: { query: string; name: s
         </div>
       )}
       <div className="mt-3">
-        <Button onClick={send} loading={busy} disabled={!body.trim() || (audience === "one" && !person.trim())}>
+        <Button onClick={send} loading={busy} disabled={!body.trim() || (audience === "one" && !person)}>
           {t("admin.messages.send")}
         </Button>
       </div>

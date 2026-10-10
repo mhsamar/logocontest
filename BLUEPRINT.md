@@ -234,9 +234,9 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 | Urgent (owner, 2026-10-08) | An "Urgent" badge on the contest's card and page, so designers look at it soon | 500 |
 | NDA / Confidential (owner, 2026-10-08) | Includes everything Private does (Private is not charged on top), and designers must accept a confidentiality agreement before they can read the brief, see the designs or submit. Acceptances are stored (`nda_acceptances`) | 1,500 |
 | Extension | Bought while the contest is open; adds 3, 5 or 7 days to `ends_at`. Can be bought more than once | 500 per day added |
-| Logo Scan (owner, 2026-10-08) | Bought once per contest; the client can then scan any design in that contest as often as they like. The scan searches the web for the same or a visually similar image (behind a `LogoScanner` interface: `log` dev driver that searches nothing and says so; `google` driver = Google Cloud Vision Web Detection with the same API key as image moderation) and lists exact matches, partial matches, similar images and pages that show them. Results are stored per design (`logo_scans`) | 500 |
+| AI copyright checker (owner, 2026-10-10; replaces Logo Scan, see §7.7) | Up to 3 AI logo checks per contest, each ending in a Logo Research Certificate. **Free when the prize is ৳8,000 or more**; below that it is this add-on. Same add-on key (`logo_scan`), contest flag and price setting as the old Logo Scan, so contests that bought Logo Scan get the checker | 500 |
 
-**Add-ons after launch (owner, 2026-10-08):** while a contest is open the client can buy Promoted (shown as "Featured"), Private, Blind, Extension and Logo Scan from the contest's manage page. Each is a separate payment (`purpose` = `addon` or `extension`) through the same gateway; a paid callback applies it in one transaction (`confirm_addon_payment`). Blind bought after designs arrived hides them from other people from then on. An add-on already on the contest can't be bought again (Extension can). Add-on payments count toward the client's total spent but don't change the contest's original total.
+**Add-ons after launch (owner, 2026-10-08):** while a contest is open the client can buy Promoted (shown as "Featured"), Private, Blind, Extension and the AI copyright checker from the contest's manage page (the checker also while the contest is judging, owner 2026-10-10). Each is a separate payment (`purpose` = `addon` or `extension`) through the same gateway; a paid callback applies it in one transaction (`confirm_addon_payment`). Blind bought after designs arrived hides them from other people from then on. An add-on already on the contest can't be bought again (Extension can). Add-on payments count toward the client's total spent but don't change the contest's original total.
 
 **Picking the winner early (owner, 2026-10-08):** the client may pick a winner while the contest is open or judging. Picking closes the contest at once: the entry becomes `winner`, the contest `winner_selected` (no more designs), and the winner's file deadline starts (handover, milestone 6).
 
@@ -265,6 +265,17 @@ Credits happen once, inside one database transaction (`finish_no_result` locks t
 - This is not a money refund: the client's payment stays with the contest.
 - **Payment errors** (owner confirmed, 2026-10-09): money taken twice by mistake, or taken without the contest going live, is checked with the payment provider and corrected. This is stated in the Payment & No-Refund Policy and is not a refund.
 
+### 7.7 AI copyright checker (owner, 2026-10-10)
+
+Full spec: `Design/copyright-checker/COPYRIGHT-CHECKER-HANDOFF.md` and the five designs next to it. Decisions:
+
+1. Only the contest's client uses it, while the contest is open or judging and before a winner is picked. **3 checks per contest** (one logo image each), enforced on the server; a check that fails for a technical reason doesn't count.
+2. **Free** when the prize is **৳8,000 or more**; below that it is the **৳500 add-on** (3 checks). It **replaces the Logo Scan add-on**: same add-on key, contest flag and price setting; the old per-design scan panel is removed (stored `logo_scans` rows are kept). Price, free limit, checks per contest and the close / high-risk similarity limits (45 / 85) are in Settings.
+3. **Search (owner's choice, 2026-10-10): real Google Lens results through SearchAPI.io** (`google_lens` engine, visual and exact matches) **plus Google Cloud Vision Web Detection** for exact copies, plus designs from other contests on logocontest.bd (image fingerprint, never private contests or blind contests that are still running). Claude reads the logo, compares shapes and writes the scores and advice. "How we checked" and the certificate name only the searches that really ran.
+4. Runs as a background job in steps; the browser polls. Found images are copied into our private storage at check time.
+5. Every check ends in a **Logo Research Certificate** (PDF and PNG from one HTML template, rendered with headless Chrome), number `CC-0001`, with a public `/verify/CC-…` page (number, date, checked logo, result only). Never "copyright certificate", "copyright free" or "guaranteed".
+6. Client page **My logo checks**; admin page **Copyright checker** with a view-only permission area in Admins & roles. The admin "Make a ticket" button stays hidden until Tickets exist.
+
 ## 8. Client flow
 
 ### 8.1 Wizard (`/start`)
@@ -278,7 +289,7 @@ One question per screen, progress bar, Back/Next, autosave to the browser. Once 
 5. Up to 5 colors with hex codes, or "Let designers choose"; "Logo will be used on": Facebook/Instagram, Website, Signboard, Packaging, Print, Merchandise, TV/Video; and **What you need** (owner, 2026-10-08). Always included and shown ticked: the main logo, and the files every winner delivers (AI, EPS, SVG, PDF, transparent PNG, JPG, §9). Extras the client can tick: icon only (for the app icon and favicon), short logo (icon + short name), colour, white and black versions, and app icon sizes (1024×1024 master, plus iOS and Android sizes). The winner must deliver the ticked extras at handover
 6. **Requirements** (owner, 2026-10-08; the "what you like / don't like" text areas were removed the same day, so new contests save `likes_text` empty and older contests keep theirs). Always on and shown ticked: 100% original work with full copyright transferred to the client, and no AI-generated logos (§3). Requirements the client can tick: no stock images or AI-made images in the final design, and a mockup showing the app icon on a phone home screen. Plus "Other requirements" (optional, up to 500 chars; the contact filter runs on it)
 7. Upload examples or current logo (optional, max 5 files, JPG/PNG/PDF, 5 MB each)
-8. Package (Starter / Growth / Pro / Premium / Elite / Custom), duration (3–30 days), upgrades (Featured, Blind, Private, Logo Scan, Highlight, Urgent, NDA), live order summary
+8. Package (Starter / Growth / Pro / Premium / Elite / Custom), duration (3–30 days), upgrades (Featured, Blind, Private, AI copyright checker, Highlight, Urgent, NDA; the checker shows as included when the prize is at or over the free limit), live order summary
 9. Mobile number and email (no OTP; both required and unique)
 10. Password
 11. Your name, then payment (bKash / card), with a checkbox accepting Terms and the no-refund policy

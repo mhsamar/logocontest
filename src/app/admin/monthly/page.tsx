@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DesignLink } from "@/components/admin/design-viewer";
 import Link from "next/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminHead } from "@/components/admin/page-head";
@@ -85,7 +86,7 @@ export default async function AdminMonthlyPage({ searchParams }: PageProps<"/adm
             const isPick = record?.entryId === d.entryId;
             return (
               <li key={d.entryId} className={cx("rounded-2xl bg-surface p-3 shadow-card ring-1", isPick ? "ring-2 ring-[#e0a614]" : "ring-line")}>
-                <Link href={`/contest/${d.contestSlug}?tab=entries&entry=${d.number}`} className="relative block overflow-clip rounded-xl bg-canvas">
+                <DesignLink entryId={d.entryId} className="relative block overflow-clip rounded-xl bg-canvas">
                   {d.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={d.coverUrl} alt="" className="aspect-square w-full object-cover" />
@@ -93,7 +94,7 @@ export default async function AdminMonthlyPage({ searchParams }: PageProps<"/adm
                     <span className="flex aspect-square items-center justify-center text-sm text-muted">{d.brandName}</span>
                   )}
                   <span className="absolute left-2 top-2 flex size-7 items-center justify-center rounded-full bg-white text-xs font-extrabold shadow-card">{i + 1}</span>
-                </Link>
+                </DesignLink>
                 <p className="mt-2 truncate text-sm font-semibold text-ink">{d.brandName}</p>
                 <p className="truncate text-xs text-muted">
                   <Link href={`/admin/users/${d.designerId}`} className="hover:text-primary">

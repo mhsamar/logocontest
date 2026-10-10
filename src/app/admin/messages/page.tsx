@@ -22,13 +22,19 @@ export default async function AdminMessagesPage({ searchParams }: PageProps<"/ad
   const [{ t, locale }, history, person] = await Promise.all([
     getI18n(),
     recentBroadcasts(),
-    to && isSupabaseConfigured() ? createAdminClient().from("profiles").select("id, name").eq("id", to).maybeSingle().then((r) => r.data) : null,
+    to && isSupabaseConfigured() ? createAdminClient().from("profiles").select("id, name, role, username").eq("id", to).maybeSingle().then((r) => r.data) : null,
   ]);
   const when = (iso: string) => new Date(iso).toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   return (
     <div className="space-y-4">
       <AdminHead title={t("admin.messages.title")} lead={t("admin.messages.lead")} />
-      <BroadcastForm toPerson={person ? { query: person.id as string, name: person.name as string } : null} />
+      <BroadcastForm
+        toPerson={
+          person && (person.role === "client" || person.role === "designer")
+            ? { id: person.id as string, name: person.name as string, role: person.role, username: (person.username as string | null) ?? null }
+            : null
+        }
+      />
       <section className="space-y-3">
         <h2 className="font-semibold text-ink">{t("admin.messages.history")}</h2>
         {history.length === 0 ? (

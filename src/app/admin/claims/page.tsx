@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ClaimActions } from "@/components/admin/claim-actions";
 import { listOpenClaims } from "@/lib/claims/queries";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { DesignLink } from "@/components/admin/design-viewer";
 import { requirePermission } from "@/lib/admin/core";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,14 +27,14 @@ export default async function AdminClaimsPage() {
         <ul className="mt-6 space-y-4">
           {claims.map((c) => (
             <li key={c.id} className="grid gap-5 rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line md:grid-cols-[9rem_minmax(0,1fr)_minmax(0,22rem)]">
-              <Link href={`/contest/${c.contest.slug}?tab=entries&entry=${c.entryNumber}`} className="block overflow-clip rounded-xl bg-canvas ring-1 ring-line">
+              <DesignLink entryId={c.entryId} className="block overflow-clip rounded-xl bg-canvas ring-1 ring-line">
                 {c.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.coverUrl} alt="" className="aspect-square w-full object-cover" />
                 ) : (
                   <span className="flex aspect-square items-center justify-center text-sm text-muted">#{formatNumber(c.entryNumber, locale)}</span>
                 )}
-              </Link>
+              </DesignLink>
               <div className="min-w-0 space-y-2 text-sm">
                 <p className="text-lg font-bold text-ink">
                   {c.contest.brand}{" "}

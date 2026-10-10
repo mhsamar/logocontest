@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { DesignLink } from "@/components/admin/design-viewer";
 import Link from "next/link";
+import { AdminIcon } from "@/components/admin/icons";
 import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
@@ -45,13 +47,15 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
             {c.client.name}
           </Link>
           {" · "}
-          <Link href={`/contest/${c.slug}`} className="text-primary hover:underline">
+          <a href={`/contest/${c.slug}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-primary hover:underline">
             {t("admin.contests.publicPage")}
-          </Link>
+            <AdminIcon name="external" size={14} />
+          </a>
           {" · "}
-          <Link href={`/dashboard/contests/${c.slug}`} className="text-primary hover:underline">
+          <a href={`/dashboard/contests/${c.slug}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-primary hover:underline">
             {t("admin.contests.clientView")}
-          </Link>
+            <AdminIcon name="external" size={14} />
+          </a>
         </p>
         {c.cancelReason && <p className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{t("admin.contests.cancelledBecause", { reason: c.cancelReason })}</p>}
       </div>
@@ -122,9 +126,9 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
               {c.entriesList.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 py-2">
                   <span>
-                    <Link href={`/contest/${c.slug}?tab=entries&entry=${e.number}`} className="font-semibold text-ink hover:text-primary">
+                    <DesignLink entryId={e.id} className="font-semibold text-ink hover:text-primary">
                       #{e.number}
-                    </Link>{" "}
+                    </DesignLink>{" "}
                     <Link href={`/admin/users/${e.designer.id}`} className="text-muted hover:text-primary">
                       {e.designer.username ? `@${e.designer.username}` : e.designer.name}
                     </Link>

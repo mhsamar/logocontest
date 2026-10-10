@@ -320,7 +320,7 @@ A banner appears in the judging phase: "Your contest has ended. Pick your winner
 
 ### C-15 Entry review (full view)
 
-Image carousel on top (owner, 2026-10-08: the same large viewer as `P-04`, with the owner tools in the side panel). Below, in order: star rating row, **Shortlist** toggle, **Logo Scan** (results, or "Unlock Logo Scan ৳500" when not bought), comment thread, then two buttons pinned at the bottom: **Reject** (danger outline) and **Pick as winner** (primary; only enabled in open or judging state). The "…" menu also has **Give a strike** → sheet with a required reason and the note "Strikes count immediately. 3 strikes and the designer is banned."
+Image carousel on top (owner, 2026-10-08: the same large viewer as `P-04`, with the owner tools in the side panel). Below, in order: star rating row, **Shortlist** toggle, **Check with AI** (owner, 2026-10-10: the AI copyright checker replaced Logo Scan; on the design cards and in a side box on the manage page, see BLUEPRINT §7.7), comment thread, then two buttons pinned at the bottom: **Reject** (danger outline) and **Pick as winner** (primary; only enabled in open or judging state). The "…" menu also has **Give a strike** → sheet with a required reason and the note "Strikes count immediately. 3 strikes and the designer is banned."
 
 - **Comment box:** the design's comments (§10 of BLUEPRINT: the client and designers in the contest can post, no turns). Filter errors appear inline.
 - **Reject sheet:** radio list of reasons (Looks AI-generated, Looks copied, Doesn't match the brief, Low quality, Other + note). Confirm button **Reject design**. After confirming, a toast "Design removed from your contest" and the view moves to the next entry.
@@ -470,7 +470,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 |---|---|---|
 | A-01 | Dashboard | Period switcher: Today / 3 days / 7 days / 30 days / All time / Custom (from–to, Dhaka days) (owner, 2026-10-10). Number tiles (contests live, started, completed, designs per contest, client payments, platform revenue in red, withdrawals waiting, reports to check), wizard drop-off chart by step, revenue breakdown (service fees, add-ons, designer fees), latest admin actions |
 | A-02 | Contests | Table with filters; row actions: View, Edit brief, Extend (free, admin only, needs a reason), Force-award, Cancel |
-| A-03 | Entries | Tabs: Flagged duplicates, Recently submitted. Side-by-side compare for duplicates. Action: Remove |
+| A-03 | Entries | Tabs: Flagged duplicates, Recently submitted. Side-by-side compare for duplicates. Action: Remove. **Owner, 2026-10-10: admins stay in the admin panel.** Clicking a design anywhere in admin (Designs, Reports, Copy claims, Monthly winner, Homepage, a contest) opens it on top of the page: all mockups, status, designer, contest, near-duplicate note, logo story and comments, with Open contest in admin, Designer and On the site ↗; ✕ or Esc closes it and the admin is where they were. Ctrl/⌘-click opens `/admin/designs/[id]`. Links that are meant for the public site (View site, Public page, Client view, On the site, a visitor's page in Live now, a profile's public page) open in a new tab |
 | A-04 | Reports | Queue with reason, entry preview, evidence image and links side by side. Actions: Uphold (with strike or ban), Dismiss, Dismiss as false (warns the flagger) |
 | A-05 | Users | Search by name or mobile; profile drawer with strikes (who gave each and why), false-flag warnings, contests or entries, wallet. Actions: Suspend, Ban, Add strike, Remove strike |
 | A-06 | Payments | Table of gateway payments with status and transaction ID |
@@ -492,7 +492,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-22 | Unpaid contests | Table: client, mobile, brand, step / status, amount, last activity; **Call** and **Send message** |
 | A-23 | Admins & roles (Super admin only) | Staff list with title, permissions summary, on/off; **Add admin** form (name, mobile, email, starting password, title, preset, View / Manage checkboxes per area) |
 | A-24 | Support inbox | Two panes: conversation list (Open / Closed, unread badges) and the chat with the user's card (role, link to profile); reply box, Close / Reopen. Phones: list, then chat |
-| A-25 | Send message | Audience (All designers, All clients, Everyone, One person), message text, **Send**; history of sent messages |
+| A-25 | Send message | Audience (All designers, All clients, Everyone, One person), message text, **Send**; history of sent messages. One person (owner, 2026-10-10): clicking the field opens a list of the newest 30 clients and designers with All / Designers / Clients filters; typing searches name, username, email or mobile; each row shows photo or initial, name, role tag, @username, mobile and email. **Designers are blue and clients are red** (dot, tag and initial). The chosen person shows as a card with **Change** |
 | S-01 | Support chat (users) | Signed-in users: a round chat button bottom-right on every page (not on admin pages) opening a chat panel; full page at `/support`. Unread badge on the button |
 
 Every destructive admin action asks for confirmation and a short reason.

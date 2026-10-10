@@ -6,7 +6,8 @@ import { adminIdsWith } from "@/lib/admin/recipients";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
-import { normalizeBdMobile } from "@/lib/phone";
+import { formatBdMobile, normalizeBdMobile } from "@/lib/phone";
+import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { myConversation, threadDetail, type SupportMessage, type SupportThread } from "./queries";
 import { cleanMessage, isAudience, preview } from "./rules";
@@ -109,6 +110,45 @@ async function findPerson(query: string): Promise<{ id: string; name: string } |
   const filter = UUID.test(q) ? db.from("profiles").select("id, name, role").eq("id", q) : mobile ? db.from("profiles").select("id, name, role").eq("mobile", mobile) : q.includes("@") ? db.from("profiles").select("id, name, role").ilike("email", q) : db.from("profiles").select("id, name, role").ilike("username", q.replace(/^@/, ""));
   const { data } = await filter.maybeSingle();
   return data && (data.role === "client" || data.role === "designer") ? { id: data.id as string, name: data.name as string } : null;
+}
+
+export type PersonHit = { id: string; name: string; username: string | null; mobile: string | null; email: string | null; role: "client" | "designer"; avatar: string | null; banned: boolean };
+
+/**
+ * A-25 "One person" picker (owner, 2026-10-10): clients and designers by name, username, email or mobile.
+ * With nothing typed it lists the newest people, so the admin can pick without knowing what to search.
+ */
+export async function searchPeople(query: string, role: "all" | "client" | "designer" = "all"): Promise<PersonHit[]> {
+  if (!(await adminUser("messages.view"))) return [];
+  // Characters that would break the PostgREST filter are dropped.
+  const q = query.replace(/[,()*%\\"]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  let req = createAdminClient()
+    .from("profiles")
+    .select("id, name, username, mobile, email, role, avatar_path, status")
+    .in("role", role === "all" ? ["client", "designer"] : [role])
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (q) {
+    const like = `"%${q.replace(/^@/, "")}%"`;
+    const parts = [`name.ilike.${like}`, `username.ilike.${like}`, `email.ilike.${like}`];
+    const mobile = normalizeBdMobile(q);
+    const digits = q.replace(/\D/g, "").replace(/^(880|0)/, "");
+    if (mobile) parts.push(`mobile.eq."${mobile}"`);
+    else if (digits.length >= 3) parts.push(`mobile.ilike."%${digits}%"`);
+    if (UUID.test(q)) parts.push(`id.eq.${q}`);
+    req = req.or(parts.join(","));
+  }
+  const { data } = await req;
+  return (data ?? []).map((p) => ({
+    id: p.id as string,
+    name: p.name as string,
+    username: (p.username as string | null) ?? null,
+    mobile: p.mobile ? formatBdMobile(p.mobile as string) : null,
+    email: (p.email as string | null) ?? null,
+    role: p.role as "client" | "designer",
+    avatar: avatarUrl(p.avatar_path as string | null),
+    banned: p.status === "banned",
+  }));
 }
 
 /** Sends a message to a group or one person: into each support chat, plus a bell + push. */

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DesignLink } from "@/components/admin/design-viewer";
 import Link from "next/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { EntryThumb } from "@/components/admin/entry-thumb";
@@ -69,7 +70,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
 
   const card = (e: AdminEntry) => (
     <AdmCard key={e.id} as="li" className="flex flex-col overflow-hidden">
-      <Link href={`/contest/${e.contest.slug}?tab=entries&entry=${e.number}`} className="relative flex aspect-[4/3] items-center justify-center bg-[#eeeff2]">
+      <DesignLink entryId={e.id} className="relative flex aspect-[4/3] items-center justify-center bg-[#eeeff2]">
         {e.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={e.coverUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
@@ -92,7 +93,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
             {t("admin.entries.newToday")}
           </Pill>
         ) : null}
-      </Link>
+      </DesignLink>
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={`/admin/contests/${e.contest.slug}`} className="text-[17px] font-bold hover:text-primary">

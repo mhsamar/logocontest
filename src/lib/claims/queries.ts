@@ -48,6 +48,7 @@ export async function openClaimHandoverIds(designerId: string): Promise<Set<stri
 
 export type AdminClaim = CopyClaim & {
   contest: { slug: string; brand: string; number: number | null };
+  entryId: string;
   entryNumber: number;
   coverUrl: string | null;
   designer: { id: string; name: string; username: string | null; balance: number };
@@ -64,7 +65,7 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
   const { data } = await db
     .from("copy_claims")
     .select(
-      `${COLUMNS}, designer_id, contest:contests!contest_id(slug, brand_name, contest_number), entry:entries!entry_id(number, images:entry_images!entry_id(position, preview_path)), ` +
+      `${COLUMNS}, designer_id, contest:contests!contest_id(slug, brand_name, contest_number), entry:entries!entry_id(id, number, images:entry_images!entry_id(position, preview_path)), ` +
         "designer:profiles!designer_id(name, username), client:profiles!client_id(name), handover:handovers!handover_id(status)",
     )
     .eq("status", "open")
@@ -72,7 +73,7 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
   const rows = (data ?? []) as unknown as (Record<string, unknown> & {
     designer_id: string;
     contest: { slug: string; brand_name: string; contest_number: number | null } | null;
-    entry: { number: number; images: { position: number; preview_path: string }[] | null } | null;
+    entry: { id: string; number: number; images: { position: number; preview_path: string }[] | null } | null;
     designer: { name: string; username: string | null } | null;
     client: { name: string } | null;
     handover: { status: string } | null;
@@ -94,6 +95,7 @@ export async function listOpenClaims(): Promise<AdminClaim[]> {
     return {
       ...toClaim(r),
       contest: { slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null },
+      entryId: one(r.entry)?.id ?? "",
       entryNumber: one(r.entry)?.number ?? 0,
       coverUrl: covers[i] ? (urls.get(covers[i]!) ?? null) : null,
       designer: { id: r.designer_id, name: d?.name ?? "—", username: d?.username ?? null, balance: balances[i] },
