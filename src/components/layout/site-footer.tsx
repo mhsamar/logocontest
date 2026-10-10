@@ -1,31 +1,22 @@
 import Link from "next/link";
-import { Wordmark } from "@/components/ui/logo";
-import { brandPictures } from "@/lib/content/brand";
+import { getContact } from "@/lib/content/contact";
+import { visibleList } from "@/lib/content/lists";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
-import { getContact } from "@/lib/content/contact";
-import { visibleList } from "@/lib/content/lists";
+import { Svg } from "@/components/ui/svg";
 
-const LINK = "inline-flex min-h-10 items-center text-sm text-muted transition-colors hover:text-primary";
-
-// Social icons (owner, 2026-10-08). Links come from settings; an empty link hides its icon.
 const SOCIAL = [
-  {
-    key: "social.facebook",
-    name: "Facebook",
-    icon: <path d="M14 8.6V11h3l-.5 3H14v8h-3.5v-8H8v-3h2.5V8.3C10.5 5.7 12 4 14.7 4c1 0 2 .1 2.3.2v2.7h-1.6c-1.1 0-1.4.6-1.4 1.7Z" fill="currentColor" />,
-  },
+  { key: "social.facebook", name: "Facebook page", icon: <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.7-.1-1.5-.2-2.3-.2-2.3 0-3.8 1.4-3.8 3.9v2.4H8v3h2.5V21z" fill="currentColor" /> },
   {
     key: "social.facebook_group",
     name: "Facebook group",
     icon: (
-      <g fill="currentColor">
-        <circle cx="12" cy="8" r="3.2" />
-        <path d="M5.5 19.5c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6Z" />
-        <circle cx="5.2" cy="9.6" r="2.2" opacity="0.7" />
-        <circle cx="18.8" cy="9.6" r="2.2" opacity="0.7" />
-        <path d="M1.5 18c0-2.5 1.6-4.2 3.9-4.4-.9 1.2-1.4 2.7-1.4 4.4ZM22.5 18c0-2.5-1.6-4.2-3.9-4.4.9 1.2 1.4 2.7 1.4 4.4Z" opacity="0.7" />
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="8" r="3.2" />
+        <path d="M3 19a6 6 0 0 1 12 0" />
+        <circle cx="17" cy="9" r="2.5" />
+        <path d="M16.5 14.2A5 5 0 0 1 21 19" />
       </g>
     ),
   },
@@ -33,10 +24,10 @@ const SOCIAL = [
     key: "social.instagram",
     name: "Instagram",
     icon: (
-      <g fill="none" stroke="currentColor" strokeWidth="1.9">
-        <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
-        <circle cx="12" cy="12" r="3.9" />
-        <circle cx="17.2" cy="6.8" r="0.6" fill="currentColor" />
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="4" width="16" height="16" rx="4.5" />
+        <circle cx="12" cy="12" r="3.6" />
+        <circle cx="16.7" cy="7.3" r=".6" fill="currentColor" />
       </g>
     ),
   },
@@ -44,123 +35,91 @@ const SOCIAL = [
     key: "social.youtube",
     name: "YouTube",
     icon: (
-      <g>
-        <rect x="2.5" y="5.5" width="19" height="13" rx="4" fill="currentColor" />
-        <path d="M10 9.2v5.6l5-2.8Z" fill="var(--color-canvas)" />
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+        <rect x="3" y="6" width="18" height="12" rx="3.5" />
+        <path d="M10.5 9.5l4 2.5-4 2.5z" fill="currentColor" />
       </g>
     ),
   },
   {
     key: "social.linkedin",
     name: "LinkedIn",
-    icon: <path d="M6.9 8.8H3.6V20h3.3V8.8ZM5.2 3.5a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8ZM20.4 13.6c0-3-1.6-4.9-4.3-4.9-1.4 0-2.4.8-2.8 1.5V8.8H10V20h3.3v-5.6c0-1.5.6-2.6 2-2.6 1.3 0 1.8 1 1.8 2.6V20h3.3v-6.4Z" fill="currentColor" />,
+    icon: (
+      <g fill="currentColor">
+        <rect x="4" y="9" width="3.4" height="11" rx=".6" />
+        <circle cx="5.7" cy="5.6" r="2" />
+        <path d="M10 9h3.2v1.6c.6-1 1.8-1.9 3.6-1.9 3 0 3.6 2 3.6 4.5V20H17v-5.9c0-1.3-.2-2.6-1.8-2.6s-1.9 1.2-1.9 2.5v6H10Z" />
+      </g>
+    ),
   },
 ] as const;
 
-/** Footer on the page background, no separate colour (UI-JOURNEY §1.1, owner 2026-10-08). */
+/** Site footer (owner, 2026-10-10; the home page design, on every page): links from Lists → Footer links, social links and phone from Settings. */
 export async function SiteFooter() {
-  const [{ t, locale }, links] = await Promise.all([getI18n(), getSettings(SOCIAL.map((x) => x.key))]);
-  const contact = await getContact(locale);
-  const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
+  const { t, locale } = await getI18n();
+  const [links, contact, footerLinks] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale)]);
   const social = SOCIAL.filter((x) => links[x.key]);
-
-  // Footer links list (A-15), in its three columns.
-  const footerLinks = await visibleList("footer_links", locale);
-  const columns: { title: string; links: { href: string; label: string }[] }[] = (["clients", "designers", "legal"] as const)
-    .map((column) => ({
-      title: t(column === "legal" ? "footer.legal" : `footer.${column}`),
-      links: footerLinks.filter((l) => l.column === column).map((l) => ({ href: l.href ?? "/", label: l.text.label })),
-    }))
-    .filter((col) => col.links.length > 0);
+  const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
+  const columns = (["clients", "designers", "legal"] as const)
+    .map((column) => ({ title: t(column === "legal" ? "footer.legal" : `footer.${column}`), links: footerLinks.filter((l) => l.column === column) }))
+    .filter((c) => c.links.length > 0);
+  const languageButton = (l: "en" | "bn") => (
+    <button type="submit" name="locale" value={l} lang={l} aria-current={locale === l ? "true" : undefined} className={locale === l ? "font-semibold text-ink" : "hover:opacity-70"}>
+      {t(l === "en" ? "home.landing.english" : "home.landing.bangla")}
+    </button>
+  );
 
   return (
-    <footer className="mt-auto border-t border-line">
-      <div className="reveal mx-auto grid max-w-page grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div className="col-span-2 max-w-xs lg:col-span-1">
-          <Wordmark src={(await brandPictures()).logo} />
-          <p className="mt-3 text-sm leading-relaxed text-muted">{t("footer.blurb")}</p>
-          <a
-            href={contact.phoneHref}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-surface px-4 text-sm font-semibold text-ink shadow-card ring-1 ring-line transition-colors hover:ring-primary"
-          >
-            <svg viewBox="0 0 24 24" className="size-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-              <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-            </svg>
+    <footer className="overflow-hidden rounded-[32px] bg-white px-10 pt-16">
+      <div className="lc-fg mx-auto grid max-w-[1160px] grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))] gap-9 text-base">
+        <div className="flex flex-col items-start gap-3.5">
+          <p className="lc-d m-0 max-w-[260px] text-xl font-semibold leading-tight tracking-[-0.03em]">{t("footer.blurb")}</p>
+          <a href={contact.phoneHref} className="inline-flex min-h-11 items-center gap-2 rounded-[14px] bg-chip px-4 font-bold">
+            <Svg d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2C10.3 21 3 13.7 3 6a2 2 0 0 1 2-2z" size={16} stroke="var(--color-primary)" width={2.2} />
             {contact.phone}
           </a>
           {contact.email && (
-            <a href={`mailto:${contact.email}`} className="mt-2 block break-all text-sm text-muted hover:text-primary">
+            <a href={`mailto:${contact.email}`} className="break-all text-muted">
               {contact.email}
             </a>
           )}
-          {contact.address && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">{contact.address}</p>}
+          {social.length > 0 && (
+            <div className="flex flex-col gap-2.5 pt-2.5">
+              <span className="text-[15px] font-bold">{t("footer.social")}</span>
+              <div className="flex gap-2">
+                {social.map((s) => (
+                  <a key={s.key} href={links[s.key]} target="_blank" rel="noopener noreferrer" aria-label={s.name} className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary text-white">
+                    <svg aria-hidden width="20" height="20" viewBox="0 0 24 24">
+                      {s.icon}
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {columns.map((col) => (
-          <nav key={col.title} aria-label={col.title}>
-            <p className="text-sm font-semibold text-ink">{col.title}</p>
-            <ul className="mt-2">
-              {col.links.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className={LINK}>
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <nav key={col.title} aria-label={col.title} className="flex flex-col gap-0.5 text-muted">
+            <span className="pb-2 font-bold text-ink">{col.title}</span>
+            {col.links.map((l) => (
+              <Link key={l.id} href={l.href ?? "/"} className="py-1.5">
+                {l.text.label}
+              </Link>
+            ))}
           </nav>
         ))}
       </div>
-
-      {/* Bottom strip, as in the reference: © · language · made in */}
-      <div className="border-t border-line">
-        <div className="mx-auto flex max-w-page flex-col gap-3 px-4 py-5 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-ink">{t("footer.rights", { year })}</span>
-            <span className="text-line" aria-hidden>
-              |
-            </span>
-            <form action={setLocale} className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="size-4 text-ink" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                <circle cx="12" cy="12" r="9" />
-                <path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z" />
-              </svg>
-              <span className="sr-only">{t("footer.language")}:</span>
-              {(["en", "bn"] as const).map((l) =>
-                l === locale ? (
-                  <span key={l} lang={l} className="font-semibold text-ink" aria-current="true">
-                    {l === "en" ? "English" : "বাংলা"}
-                  </span>
-                ) : (
-                  <button key={l} type="submit" name="locale" value={l} lang={l} className="min-h-10 hover:text-primary">
-                    {l === "en" ? "English" : "বাংলা"}
-                  </button>
-                ),
-              )}
-            </form>
-          </div>
-          <div className="flex items-center gap-4">
-            {social.length > 0 && (
-              <ul className="flex items-center gap-1" aria-label={t("footer.social")}>
-                {social.map((x) => (
-                  <li key={x.key}>
-                    <a
-                      href={links[x.key]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={x.name}
-                      className="flex size-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-surface hover:text-primary"
-                    >
-                      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-                        {x.icon}
-                      </svg>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <span>{t("footer.madeIn")}</span>
-          </div>
-        </div>
+      <div className="mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 border-t border-line-soft pt-5 text-[15px] text-muted">
+        <span>{t("footer.rights", { year })}</span>
+        <form action={setLocale} aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
+          {languageButton("en")}
+          <span aria-hidden>·</span>
+          {languageButton("bn")}
+        </form>
+        <span>{t("footer.madeIn")}</span>
+      </div>
+      <div aria-hidden className="lc-d lc-rv lc-big mb-[-0.16em] mt-7 whitespace-nowrap text-center text-[clamp(54px,14.5vw,212px)] font-semibold leading-[0.82] tracking-[-0.06em] text-primary">
+        {t("brand.name")}
       </div>
     </footer>
   );

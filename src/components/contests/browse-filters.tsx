@@ -6,7 +6,7 @@ import type { BusinessType } from "@/lib/contests/brief";
 import { useI18n } from "@/lib/i18n/client";
 
 const SELECT =
-  "min-h-11 w-full rounded-md bg-surface pl-3 pr-8 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary sm:w-auto";
+  "min-h-11 w-full rounded-[14px] bg-surface pl-3.5 pr-9 text-[15px] font-semibold text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary sm:w-auto";
 
 /** P-02 business type (the admin's Business types list, A-15) and sort. Changes apply at once; without JavaScript the form's button does it. */
 export function BrowseFilters({ query, types }: { query: BrowseQuery; types: BusinessType[] }) {

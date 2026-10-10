@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell, Panel } from "@/components/ui/panel";
 import type { ServerFile } from "@/components/wizard/state";
 import { Wizard, type WizardProps } from "@/components/wizard/wizard";
 import { can } from "@/lib/auth/policies";
@@ -25,9 +26,13 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
 
   if (!can(user, "contest.create")) {
     return (
-      <div className="mx-auto w-full max-w-xl px-4 py-12">
-        <EmptyState title={t("wizard.errors.designerAccount")} action={<ButtonLink href="/">{t("notFound.home")}</ButtonLink>} />
-      </div>
+      <PageShell>
+        <Panel tone="grey" className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xl">
+            <EmptyState title={t("wizard.errors.designerAccount")} action={<ButtonLink href="/">{t("notFound.home")}</ButtonLink>} />
+          </div>
+        </Panel>
+      </PageShell>
     );
   }
 

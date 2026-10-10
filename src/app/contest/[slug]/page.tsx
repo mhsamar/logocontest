@@ -14,6 +14,7 @@ import { SaveButton } from "@/components/contests/save-button";
 import { ShareContest } from "@/components/contests/share-contest";
 import { UsedOnIcon } from "@/components/contests/used-on-icon";
 import { ButtonLink } from "@/components/ui/button";
+import { PageShell } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Avatar } from "@/components/ui/avatar";
@@ -97,17 +98,15 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const statusKnown = contest.rawStatus === contest.status;
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
-      {!statusKnown && (
-        <p className="mb-4 rounded-lg bg-warning/10 px-4 py-3 text-sm text-ink ring-1 ring-warning/20">{t("contest.ownerNote")}</p>
-      )}
+    <PageShell>
+      {!statusKnown && <p className="m-0 rounded-[20px] bg-[#FFEDD5] px-5 py-3.5 text-[15px] font-medium text-[#9A3412]">{t("contest.ownerNote")}</p>}
 
       {/* Header panel */}
-      <section className="grid gap-6 rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-8 lg:grid-cols-[1fr_400px] lg:gap-10">
+      <section className="grid gap-8 rounded-[32px] bg-surface p-5 sm:p-8 lg:grid-cols-[1fr_400px] lg:gap-10 lg:p-10 max-[720px]:rounded-[24px]">
         <div className="flex min-w-0 flex-col">
           {/* Title block */}
           <div className="flex items-start gap-4 sm:gap-5">
-            <div className="size-20 shrink-0 overflow-hidden rounded-2xl shadow-raised ring-4 ring-white sm:size-24">
+            <div className="lc-ph size-20 shrink-0 rounded-[22px] sm:size-24">
               <BrandTile name={contest.brandName} isPrivate={contest.isPrivate && !contest.canSeeBrief} cover={contest.cover} flat className="h-full w-full text-[1.1rem] sm:text-[1.3rem]" />
             </div>
             <div className="min-w-0 pt-0.5">
@@ -116,12 +115,12 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                 <ContestNumber n={contest.number} t={t} locale={locale} />
                 <ContestBadges contest={contest} t={t} />
               </div>
-              <h1 className="mt-2 break-words text-h1 font-bold leading-tight tracking-tight text-ink lg:text-[2.5rem]">
+              <h1 className="m-0 mt-2.5 break-words text-[clamp(30px,4vw,48px)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">
                 {contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-canvas px-3 py-1 font-medium text-ink ring-1 ring-line">{t(`wizard.businessTypes.${contest.businessType}`)}</span>
-                <span className="rounded-full bg-canvas px-3 py-1 font-medium text-ink ring-1 ring-line">
+                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{t(`wizard.businessTypes.${contest.businessType}`)}</span>
+                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">
                   {t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}
                 </span>
                 {contest.client && (
@@ -137,7 +136,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           </div>
 
           {contest.brief ? (
-            <p className="mt-6 max-w-2xl whitespace-pre-line border-l-2 border-primary/30 pl-4 text-[1.0625rem] leading-relaxed text-ink/85">{contest.brief.description}</p>
+            <p className="m-0 mt-6 max-w-2xl whitespace-pre-line text-lg leading-relaxed text-muted">{contest.brief.description}</p>
           ) : contest.isNda && user ? (
             <NdaGate contestId={contest.id} viewer={user.role === "designer" ? "designer" : "other"} loginHref={`/login?as=designer&next=${encodeURIComponent(`/contest/${contest.slug}`)}`} />
           ) : contest.isNda ? (
@@ -151,10 +150,10 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
 
           {/* At a glance (owner, 2026-10-08): who is taking part and what the winner gets — the designs themselves are in the tabs below */}
           <div className="mt-7">
-            <div className={cx("relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#fffaf0] via-[#fff3d6] to-[#ffe6ad] p-4 ring-1 ring-[#f1c75c]/60 sm:p-5")}>
-              <TrophyIcon className="pointer-events-none absolute -bottom-4 -right-4 size-24 opacity-20" />
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[#8a5105]">{t("contest.glance.winnerTitle")}</p>
-              <ul className="mt-3 grid gap-2 text-sm text-ink sm:grid-cols-3 sm:gap-4">
+            <div className="relative overflow-hidden rounded-[24px] bg-frame p-5">
+              <TrophyIcon className="pointer-events-none absolute -bottom-4 -right-4 size-24 opacity-15" />
+              <span className="inline-flex rounded-full bg-gold px-2.5 py-1 text-[13px] font-bold text-gold-ink">{t("contest.glance.winnerTitle")}</span>
+              <ul className="m-0 mt-3.5 grid list-none gap-2.5 p-0 text-[15px] text-ink sm:grid-cols-3 sm:gap-4">
                 {[t("contest.glance.paid"), t("contest.glance.files", { days: fmt(fileDays) }), t("contest.glance.copyright")].map((line) => (
                   <li key={line} className="flex items-start gap-2">
                     <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success text-white" aria-hidden>
@@ -171,11 +170,11 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
 
           {/* What the client wants */}
           {contest.brief && (
-            <div className="mt-4 grid grid-cols-2 gap-5 rounded-2xl bg-surface p-4 ring-1 ring-line sm:p-5 xl:grid-cols-[auto_1fr_auto] xl:gap-8">
+            <div className="lc-card mt-3.5 grid grid-cols-2 gap-5 !rounded-[24px] p-5 xl:grid-cols-[auto_1fr_auto] xl:gap-8">
               {(contest.brief.logoText || contest.brandName) && (
                 <div className="min-w-0">
                   <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.brief.logoText")}</p>
-                  <p className="mt-1.5 truncate font-display text-2xl italic text-ink">{contest.brief.logoText || contest.brandName}</p>
+                  <p className="lc-d m-0 mt-1.5 truncate text-2xl font-semibold tracking-[-0.03em] text-ink">{contest.brief.logoText || contest.brandName}</p>
                   {contest.brief.slogan && <p className="truncate text-sm text-muted">{contest.brief.slogan}</p>}
                 </div>
               )}
@@ -184,7 +183,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.brief.styles")}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {contest.brief.styles.map((st) => (
-                      <span key={st} className="inline-flex items-center gap-1.5 rounded-full bg-cream/60 px-3 py-1 text-sm font-medium text-primary-dark">
+                      <span key={st} className="inline-flex items-center gap-1.5 rounded-full bg-tint px-3 py-1 text-sm font-semibold text-primary">
                         <span className="size-1.5 rounded-full bg-primary" aria-hidden />
                         {t(`wizard.styles.${st}`)}
                       </span>
@@ -197,8 +196,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted">{t("contest.glance.usedTitle")}</p>
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {contest.brief.usedOn.map((u) => (
-                      <li key={u} className="inline-flex items-center gap-1.5 rounded-full bg-canvas py-1 pl-1 pr-3 ring-1 ring-line">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <li key={u} className="inline-flex items-center gap-1.5 rounded-full bg-chip py-1 pl-1 pr-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-primary">
                           <UsedOnIcon kind={u} />
                         </span>
                         <span className="text-[0.8125rem] font-medium text-ink">{t(`wizard.usedOn.${u}`)}</span>
@@ -271,23 +270,21 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         />
       </section>
 
-      {/* Tabs */}
-      <nav aria-label={t("contest.tabs.label")} className="mt-8 border-b border-line">
-        <ul className="flex gap-6">
+      {/* Tabs and their content in one panel */}
+      <section className="rounded-[32px] bg-surface p-5 sm:p-8 lg:p-10 max-[720px]:rounded-[24px]">
+      <nav aria-label={t("contest.tabs.label")} className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
+        <ul className="m-0 flex w-max list-none gap-1 rounded-[18px] bg-chip p-1">
           {(["entries", "brief", "comments"] as const).map((key) => (
             <li key={key}>
               <Link
                 href={`/contest/${contest.slug}?tab=${key}`}
                 scroll={false}
                 aria-current={tab === key ? "page" : undefined}
-                className={cx(
-                  "-mb-px flex min-h-11 items-center gap-2 border-b-2 text-sm font-semibold transition-colors",
-                  tab === key ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink",
-                )}
+                className={cx("flex min-h-11 items-center gap-2 rounded-[14px] px-4 text-[15px] font-semibold transition-colors", tab === key ? "bg-ink text-white" : "text-muted hover:text-ink")}
               >
                 {t(`contest.tabs.${key}`)}
                 {(key === "entries" ? !blindHidden : key === "comments") && (
-                  <span className="rounded-full bg-canvas px-1.5 text-xs tabular-nums text-muted">
+                  <span className={cx("rounded-full px-1.5 text-xs tabular-nums", tab === key ? "bg-white/15" : "bg-white")}>
                     {formatNumber(key === "entries" ? contest.entries : commentCount, locale)}
                   </span>
                 )}
@@ -297,7 +294,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         </ul>
       </nav>
 
-      <div className="mt-6">
+      <div className="mt-7">
         {tab === "comments" ? (
           contest.canSeeBrief ? (
             <ContestComments
@@ -342,9 +339,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             />
           </div>
         ) : entries.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+          <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
             {entries.map((e) => (
-              <li key={e.id}>
+              <li key={e.id} className="lc-rv-soft">
                 <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} />
               </li>
             ))}
@@ -359,6 +356,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           </div>
         )}
       </div>
+
+      </section>
 
       {/* P-04: one design, every mockup and its comments */}
       {entry && (
@@ -391,6 +390,6 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           )}
         </EntryViewer>
       )}
-    </div>
+    </PageShell>
   );
 }

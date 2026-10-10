@@ -1,6 +1,7 @@
 import { getI18n } from "@/lib/i18n/server";
 import { LcMark, LogoTile } from "./logo-tile";
-import { Arrow, RedButton, SectionHead } from "./section-head";
+import { ButtonLink } from "@/components/ui/button";
+import { Arrow, SectionHead } from "@/components/ui/section-heading";
 
 /** One "fine-tune the feel" slider from the wizard, as drawn in step 1. */
 function Slider({ left, right, at }: { left: string; right: string; at: number }) {
@@ -83,10 +84,10 @@ export async function Steps({ logos }: { logos: string[] }) {
             </div>,
           )}
         </div>
-        <RedButton href="/start" className="min-h-[54px] px-[30px] text-lg">
+        <ButtonLink href="/start" size="xl">
           {t("home.cta")}
           <Arrow />
-        </RedButton>
+        </ButtonLink>
       </div>
     </section>
   );

@@ -103,7 +103,7 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
           onMouseEnter={() => setHover(n)}
           aria-label={t("manage.review.rate", { n })}
           aria-pressed={stars === n}
-          className="flex size-8 items-center justify-center rounded-md transition-transform hover:scale-110"
+          className="flex size-8 items-center justify-center rounded-[10px] transition-transform hover:scale-110"
         >
           <StarIcon on={(hover || stars) >= n} className={size} />
         </button>
@@ -148,7 +148,7 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
       >
         <div className="space-y-2">
           {REJECT_REASONS.map((r) => (
-            <label key={r} className={cx("flex cursor-pointer items-center gap-3 rounded-xl p-3 ring-1", reason === r ? "bg-danger/5 ring-2 ring-danger" : "ring-line hover:bg-canvas")}>
+            <label key={r} className={cx("flex cursor-pointer items-center gap-3 rounded-[14px] p-3 ring-1", reason === r ? "bg-danger/5 ring-2 ring-danger" : "ring-line hover:bg-chip")}>
               <input type="radio" name={`reject-${entryId}`} checked={reason === r} onChange={() => setReason(r)} className="size-4 accent-danger" />
               <span className="text-sm font-medium text-ink">{t(`manage.reject.reasons.${r}`)}</span>
             </label>
@@ -185,7 +185,7 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
           {heartButton}
           {canAct && (
             <div ref={menuRef} className="relative">
-              <button type="button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label={t("manage.review.more")} className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-canvas hover:text-ink">
+              <button type="button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label={t("manage.review.more")} className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-chip hover:text-ink">
                 <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
                   <circle cx="5" cy="12" r="1.8" />
                   <circle cx="12" cy="12" r="1.8" />
@@ -193,11 +193,11 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
                 </svg>
               </button>
               {menu && (
-                <div role="menu" className="absolute bottom-full right-0 z-20 mb-1 w-48 overflow-hidden rounded-xl bg-surface py-1 shadow-raised ring-1 ring-line animate-fade-in">
-                  <button type="button" role="menuitem" onClick={() => (setMenu(false), setError(null), setPicking(true))} className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm font-semibold text-primary hover:bg-canvas">
+                <div role="menu" className="absolute bottom-full right-0 z-20 mb-1 w-48 overflow-hidden rounded-[14px] bg-surface py-1 shadow-card ring-1 ring-line animate-fade-in">
+                  <button type="button" role="menuitem" onClick={() => (setMenu(false), setError(null), setPicking(true))} className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm font-semibold text-primary hover:bg-chip">
                     {t("manage.winner.action")}
                   </button>
-                  <button type="button" role="menuitem" onClick={() => (setMenu(false), setError(null), setRejecting(true))} className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm text-danger hover:bg-canvas">
+                  <button type="button" role="menuitem" onClick={() => (setMenu(false), setError(null), setRejecting(true))} className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm text-danger hover:bg-chip">
                     {t("manage.reject.action")}
                   </button>
                 </div>

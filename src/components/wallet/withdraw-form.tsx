@@ -37,7 +37,7 @@ export function WithdrawButton({ balance, min, methods }: { balance: number; min
 
   return (
     <>
-      <Button size="lg" disabled={!canWithdraw} onClick={() => (setError(null), setDone(null), setAmount(String(balance)), setOpen(true))}>
+      <Button size="lg" variant="secondary" disabled={!canWithdraw} onClick={() => (setError(null), setDone(null), setAmount(String(balance)), setOpen(true))}>
         {t("wallet.withdraw")}
       </Button>
       {!canWithdraw && <p className="mt-2 text-sm text-muted">{t("wallet.minNote", { min: taka(min) })}</p>}

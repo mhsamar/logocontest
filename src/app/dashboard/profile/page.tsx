@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { formatBdMobile } from "@/lib/phone";
+import { BackLink } from "@/components/ui/back-link";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { PageTitle } from "@/components/ui/section-heading";
 import { getCurrentUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
@@ -48,48 +50,49 @@ export default async function ProfileSettingsPage() {
   const profileUrl = user.username ? `${await siteOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-6">
-      <Link href="/dashboard" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-        ← {t("nav.dashboard")}
-      </Link>
-      <h1 className="mt-1 text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{t("settings.title")}</h1>
-      <p className="mt-2 text-muted">{t("settings.subtitle")}</p>
+    <PageShell>
+      <BackLink href="/dashboard">{t("nav.dashboard")}</BackLink>
+      <Panel as="header" className="max-[720px]:py-6">
+        <PageTitle lead={t("settings.title")} sub={t("settings.subtitle")} />
+      </Panel>
 
-      <div className="mt-8 space-y-5">
-        <Section title={t("settings.profileTitle")}>
-          <PhotoSection name={user.name} avatarUrl={user.avatarUrl} />
-          <div className="mt-6 border-t border-line pt-6">
-            <ProfileForm
-              role={user.role}
-              name={profile?.name ?? user.name}
-              bio={profile?.bio ?? ""}
-              businessName={profile?.business_name ?? ""}
-              username={user.role === "designer" ? (profile?.username ?? null) : null}
-              profileUrl={profileUrl}
-              bioMax={s["limits.designer_bio_max_length"]}
-            />
-          </div>
-        </Section>
-        {user.role === "designer" && (
-          <Section title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
-            <PortfolioForm skills={(profile?.skills ?? []) as string[]} tools={(profile?.tools ?? []) as string[]} experienceYears={(profile?.experience_years as number | null) ?? null} />
+      <Panel tone="grey" className="max-[720px]:py-4">
+        <div className="mx-auto max-w-3xl space-y-3.5">
+          <Section title={t("settings.profileTitle")}>
+            <PhotoSection name={user.name} avatarUrl={user.avatarUrl} />
+            <div className="mt-6 border-t border-line pt-6">
+              <ProfileForm
+                role={user.role}
+                name={profile?.name ?? user.name}
+                bio={profile?.bio ?? ""}
+                businessName={profile?.business_name ?? ""}
+                username={user.role === "designer" ? (profile?.username ?? null) : null}
+                profileUrl={profileUrl}
+                bioMax={s["limits.designer_bio_max_length"]}
+              />
+            </div>
           </Section>
-        )}
-        {payout && (
-          <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
-            <PayoutForm initial={payout} />
+          {user.role === "designer" && (
+            <Section title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
+              <PortfolioForm skills={(profile?.skills ?? []) as string[]} tools={(profile?.tools ?? []) as string[]} experienceYears={(profile?.experience_years as number | null) ?? null} />
+            </Section>
+          )}
+          {payout && (
+            <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
+              <PayoutForm initial={payout} />
+            </Section>
+          )}
+          <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
+            <MobileForm mobile={user.mobile} />
           </Section>
-        )}
-        <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
-          <MobileForm mobile={user.mobile} />
-        </Section>
-        <Section title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
-          <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} />
-        </Section>
-        <Section title={t("settings.password.title")}>
-          <PasswordForm min={s["auth.password_min_length"]} />
-        </Section>
-      </div>
-    </div>
+          <Section title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
+            <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} />
+          </Section>
+          <Section title={t("settings.password.title")}>
+            <PasswordForm min={s["auth.password_min_length"]} />
+          </Section>
+        </div>
+      </Panel>
+    </PageShell>
   );
 }

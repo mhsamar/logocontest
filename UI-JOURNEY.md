@@ -8,6 +8,16 @@ Design for a 360px-wide phone first, then widen. All user-facing text goes throu
 
 ## 1. Design system
 
+**Site-wide redesign (owner, 2026-10-10).** The approved home page design (`Design/logocontest-home-design.html`) is now the design system for the whole site and replaces the "Golden Luxe / pastel aurora" look below wherever they differ:
+
+- **Look:** light grey page (`#ECEDF0`) with white rounded panels (28–32px corners) and soft shadows; brand red `#8B0000` with a red gradient for main buttons and icon badges; near-black ink `#111216`, grey text `#5F626B`, thin lines `#E7E8EC`; soft red tint `#FBECEB` for highlights. Section headings: an icon badge or a small pill, then the title with its last words in red.
+- **Fonts:** Instrument Sans for headings, Urbanist for everything else, Hind Siliguri for Bangla.
+- **Shared parts** (`src/components/ui`): buttons (red gradient, outline, dark, ghost), panel and card, badge and pill, section heading, form inputs, scroll reveal. Pages are restyled only with these.
+- **Nav and footer everywhere:** every page uses the home page's floating white nav (one line with logo, Log in and a menu button that opens a drawer on phones) with the page starting below it, and the same footer with the large wordmark.
+- **Admin panel:** rebuilt in the same look as the public site (not a separate dark layout).
+- **Motion:** scroll reveal on inner pages; no hero animations on dashboards, forms or the contest wizard. Reduced motion turns all of it off.
+- Pages change only how they look: data, forms, checks, login, payments and links stay the same. Order: shared parts, then public browse and profiles, public info, auth, contest wizard, client area, designer area, admin; each group checked by the owner before the next.
+
 ### 1.1 Feel
 
 Clean, light, trustworthy, with lots of white space so the logos are the colourful thing on the page. Friendly but businesslike: the buyer is a shop or company owner paying real money.

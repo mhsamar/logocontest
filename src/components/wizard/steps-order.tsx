@@ -111,7 +111,7 @@ export function FilesStep({
       )}
 
       {total > 0 && (
-        <ul className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+        <ul className="m-0 list-none divide-y divide-line overflow-hidden rounded-[20px] border border-line bg-surface p-0">
           {serverFiles.map((f) => (
             <FileRow key={f.id} name={f.name} type={f.type} onRemove={() => onRemoveServerFile(f.id)} removeLabel={t("wizard.c07.remove", { name: f.name })} />
           ))}
@@ -135,7 +135,7 @@ export function FilesStep({
         </ul>
       )}
 
-      <p className="rounded-md bg-canvas px-4 py-3 text-sm text-muted ring-1 ring-line">{t("wizard.c07.note")}</p>
+      <p className="m-0 rounded-[18px] bg-chip px-4 py-3 text-sm text-muted">{t("wizard.c07.note")}</p>
     </div>
   );
 }
@@ -155,7 +155,7 @@ function FileRow({
 }) {
   return (
     <li className="flex items-center gap-3 px-3 py-2">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[0.6875rem] font-bold uppercase text-primary-dark">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-tint text-[0.6875rem] font-bold uppercase text-primary">
         {type === "application/pdf" ? "PDF" : type === "image/png" ? "PNG" : "JPG"}
       </span>
       <div className="min-w-0 flex-1">
@@ -166,7 +166,7 @@ function FileRow({
         type="button"
         onClick={onRemove}
         aria-label={removeLabel}
-        className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-canvas hover:text-danger"
+        className="flex size-11 shrink-0 items-center justify-center rounded-[12px] text-muted hover:bg-chip hover:text-danger"
       >
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
           <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
@@ -179,7 +179,7 @@ function FileRow({
 // C-08 (owner, 2026-10-08): five packages + Custom, 3–30 day contests, seven add-ons, motion everywhere.
 
 // Amounts in a clear dark gold so they read easily (owner, 2026-10-08).
-const AMOUNT = "text-[#7a4300]";
+const AMOUNT = "lc-d text-primary tracking-[-0.03em]";
 
 export function PackageStep({
   order,
@@ -213,7 +213,7 @@ export function PackageStep({
     <div className="space-y-9">
       {/* Packages */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {PACKAGES.map((pkg, i) => {
+        {PACKAGES.map((pkg) => {
           const on = order.package === pkg;
           const prize = pkg === "custom" ? null : config.packagePrizes[pkg];
           const elite = pkg === "elite";
@@ -224,19 +224,18 @@ export function PackageStep({
               onClick={() => update({ package: pkg })}
               aria-pressed={on}
               className={cx(
-                "group relative flex animate-rise flex-col rounded-2xl p-4 text-left transition-[box-shadow,translate,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                on ? "-translate-y-1 bg-primary/[0.04] shadow-raised ring-2 ring-primary" : "bg-surface shadow-card ring-1 ring-line hover:-translate-y-0.5 hover:shadow-raised",
+                "group relative flex flex-col rounded-[22px] p-4 text-left transition-[box-shadow,background-color] duration-300",
+                on ? "bg-tint/50 shadow-card ring-2 ring-primary" : "bg-surface ring-1 ring-line hover:shadow-card",
                 elite && !on && "ring-[#f1c75c]",
               )}
-              style={{ animationDelay: `${i * 60}ms` }}
             >
               {pkg === "standard" && (
-                <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-white shadow-card">
+                <span className="absolute -top-2.5 right-3 rounded-full bg-[image:var(--gradient-red)] px-2.5 py-0.5 text-[0.6875rem] font-bold text-white">
                   {t("wizard.packages.recommended")}
                 </span>
               )}
               <span className="flex items-center justify-between gap-2">
-                <span className={cx("text-sm font-semibold", elite ? "text-[#8a5105]" : "text-muted")}>
+                <span className={cx("text-sm font-bold", elite ? "text-gold-ink" : "text-muted")}>
                   {elite && "👑 "}
                   {t(`wizard.packages.${pkg}.name`)}
                 </span>
@@ -244,7 +243,7 @@ export function PackageStep({
                   aria-hidden
                   className={cx(
                     "flex size-5 items-center justify-center rounded-full transition-[background-color,scale] duration-300",
-                    on ? "scale-100 bg-primary text-white" : "scale-90 ring-1 ring-line",
+                    on ? "scale-100 bg-[image:var(--gradient-red)] text-white" : "scale-90 ring-1 ring-line",
                   )}
                 >
                   {on && (
@@ -254,7 +253,7 @@ export function PackageStep({
                   )}
                 </span>
               </span>
-              <span className={cx("mt-1 block text-2xl font-extrabold tabular-nums tracking-tight sm:text-[1.65rem]", AMOUNT)}>
+              <span className={cx("mt-1 block text-2xl font-semibold tabular-nums sm:text-[1.65rem]", AMOUNT)}>
                 {prize ? taka(prize) : t("wizard.packages.custom.price")}
               </span>
               <span className="mt-1 block text-sm leading-snug text-ink">{t(`wizard.packages.${pkg}.line`)}</span>
@@ -300,8 +299,8 @@ export function PackageStep({
                   onClick={() => update({ durationDays: d })}
                   aria-pressed={on}
                   className={cx(
-                    "relative min-h-11 rounded-xl px-2 text-sm font-semibold ring-1 transition-[background-color,color,box-shadow,scale] duration-200 active:scale-95",
-                    on ? "bg-primary text-white shadow-card ring-primary" : "text-ink ring-line hover:text-primary",
+                    "relative min-h-11 rounded-[14px] px-2 text-[15px] font-semibold transition-[background-color,color,scale] duration-200 active:scale-95",
+                    on ? "bg-ink text-white" : "bg-chip text-ink hover:bg-line",
                   )}
                 >
                   {t("wizard.c08.days", { days: d })}
@@ -310,7 +309,7 @@ export function PackageStep({
             })}
           </div>
         </GlideTrack>
-        <div className="mt-4 rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line">
+        <div className="mt-4 rounded-[20px] border border-line bg-surface p-4">
           <div className="flex items-center justify-between gap-3 text-sm">
             <label htmlFor="duration-slider" className="font-medium text-muted">
               {t("wizard.c08.durationSlider")}
@@ -341,7 +340,7 @@ export function PackageStep({
       <fieldset>
         <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c08.upgradesTitle")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {UPGRADES.map((u, i) => {
+          {UPGRADES.map((u) => {
             const on = active[u];
             const included = includedByNda(order, u);
             return (
@@ -353,14 +352,13 @@ export function PackageStep({
                 disabled={included}
                 onClick={() => update({ upgrades: { ...order.upgrades, [u]: !order.upgrades[u] } })}
                 className={cx(
-                  "group relative flex animate-rise items-start gap-3 overflow-clip rounded-2xl p-4 text-left transition-[box-shadow,translate,background-color] duration-300 disabled:cursor-default",
-                  on ? "bg-primary/[0.04] shadow-raised ring-2 ring-primary" : "bg-surface shadow-card ring-1 ring-line hover:-translate-y-0.5 hover:shadow-raised",
+                  "group relative flex items-start gap-3 overflow-clip rounded-[22px] p-4 text-left transition-[box-shadow,background-color] duration-300 disabled:cursor-default",
+                  on ? "bg-tint/50 shadow-card ring-2 ring-primary" : "bg-surface ring-1 ring-line hover:shadow-card",
                 )}
-                style={{ animationDelay: `${i * 50}ms` }}
               >
                 <span
                   className={cx(
-                    "flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br transition-[rotate,scale] duration-300 group-hover:-rotate-6 group-hover:scale-110",
+                    "flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br",
                     UPGRADE_TINT[u],
                   )}
                 >

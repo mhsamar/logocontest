@@ -228,7 +228,11 @@ export function Wizard(props: WizardProps) {
   }, [step]);
 
   if (!state) {
-    return <div className="mx-auto h-96 w-full max-w-xl animate-pulse px-4 py-10" aria-busy />;
+    return (
+      <div className="flex w-full flex-1 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
+        <div className="min-h-96 flex-1 animate-pulse rounded-[32px] bg-frame max-[720px]:rounded-[24px]" aria-busy />
+      </div>
+    );
   }
 
   // ---- validity per step -----------------------------------------------------
@@ -353,127 +357,130 @@ export function Wizard(props: WizardProps) {
     step === 11 && price ? t("wizard.c11.pay", { total: formatTaka(price.total, locale) }) : fromReview && step < 11 ? t("wizard.frame.backToReview") : t("wizard.frame.next");
 
   return (
-    <div ref={top} className="mx-auto w-full max-w-page scroll-mt-16 px-4 pb-8 pt-4 sm:pt-6">
-      <div className={showPrice ? "lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10" : ""}>
-        <div className="mx-auto w-full max-w-xl">
-          {/* Wizard frame: back arrow, stepper, Save & exit */}
-          <div className="mb-6 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label={t("wizard.frame.back")}
-              className="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-md text-ink hover:bg-canvas"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div className="flex-1">
-              <Stepper current={index + 1} total={steps.length} label={t("common.stepOf", { current: index + 1, total: steps.length })} />
+    <div ref={top} className="flex w-full flex-1 scroll-mt-32 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
+      {/* Grey page panel; on larger screens the step sits on a white card (site design, owner 2026-10-10) */}
+      <div className="flex-1 rounded-[32px] bg-frame px-6 py-10 sm:px-10 max-[720px]:rounded-[24px] max-[720px]:bg-surface max-[720px]:px-4 max-[720px]:py-5">
+        <div className={showPrice ? "mx-auto max-w-[68rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8" : ""}>
+          <div className="mx-auto w-full max-w-2xl min-[721px]:rounded-[28px] min-[721px]:border min-[721px]:border-line min-[721px]:bg-surface min-[721px]:p-10 min-[721px]:shadow-card">
+            {/* Wizard frame: back arrow, stepper, Save & exit */}
+            <div className="mb-8 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label={t("wizard.frame.back")}
+                className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line bg-surface text-ink transition-colors hover:bg-chip"
+              >
+                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <div className="flex-1">
+                <Stepper current={index + 1} total={steps.length} label={t("common.stepOf", { current: index + 1, total: steps.length })} />
+              </div>
+              <button type="button" onClick={onSaveExit} className="min-h-11 shrink-0 rounded-[14px] px-3 text-sm font-bold text-primary transition-colors hover:bg-tint">
+                {t("wizard.frame.saveExit")}
+              </button>
             </div>
-            <button type="button" onClick={onSaveExit} className="ml-2 min-h-11 shrink-0 px-1 text-sm font-semibold text-primary hover:underline">
-              {t("wizard.frame.saveExit")}
-            </button>
-          </div>
 
-          {/* Each step slides in when it changes (UI-JOURNEY §1.5) */}
-          <div key={step} className="animate-step-in">
-            <h1 className="text-h2 font-bold leading-tight tracking-tight text-ink lg:text-h2-lg">{t(`wizard.${key}.heading`)}</h1>
-            <p className="mb-6 mt-2 text-muted">{t(`wizard.${key}.helper`, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}</p>
+            {/* Each step slides in when it changes (UI-JOURNEY §1.5) */}
+            <div key={step} className="animate-step-in">
+              <h1 className="m-0 text-[clamp(28px,3.4vw,40px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">{t(`wizard.${key}.heading`)}</h1>
+              <p className="mb-7 mt-2.5 text-[17px] leading-relaxed text-muted">{t(`wizard.${key}.helper`, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}</p>
 
-            {step === 1 && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
-              <PreviousBriefs previous={props.previous} onUse={(b) => updateBrief({ ...b })} />
-            )}
+              {step === 1 && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
+                <PreviousBriefs previous={props.previous} onUse={(b) => updateBrief({ ...b })} />
+              )}
 
-            {step === 1 && <BrandStep {...briefProps} />}
-            {step === 2 && <BusinessStep {...briefProps} />}
-            {step === 3 && <WebsiteStep {...briefProps} />}
-            {step === 4 && <StylesStep {...briefProps} />}
-            {step === 5 && <ColorsStep {...briefProps} />}
-            {step === 6 && <RequirementsStep {...briefProps} />}
-            {step === 7 && (
-              <FilesStep
-                localFiles={state.localFiles}
-                serverFiles={serverFiles}
-                limits={props.fileLimits}
-                onChange={(localFiles) => setState({ ...state, localFiles })}
-                onRemoveServerFile={(id) =>
-                  startBusy(async () => {
-                    if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
-                    setServerFiles((f) => f.filter((x) => x.id !== id));
-                  })
-                }
-              />
-            )}
-            {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
-            {step === 9 && (
-              <AccountStep
-                mobile={state.mobile}
-                email={state.email}
-                onMobile={(mobile) => {
-                  setState({ ...state, mobile });
-                  setAccountError(null);
-                }}
-                onEmail={(email) => {
-                  setState({ ...state, email });
-                  setAccountError(null);
-                  setTouchedAccount(true);
-                }}
-                mobileError={
-                  accountError?.field === "mobile" && !accountError.taken
-                    ? accountError.message
-                    : state.mobile.trim().length >= 11 && !normalizeBdMobile(state.mobile)
-                      ? t("auth.errors.invalidPhone")
-                      : undefined
-                }
-                emailError={
-                  accountError?.field === "email" && !accountError.taken
-                    ? accountError.message
-                    : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
-                      ? t("wizard.errors.email")
-                      : undefined
-                }
-                taken={Boolean(accountError?.taken)}
-              />
-            )}
-            {step === 10 && <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} />}
-            {step === 11 && price && (
-              <ReviewStep
-                brief={state.brief}
-                order={state.order}
-                price={price}
-                feePercent={price?.feePercent ?? props.pricing.serviceFeePercent}
-                name={name}
-                onName={setName}
-                method={method}
-                onMethod={setMethod}
-                terms={terms}
-                onTerms={setTerms}
-                uploads={uploads}
-                onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}
-                goTo={goToFromReview}
-              />
-            )}
-          </div>
-
-          {error && (
-            <div className="mt-6">
-              <Alert tone="danger">{error}</Alert>
+              {step === 1 && <BrandStep {...briefProps} />}
+              {step === 2 && <BusinessStep {...briefProps} />}
+              {step === 3 && <WebsiteStep {...briefProps} />}
+              {step === 4 && <StylesStep {...briefProps} />}
+              {step === 5 && <ColorsStep {...briefProps} />}
+              {step === 6 && <RequirementsStep {...briefProps} />}
+              {step === 7 && (
+                <FilesStep
+                  localFiles={state.localFiles}
+                  serverFiles={serverFiles}
+                  limits={props.fileLimits}
+                  onChange={(localFiles) => setState({ ...state, localFiles })}
+                  onRemoveServerFile={(id) =>
+                    startBusy(async () => {
+                      if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
+                      setServerFiles((f) => f.filter((x) => x.id !== id));
+                    })
+                  }
+                />
+              )}
+              {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
+              {step === 9 && (
+                <AccountStep
+                  mobile={state.mobile}
+                  email={state.email}
+                  onMobile={(mobile) => {
+                    setState({ ...state, mobile });
+                    setAccountError(null);
+                  }}
+                  onEmail={(email) => {
+                    setState({ ...state, email });
+                    setAccountError(null);
+                    setTouchedAccount(true);
+                  }}
+                  mobileError={
+                    accountError?.field === "mobile" && !accountError.taken
+                      ? accountError.message
+                      : state.mobile.trim().length >= 11 && !normalizeBdMobile(state.mobile)
+                        ? t("auth.errors.invalidPhone")
+                        : undefined
+                  }
+                  emailError={
+                    accountError?.field === "email" && !accountError.taken
+                      ? accountError.message
+                      : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
+                        ? t("wizard.errors.email")
+                        : undefined
+                  }
+                  taken={Boolean(accountError?.taken)}
+                />
+              )}
+              {step === 10 && <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} />}
+              {step === 11 && price && (
+                <ReviewStep
+                  brief={state.brief}
+                  order={state.order}
+                  price={price}
+                  feePercent={price?.feePercent ?? props.pricing.serviceFeePercent}
+                  name={name}
+                  onName={setName}
+                  method={method}
+                  onMethod={setMethod}
+                  terms={terms}
+                  onTerms={setTerms}
+                  uploads={uploads}
+                  onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}
+                  goTo={goToFromReview}
+                />
+              )}
             </div>
-          )}
 
-          {/* Bottom bar: sticky on phones, inline on larger screens */}
-          <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0">
-            {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
-            <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy && step !== 9}>
-              {nextLabel}
-            </Button>
-            {step === 11 && <p className="mt-2 text-center text-xs text-muted">{t("wizard.c11.secureNote")}</p>}
-            <p className="mt-2 text-center text-xs text-muted">{t("wizard.frame.savedOnDevice")}</p>
+            {error && (
+              <div className="mt-6">
+                <Alert tone="danger">{error}</Alert>
+              </div>
+            )}
+
+            {/* Bottom bar: sticky on phones, inline on larger screens */}
+            <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
+              {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
+              <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy && step !== 9}>
+                {nextLabel}
+              </Button>
+              {step === 11 && <p className="mt-2 text-center text-xs text-muted">{t("wizard.c11.secureNote")}</p>}
+              <p className="mt-2 text-center text-xs text-muted">{t("wizard.frame.savedOnDevice")}</p>
+            </div>
           </div>
+
+          {showPrice && <PriceSidebar price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
         </div>
-
-        {showPrice && <PriceSidebar price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
       </div>
     </div>
   );
@@ -497,9 +504,9 @@ function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: Pr
 function PreviousBriefs({ previous, onUse }: { previous: WizardProps["previous"]; onUse: (b: Brief) => void }) {
   const { t } = useI18n();
   return (
-    <div className="mb-6 rounded-lg bg-surface p-4 ring-1 ring-line">
-      <p className="text-sm font-semibold text-ink">{t("wizard.previous.title")}</p>
-      <ul className="mt-2 divide-y divide-line">
+    <div className="mb-7 rounded-[20px] bg-tint p-4">
+      <p className="m-0 text-sm font-bold text-ink">{t("wizard.previous.title")}</p>
+      <ul className="m-0 mt-2 list-none divide-y divide-primary/10 p-0">
         {previous.map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-3 py-1">
             <span className="truncate text-sm text-ink">{p.brandName}</span>

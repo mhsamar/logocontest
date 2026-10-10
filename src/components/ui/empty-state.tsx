@@ -10,8 +10,8 @@ export function EmptyState({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-lg border border-dashed border-line bg-surface px-6 py-10 text-center">
-      <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="flex flex-col items-center rounded-[28px] border border-dashed border-line bg-surface px-6 py-12 text-center">
+      <div className="mb-4 flex size-[52px] items-center justify-center rounded-2xl bg-tint text-primary">
         {icon ?? (
           <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <rect x="3" y="3" width="18" height="18" rx="4" />
@@ -19,8 +19,8 @@ export function EmptyState({
           </svg>
         )}
       </div>
-      <h3 className="text-base font-semibold text-ink">{title}</h3>
-      {body && <p className="mt-1 max-w-sm text-sm text-muted">{body}</p>}
+      <h3 className="m-0 text-xl font-semibold tracking-[-0.02em] text-ink">{title}</h3>
+      {body && <p className="m-0 mt-1.5 max-w-sm text-muted">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

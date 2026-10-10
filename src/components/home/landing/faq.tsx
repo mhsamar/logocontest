@@ -1,7 +1,7 @@
 import { visibleList } from "@/lib/content/lists";
 import { getI18n } from "@/lib/i18n/server";
 import { fillLegal } from "@/lib/legal/types";
-import { SectionHead } from "./section-head";
+import { SectionHead } from "@/components/ui/section-heading";
 
 const PLUS = "M12 5v14M5 12h14";
 

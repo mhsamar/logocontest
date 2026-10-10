@@ -187,9 +187,9 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
           type="button"
           onClick={() => input.current?.click()}
           disabled={slotsLeft <= 0}
-          className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-canvas/60 px-4 py-8 text-center transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-line"
+          className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-line bg-chip/60 px-4 py-8 text-center transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-line"
         >
-          <span className="flex size-12 items-center justify-center rounded-full bg-cream text-primary-dark" aria-hidden>
+          <span className="flex size-12 items-center justify-center rounded-full bg-tint text-primary" aria-hidden>
             <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 16V4M7 9l5-5 5 5M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -202,7 +202,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
         {items.length > 0 && (
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {items.map((item, i) => (
-              <li key={item.key} className={cx("relative overflow-hidden rounded-xl bg-canvas ring-1", i === 0 ? "ring-2 ring-primary" : "ring-line")}>
+              <li key={item.key} className={cx("relative overflow-hidden rounded-[14px] bg-chip ring-1", i === 0 ? "ring-2 ring-primary" : "ring-line")}>
                 <img src={item.url} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square w-full object-cover" />
                 <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-xs font-bold text-white">
                   {i === 0 ? t("submit.mockups.cover") : fmt(i + 1)}
@@ -215,13 +215,13 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
                 )}
                 <div className="flex items-center justify-between gap-1 border-t border-line bg-surface px-1.5 py-1">
                   {i > 0 && item.status === "done" ? (
-                    <button type="button" onClick={() => makeCover(item)} className="min-h-9 rounded-md px-2 text-xs font-semibold text-primary hover:bg-canvas">
+                    <button type="button" onClick={() => makeCover(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-primary hover:bg-chip">
                       {t("submit.mockups.makeCover")}
                     </button>
                   ) : (
                     <span />
                   )}
-                  <button type="button" onClick={() => remove(item)} className="min-h-9 rounded-md px-2 text-xs font-semibold text-muted hover:bg-canvas hover:text-danger">
+                  <button type="button" onClick={() => remove(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-muted hover:bg-chip hover:text-danger">
                     {t("submit.mockups.remove")}
                   </button>
                 </div>
@@ -256,7 +256,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
       {/* 3. Submit */}
       <div className="space-y-3">
         {missing.length > 0 && (
-          <div className="rounded-xl bg-canvas px-4 py-3 text-sm">
+          <div className="rounded-[14px] bg-chip px-4 py-3 text-sm">
             <p className="font-semibold text-ink">{t("submit.missing.title")}</p>
             <ul className="mt-1 list-inside list-disc text-muted">
               {missing.map((m) => (

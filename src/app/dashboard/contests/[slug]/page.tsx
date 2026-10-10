@@ -12,6 +12,9 @@ import { AddonsPanel } from "@/components/manage/addons-panel";
 import { OwnerActions } from "@/components/manage/owner-actions";
 import { ScanPanel } from "@/components/manage/scan-panel";
 import { Alert } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
+import { BackLink } from "@/components/ui/back-link";
+import { PageShell, Panel } from "@/components/ui/panel";
 import { GlideTrack } from "@/components/ui/glide-track";
 import { CountUp } from "@/components/ui/count-up";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
@@ -96,35 +99,25 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   ];
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
-      <Link
-        href="/dashboard"
-        className="group inline-flex min-h-12 animate-fade-in items-center gap-3 rounded-full py-1 pr-4 text-lg font-bold text-ink transition-colors hover:text-primary"
-      >
-        <span className="flex size-10 items-center justify-center rounded-full bg-surface text-primary shadow-card ring-1 ring-line transition-transform duration-300 group-hover:-translate-x-1 group-hover:shadow-raised">
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M19 12H5M11 6l-6 6 6 6" />
-          </svg>
-        </span>
-        {t("manage.back")}
-      </Link>
+    <PageShell>
+      <BackLink href="/dashboard">{t("manage.back")}</BackLink>
 
       {sp.payment === "paid" && (
-        <div className="mt-2 animate-rise">
+        <div>
           <Alert tone="success">{t("manage.payment.paid")}</Alert>
         </div>
       )}
       {sp.payment === "failed" && (
-        <div className="mt-2 animate-rise">
+        <div>
           <Alert tone="danger">{t("manage.payment.failed")}</Alert>
         </div>
       )}
 
       {/* Header */}
-      <section className="relative mt-3 animate-rise overflow-hidden bg-aurora rounded-[2rem] p-5 shadow-frame ring-1 ring-white sm:p-8">
+      <Panel as="header" className="max-[720px]:py-6">
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-            <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl shadow-raised ring-4 ring-white sm:size-24">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-[22px] ring-1 ring-line sm:size-24">
               <BrandTile name={contest.brandName} isPrivate={false} cover={contest.cover} flat className="h-full w-full text-[1.2rem]" />
             </div>
             <div className="min-w-0">
@@ -133,7 +126,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                 <PackagePill pkg={contest.package} t={t} />
                 <ContestNumber n={contest.number} t={t} locale={locale} />
               </div>
-              <h1 className="mt-1.5 truncate text-h1 font-bold tracking-tight text-ink lg:text-4xl">{contest.brandName}</h1>
+              <h1 className="m-0 mt-2 truncate text-[clamp(28px,3.6vw,42px)] font-semibold leading-[1.1] tracking-[-0.035em] text-ink">{contest.brandName}</h1>
               <div className="mt-1 text-sm">
                 <StatusLine contest={contest} now={new Date()} t={t} locale={locale} />
               </div>
@@ -141,21 +134,20 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           </div>
           {/* Prize, Edit and Public page: three tiles of one size (owner, 2026-10-08) */}
           <div className="grid grid-cols-2 gap-3 sm:flex sm:items-stretch">
-            <div className="col-span-2 prize-glow flex min-h-[5.5rem] animate-rise flex-col justify-center rounded-2xl bg-gradient-to-br from-[#fff9e8] via-[#fff0c7] to-[#ffe2a0] px-5 py-3 shadow-card ring-1 ring-[#f1c75c]/70 sm:min-w-44">
-              <p className="text-xs font-semibold text-[#8a5105]">{t("contest.stats.prize")}</p>
-              <p className={cx("text-3xl font-extrabold tabular-nums", PRIZE_TEXT)}><CountUp value={contest.prize} locale={locale} taka /></p>
+            <div className="col-span-2 flex min-h-[5.5rem] flex-col justify-center rounded-[20px] bg-[#fff6d6] px-5 py-3 sm:min-w-44">
+              <p className="m-0 text-xs font-bold text-gold-ink">{t("contest.stats.prize")}</p>
+              <p className={cx("m-0 text-3xl font-semibold tabular-nums", PRIZE_TEXT)}><CountUp value={contest.prize} locale={locale} taka /></p>
             </div>
             {contest.status === "open" && (
               <Link
                 href={`${base}/edit`}
-                className="group relative flex min-h-[5.5rem] animate-rise flex-col justify-between overflow-clip rounded-2xl bg-gradient-to-br from-ink via-[#3a1d14] to-primary-dark px-4 py-3 text-white shadow-card transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-raised sm:min-w-44"
-                style={{ animationDelay: "80ms" }}
+                className="lc-g group relative flex min-h-[5.5rem] flex-col justify-between overflow-clip rounded-[20px] bg-[image:var(--gradient-red-dark)] px-4 py-3 text-white transition-[filter] duration-300 hover:brightness-110 sm:min-w-44"
               >
                 <span
                   aria-hidden
                   className="pointer-events-none absolute -right-6 -top-6 size-20 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-150"
                 />
-                <span className="relative flex size-8 items-center justify-center rounded-lg bg-white/15 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110">
+                <span className="relative flex size-8 items-center justify-center rounded-[10px] bg-white/15">
                   <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M4 20h4L19 9l-4-4L4 16Z" />
                   </svg>
@@ -171,13 +163,12 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               target="_blank"
               rel="noopener"
               className={cx(
-                "group relative flex min-h-[5.5rem] animate-rise flex-col justify-between overflow-clip rounded-2xl bg-white/80 px-4 py-3 text-ink shadow-card ring-1 ring-white backdrop-blur transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-raised sm:min-w-44",
+                "group relative flex min-h-[5.5rem] flex-col justify-between overflow-clip rounded-[20px] bg-chip px-4 py-3 text-ink transition-colors duration-300 hover:bg-line sm:min-w-44",
                 contest.status !== "open" && "col-span-2",
               )}
-              style={{ animationDelay: "160ms" }}
             >
               <span className="flex items-center justify-between">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#e8f1ff] to-[#d4e4ff] text-[#1d4ed8] transition-transform duration-300 group-hover:scale-110">
+                <span className="flex size-8 items-center justify-center rounded-[10px] bg-surface text-primary">
                   <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
                     <circle cx="12" cy="12" r="3" />
@@ -203,33 +194,29 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             </a>
           </div>
         </div>
-        <dl className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map((st, i) => (
-            <div
-              key={st.label}
-              className="flex animate-rise flex-col-reverse rounded-xl bg-white/75 px-4 py-3 ring-1 ring-white backdrop-blur"
-              style={{ animationDelay: `${120 + i * 70}ms` }}
-            >
-              <dt className="mt-0.5 text-xs text-muted">{st.label}</dt>
-              <dd className="text-2xl font-bold tabular-nums text-ink">{st.value}</dd>
+        <dl className="relative m-0 mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {stats.map((st) => (
+            <div key={st.label} className="flex flex-col-reverse rounded-[18px] bg-chip px-4 py-3">
+              <dt className="mt-0.5 text-[13px] font-medium text-muted">{st.label}</dt>
+              <dd className="lc-d m-0 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-ink">{st.value}</dd>
             </div>
           ))}
         </dl>
-      </section>
+      </Panel>
 
       {/* Lifecycle (BLUEPRINT §6): pick a winner by the deadline, or the contest ended with no result */}
       {contest.status === "judging" && contest.judgingEndsAt && (
-        <p className="mt-6 animate-rise rounded-2xl bg-[#fff7e0] p-4 font-medium text-[#8a5105] ring-1 ring-[#f1c75c]/60">
+        <p className="m-0 rounded-[20px] bg-[#fff6d6] px-5 py-4 font-semibold text-gold-ink">
           {t("lifecycle.pickBy", { date: formatDate(contest.judgingEndsAt, locale, "long") })}
         </p>
       )}
-      {contest.status === "no_result" && <p className="mt-6 animate-rise rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultClient")}</p>}
+      {contest.status === "no_result" && <p className="m-0 rounded-[20px] bg-surface px-5 py-4 text-ink">{t("lifecycle.noResultClient")}</p>}
 
       {/* C-17 Final files: the handover after a winner is picked (owner, 2026-10-08) */}
       {handover && (
-        <section className="mt-10 animate-rise rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
+        <Panel className="max-[720px]:py-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-h3 font-bold text-ink lg:text-h3-lg">{t("handover.section")}</h2>
+            <h2 className="m-0 text-[clamp(24px,2.8vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("handover.section")}</h2>
             <p className="text-sm text-muted">
               #{fmt(handover.entryNumber)} · {handover.designer.username ? `@${handover.designer.username}` : handover.designer.name}
             </p>
@@ -263,17 +250,17 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               />
             </div>
           )}
-        </section>
+        </Panel>
       )}
 
       {/* Review designs on the left, add-ons in a sidebar on the right (owner, 2026-10-08) */}
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem]">
+      <Panel tone="grey" className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] max-[720px]:py-6">
         <section className="min-w-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="text-h3 font-bold text-ink lg:text-h3-lg">{t("manage.review.title")}</h2>
-            <nav className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
+            <h2 className="m-0 text-[clamp(24px,2.8vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("manage.review.title")}</h2>
+            <nav className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
               <GlideTrack className="w-max">
-                <ul className="flex w-max gap-1 rounded-full bg-surface p-1 ring-1 ring-line">
+                <ul className="m-0 flex w-max list-none gap-1 rounded-[18px] bg-surface p-1 ring-1 ring-line">
                   {FILTERS.map((f) => (
                     <li key={f}>
                       <Link
@@ -281,12 +268,12 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         scroll={false}
                         aria-current={f === filter ? "page" : undefined}
                         className={cx(
-                          "relative flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
+                          "relative flex min-h-11 items-center gap-2 rounded-[14px] px-4 text-[15px] font-bold transition-colors",
                           f === filter ? "bg-ink text-white" : "text-muted hover:text-ink",
                         )}
                       >
                         {t(`manage.review.filters.${f}`)}
-                        <span className={cx("rounded-full px-1.5 text-xs tabular-nums", f === filter ? "bg-white/15" : "bg-canvas")}>{fmt(counts[f])}</span>
+                        <span className={cx("rounded-full px-1.5 text-xs tabular-nums", f === filter ? "bg-white/15" : "bg-chip")}>{fmt(counts[f])}</span>
                       </Link>
                     </li>
                   ))}
@@ -296,15 +283,14 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           </div>
 
           {shown.length > 0 ? (
-            <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-              {shown.map((e, i) => (
+            <ul className="m-0 mt-5 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5">
+              {shown.map((e) => (
                 <li
                   key={e.id}
                   className={cx(
-                    "animate-rise overflow-hidden rounded-2xl bg-surface shadow-card ring-1 transition-shadow hover:shadow-raised",
+                    "lc-rv-soft overflow-hidden rounded-[22px] bg-surface ring-1 transition-shadow hover:shadow-card",
                     e.status === "winner" ? "ring-2 ring-primary" : "ring-line",
                   )}
-                  style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
                 >
                   <Link
                     href={`${base}?${filter !== "all" ? `filter=${filter}&` : ""}entry=${e.number}`}
@@ -315,7 +301,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                     <Collage previews={e.previews} total={e.imageCount} />
                     {e.status === "winner" && <WinnerTrophy size="sm" className="absolute right-2 top-2" />}
                     {e.isShortlisted && e.status !== "rejected" && (
-                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
+                      <span className="absolute left-2 top-2 rounded-full bg-[image:var(--gradient-red)] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
                         {t("manage.review.filters.shortlisted")}
                       </span>
                     )}
@@ -341,21 +327,23 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               ))}
             </ul>
           ) : (
-            <p className="mt-6 rounded-2xl border border-dashed border-line bg-surface px-4 py-12 text-center text-muted">{t("manage.review.empty")}</p>
+            <div className="mt-6">
+              <EmptyState title={t("manage.review.empty")} />
+            </div>
           )}
         </section>
 
-        <aside id="addons" className="scroll-mt-28 lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:rounded-3xl lg:[scrollbar-width:thin]">
-          <div className="animate-rise overflow-hidden rounded-3xl bg-aurora p-4 shadow-card ring-1 ring-white sm:p-5" style={{ animationDelay: "120ms" }}>
+        <aside id="addons" className="scroll-mt-32 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto lg:rounded-[28px] lg:[scrollbar-width:thin]">
+          <div className="lc-card overflow-hidden p-4 sm:p-5">
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 animate-float-soft items-center justify-center rounded-xl bg-gradient-to-br from-ink to-primary-dark text-white shadow-card">
+              <span className="lc-g flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-[image:var(--gradient-red-icon)] text-white">
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M13 2 4 14h7l-1 8 9-12h-7Z" />
                 </svg>
               </span>
               <div className="min-w-0">
-                <h2 className="text-lg font-bold leading-tight text-ink">{t("dashboard.addons")}</h2>
-                <p className="mt-0.5 text-xs text-muted">{t("manage.addons.subtitle")}</p>
+                <h2 className="m-0 text-lg font-semibold leading-tight text-ink">{t("dashboard.addons")}</h2>
+                <p className="m-0 mt-0.5 text-[13px] text-muted">{t("manage.addons.subtitle")}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -376,7 +364,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             </div>
           </div>
         </aside>
-      </div>
+      </Panel>
 
       {/* C-15: one design with the owner tools */}
       {entry && (
@@ -413,6 +401,6 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           </div>
         </EntryViewer>
       )}
-    </div>
+    </PageShell>
   );
 }

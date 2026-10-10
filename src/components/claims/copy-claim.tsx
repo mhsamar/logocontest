@@ -29,7 +29,7 @@ export function CopyClaim({ handoverId, canClaim, until, claim }: { handoverId: 
 
   if (claim?.status === "open") {
     return (
-      <p className="flex items-start gap-2 rounded-2xl bg-[#fff7e0] px-4 py-3 text-sm text-[#8a5105] ring-1 ring-[#f4d58a]">
+      <p className="flex items-start gap-2 rounded-2xl bg-[#fff6d6] px-4 py-3 text-sm text-gold-ink">
         <span className="mt-1 size-2 shrink-0 animate-pulse rounded-full bg-[#d99a0b]" aria-hidden />
         {t("claims.client.open")}
       </p>
@@ -37,7 +37,7 @@ export function CopyClaim({ handoverId, canClaim, until, claim }: { handoverId: 
   }
 
   const result = claim && (
-    <div className="rounded-2xl bg-canvas px-4 py-3 text-sm text-ink ring-1 ring-line">
+    <div className="rounded-2xl bg-chip px-4 py-3 text-sm text-ink ring-1 ring-line">
       <p className="font-semibold">{claim.status === "rejected" ? t("claims.client.rejected") : t(`claims.client.upheld.${claim.outcome ?? "fine"}`)}</p>
       {claim.adminNote && <p className="mt-1 text-muted">{claim.adminNote}</p>}
     </div>

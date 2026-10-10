@@ -21,12 +21,14 @@ export default async function DesignerSignupPage() {
 
   return (
     <AuthCard
+      icon="pen"
+      wide
       title={t("designerSignup.title")}
       subtitle={t("designerSignup.subtitle")}
       footer={
         <>
           {t("designerSignup.wantLogo")}{" "}
-          <Link href="/start" className="font-semibold text-primary hover:underline">
+          <Link href="/start" className="font-bold text-primary hover:underline">
             {t("designerSignup.startContest")}
           </Link>
         </>

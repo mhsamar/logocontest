@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
+import { PageShell, Panel } from "@/components/ui/panel";
 import { ContestLive } from "@/components/wizard/contest-live";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestRepository } from "@/lib/contests/services";
@@ -39,22 +40,26 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/st
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 py-12 text-center">
-      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger">
-        <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-          <path d="M12 8v5m0 3h.01M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z" strokeLinecap="round" />
-        </svg>
-      </div>
-      <h1 className="mt-5 text-h2 font-bold text-ink">{t("wizard.result.failedTitle")}</h1>
-      <p className="mt-2 text-muted">{t("wizard.result.failedBody")}</p>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <ButtonLink href={`/start?draft=${contest.id}&step=11`} size="lg">
-          {t("wizard.result.tryAgain")}
-        </ButtonLink>
-        <ButtonLink href="/dashboard" variant="secondary" size="lg">
-          {t("wizard.result.dashboard")}
-        </ButtonLink>
-      </div>
-    </div>
+    <PageShell>
+      <Panel tone="grey" className="flex flex-1 flex-col items-center justify-center max-[720px]:bg-surface">
+        <div className="w-full max-w-xl text-center min-[721px]:rounded-[28px] min-[721px]:border min-[721px]:border-line min-[721px]:bg-surface min-[721px]:p-10 min-[721px]:shadow-card">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-[20px] bg-danger/10 text-danger">
+            <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M12 8v5m0 3h.01M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h1 className="m-0 mt-5 text-[clamp(28px,3.4vw,40px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">{t("wizard.result.failedTitle")}</h1>
+          <p className="m-0 mt-2.5 text-[17px] text-muted">{t("wizard.result.failedBody")}</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <ButtonLink href={`/start?draft=${contest.id}&step=11`} size="lg">
+              {t("wizard.result.tryAgain")}
+            </ButtonLink>
+            <ButtonLink href="/dashboard" variant="secondary" size="lg">
+              {t("wizard.result.dashboard")}
+            </ButtonLink>
+          </div>
+        </div>
+      </Panel>
+    </PageShell>
   );
 }

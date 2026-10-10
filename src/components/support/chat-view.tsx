@@ -55,8 +55,8 @@ export function ChatView({
           const mine = side === "admin" ? m.fromAdmin : !m.fromAdmin;
           return (
             <div key={m.id} className={cx("flex", mine ? "justify-end" : "justify-start")}>
-              <div className={cx("max-w-[85%] rounded-2xl px-3.5 py-2 text-sm shadow-card", mine ? "rounded-br-md bg-primary text-white" : "rounded-bl-md bg-surface text-ink ring-1 ring-line")}>
-                {m.fromAdmin && side === "user" && <p className="mb-0.5 text-xs font-semibold text-primary">{m.broadcast ? t("support.fromTeam") : t("support.team")}</p>}
+              <div className={cx("max-w-[85%] rounded-[18px] px-4 py-2.5 text-[15px]", mine ? "rounded-br-md bg-[image:var(--gradient-red)] text-white" : "rounded-bl-md border border-line bg-surface text-ink")}>
+                {m.fromAdmin && side === "user" && <p className="mb-0.5 text-xs font-bold text-primary">{m.broadcast ? t("support.fromTeam") : t("support.team")}</p>}
                 {m.fromAdmin && side === "admin" && m.senderName && <p className="mb-0.5 text-xs font-semibold opacity-80">{m.senderName}</p>}
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p className={cx("mt-1 text-[0.6875rem]", mine ? "text-white/70" : "text-muted")}>{time(m.createdAt)}</p>
@@ -93,7 +93,7 @@ export function ChatView({
               maxLength={MESSAGE_MAX}
               placeholder={t(side === "admin" ? "admin.support.replyPlaceholder" : "support.placeholder")}
               aria-label={t(side === "admin" ? "admin.support.reply" : "support.placeholder")}
-              className="min-h-11 flex-1 resize-none rounded-xl bg-canvas px-3 py-2.5 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
+              className="min-h-11 flex-1 resize-none rounded-[14px] bg-chip px-3.5 py-2.5 text-[15px] text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button type="submit" loading={busy} disabled={!text.trim()}>
               {t("support.send")}

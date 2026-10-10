@@ -24,7 +24,7 @@ export function Suggestions({ items, value, onPick }: { items: string[]; value: 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex min-h-11 w-full animate-fade-in items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/[0.07]"
+        className="flex min-h-11 w-full animate-fade-in items-center gap-2 rounded-[14px] border border-dashed border-primary/40 bg-tint/40 px-4 text-sm font-bold text-primary transition-colors hover:bg-tint"
       >
         {BULB}
         {t("wizard.suggest.show", { n: items.length })}
@@ -33,7 +33,7 @@ export function Suggestions({ items, value, onPick }: { items: string[]; value: 
   }
 
   return (
-    <div className="animate-rise rounded-xl bg-surface p-3 ring-1 ring-line">
+    <div className="animate-rise rounded-[18px] border border-line bg-surface p-3">
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
         <p className="flex items-center gap-2 text-sm font-medium text-ink">
           {BULB}
@@ -52,7 +52,7 @@ export function Suggestions({ items, value, onPick }: { items: string[]; value: 
                 onPick(text);
                 setOpen(false);
               }}
-              className="flex min-h-11 w-full items-start gap-2 rounded-lg bg-canvas px-3 py-2.5 text-left text-sm leading-relaxed text-ink ring-1 ring-transparent transition-[background-color,box-shadow] hover:bg-surface hover:ring-primary"
+              className="flex min-h-11 w-full items-start gap-2 rounded-[14px] bg-chip px-3 py-2.5 text-left text-sm leading-relaxed text-ink ring-1 ring-transparent transition-[background-color,box-shadow] hover:bg-surface hover:ring-primary"
             >
               <span className="mt-0.5 text-primary" aria-hidden>
                 +

@@ -58,7 +58,7 @@ function counter(value: string, max: number, locale: string) {
 /** Things that are always part of every contest, shown ticked and locked (owner, 2026-10-08). */
 function AlwaysList({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-2xl bg-success/5 p-3 ring-1 ring-success/20">
+    <div className="rounded-[18px] bg-success/5 p-4 ring-1 ring-success/20">
       <p className="text-xs font-semibold uppercase tracking-wider text-success">{title}</p>
       <ul className="mt-2 space-y-1.5">
         {items.map((item) => (
@@ -238,21 +238,21 @@ export function StylesStep(p: BriefStepProps) {
               onClick={() => toggle(s)}
               aria-pressed={on}
               className={cx(
-                "relative flex flex-col items-center gap-2 rounded-lg bg-surface px-2 pb-3 pt-4 text-center ring-1 transition-shadow",
-                on ? "ring-2 ring-primary" : "ring-line hover:ring-muted/40",
+                "relative flex flex-col items-center gap-2 rounded-[20px] px-2 pb-3 pt-4 text-center ring-1 transition-[box-shadow,background-color]",
+                on ? "bg-tint/50 ring-2 ring-primary" : "bg-surface ring-line hover:ring-primary/40",
               )}
             >
               <span
                 className={cx(
                   "absolute right-2 top-2 flex size-5 items-center justify-center rounded-full text-xs",
-                  on ? "bg-primary text-white" : "ring-1 ring-line",
+                  on ? "bg-[image:var(--gradient-red)] text-white" : "ring-1 ring-line",
                 )}
                 aria-hidden
               >
                 {on && "✓"}
               </span>
               <StyleExamples style={s} />
-              <span className="text-sm font-medium text-ink">{t(`wizard.styles.${s}`)}</span>
+              <span className="text-sm font-semibold text-ink">{t(`wizard.styles.${s}`)}</span>
             </button>
           );
         })}
@@ -384,8 +384,8 @@ export function ColorsStep(p: BriefStepProps) {
               <label
                 key={d}
                 className={cx(
-                  "flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl p-3 ring-1 transition-[background-color,box-shadow] duration-200",
-                  on ? "bg-primary/5 ring-2 ring-primary" : "bg-surface ring-line hover:bg-canvas",
+                  "flex min-h-11 cursor-pointer items-start gap-3 rounded-[18px] p-4 ring-1 transition-[background-color,box-shadow] duration-200",
+                  on ? "bg-tint/50 ring-2 ring-primary" : "bg-surface ring-line hover:bg-chip",
                 )}
               >
                 <input
@@ -429,7 +429,7 @@ export function ColorsStep(p: BriefStepProps) {
               value={valid ? draft : "#000000"}
               onChange={(e) => setDraft(e.target.value)}
               aria-label={t("wizard.c05.sheetTitle")}
-              className="h-12 w-16 cursor-pointer rounded-md border border-line bg-surface p-1"
+              className="h-[52px] w-16 cursor-pointer rounded-[14px] border border-line bg-surface p-1"
             />
             <TextField
               className="flex-1"

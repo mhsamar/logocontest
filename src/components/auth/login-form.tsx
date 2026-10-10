@@ -38,7 +38,7 @@ export function LoginForm({ next }: { next?: string }) {
           required
         />
         <div className="text-right">
-          <Link href="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-medium text-primary-dark hover:underline">
+          <Link href="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
             {t("auth.login.forgot")}
           </Link>
         </div>

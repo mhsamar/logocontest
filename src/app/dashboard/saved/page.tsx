@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { ContestRow } from "@/components/contests/contest-row";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { PageTitle } from "@/components/ui/section-heading";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestsByIds } from "@/lib/contests/browse";
@@ -24,31 +26,34 @@ export default async function SavedContestsPage() {
   const now = new Date();
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-6">
-      <h1 className="text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{t("saved.title")}</h1>
-      <p className="mt-2 text-muted">{t("saved.subtitle")}</p>
-      {contests.length > 0 ? (
-        <ul className="mt-8 space-y-3">
-          {contests.map((c) => (
-            <li key={c.id}>
-              <ContestRow contest={c} now={now} saved />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="mx-auto mt-10 max-w-xl">
-          <EmptyState
-            icon={
-              <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" strokeLinejoin="round" />
-              </svg>
-            }
-            title={t("saved.emptyTitle")}
-            body={t("saved.emptyBody")}
-            action={<ButtonLink href="/contests">{t("saved.browse")}</ButtonLink>}
-          />
-        </div>
-      )}
-    </div>
+    <PageShell>
+      <Panel as="header" className="max-[720px]:py-6">
+        <PageTitle lead={t("saved.title")} sub={t("saved.subtitle")} />
+      </Panel>
+      <Panel tone="grey" className="flex-1 max-[720px]:py-4">
+        {contests.length > 0 ? (
+          <ul className="m-0 list-none space-y-3 p-0">
+            {contests.map((c) => (
+              <li key={c.id} className="lc-rv-soft">
+                <ContestRow contest={c} now={now} saved />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mx-auto max-w-xl">
+            <EmptyState
+              icon={
+                <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                  <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" strokeLinejoin="round" />
+                </svg>
+              }
+              title={t("saved.emptyTitle")}
+              body={t("saved.emptyBody")}
+              action={<ButtonLink href="/contests">{t("saved.browse")}</ButtonLink>}
+            />
+          </div>
+        )}
+      </Panel>
+    </PageShell>
   );
 }

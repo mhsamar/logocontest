@@ -3,6 +3,7 @@ import { getContact } from "@/lib/content/contact";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
 import { HeroForm } from "../hero-form";
+import { Svg } from "@/components/ui/svg";
 import { LcMark, LogoTile } from "./logo-tile";
 
 const ICON = {
@@ -14,11 +15,6 @@ const ICON = {
   check: "M5 12.5l4.5 4.5L19 7.5",
 };
 
-export const Svg = ({ d, size = 18, stroke = "currentColor", width = 2 }: { d: string; size?: number; stroke?: string; width?: number }) => (
-  <svg aria-hidden width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
 
 /** A floating "notification" chip in the hero (illustration, marked as an example). */
 function Chip({ icon, iconBg, title, sub, style }: { icon: React.ReactNode; iconBg: string; title: string; sub: string; style: React.CSSProperties }) {

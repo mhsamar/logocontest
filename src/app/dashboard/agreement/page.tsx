@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AgreementForm } from "@/components/agreement/agreement-form";
+import { ButtonLink } from "@/components/ui/button";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { Arrow, PageTitle } from "@/components/ui/section-heading";
 import { getAgreement } from "@/lib/agreements/queries";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
@@ -31,66 +34,65 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
   const signed = outdated ? null : found;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-6 sm:pt-10">
-      <p className="animate-rise text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t(outdated ? "agreement.eyebrowUpdated" : "agreement.eyebrow")}</p>
-      <h1 className="mt-2 animate-rise text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{text.title}</h1>
+    <PageShell>
+      <Panel as="header" className="max-[720px]:py-6">
+        <PageTitle pill={t(outdated ? "agreement.eyebrowUpdated" : "agreement.eyebrow")} lead={text.title} sub={signed ? t("agreement.signed.lead") : t(outdated ? "agreement.updated" : "agreement.lead")} />
+      </Panel>
 
-      {signed ? (
-        <>
-          <p className="mt-2 text-muted">{t("agreement.signed.lead")}</p>
-          <section className="mt-6 animate-rise rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
-            <p className="flex items-center gap-2 font-semibold text-success">
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {t("agreement.signed.title", { date: formatDate(signed.signedAt, locale, "long") })}
-            </p>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              {[
-                [t("agreement.fullName"), signed.fullName],
-                [t("agreement.mobile"), formatBdMobile(signed.mobile)],
-                [t(`agreement.idNumber.${signed.idType}`), signed.idMasked],
-                [
-                  t("agreement.signed.time"),
-                  signed.signedAt.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }),
-                ],
-              ].map(([k, v]) => (
-                <div key={k} className="rounded-xl bg-canvas px-3 py-2.5">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{k}</dt>
-                  <dd className="mt-0.5 font-medium text-ink">{v}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 text-sm text-muted">{t("agreement.signed.change")}</p>
-          </section>
-          <details className="mt-4 rounded-3xl bg-surface p-5 ring-1 ring-line">
-            <summary className="cursor-pointer font-semibold text-ink">{t("agreement.signed.readAgain")}</summary>
-            <ol className="mt-3 space-y-2 text-sm leading-relaxed text-ink">
-              {text.clauses.map((c, i) => (
-                <li key={i} className="flex gap-2.5">
-                  <span className="w-5 shrink-0 font-semibold text-primary">{i + 1}.</span>
-                  <span>{c}</span>
-                </li>
-              ))}
-            </ol>
-          </details>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href={next} className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-semibold text-white hover:bg-primary-dark">
-              {t("agreement.signed.continue")}
-            </Link>
-            <Link href="/legal/designer-rules" className="inline-flex min-h-12 items-center rounded-full px-4 font-semibold text-primary hover:underline">
-              {t("footer.designerRules")} →
-            </Link>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="mt-2 animate-rise text-muted">{t(outdated ? "agreement.updated" : "agreement.lead")}</p>
-          <div className="mt-6">
+      <Panel tone="grey" className="flex-1 max-[720px]:py-4">
+        <div className="mx-auto w-full max-w-2xl">
+          {signed ? (
+            <>
+              <section className="lc-card p-5 sm:p-7">
+                <p className="m-0 flex items-center gap-2 font-semibold text-success">
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                    <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {t("agreement.signed.title", { date: formatDate(signed.signedAt, locale, "long") })}
+                </p>
+                <dl className="m-0 mt-4 grid gap-2.5 text-sm sm:grid-cols-2">
+                  {[
+                    [t("agreement.fullName"), signed.fullName],
+                    [t("agreement.mobile"), formatBdMobile(signed.mobile)],
+                    [t(`agreement.idNumber.${signed.idType}`), signed.idMasked],
+                    [
+                      t("agreement.signed.time"),
+                      signed.signedAt.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }),
+                    ],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-[16px] bg-chip px-4 py-3">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted">{k}</dt>
+                      <dd className="m-0 mt-0.5 font-semibold text-ink">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="m-0 mt-4 text-sm text-muted">{t("agreement.signed.change")}</p>
+              </section>
+              <details className="lc-card mt-3.5 rounded-[22px] p-5">
+                <summary className="cursor-pointer font-bold text-ink">{t("agreement.signed.readAgain")}</summary>
+                <ol className="m-0 mt-3 list-none space-y-2 p-0 text-sm leading-relaxed text-ink">
+                  {text.clauses.map((c, i) => (
+                    <li key={i} className="flex gap-2.5">
+                      <span className="w-5 shrink-0 font-bold text-primary">{i + 1}.</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ButtonLink href={next} size="lg">
+                  {t("agreement.signed.continue")}
+                </ButtonLink>
+                <Link href="/legal/designer-rules" className="inline-flex min-h-12 items-center gap-1.5 rounded-full px-4 font-bold text-primary hover:underline">
+                  {t("footer.designerRules")} <Arrow />
+                </Link>
+              </div>
+            </>
+          ) : (
             <AgreementForm defaults={{ fullName: user.name, mobile: user.mobile ? `0${user.mobile.replace(/^\+880/, "")}` : "" }} text={text} next={next} />
-          </div>
-        </>
-      )}
-    </div>
+          )}
+        </div>
+      </Panel>
+    </PageShell>
   );
 }

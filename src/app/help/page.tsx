@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LiveChatButton } from "@/components/help/live-chat-button";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { Arrow, IconBadge, PageTitle } from "@/components/ui/section-heading";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
@@ -31,14 +33,15 @@ const ICONS = {
   call: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" strokeLinejoin="round" />,
 } as const;
 
+// Each way to reach us keeps its own colour so WhatsApp and Messenger are easy to spot.
 const TINT = {
-  chat: "from-[#fff0f3] to-[#ffdce4] text-primary",
-  whatsapp: "from-[#e7f8f0] to-[#c9efdc] text-[#0f6b45]",
-  messenger: "from-[#e8f1ff] to-[#d4e4ff] text-[#1d4ed8]",
-  call: "from-[#fff7e0] to-[#ffe6a8] text-[#8a5105]",
+  chat: "bg-tint text-primary",
+  whatsapp: "bg-[#e7f8f0] text-[#0f6b45]",
+  messenger: "bg-[#e8f1ff] text-[#1d4ed8]",
+  call: "bg-[#fff6d6] text-gold-ink",
 } as const;
 
-const CTA = "btn-sheen relative inline-flex min-h-12 w-full items-center justify-center gap-2 overflow-clip rounded-full px-6 font-semibold transition-[background-color,box-shadow,scale] duration-200 active:scale-[0.97]";
+const CTA = "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-6 text-[17px] font-bold transition-[background-color,filter,transform] duration-200 active:scale-[0.97]";
 
 // P-14 Help & contact (owner, 2026-10-08): live chat, WhatsApp, Messenger and phone.
 export default async function HelpPage() {
@@ -57,7 +60,7 @@ export default async function HelpPage() {
         chat.driver === "tawk" ? (
           <LiveChatButton src={chat.src} label={t("help.chat.start")} loadingLabel={t("help.chat.loading")} />
         ) : (
-          <span className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-canvas px-6 font-semibold text-muted ring-1 ring-inset ring-line">
+          <span className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-chip px-6 font-bold text-muted ring-1 ring-inset ring-line">
             <span className="size-2 animate-pulse rounded-full bg-primary/60" aria-hidden />
             {t("help.chat.comingSoon")}
           </span>
@@ -68,7 +71,7 @@ export default async function HelpPage() {
       title: t("help.whatsapp.title"),
       body: t("help.whatsapp.body", { number: s["contact.whatsapp"] }),
       action: (
-        <a href={whatsapp} target="_blank" rel="noopener" className={cx(CTA, "bg-[#128c4b] text-white hover:bg-[#0f6b45] hover:shadow-[0_10px_24px_-10px_rgb(18_140_75/0.7)]")}>
+        <a href={whatsapp} target="_blank" rel="noopener" className={cx(CTA, "bg-[#128c4b] text-white hover:bg-[#0f6b45]")}>
           {t("help.whatsapp.cta")}
         </a>
       ),
@@ -80,7 +83,7 @@ export default async function HelpPage() {
             title: t("help.messenger.title"),
             body: t("help.messenger.body"),
             action: (
-              <a href={messenger} target="_blank" rel="noopener" className={cx(CTA, "bg-[#1d4ed8] text-white hover:bg-[#1e40af] hover:shadow-[0_10px_24px_-10px_rgb(29_78_216/0.7)]")}>
+              <a href={messenger} target="_blank" rel="noopener" className={cx(CTA, "bg-[#1d4ed8] text-white hover:bg-[#1e40af]")}>
                 {t("help.messenger.cta")}
               </a>
             ),
@@ -92,7 +95,7 @@ export default async function HelpPage() {
       title: t("help.call.title"),
       body: t("help.call.body"),
       action: (
-        <a href={contact.phoneHref} className={cx(CTA, "bg-surface text-ink ring-1 ring-inset ring-line hover:bg-canvas")}>
+        <a href={contact.phoneHref} className={cx(CTA, "border border-line bg-surface text-ink hover:bg-chip")}>
           {t("help.call.cta", { number: contact.phone })}
         </a>
       ),
@@ -107,60 +110,53 @@ export default async function HelpPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
-      <section className="relative animate-rise overflow-clip rounded-[2rem] bg-aurora px-5 py-10 text-center shadow-frame ring-1 ring-white sm:px-8 sm:py-14">
-        <span className="pointer-events-none absolute -left-10 -top-12 size-48 animate-float-soft rounded-full bg-[#c9efdc]/60 blur-2xl" aria-hidden />
-        <span className="pointer-events-none absolute -bottom-16 right-1/4 size-56 animate-float rounded-full bg-[#ffdce4]/60 blur-3xl" aria-hidden />
-        <div className="relative mx-auto max-w-xl">
-          <span className="mx-auto flex size-14 animate-float-soft items-center justify-center rounded-2xl bg-gradient-to-br from-ink to-primary-dark text-white shadow-raised">
-            <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+    <PageShell>
+      <Panel as="header">
+        <div className="flex flex-col items-center gap-5 text-center">
+          <IconBadge size="xl">
+            <svg viewBox="0 0 24 24" className="size-7 text-white" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
               {ICONS.chat}
             </svg>
-          </span>
-          <h1 className="mt-5 text-h1 font-bold tracking-tight text-ink lg:text-4xl">{t("help.title")}</h1>
-          <p className="mt-3 text-muted">{t("help.lead")}</p>
+          </IconBadge>
+          <PageTitle center lead={t("help.title")} sub={t("help.lead")} />
         </div>
-      </section>
+      </Panel>
 
-      <ul className={cx("mt-8 grid gap-4 sm:grid-cols-2", cards.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
-        {cards.map((c, i) => (
-          <li
-            key={c.key}
-            className="group flex animate-rise flex-col rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line transition-[box-shadow,translate] duration-300 hover:-translate-y-1 hover:shadow-raised"
-            style={{ animationDelay: `${120 + i * 80}ms` }}
-          >
-            <span className={cx("flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br transition-[rotate,scale] duration-300 group-hover:-rotate-6 group-hover:scale-110", TINT[c.key])}>
-              <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
-                {ICONS[c.key]}
-              </svg>
-            </span>
-            <h2 className="mt-4 text-lg font-bold text-ink">{c.title}</h2>
-            <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{c.body}</p>
-            <div className="mt-5">{c.action}</div>
-          </li>
-        ))}
-      </ul>
-
-      <section className="mt-12">
-        <h2 className="text-h3 font-bold text-ink lg:text-h3-lg">{t("help.quick.title")}</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {quick.map((q) => (
-            <li key={q.href} className="reveal">
-              <Link href={q.href} className="group flex items-center justify-between gap-4 rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line transition-[box-shadow] duration-300 hover:shadow-raised">
-                <span className="min-w-0">
-                  <span className="block font-semibold text-ink">{q.title}</span>
-                  <span className="block text-sm text-muted">{q.line}</span>
-                </span>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-canvas text-primary transition-transform duration-300 group-hover:translate-x-1">
-                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </span>
-              </Link>
+      <Panel tone="grey">
+        <ul className={cx("m-0 grid list-none gap-3.5 p-0 sm:grid-cols-2", cards.length === 4 ? "xl:grid-cols-4" : "lg:grid-cols-3")}>
+          {cards.map((c) => (
+            <li key={c.key} className="lc-card lc-rv flex flex-col p-6">
+              <span className={cx("flex size-[52px] items-center justify-center rounded-2xl", TINT[c.key])}>
+                <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+                  {ICONS[c.key]}
+                </svg>
+              </span>
+              <h2 className="mt-5 text-xl font-semibold tracking-[-0.02em] text-ink">{c.title}</h2>
+              <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-muted">{c.body}</p>
+              <div className="mt-6">{c.action}</div>
             </li>
           ))}
         </ul>
-      </section>
-    </div>
+
+        <section className="mt-12">
+          <h2 className="lc-rv m-0 text-[clamp(24px,2.6vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("help.quick.title")}</h2>
+          <ul className="m-0 mt-5 grid list-none gap-2.5 p-0 sm:grid-cols-2">
+            {quick.map((q) => (
+              <li key={q.href} className="lc-rv">
+                <Link href={q.href} className="lc-card group flex items-center justify-between gap-4 rounded-[20px] p-5 transition-shadow duration-300 hover:shadow-card">
+                  <span className="min-w-0">
+                    <span className="block font-bold text-ink">{q.title}</span>
+                    <span className="block text-[15px] text-muted">{q.line}</span>
+                  </span>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-tint text-primary transition-transform duration-300 group-hover:translate-x-1">
+                    <Arrow />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </Panel>
+    </PageShell>
   );
 }

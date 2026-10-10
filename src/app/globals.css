@@ -5,20 +5,33 @@
  * UI comes from here. Tints use opacity modifiers, e.g. bg-primary/10.
  */
 @theme {
-  --font-sans: var(--font-latin), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display-latin), var(--font-display-bangla), ui-serif, Georgia, serif;
+  /* Site-wide design (owner, 2026-10-10; UI-JOURNEY §1): Urbanist body, Instrument Sans headings,
+     Hind Siliguri for Bangla. font-display is kept as a name so older markup gets the heading font. */
+  --font-sans: var(--font-lc-body), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
 
-  /* Golden Luxe palette (UI-JOURNEY §1.2) */
+  /* Palette (owner, 2026-10-10): light grey page, white panels, brand red #8B0000, defined once here. */
   --color-primary: #8b0000;
   --color-primary-dark: #5b0202;
-  --color-cream: #ede7c7;
+  --color-primary-hi: #b3201b;
+  --color-primary-deep: #7a1010;
+  --color-primary-deeper: #4a0808;
+  --color-tint: #fbeceb;
+  --color-cream: #fbeceb;
   --color-accent: #8a6d1f;
-  --color-ink: #200e01;
-  --color-muted: #6b7280;
-  --color-line: #e3e7ec;
+  --color-gold: #ffe27a;
+  --color-gold-ink: #4a3700;
+  --color-ink: #111216;
+  --color-muted: #5f626b;
+  --color-faint: #6a6d76;
+  --color-line: #e7e8ec;
+  --color-line-soft: #eeeff2;
   --color-surface: #ffffff;
-  --color-canvas: #eef1f5;
-  --color-frame: #f6f8fa;
+  --color-canvas: #ecedf0;
+  --color-frame: #f5f6f8;
+  --color-chip: #f4f5f7;
+  --color-tile: #f1f2f5;
   --color-success: #2e7d4f;
   --color-danger: #c0362c;
   --color-warning: #b7791f;
@@ -39,15 +52,20 @@
   --text-h3: 1.125rem;
   --text-h3-lg: 1.25rem;
 
-  /* 10px inputs and buttons, 16px cards, 24px large panels */
-  --radius-md: 0.625rem;
-  --radius-lg: 1rem;
-  --radius-2xl: 1.5rem;
+  /* 14px inputs and buttons, 20px small cards, 28px cards, 32px panels (owner, 2026-10-10) */
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-panel: 2rem;
 
   --container-page: 1200px;
 
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
-  --shadow-raised: 0 12px 32px rgb(15 23 42 / 0.12), 0 2px 8px rgb(15 23 42 / 0.06);
+  --shadow-card: 0 1px 2px rgb(17 18 22 / 0.04), 0 16px 40px rgb(17 18 22 / 0.06);
+  --shadow-raised: 0 12px 32px rgb(17 18 22 / 0.12), 0 2px 8px rgb(17 18 22 / 0.06);
+  --gradient-red: linear-gradient(180deg, var(--color-primary-hi), var(--color-primary));
+  --gradient-red-icon: linear-gradient(160deg, var(--color-primary-hi), var(--color-primary));
+  --gradient-red-dark: linear-gradient(160deg, var(--color-primary-deep), var(--color-primary-deeper));
+  --shadow-glow: inset 0 1.5px 0 rgb(255 255 255 / 0.6), inset 0 -8px 14px rgb(0 0 0 / 0.09), 0 12px 26px rgb(17 18 22 / 0.16);
   --shadow-panel: 0 40px 90px -30px rgb(15 23 42 / 0.28), 0 2px 10px rgb(15 23 42 / 0.05);
   --shadow-frame: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 24px 60px -36px rgb(15 23 42 / 0.3);
 
@@ -156,33 +174,160 @@ html {
 }
 
 html {
-  background: var(--color-page);
+  background: var(--color-canvas);
 }
 
-/* Transparent, so the fixed aurora layer (layout) shows through on every page. */
 body {
-  background: transparent;
+  background: var(--color-canvas);
   color: var(--color-ink);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Whole-page pastel wash, fixed behind everything (UI-JOURNEY §1.1). */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* The old pastel wash is retired (owner, 2026-10-10): the page is flat light grey, panels are white. */
 .page-aurora {
-  background:
-    radial-gradient(42rem 30rem at -5% -5%, var(--color-aurora-sky) 0%, transparent 70%),
-    radial-gradient(38rem 28rem at 105% 8%, var(--color-aurora-peach) 0%, transparent 70%),
-    radial-gradient(36rem 30rem at 88% 75%, var(--color-aurora-lilac) 0%, transparent 70%),
-    radial-gradient(32rem 26rem at 5% 95%, var(--color-aurora-rose) 0%, transparent 70%),
-    var(--color-page);
+  background: var(--color-canvas);
 }
 
-/* Stronger gradient for panels: hero, page headers, dashboard panels, bands. */
 .bg-aurora {
-  background:
-    radial-gradient(60% 85% at 0% 0%, var(--color-aurora-sky) 0%, transparent 62%),
-    radial-gradient(55% 80% at 100% 0%, var(--color-aurora-peach) 0%, transparent 60%),
-    radial-gradient(65% 90% at 85% 100%, var(--color-aurora-lilac) 0%, transparent 62%),
-    radial-gradient(50% 75% at 8% 100%, var(--color-aurora-rose) 0%, transparent 60%),
-    linear-gradient(180deg, #ffffff, #fafbfd);
+  background: var(--color-surface);
+}
+
+/* ---- Design system surfaces (owner, 2026-10-10; UI-JOURNEY §1) ---- */
+/* White card with a thin line and 28px corners */
+.lc-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 28px;
+}
+/* The soft lift shadow */
+.lc-sh {
+  box-shadow: var(--shadow-card);
+}
+/* The glossy press shadow on red buttons and icon badges */
+.lc-g {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Heading font for non-heading elements (prices, the wordmark) */
+.lc-d {
+  font-family: var(--font-heading);
+}
+
+/* ---- The floating nav, on every page (owner, 2026-10-10) ----
+   Fixed and centred on wide screens, just below the notice/email bars while they are in view.
+   Below 940px it sits in the page (the slot on inner pages, the hero on the guest home). */
+.lc-nv {
+  position: fixed;
+  top: max(26px, calc(var(--lc-notice-h, 0px) + 26px - var(--lc-sy, 0) * 1px));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.lc-mb {
+  display: none;
+}
+/* Inner pages: room under the fixed nav so the page starts below it. */
+.lc-nav-slot {
+  height: 108px;
+}
+/* Footer on every page, with the page's side padding. */
+.lc-footer-slot {
+  padding: 14px 14px 14px;
+}
+@media (max-width: 940px) {
+  .lc-nv {
+    position: static;
+    transform: none;
+    width: auto !important;
+    max-width: none !important;
+  }
+  .lc-nav-slot {
+    height: auto;
+    padding: 14px 14px 0;
+  }
+  .lc-nav-slot .lc-nv {
+    width: 100% !important;
+  }
+}
+@media (max-width: 720px) {
+  .lc-nv {
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    padding: 8px 8px 8px 14px !important;
+  }
+  .lc-nv .lc-nv-link,
+  .lc-nv .lc-nv-join {
+    display: none !important;
+  }
+  .lc-mb {
+    display: inline-flex;
+  }
+  .lc-nav-slot {
+    padding: 8px 8px 0;
+  }
+  .lc-footer-slot {
+    padding: 8px;
+  }
+  .lc-footer-slot footer {
+    padding: 36px 22px 0 !important;
+    border-radius: 24px !important;
+  }
+  .lc-fg {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 30px 16px !important;
+  }
+  .lc-fg > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .lc-big {
+    font-size: 12.5vw !important;
+  }
+}
+
+/* Scroll reveal: elements with .lc-rv blur and rise in as they come into view. Only once JavaScript
+   has added .lc-mo to <html> (components/ui/scroll-reveal.tsx), so pages are complete without it. */
+.lc-mo .lc-rv {
+  opacity: 0;
+  filter: blur(14px);
+  transform: translate(var(--x, 0px), var(--y, 34px)) scale(0.97);
+  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lc-mo .lc-rv.lc-in {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+.lc-mo .lc-rv:nth-child(2) { transition-delay: 0.1s; }
+.lc-mo .lc-rv:nth-child(3) { transition-delay: 0.2s; }
+.lc-mo .lc-rv:nth-child(4) { transition-delay: 0.3s; }
+.lc-mo .lc-sl { --x: -80px; --y: 0px; }
+.lc-mo .lc-sr { --x: 80px; --y: 0px; }
+.lc-mo .lc-big { --y: 0px; filter: blur(32px); transition-duration: 1.5s; }
+/* Lighter reveal for inner pages (dashboards, forms): a short fade and rise, no blur. */
+.lc-mo .lc-rv-soft {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.lc-mo .lc-rv-soft.lc-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-mo :is(.lc-rv, .lc-rv-soft) {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* Bangla script needs a little more line height to stay readable. */

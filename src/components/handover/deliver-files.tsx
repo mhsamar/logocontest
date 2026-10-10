@@ -77,7 +77,7 @@ export function DeliverFiles({
 
   const slot = (type: HandoverFileType, file?: FileItem) => (
     <li key={file?.id ?? type} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1 transition-colors", file ? "bg-success/5 ring-success/30" : "bg-surface ring-line")}>
-      <span className={cx("flex size-11 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold uppercase", file ? "bg-success text-white" : "bg-canvas text-muted ring-1 ring-line")}>
+      <span className={cx("flex size-11 shrink-0 items-center justify-center rounded-[14px] text-xs font-extrabold uppercase", file ? "bg-success text-white" : "bg-chip text-muted ring-1 ring-line")}>
         {file ? (
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M5 12.5l4.5 4.5L19 7.5" />
@@ -146,7 +146,7 @@ export function DeliverFiles({
       {editable && (
         <>
           <TextAreaField label={t("handover.deliver.fonts")} hint={t("handover.deliver.fontsHint")} rows={2} maxLength={500} value={fonts} onChange={(e) => setFonts(e.target.value)} />
-          <section className="rounded-2xl bg-canvas p-4 ring-1 ring-line">
+          <section className="rounded-2xl bg-chip p-4 ring-1 ring-line">
             <h2 className="font-semibold text-ink">{t("handover.deliver.agreementTitle")}</h2>
             <p className="mt-2 max-h-36 overflow-y-auto pr-2 text-sm leading-relaxed text-ink/80">{t("handover.deliver.agreement")}</p>
             <Checkbox className="mt-2" label={t("handover.deliver.agree")} checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />

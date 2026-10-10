@@ -17,20 +17,15 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
   return (
     <article
       className={cx(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-raised",
-        // Highlight add-on (owner, 2026-10-08): gold border with a soft glow.
-        contest.isHighlighted ? "prize-glow ring-2 ring-[#f1c75c]" : "shadow-card ring-1 ring-line",
+        "lc-card group relative flex h-full flex-col p-2.5 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card",
+        // Highlight add-on (owner, 2026-10-08): gold border.
+        contest.isHighlighted && "!border-2 !border-[#f1c75c]",
       )}
     >
-      <div className="relative aspect-[4/3]">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[20px]">
         <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} flat className="h-full w-full text-[1.05rem] sm:text-[1.6rem]" />
         {contest.isPromoted && (
-          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-white sm:left-3 sm:top-3">
-            <svg viewBox="0 0 24 24" className="size-3" fill="currentColor" aria-hidden>
-              <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" />
-            </svg>
-            {t("contest.featured")}
-          </span>
+          <span className="absolute left-3 top-3 rounded-full border border-line bg-surface px-2.5 py-1 text-[13px] font-bold text-ink">{t("contest.featured")}</span>
         )}
         <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1 sm:right-3 sm:top-3">
           {contest.isUrgent && <UrgentBadge label={t("home.card.urgent")} />}
@@ -38,13 +33,13 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col border-t border-line p-3 sm:p-4">
+      <div className="flex flex-1 flex-col px-3 pb-3 pt-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <PackagePill pkg={contest.package} t={t} />
             <ContestNumber n={contest.number} t={t} locale={locale} />
             {outline.map((o) => (
-              <span key={o} className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">
+              <span key={o} className="rounded-full bg-chip px-2.5 py-0.5 text-[13px] font-bold text-ink">
                 {o}
               </span>
             ))}
@@ -63,18 +58,18 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
             </div>
           )}
         </div>
-        <h3 className="mt-2 truncate font-semibold text-ink group-hover:text-primary sm:text-lg">
+        <h3 className="m-0 mt-2.5 truncate text-xl font-semibold tracking-[-0.03em] text-ink group-hover:text-primary">
           {/* Stretched link: the whole card opens the contest. */}
           <Link href={`/contest/${contest.slug}`} className="after:absolute after:inset-0">
             {contestTitle(contest, t)}
           </Link>
         </h3>
-        <p className="truncate text-xs text-muted sm:text-sm">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
+        <p className="m-0 truncate text-[15px] text-muted">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto border-t border-line-soft pt-3.5">
           <div className="flex items-end justify-between gap-2">
-            <p className={cx("text-lg font-extrabold leading-none tabular-nums sm:text-2xl", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-canvas px-2 py-1 text-xs font-semibold text-ink ring-1 ring-line">
+            <p className={cx("m-0 text-[28px] font-semibold leading-none tabular-nums sm:text-[32px]", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[13px] font-bold text-ink">
               <svg viewBox="0 0 24 24" className="size-3.5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
                 <rect x="14" y="3" width="7" height="7" rx="1.5" />

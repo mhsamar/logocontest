@@ -70,21 +70,21 @@ export function ClientHandover({
     });
 
   // No result (§2): files already uploaded are not released to the client.
-  if (status === "no_result") return <p className="rounded-2xl bg-canvas p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultClient")}</p>;
+  if (status === "no_result") return <p className="rounded-2xl bg-chip p-4 text-ink ring-1 ring-line">{t("lifecycle.noResultClient")}</p>;
   if (status === "awaiting_files") return <p className="rounded-2xl bg-[#e8f1ff] p-4 text-[#1d4ed8] ring-1 ring-[#bcd0ff]">{t("handover.waiting.client", { date: date(dueAt) })}</p>;
-  if (status === "revision_requested") return <p className="rounded-2xl bg-[#fff7e0] p-4 text-[#8a5105] ring-1 ring-[#f1c75c]/60">{t("handover.waiting.revision")}</p>;
+  if (status === "revision_requested") return <p className="rounded-2xl bg-[#fff6d6] p-4 text-gold-ink">{t("handover.waiting.revision")}</p>;
 
   const fileList = (
     <ul className="grid gap-2 sm:grid-cols-2">
-      {files.map((f, i) => (
-        <li key={f.id} className="flex animate-rise items-center gap-3 rounded-2xl bg-surface p-3 ring-1 ring-line" style={{ animationDelay: `${i * 40}ms` }}>
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-ink text-[0.6875rem] font-extrabold uppercase text-white">{f.type === "extra" ? "+" : f.type}</span>
+      {files.map((f) => (
+        <li key={f.id} className="flex items-center gap-3 rounded-2xl bg-surface p-3 ring-1 ring-line">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-ink text-[0.6875rem] font-extrabold uppercase text-white">{f.type === "extra" ? "+" : f.type}</span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-ink">{f.name}</span>
             <span className="block text-xs text-muted">{t(`handover.types.${f.type}`)}</span>
           </span>
           {f.url && (
-            <a href={f.url} target="_blank" rel="noopener" className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-canvas px-3 text-sm font-semibold text-primary ring-1 ring-line hover:ring-primary">
+            <a href={f.url} target="_blank" rel="noopener" className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-chip px-3 text-sm font-semibold text-primary ring-1 ring-line hover:ring-primary">
               {t("handover.review.download")}
             </a>
           )}
@@ -99,7 +99,7 @@ export function ClientHandover({
         <div className="rounded-2xl bg-success/10 p-4 ring-1 ring-success/30">
           <p className="font-semibold text-success">{t("handover.done.title")}</p>
           <p className="text-sm text-ink/80">{t("handover.done.client")}</p>
-          {rating && <p className="mt-1 text-sm text-[#8a5105]">{t("handover.done.rating")}: {"★".repeat(rating)}</p>}
+          {rating && <p className="mt-1 text-sm text-gold-ink">{t("handover.done.rating")}: {"★".repeat(rating)}</p>}
         </div>
       ) : (
         <div>

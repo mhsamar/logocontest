@@ -11,11 +11,12 @@ type FieldProps = {
   className?: string;
 };
 
-const INPUT =
-  "block w-full min-h-12 rounded-md bg-surface px-3.5 text-base text-ink placeholder:text-muted " +
+// Inputs from the site design (owner, 2026-10-10; UI-JOURNEY §1): white, thin line, 14px corners, 52px tall.
+export const INPUT =
+  "block w-full min-h-[52px] rounded-[14px] bg-surface px-4 text-[17px] font-medium text-ink placeholder:font-normal placeholder:text-muted/80 " +
   "ring-1 ring-inset ring-line transition-shadow " +
   "focus:outline-none focus:ring-2 focus:ring-primary " +
-  "disabled:bg-canvas disabled:text-muted";
+  "disabled:bg-chip disabled:text-muted";
 
 function FieldShell({
   id,
@@ -28,7 +29,7 @@ function FieldShell({
 }: FieldProps & { id: string; children: React.ReactNode }) {
   return (
     <div className={cx("space-y-1.5", className)}>
-      <label htmlFor={id} className="flex items-baseline justify-between gap-2 text-sm font-medium text-ink">
+      <label htmlFor={id} className="flex items-baseline justify-between gap-2 text-sm font-semibold text-ink">
         {label}
         {optionalLabel && <span className="text-xs font-normal text-muted">{optionalLabel}</span>}
       </label>
@@ -73,7 +74,7 @@ export function PhoneField(props: FieldProps & Omit<React.InputHTMLAttributes<HT
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
-      <div className={cx("flex rounded-md ring-1 ring-inset ring-line focus-within:ring-2 focus-within:ring-primary bg-surface", error && "ring-2 ring-danger focus-within:ring-danger")}>
+      <div className={cx("flex rounded-[14px] ring-1 ring-inset ring-line focus-within:ring-2 focus-within:ring-primary bg-surface", error && "ring-2 ring-danger focus-within:ring-danger")}>
         <span className="flex items-center border-r border-line pl-3.5 pr-3 text-lg leading-none" aria-hidden>
           🇧🇩
         </span>
@@ -84,7 +85,7 @@ export function PhoneField(props: FieldProps & Omit<React.InputHTMLAttributes<HT
           autoComplete="tel-national"
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? `${id}-msg` : undefined}
-          className="min-h-12 w-full min-w-0 rounded-r-md bg-transparent px-3.5 text-base text-ink placeholder:text-muted focus:outline-none"
+          className="min-h-[52px] w-full min-w-0 rounded-r-[14px] bg-transparent px-4 text-[17px] font-medium text-ink placeholder:font-normal placeholder:text-muted/80 focus:outline-none"
           {...input}
         />
       </div>

@@ -87,7 +87,7 @@ export function ReviewStep({
         error={nameError}
       />
 
-      <details className="group rounded-lg bg-surface ring-1 ring-line">
+      <details className="group rounded-[20px] border border-line bg-surface">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 font-semibold text-ink">
           {t("wizard.c11.recapTitle")}
           <svg viewBox="0 0 24 24" className="size-5 text-muted transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -110,7 +110,7 @@ export function ReviewStep({
       </details>
 
       {uploads.length > 0 && (
-        <div className="rounded-lg bg-surface p-4 ring-1 ring-line">
+        <div className="rounded-[20px] border border-line bg-surface p-5">
           <p className="mb-2 text-sm font-semibold text-ink">{t("wizard.c11.files")}</p>
           <ul className="space-y-1 text-sm">
             {uploads.map((u, i) => (
@@ -130,7 +130,7 @@ export function ReviewStep({
         </div>
       )}
 
-      <div className="rounded-lg bg-surface p-4 ring-1 ring-line">
+      <div className="rounded-[20px] border border-line bg-surface p-5">
         <dl className="text-sm">
           {[
             [t("wizard.summary.prize"), price.prize],

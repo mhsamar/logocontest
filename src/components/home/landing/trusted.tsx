@@ -1,6 +1,7 @@
 import { getI18n } from "@/lib/i18n/server";
 import { LogoTile } from "./logo-tile";
-import { Arrow, RedButton } from "./section-head";
+import { ButtonLink } from "@/components/ui/button";
+import { Arrow, IconBadge } from "@/components/ui/section-heading";
 
 // Where the eight tiles sit on each side (design file); real winning logos fill them first.
 type Spot = { pos: React.CSSProperties; fb: number };
@@ -32,20 +33,20 @@ export async function Trusted({ logos }: { logos: string[] }) {
       <div className="mx-auto flex max-w-[1240px] items-center justify-center gap-6">
         {side(LEFT, 0, "lc-sl")}
         <div className="lc-rv flex flex-[0_1_460px] flex-col items-center gap-[18px] text-center">
-          <span className="lc-g flex h-[60px] w-[60px] items-center justify-center rounded-[18px] bg-[image:var(--lc-grad-icon)]">
+          <IconBadge size="lg">
             <svg aria-hidden width="28" height="28" viewBox="0 0 24 24" fill="#FFFFFF">
               <circle cx="12" cy="8" r="4" />
               <path d="M4 20a8 8 0 0 1 16 0z" />
             </svg>
-          </span>
+          </IconBadge>
           <h2 className="m-0 text-[clamp(32px,4.2vw,54px)] font-semibold leading-[1.05] tracking-[-0.04em]">
             {t("home.trust.lead")} <span className="text-[var(--lc-red)]">{t("home.trust.accent")}</span>
           </h2>
           <p className="m-0 text-lg text-[var(--lc-muted)]">{t("home.trust.body")}</p>
-          <RedButton href="/contests" className="mt-1.5">
+          <ButtonLink href="/contests" size="lg" className="mt-1.5">
             {t("home.trust.cta")}
             <Arrow />
-          </RedButton>
+          </ButtonLink>
         </div>
         {side(RIGHT, 4, "lc-sr")}
       </div>

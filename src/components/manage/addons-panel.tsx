@@ -35,7 +35,7 @@ const ICONS: Record<Item, React.ReactNode> = {
 };
 
 const TINT: Record<Item, string> = {
-  promote: "from-[#fff7e0] to-[#ffe6a8] text-[#8a5105]",
+  promote: "from-[#fff7e0] to-[#ffe6a8] text-gold-ink",
   extend: "from-[#e8f1ff] to-[#d4e4ff] text-[#1d4ed8]",
   private: "from-[#f1ecff] to-[#e2d6ff] text-[#5b21b6]",
   blind: "from-[#eef2f7] to-[#dde3ec] text-ink",
@@ -93,7 +93,7 @@ export function AddonsPanel({
   return (
     <>
       <ul className="@container grid gap-2.5">
-        {items.map((item, i) => {
+        {items.map((item) => {
           const isActive = item !== "extend" && active[item];
           const status = isActive ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-sm font-semibold text-success">
@@ -117,14 +117,13 @@ export function AddonsPanel({
               </button>
             </>
           );
-          // Icons bob gently all the time (each a little out of step) and turn and grow on hover.
+          // The add-on's icon on its colour tile.
           const icon = (
             <span
               className={cx(
-                "flex size-11 shrink-0 animate-float-soft items-center justify-center rounded-xl bg-gradient-to-br shadow-card transition-[rotate,scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110",
+                "flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br",
                 TINT[item],
               )}
-              style={{ animationDelay: `${-i * 1.3}s` }}
             >
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 {ICONS[item]}
@@ -136,10 +135,9 @@ export function AddonsPanel({
               key={item}
               data-tilt
               className={cx(
-                "group relative grid animate-rise grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 overflow-clip rounded-2xl p-3 ring-1 transition-[box-shadow,translate,--tw-ring-color] duration-300 hover:-translate-y-0.5 hover:shadow-raised @md:grid-cols-[auto_1fr_auto] @md:gap-x-4 @md:p-4",
+                "group relative grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 overflow-clip rounded-[20px] p-3 ring-1 transition-[box-shadow,--tw-ring-color] duration-300 hover:shadow-card @md:grid-cols-[auto_1fr_auto] @md:gap-x-4 @md:p-4",
                 isActive ? "bg-success/5 ring-success/30" : "bg-surface ring-line hover:ring-[#f1c75c]/70",
               )}
-              style={{ animationDelay: `${i * 60}ms` }}
             >
               {/* A light sheen sweeps across the row on hover */}
               <span
@@ -183,7 +181,7 @@ export function AddonsPanel({
                   type="button"
                   onClick={() => setDays(d)}
                   aria-pressed={days === d}
-                  className={cx("rounded-xl p-3 text-center ring-1 transition-colors", days === d ? "bg-primary/5 ring-2 ring-primary" : "ring-line hover:bg-canvas")}
+                  className={cx("rounded-[14px] p-3 text-center ring-1 transition-colors", days === d ? "bg-primary/5 ring-2 ring-primary" : "ring-line hover:bg-chip")}
                 >
                   <span className="block font-bold text-ink">{t("manage.addons.extend.days", { n: nf.format(d) })}</span>
                   <span className="block text-sm font-semibold text-primary">{taka(prices.extensionPerDay * d)}</span>
@@ -202,8 +200,8 @@ export function AddonsPanel({
               onClick={() => setMethod(m)}
               aria-pressed={method === m}
               className={cx(
-                "min-h-12 rounded-xl text-sm font-semibold ring-1 transition-colors",
-                method === m ? "bg-ink text-white ring-ink" : "text-ink ring-line hover:bg-canvas",
+                "min-h-12 rounded-[14px] text-sm font-semibold ring-1 transition-colors",
+                method === m ? "bg-ink text-white ring-ink" : "text-ink ring-line hover:bg-chip",
               )}
             >
               {t(`wizard.c11.${m}`)}

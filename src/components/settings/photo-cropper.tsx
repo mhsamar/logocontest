@@ -59,7 +59,7 @@ export function PhotoCropper({ src, onCancel, onSave, saving }: { src: string | 
     >
       {src && (
         <div>
-          <div className="relative h-72 overflow-hidden rounded-lg bg-ink sm:h-80">
+          <div className="relative h-72 overflow-hidden rounded-[18px] bg-ink sm:h-80">
             <Cropper
               image={src}
               crop={crop}

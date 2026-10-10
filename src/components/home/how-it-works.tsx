@@ -42,8 +42,8 @@ export function Stars({ value }: { value: number }) {
 
 export function MockCard({ t, children, className }: { t: Translate; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cx("relative w-full max-w-sm rounded-2xl bg-surface p-4 shadow-raised ring-1 ring-line sm:p-5", className)} aria-hidden>
-      <span className="absolute -top-2.5 right-4 rounded-full bg-cream px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary-dark">
+    <div className={cx("lc-card lc-sh relative w-full max-w-sm rounded-[24px] p-4 sm:p-5", className)} aria-hidden>
+      <span className="absolute -top-2.5 right-4 rounded-full bg-tint px-2.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-primary">
         {t("home.how.art.example")}
       </span>
       {children}

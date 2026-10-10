@@ -226,7 +226,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
               )}
             </p>
             {form.username && (
-              <p className="mt-1 truncate rounded-md bg-canvas px-3 py-2 font-mono text-xs text-muted">
+              <p className="mt-1.5 truncate rounded-[12px] bg-chip px-3 py-2 font-mono text-xs text-muted">
                 {t("designerSignup.username.preview", { username: form.username })}
               </p>
             )}
@@ -247,8 +247,8 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
       {step === 4 && (
         <div className="space-y-5">
           <fieldset>
-            <legend className="text-sm font-medium text-ink">{t("designerSignup.payout.title")}</legend>
-            <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-canvas p-1 ring-1 ring-line" role="tablist">
+            <legend className="text-[15px] font-semibold text-ink">{t("designerSignup.payout.title")}</legend>
+            <div className="mt-2 grid grid-cols-2 gap-1 rounded-[18px] bg-chip p-1 ring-1 ring-line" role="tablist">
               {(["bkash", "bank"] as const).map((type) => (
                 <button
                   key={type}
@@ -257,8 +257,8 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
                   aria-selected={form.payoutType === type}
                   onClick={() => set("payoutType", type)}
                   className={cx(
-                    "min-h-10 rounded-full text-sm font-semibold transition-colors",
-                    form.payoutType === type ? "bg-ink text-white" : "text-muted hover:text-ink",
+                    "min-h-11 rounded-[14px] text-[15px] font-bold transition-colors",
+                    form.payoutType === type ? "bg-surface text-primary shadow-card" : "text-muted hover:text-ink",
                   )}
                 >
                   {t(`designerSignup.payout.${type}`)}
@@ -309,19 +309,19 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
             </div>
           </fieldset>
 
-          <div className="rounded-lg bg-cream/40 p-4 ring-1 ring-cream">
-            <h2 className="font-semibold text-ink">{t("designerSignup.rules.title")}</h2>
-            <ol className="mt-2 space-y-1.5 text-sm text-ink">
+          <div className="rounded-[20px] bg-tint p-5">
+            <h2 className="m-0 text-lg font-semibold text-ink">{t("designerSignup.rules.title")}</h2>
+            <ol className="m-0 mt-3 list-none space-y-2 p-0 text-[15px] text-ink">
               {(["r1", "r2", "r3", "r4", "r5"] as const).map((r, i) => (
                 <li key={r} className="flex gap-2">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[0.6875rem] font-bold text-white">
+                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-red)] text-[0.6875rem] font-bold text-white">
                     {count.format(i + 1)}
                   </span>
                   {t(`designerSignup.rules.${r}`)}
                 </li>
               ))}
             </ol>
-            <a href="/legal/designer-rules" target="_blank" className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
+            <a href="/legal/designer-rules" target="_blank" className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-primary underline-offset-4 hover:underline">
               {t("designerSignup.rules.readAll")} →
             </a>
             <Checkbox
@@ -360,7 +360,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
 
       <p className="text-center text-sm text-muted">
         {t("designerSignup.haveAccount")}{" "}
-        <Link href="/login?as=designer" className="font-semibold text-primary hover:underline">
+        <Link href="/login?as=designer" className="font-bold text-primary hover:underline">
           {t("designerSignup.login")}
         </Link>
       </p>

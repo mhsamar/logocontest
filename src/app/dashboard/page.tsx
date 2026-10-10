@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { PRIZE_TEXT } from "@/components/contests/contest-bits";
 import { ClientContestCard } from "@/components/dashboard/client-contest-card";
-import { ACCENT_TEXT } from "@/components/home/sections";
 import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { DesignerDashboard } from "@/components/dashboard/designer-dashboard";
 import { ButtonLink } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell, Panel } from "@/components/ui/panel";
 import { GlideTrack } from "@/components/ui/glide-track";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -82,25 +81,21 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         tone: "rose" as const,
       })),
   ].slice(0, 3);
-  const TONE = { gold: "from-[#fff7e0] to-[#ffe9b8]", blue: "from-[#eaf2ff] to-[#d9e7ff]", rose: "from-[#fff0f3] to-[#ffdce4]" };
+  const TONE = { gold: "bg-gold", blue: "bg-[#5b8def]", rose: "bg-primary" };
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-4">
-      {/* Welcome panel (owner, 2026-10-08: premium and personal) */}
-      <section className="relative animate-rise overflow-hidden bg-aurora rounded-[2rem] p-5 text-ink shadow-frame ring-1 ring-white sm:p-8">
-        <span className="pointer-events-none absolute -right-10 -top-12 size-48 animate-float-soft rounded-full bg-[#ffe2a0]/50 blur-2xl" aria-hidden />
-        <span className="pointer-events-none absolute -bottom-16 left-1/3 size-56 animate-float rounded-full bg-[#ebc9ff]/40 blur-3xl" aria-hidden />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <PageShell>
+      {/* Welcome panel (owner, 2026-10-08: premium and personal; site design 2026-10-10) */}
+      <Panel as="header" className="max-[720px]:py-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="rounded-full bg-gradient-to-br from-[#f4bd2f] via-[#fff1c2] to-[#c9860a] p-[3px] shadow-raised">
+            <span className="rounded-full bg-[image:var(--gradient-red)] p-[3px]">
               <Avatar name={name} url={user.avatarUrl} tone="cream" className="size-16 text-2xl ring-2 ring-white sm:size-20 sm:text-3xl" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-muted">{t("dashboard.welcome")}</p>
-              <h1 className="truncate font-display text-[2rem] italic leading-tight sm:text-[2.5rem]">
-                <span className={ACCENT_TEXT}>{name}</span>
-              </h1>
-              <p className="mt-0.5 flex flex-col text-sm text-muted sm:flex-row sm:gap-1.5">
+              <p className="m-0 text-[15px] font-semibold text-muted">{t("dashboard.welcome")}</p>
+              <h1 className="m-0 truncate text-[clamp(30px,4vw,44px)] font-semibold leading-[1.1] tracking-[-0.04em] text-primary">{name}</h1>
+              <p className="m-0 mt-0.5 flex flex-col text-[15px] text-muted sm:flex-row sm:gap-1.5">
                 {data.profile.businessName && (
                   <span className="truncate">
                     {data.profile.businessName}
@@ -111,105 +106,102 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               </p>
             </div>
           </div>
-          <Link
-            href="/start"
-            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-6 font-semibold text-white shadow-raised transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-primary-dark"
-          >
+          <ButtonLink href="/start" size="lg" className="shrink-0">
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
               <path d="M12 5v14M5 12h14" strokeLinecap="round" />
             </svg>
             {t("dashboard.create")}
-          </Link>
+          </ButtonLink>
         </div>
 
-        <dl className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {stats.map((st, i) => (
-            <div
-              key={st.label}
-              className={cx(
-                "flex animate-rise items-center gap-3 rounded-2xl px-4 py-3 ring-1 backdrop-blur",
-                st.gold ? "bg-gradient-to-br from-[#fff9e8] to-[#ffe9b8] ring-[#f1c75c]/60" : "bg-white/75 ring-white",
-              )}
-              style={{ animationDelay: `${150 + i * 80}ms` }}
-            >
-              <span className={cx("hidden size-10 shrink-0 items-center justify-center rounded-xl sm:flex", st.gold ? "bg-white/70 text-[#8a5105]" : "bg-primary/10 text-primary")} aria-hidden>
+        <dl className="m-0 mt-7 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          {stats.map((st) => (
+            <div key={st.label} className={cx("flex items-center gap-3 rounded-[20px] px-4 py-3.5", st.gold ? "bg-[#fff6d6]" : "bg-chip")}>
+              <span className={cx("hidden size-11 shrink-0 items-center justify-center rounded-[14px] bg-surface sm:flex", st.gold ? "text-gold-ink" : "text-primary")} aria-hidden>
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d={st.icon} />
                 </svg>
               </span>
               <div className="flex min-w-0 flex-col-reverse">
-                <dt className="text-xs text-muted">{st.label}</dt>
-                <dd className={cx("truncate text-xl font-bold tabular-nums sm:text-2xl", st.gold && PRIZE_TEXT)}>{st.value}</dd>
+                <dt className="text-[13px] font-medium text-muted">{st.label}</dt>
+                <dd className={cx("lc-d m-0 truncate text-[22px] font-semibold tabular-nums tracking-[-0.03em] text-ink sm:text-[26px]", st.gold && "text-gold-ink")}>{st.value}</dd>
               </div>
             </div>
           ))}
         </dl>
-        <p className="relative mt-5 flex items-center gap-2 text-sm font-medium text-[#8a5105]">
+        <p className="m-0 mt-5 flex items-center gap-2 text-[15px] font-semibold text-gold-ink">
           <TrophyIcon className="size-5" />
           {t("dashboard.yours")}
         </p>
-      </section>
+      </Panel>
 
-      {attention.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">{t("dashboard.attention.title")}</h2>
-          <ul className="mt-3 grid gap-3 md:grid-cols-3">
-            {attention.map((a, i) => (
-              <li key={a.id} className={cx("flex animate-rise items-center justify-between gap-3 rounded-2xl bg-gradient-to-br p-4 shadow-card ring-1 ring-white", TONE[a.tone])} style={{ animationDelay: `${300 + i * 80}ms` }}>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-ink">{a.brand}</p>
-                  <p className="text-sm text-ink/75">{a.text}</p>
-                </div>
-                <Link href={a.href} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-ink px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-dark">
-                  {a.cta}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.contests.length === 0 ? (
-        <div className="mx-auto mt-10 max-w-xl">
-          <EmptyState title={t("dashboard.emptyTitle")} body={t("dashboard.emptyBody")} action={<ButtonLink href="/start">{t("dashboard.create")}</ButtonLink>} />
-        </div>
-      ) : (
-        <>
-          <nav aria-label={t("dashboard.tabs.label")} className="-mx-4 mt-8 overflow-x-auto px-4 [scrollbar-width:none]">
-            <GlideTrack className="w-max">
-              <ul className="flex w-max gap-1 rounded-full bg-surface p-1 ring-1 ring-line">
-                {DASHBOARD_TABS.map((x) => (
-                  <li key={x}>
-                    <Link
-                      href={`/dashboard?tab=${x}`}
-                      aria-current={x === tab ? "page" : undefined}
-                      className={cx(
-                        "relative flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
-                        x === tab ? "bg-ink text-white" : "text-muted hover:text-ink",
-                      )}
-                    >
-                      {t(`dashboard.tabs.${x}`)}
-                      <span className={cx("rounded-full px-1.5 text-xs tabular-nums", x === tab ? "bg-white/15" : "bg-canvas")}>{formatNumber(counts[x], locale)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </GlideTrack>
-          </nav>
-
-          {shown.length > 0 ? (
-            <ul className="mt-5 space-y-4">
-              {shown.map((c, i) => (
-                <li key={c.id} className="reveal">
-                  <ClientContestCard contest={c} now={now} index={i} addons={addons} />
+      <Panel tone="grey" className="flex-1 max-[720px]:py-6">
+        {attention.length > 0 && (
+          <section className="mb-8">
+            <h2 className="m-0 text-sm font-bold uppercase tracking-[0.12em] text-muted">{t("dashboard.attention.title")}</h2>
+            <ul className="m-0 mt-3 grid list-none gap-2.5 p-0 md:grid-cols-3">
+              {attention.map((a) => (
+                <li key={a.id} className="lc-card lc-rv flex items-center justify-between gap-3 rounded-[22px] p-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className={cx("mt-1.5 size-2.5 shrink-0 rounded-full", TONE[a.tone])} aria-hidden />
+                    <div className="min-w-0">
+                      <p className="m-0 truncate font-bold text-ink">{a.brand}</p>
+                      <p className="m-0 text-sm text-muted">{a.text}</p>
+                    </div>
+                  </div>
+                  <ButtonLink href={a.href} variant="dark" className="shrink-0">
+                    {a.cta}
+                  </ButtonLink>
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="mt-6 rounded-lg border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t("dashboard.emptyTab")}</p>
-          )}
-        </>
-      )}
-    </div>
+          </section>
+        )}
+
+        {data.contests.length === 0 ? (
+          <div className="mx-auto max-w-xl">
+            <EmptyState title={t("dashboard.emptyTitle")} body={t("dashboard.emptyBody")} action={<ButtonLink href="/start">{t("dashboard.create")}</ButtonLink>} />
+          </div>
+        ) : (
+          <>
+            <nav aria-label={t("dashboard.tabs.label")} className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-0 sm:px-0">
+              <GlideTrack className="w-max">
+                <ul className="m-0 flex w-max list-none gap-1 rounded-[18px] bg-surface p-1 ring-1 ring-line">
+                  {DASHBOARD_TABS.map((x) => (
+                    <li key={x}>
+                      <Link
+                        href={`/dashboard?tab=${x}`}
+                        aria-current={x === tab ? "page" : undefined}
+                        className={cx(
+                          "relative flex min-h-11 items-center gap-2 rounded-[14px] px-4 text-[15px] font-bold transition-colors",
+                          x === tab ? "bg-ink text-white" : "text-muted hover:text-ink",
+                        )}
+                      >
+                        {t(`dashboard.tabs.${x}`)}
+                        <span className={cx("rounded-full px-1.5 text-xs tabular-nums", x === tab ? "bg-white/15" : "bg-chip")}>{formatNumber(counts[x], locale)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </GlideTrack>
+            </nav>
+
+            {shown.length > 0 ? (
+              <ul className="m-0 mt-5 list-none space-y-3.5 p-0">
+                {shown.map((c) => (
+                  <li key={c.id} className="lc-rv-soft">
+                    <ClientContestCard contest={c} now={now} addons={addons} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-6">
+                <EmptyState title={t("dashboard.emptyTab")} />
+              </div>
+            )}
+          </>
+        )}
+      </Panel>
+    </PageShell>
   );
 }

@@ -1,7 +1,8 @@
 import type { ContestRow } from "@/lib/contests/browse";
 import { getI18n } from "@/lib/i18n/server";
 import { ContestTile } from "./contest-tile";
-import { RedButton, SectionHead } from "./section-head";
+import { ButtonLink } from "@/components/ui/button";
+import { SectionHead } from "@/components/ui/section-heading";
 
 /** "Contests live right now" (design file), from the open contests; an empty state until there are any. */
 export async function LiveContests({ contests }: { contests: ContestRow[] }) {
@@ -33,9 +34,9 @@ export async function LiveContests({ contests }: { contests: ContestRow[] }) {
             <p className="m-0 text-[var(--lc-muted)]">{t("home.showcase.emptyBody")}</p>
           </div>
         )}
-        <RedButton href={contests.length ? "/contests" : "/start"} className="min-h-[50px] px-[26px]">
+        <ButtonLink href={contests.length ? "/contests" : "/start"} size="lg">
           {contests.length ? t("home.showcase.browse") : t("home.ways.contest.cta")}
-        </RedButton>
+        </ButtonLink>
       </div>
     </section>
   );

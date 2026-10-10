@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ACCENT_TEXT, Icon } from "@/components/home/sections";
+import { Arrow } from "@/components/ui/section-heading";
 import { MockCard, Stars } from "@/components/home/how-it-works";
 import { SAMPLE_LOGOS } from "@/components/home/sample-logos";
 import { Typewriter } from "@/components/home/typewriter";
@@ -21,9 +22,13 @@ export function AccentTitle({ lead, accent, as: Tag = "h2", className, onView = 
 
 export type StepFaq = { q: string; a: string };
 
-/** One step: a huge faint number behind, a mock on one side, the text, ticks and questions on the other. */
+const TICK = "M5 12.5l4.5 4.5L19 7.5";
+const PLUS = "M12 5v14M5 12h14";
+
+/** One step in its own panel (site design, owner 2026-10-10): the mock on one side; the step chip, title, ticks and questions on the other. */
 export function Step({
   n,
+  stepLabel,
   lead,
   accent,
   body,
@@ -31,10 +36,12 @@ export function Step({
   faqs,
   mock,
   flip,
+  tone = "white",
   moreHref,
   moreLabel,
 }: {
   n: number;
+  stepLabel: string;
   lead: string;
   accent: string;
   body: string;
@@ -42,50 +49,47 @@ export function Step({
   faqs: StepFaq[];
   mock: React.ReactNode;
   flip?: boolean;
+  tone?: "white" | "grey";
   moreHref: string;
   moreLabel: string;
 }) {
   return (
-    <section id={`step-${n}`} className="relative scroll-mt-28 py-14 sm:py-20">
-      <span
-        className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 select-none font-display text-[11rem] leading-none text-primary/[0.06] sm:text-[16rem]"
-        aria-hidden
-      >
-        {n}
-      </span>
-      <div className="relative mx-auto grid max-w-5xl items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
-        <div className={cx("flex justify-center", flip && "lg:order-2")}>
-          <div className="w-full max-w-sm animate-float-soft">{mock}</div>
+    <section id={`step-${n}`} className={cx("scroll-mt-32 rounded-[32px] px-6 py-12 sm:px-10 sm:py-16 max-[720px]:rounded-[24px] max-[720px]:px-4", tone === "white" ? "bg-surface" : "bg-frame")}>
+      <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className={cx("lc-rv-soft flex justify-center", flip && "lg:order-2")}>
+          <div className={cx("flex w-full max-w-md justify-center rounded-[28px] px-5 py-10 sm:px-8", tone === "white" ? "bg-frame" : "bg-surface")}>{mock}</div>
         </div>
-        <div>
-          <AccentTitle lead={lead} accent={accent} className="text-h2 lg:text-h2-lg" />
-          <span className="mt-4 block h-1 w-12 rounded-full bg-gradient-to-r from-primary to-accent" aria-hidden />
+        <div className="lc-rv">
+          <span className="inline-flex items-center gap-2 rounded-full bg-tint px-3.5 py-1.5 text-sm font-bold text-primary">{stepLabel}</span>
+          <h2 className="mt-4 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">
+            {lead} <span className="text-primary">{accent}</span>
+          </h2>
           <p className="mt-4 leading-relaxed text-muted">{body}</p>
           <ul className="mt-5 space-y-2.5">
             {points.map((p) => (
-              <li key={p} className="flex items-start gap-2.5 text-ink">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
-                  <Icon d="M5 12.5l4.5 4.5L19 7.5" className="size-3.5" />
+              <li key={p} className="flex items-start gap-2.5 font-medium text-ink">
+                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-tint text-primary">
+                  <Icon d={TICK} className="size-3.5" />
                 </span>
                 {p}
               </li>
             ))}
           </ul>
-          <div className="mt-6 divide-y divide-line border-y border-line">
-            {faqs.map((f) => (
-              <details key={f.q} className="group [&_summary::-webkit-details-marker]:hidden">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-[0.9375rem] font-medium text-ink">
-                  {f.q}
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-primary ring-1 ring-line transition-transform group-open:rotate-45">
-                    <Icon d="M12 5v14M5 12h14" className="size-3.5" />
-                  </span>
-                </summary>
-                <p className="pb-4 pr-8 text-sm leading-relaxed text-muted">{f.a}</p>
-              </details>
-            ))}
-          </div>
-          <Link href={moreHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
-            {moreLabel} →
+          {faqs.length > 0 && (
+            <div className="mt-6 flex flex-col gap-2">
+              {faqs.map((f) => (
+                <details key={f.q} name={`step-${n}-faq`} className="lc-card group rounded-[18px] px-4 [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 py-2 text-[0.9375rem] font-bold text-ink">
+                    {f.q}
+                    <Icon d={PLUS} className="size-4 shrink-0 text-primary transition-transform duration-200 group-open:rotate-45" />
+                  </summary>
+                  <p className="m-0 pb-4 pr-6 text-sm leading-relaxed text-muted">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          )}
+          <Link href={moreHref} className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+            {moreLabel} <Arrow />
           </Link>
         </div>
       </div>
@@ -98,7 +102,7 @@ export function ProfileMock({ t, qrSvg }: { t: Translate; qrSvg: string }) {
   return (
     <MockCard t={t}>
       <div className="flex items-center gap-3">
-        <span className="flex size-14 items-center justify-center rounded-full bg-cream font-display text-2xl italic text-primary-dark" aria-hidden>
+        <span className="flex size-14 items-center justify-center lc-d rounded-full bg-tint text-2xl font-semibold text-primary" aria-hidden>
           R
         </span>
         <div className="min-w-0 flex-1">
@@ -123,8 +127,8 @@ export function WalletMock({ t, prize, net, fee }: { t: Translate; prize: string
   return (
     <MockCard t={t}>
       <p className="text-xs font-semibold uppercase tracking-wider text-muted">{t("designerDash.stats.earned")}</p>
-      <p className="mt-1 text-3xl font-bold text-accent tabular-nums">{net}</p>
-      <div className="mt-4 flex items-center gap-3 rounded-lg bg-canvas p-3">
+      <p className="mt-1 lc-d text-3xl font-semibold tracking-[-0.03em] text-primary tabular-nums">{net}</p>
+      <div className="mt-4 flex items-center gap-3 rounded-[14px] bg-frame p-3">
         <div className="size-10 overflow-hidden rounded-md ring-1 ring-line">
           <div className="flex h-full items-center">{SAMPLE_LOGOS[0]}</div>
         </div>
@@ -138,7 +142,7 @@ export function WalletMock({ t, prize, net, fee }: { t: Translate; prize: string
       </div>
       <div className="mt-3 flex items-center justify-between">
         <Stars value={5} />
-        <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">{t("designerSignup.payout.bkash")}</span>
+        <span className="rounded-full bg-[image:var(--gradient-red)] px-3 py-1 text-xs font-bold text-white">{t("designerSignup.payout.bkash")}</span>
       </div>
     </MockCard>
   );

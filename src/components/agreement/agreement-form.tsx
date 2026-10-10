@@ -45,7 +45,7 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
     >
       <input type="hidden" name="next" value={next} />
 
-      <section className="animate-rise space-y-4 rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6" style={{ animationDelay: "80ms" }}>
+      <section className="space-y-4 lc-card p-5 sm:p-7">
         <h2 className="font-semibold text-ink">{t("agreement.details")}</h2>
         <TextField
           name="fullName"
@@ -100,7 +100,7 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
           required
           error={err("idNumber")}
         />
-        <p className="flex items-start gap-2 rounded-xl bg-canvas px-3 py-2.5 text-xs leading-relaxed text-muted">
+        <p className="flex items-start gap-2 rounded-[14px] bg-chip px-3 py-2.5 text-xs leading-relaxed text-muted">
           <svg viewBox="0 0 24 24" className="mt-px size-4 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
             <rect x="5" y="10" width="14" height="10" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -114,9 +114,9 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
         </p>
       </section>
 
-      <section className="animate-rise rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6" style={{ animationDelay: "160ms" }}>
+      <section className="lc-card p-5 sm:p-7">
         <h2 className="font-semibold text-ink">{text.title}</h2>
-        <div className="mt-3 max-h-80 overflow-y-auto rounded-2xl bg-canvas p-4 text-sm leading-relaxed text-ink ring-1 ring-inset ring-line" tabIndex={0}>
+        <div className="mt-3 max-h-80 overflow-y-auto rounded-2xl bg-chip p-4 text-sm leading-relaxed text-ink ring-1 ring-inset ring-line" tabIndex={0}>
           <p className="font-medium">{text.intro}</p>
           <ol className="mt-3 space-y-2.5">
             {text.clauses.map((c, i) => (
@@ -162,7 +162,7 @@ export function AgreementForm({ defaults, text, next }: { defaults: { fullName: 
       </section>
 
       {state.error && (
-        <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p role="alert" className="rounded-[14px] bg-danger/10 px-4 py-3 text-sm text-danger">
           {t(state.error)}
         </p>
       )}

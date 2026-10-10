@@ -22,20 +22,20 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
   return (
     <article
       className={cx(
-        "group relative flex flex-col overflow-hidden rounded-lg bg-surface transition-shadow hover:shadow-raised sm:flex-row",
-        contest.isHighlighted ? "prize-glow ring-2 ring-[#f1c75c]" : "shadow-card ring-1 ring-line",
+        "lc-card group relative flex flex-col gap-2.5 overflow-hidden p-2.5 transition-shadow hover:shadow-card sm:flex-row",
+        contest.isHighlighted && "!border-2 !border-[#f1c75c]",
       )}
     >
-      <div className="hidden w-40 shrink-0 sm:flex lg:w-48">
+      <div className="hidden w-40 shrink-0 overflow-hidden rounded-[20px] sm:flex lg:w-48">
         <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} flat className="h-full w-full text-[1.6rem]" />
       </div>
 
-      <div className="min-w-0 flex-1 p-4 sm:p-5">
+      <div className="min-w-0 flex-1 p-2.5 sm:p-3">
         <div className="flex items-start gap-3">
           <BrandTile name={contest.brandName} isPrivate={contest.isPrivate} cover={contest.cover} className="size-16 text-[0.9rem] sm:hidden" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-              <h3 className="min-w-0 text-base font-semibold text-ink group-hover:text-primary sm:text-lg">
+              <h3 className="m-0 min-w-0 text-lg font-semibold tracking-[-0.02em] text-ink group-hover:text-primary sm:text-xl">
                 {/* Stretched link: the whole row opens the contest; the heart stays its own button. */}
                 <Link href={`/contest/${contest.slug}`} className="after:absolute after:inset-0">
                   {title}
@@ -45,22 +45,22 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
               <ContestNumber n={contest.number} t={t} locale={locale} />
               <UpgradePills contest={contest} t={t} />
             </div>
-            <p className="mt-1 text-sm text-muted">{meta}</p>
+            <p className="m-0 mt-1 text-[15px] text-muted">{meta}</p>
           </div>
           {saved !== undefined && <SaveButton contestId={contest.id} saved={saved} className="relative z-10 -mr-1 -mt-1 shrink-0" />}
         </div>
-        {contest.description && <p className="mt-3 line-clamp-2 text-[0.9375rem] leading-relaxed text-ink/80">{contest.description}</p>}
+        {contest.description && <p className="m-0 mt-3 line-clamp-2 text-[15px] leading-relaxed text-muted">{contest.description}</p>}
       </div>
 
-      <div className="flex shrink-0 flex-col justify-center gap-3 border-t border-line p-4 sm:w-64 sm:border-l sm:border-t-0 sm:p-5">
+      <div className="flex shrink-0 flex-col justify-center gap-3 rounded-[20px] bg-frame p-3.5 sm:w-64">
         <dl className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col-reverse rounded-md bg-canvas px-3 py-2.5 text-center">
-            <dt className="mt-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted">{t(`wizard.packages.${contest.package}.name`)}</dt>
-            <dd className={cx("text-xl font-extrabold leading-tight tabular-nums", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</dd>
+          <div className="flex flex-col-reverse rounded-[14px] bg-surface px-3 py-2.5 text-center">
+            <dt className="mt-0.5 text-xs font-semibold text-muted">{t(`wizard.packages.${contest.package}.name`)}</dt>
+            <dd className={cx("m-0 text-2xl font-semibold leading-tight tabular-nums", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</dd>
           </div>
-          <div className="flex flex-col-reverse rounded-md bg-canvas px-3 py-2.5 text-center">
-            <dt className="mt-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted">{t("contest.stats.designs")}</dt>
-            <dd className="text-xl font-bold leading-tight text-ink tabular-nums">{formatNumber(contest.entries, locale)}</dd>
+          <div className="flex flex-col-reverse rounded-[14px] bg-surface px-3 py-2.5 text-center">
+            <dt className="mt-0.5 text-xs font-semibold text-muted">{t("contest.stats.designs")}</dt>
+            <dd className="lc-d m-0 text-2xl font-semibold leading-tight text-ink tabular-nums">{formatNumber(contest.entries, locale)}</dd>
           </div>
         </dl>
         <StatusLine contest={contest} now={now} t={t} locale={locale} />

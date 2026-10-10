@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { PageTitle, SectionHead } from "@/components/ui/section-heading";
 import { DesignTile } from "@/components/rewards/design-tile";
 import { getCurrentUser } from "@/lib/auth/session";
 import { cx } from "@/lib/cx";
@@ -24,20 +27,19 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
   const [designs, winners] = await Promise.all([winningDesigns({ month: tab === "month" ? month : null, viewerId: user?.id ?? null, limit: 48 }), pastWinners(12)]);
 
   return (
-    <div className="mx-auto w-full max-w-page px-4 pb-16 pt-6 sm:pt-10">
-      <header className="animate-rise text-center">
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">{t("leaderboard.eyebrow")}</p>
-        <h1 className="mt-2 text-h1 font-bold tracking-tight text-ink lg:text-h1-lg">{t("leaderboard.title")}</h1>
-        <p className="mx-auto mt-2 max-w-xl text-muted">{t("leaderboard.lead")}</p>
-      </header>
+    <PageShell>
+      <Panel as="header">
+        <PageTitle center pill={t("leaderboard.eyebrow")} lead={t("leaderboard.title")} sub={t("leaderboard.lead")} />
+      </Panel>
 
-      <div className="mx-auto mt-6 flex w-full max-w-sm rounded-full bg-surface p-1 ring-1 ring-line">
+      <Panel tone="grey">
+      <div className="mx-auto flex w-full max-w-sm rounded-[18px] bg-surface p-1 ring-1 ring-line">
         {(["month", "all"] as const).map((x) => (
           <Link
             key={x}
             href={x === "month" ? "/leaderboard" : "/leaderboard?tab=all"}
             aria-current={tab === x ? "page" : undefined}
-            className={cx("inline-flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-semibold transition-colors", tab === x ? "bg-ink text-white" : "text-ink hover:bg-canvas")}
+            className={cx("inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-[14px] px-3 text-[15px] font-semibold transition-colors", tab === x ? "bg-ink text-white" : "text-ink hover:bg-chip")}
           >
             {x === "month" ? monthLabel(month, locale) : t("leaderboard.allTime")}
           </Link>
@@ -50,33 +52,36 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
       )}
 
       {designs.length === 0 ? (
-        <p className="mx-auto mt-8 max-w-md rounded-3xl border border-dashed border-line bg-surface px-4 py-12 text-center text-muted">{t(tab === "month" ? "leaderboard.emptyMonth" : "leaderboard.emptyAll")}</p>
+        <div className="mx-auto mt-8 max-w-md">
+          <EmptyState title={t(tab === "month" ? "leaderboard.emptyMonth" : "leaderboard.emptyAll")} />
+        </div>
       ) : (
-        <ol className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <ol className="m-0 mt-8 grid list-none grid-cols-2 gap-3.5 p-0 sm:grid-cols-3 lg:grid-cols-4">
           {designs.map((d, i) => (
-            <li key={d.entryId} className="reveal" style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}>
+            <li key={d.entryId} className="lc-rv">
               <DesignTile d={d} t={t} rank={i} canLike={canLike(user, d.designerId)} />
             </li>
           ))}
         </ol>
       )}
 
-      <section className="mt-14">
-        <h2 className="text-center text-h3 font-bold text-ink lg:text-h3-lg">{t("leaderboard.champions")}</h2>
-        <p className="mx-auto mt-1 max-w-lg text-center text-sm text-muted">{t("leaderboard.championsLead")}</p>
+      </Panel>
+
+      <Panel>
+        <SectionHead lead={t("leaderboard.champions")} accent="" sub={t("leaderboard.championsLead")} />
         {winners.length === 0 ? (
-          <p className="mt-4 text-center text-sm text-muted">{t("leaderboard.noChampions")}</p>
+          <p className="m-0 mt-6 text-center text-muted">{t("leaderboard.noChampions")}</p>
         ) : (
-          <ul className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <ul className="m-0 mt-8 grid list-none grid-cols-2 gap-3.5 p-0 sm:grid-cols-3 lg:grid-cols-6">
             {winners.map((w) => (
-              <li key={w.month}>
-                <p className="mb-1.5 text-center text-xs font-semibold uppercase tracking-wide text-[#8a5105]">{monthLabel(w.month, locale)}</p>
+              <li key={w.month} className="lc-rv">
+                <p className="mb-2 text-center"><span className="rounded-full bg-gold px-2.5 py-1 text-[13px] font-bold text-gold-ink">{monthLabel(w.month, locale)}</span></p>
                 <DesignTile d={w.design} t={t} canLike={canLike(user, w.design.designerId)} />
               </li>
             ))}
           </ul>
         )}
-      </section>
-    </div>
+      </Panel>
+    </PageShell>
   );
 }

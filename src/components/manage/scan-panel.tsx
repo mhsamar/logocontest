@@ -39,7 +39,7 @@ export function ScanPanel({ entryId, unlocked, scan, unlockHref, price }: { entr
         <ul className="mt-1.5 grid grid-cols-4 gap-1.5">
           {list.map((img) => (
             <li key={img.url}>
-              <a href={img.url} target="_blank" rel="noopener noreferrer nofollow" className="block aspect-square overflow-hidden rounded-md bg-canvas ring-1 ring-line hover:ring-primary">
+              <a href={img.url} target="_blank" rel="noopener noreferrer nofollow" className="block aspect-square overflow-hidden rounded-[10px] bg-chip ring-1 ring-line hover:ring-primary">
                 <img src={img.url} alt="" className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
               </a>
             </li>
@@ -49,7 +49,7 @@ export function ScanPanel({ entryId, unlocked, scan, unlockHref, price }: { entr
     );
 
   return (
-    <section className="rounded-xl bg-gradient-to-br from-[#f2fbf6] to-white p-3.5 ring-1 ring-[#c9efdc]">
+    <section className="rounded-[14px] bg-gradient-to-br from-[#f2fbf6] to-white p-3.5 ring-1 ring-[#c9efdc]">
       <div className="flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold text-ink">
           <svg viewBox="0 0 24 24" className="size-4 text-[#0f6b45]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -72,7 +72,7 @@ export function ScanPanel({ entryId, unlocked, scan, unlockHref, price }: { entr
         <div className="mt-2 space-y-3">
           {result &&
             (result.driver === "log" ? (
-              <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-ink">{t("manage.scan.devNote")}</p>
+              <p className="rounded-[12px] bg-warning/10 px-3 py-2 text-xs text-ink">{t("manage.scan.devNote")}</p>
             ) : result.full.length + result.partial.length + result.similar.length + result.pages.length === 0 ? (
               <p className="flex items-center gap-2 text-sm font-medium text-success">
                 <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>

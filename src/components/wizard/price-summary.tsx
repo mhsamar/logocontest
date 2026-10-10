@@ -32,8 +32,8 @@ export function PriceSidebar({ price, feePercent }: { price: Price | null; feePe
   if (!price) return null;
   return (
     <aside className="hidden lg:block">
-      <div className="sticky top-24 rounded-lg bg-surface p-5 shadow-card ring-1 ring-line">
-        <h2 className="mb-3 text-base font-semibold text-ink">{t("wizard.summary.title")}</h2>
+      <div className="sticky top-32 rounded-[28px] border border-line bg-surface p-6 shadow-card">
+        <h2 className="m-0 mb-3 text-lg font-semibold text-ink">{t("wizard.summary.title")}</h2>
         <Rows price={price} feePercent={feePercent} />
       </div>
     </aside>
@@ -48,7 +48,7 @@ export function PriceBar({ price, feePercent }: { price: Price | null; feePercen
   return (
     <div className="lg:hidden">
       {open && (
-        <div className="mb-2 rounded-md bg-canvas px-3 py-2">
+        <div className="mb-2 rounded-[14px] bg-chip px-3 py-2">
           <Rows price={price} feePercent={feePercent} />
         </div>
       )}

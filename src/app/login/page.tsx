@@ -57,7 +57,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // Admin links skip the client/designer choice: the form is the same, and an admin is neither.
   if (!as && (nextPath === "/admin" || nextPath?.startsWith("/admin/"))) {
     return (
-      <AuthCard title={t("auth.login.adminTitle")} subtitle={t("auth.login.adminSubtitle")}>
+      <AuthCard icon="shield" title={t("auth.login.adminTitle")} subtitle={t("auth.login.adminSubtitle")}>
         <LoginForm next={nextPath} />
       </AuthCard>
     );
@@ -66,21 +66,21 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   if (!as) {
     return (
       <AuthCard title={t("auth.login.title")} subtitle={t("auth.login.chooseSubtitle")}>
-        <ul className="space-y-3">
+        <ul className="m-0 list-none space-y-3 p-0">
           {(["client", "designer"] as const).map((role) => (
             <li key={role}>
               <Link
                 href={loginHref(role, nextPath)}
-                className="group flex min-h-20 items-center gap-4 rounded-2xl bg-surface p-4 ring-1 ring-line transition-shadow hover:shadow-raised hover:ring-primary"
+                className="group flex min-h-20 items-center gap-4 rounded-[20px] border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:border-primary hover:shadow-card"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-primary-dark">
+                <span className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-tint text-primary">
                   <RoleIcon as={role} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-semibold text-ink">{t(`auth.login.${role}.choice`)}</span>
-                  <span className="block text-sm text-muted">{t(`auth.login.${role}.choiceLine`)}</span>
+                  <span className="block text-lg font-bold text-ink">{t(`auth.login.${role}.choice`)}</span>
+                  <span className="block text-[15px] text-muted">{t(`auth.login.${role}.choiceLine`)}</span>
                 </span>
-                <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-primary transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </Link>
@@ -93,17 +93,18 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <AuthCard
+      icon={as === "designer" ? "pen" : "lock"}
       title={t(`auth.login.${as}.title`)}
       subtitle={t("auth.login.subtitle")}
       footer={
         <div className="flex flex-col items-center gap-1">
           <p>
             {t("auth.login.newHere")}{" "}
-            <Link href={as === "client" ? "/start" : "/designers/signup"} className="font-semibold text-primary hover:underline">
+            <Link href={as === "client" ? "/start" : "/designers/signup"} className="font-bold text-primary hover:underline">
               {t(`auth.login.${as}.signup`)}
             </Link>
           </p>
-          <Link href={loginHref(null, nextPath)} className="inline-flex min-h-11 items-center font-medium text-muted hover:text-primary">
+          <Link href={loginHref(null, nextPath)} className="inline-flex min-h-11 items-center font-semibold text-muted hover:text-primary">
             {t(`auth.login.${as}.switch`)}
           </Link>
         </div>

@@ -1,12 +1,9 @@
 import { ClientHome } from "@/components/home/client-home";
 import { DesignerHome } from "@/components/home/designer-home";
-import { landingBody, landingHeading } from "@/components/home/landing/fonts";
 import { LandingFaq } from "@/components/home/landing/faq";
 import { LandingHero } from "@/components/home/landing/hero";
-import { HomeFooter } from "@/components/home/landing/home-footer";
-import { HomeNav } from "@/components/home/landing/home-nav";
+import { SiteNav } from "@/components/layout/site-nav";
 import { Join } from "@/components/home/landing/join";
-import { LandingMotion } from "@/components/home/landing/landing-motion";
 import { LiveContests } from "@/components/home/landing/live-contests";
 import { Steps } from "@/components/home/landing/steps";
 import { Trusted } from "@/components/home/landing/trusted";
@@ -16,7 +13,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { brandPictures } from "@/lib/content/brand";
 import { getContact } from "@/lib/content/contact";
 import { liveContests } from "@/lib/contests/browse";
-import { cx } from "@/lib/cx";
 import { faqParams } from "@/lib/home/faq-params";
 import { showsLanding } from "@/lib/home/landing";
 import { homeLogos } from "@/lib/home/logos";
@@ -59,18 +55,16 @@ export default async function HomePage() {
   ];
 
   return (
-    <div data-lc-landing className={cx("lc-landing flex flex-1 flex-col gap-3.5 p-3.5", landingHeading.variable, landingBody.variable)}>
+    <div data-lc-landing className="lc-landing flex flex-1 flex-col gap-3.5 px-3.5 pt-3.5">
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <LandingHero logos={logos} premiumPrize={pricing.packagePrizes.premium} picture={pictures.hero} nav={<HomeNav user={user} />} />
+      <LandingHero logos={logos} premiumPrize={pricing.packagePrizes.premium} picture={pictures.hero} nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
       <Steps logos={logos} />
       <Trusted logos={logos} />
       <Why logos={logos} />
       <Join />
       <LandingFaq params={params} />
-      <HomeFooter />
-      <LandingMotion />
     </div>
   );
 }

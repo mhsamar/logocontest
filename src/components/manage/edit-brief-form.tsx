@@ -53,14 +53,14 @@ export function EditBriefForm({ contestId, initial, backHref }: { contestId: str
 
   return (
     <div className="space-y-5">
-      {STEPS.map(({ key, Step }, i) => (
-        <section key={key} className="animate-rise rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6" style={{ animationDelay: `${i * 60}ms` }}>
-          <h2 className="mb-4 text-lg font-bold text-ink">{t(`wizard.${key}.heading`)}</h2>
+      {STEPS.map(({ key, Step }) => (
+        <section key={key} className="lc-card p-5 sm:p-7">
+          <h2 className="m-0 mb-5 text-[22px] font-semibold tracking-[-0.02em] text-ink">{t(`wizard.${key}.heading`)}</h2>
           {/* Editing a live brief offers every business type and the built-in colours. */}
           <Step brief={brief} update={update} errors={errors} touched={touched} touch={touch} choices={ALL_CHOICES} />
         </section>
       ))}
-      <div className="sticky bottom-3 z-10 rounded-2xl bg-white/90 p-3 shadow-raised ring-1 ring-line backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="sticky bottom-3 z-10 rounded-[22px] bg-white/90 p-3 shadow-card ring-1 ring-line backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-4">
         <p className="text-sm text-muted">{t("manage.edit.notice")}</p>
         <div className="mt-2 flex shrink-0 gap-2 sm:mt-0">
           <ButtonLink href={backHref} variant="secondary">

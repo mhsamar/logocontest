@@ -40,7 +40,7 @@ export function ShareProfile({
     }
   };
   const text = t("designerDash.share.text", { name });
-  const btn = "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-colors";
+  const btn = "inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition-colors";
 
   return (
     <div className={cx("grid gap-5", !stacked && "sm:grid-cols-[1fr_auto] sm:items-center", className)}>
@@ -54,7 +54,7 @@ export function ShareProfile({
             readOnly
             value={url}
             onFocus={(e) => e.currentTarget.select()}
-            className="min-h-11 w-0 flex-1 rounded-md bg-canvas px-3 font-mono text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-11 w-0 flex-1 rounded-[10px] bg-chip px-3 font-mono text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button type="button" onClick={copy} className={cx(btn, "bg-ink text-white hover:bg-primary-dark")}>
             {t("designerDash.share.copy")}
@@ -94,7 +94,7 @@ export function ShareProfile({
 
       <div className={cx("flex flex-col items-center gap-2", stacked && "order-1")}>
         <div
-          className="size-36 rounded-xl bg-white p-2 shadow-card ring-1 ring-line [&>svg]:h-full [&>svg]:w-full"
+          className="size-36 rounded-[14px] bg-white p-2 shadow-card ring-1 ring-line [&>svg]:h-full [&>svg]:w-full"
           role="img"
           aria-label={t("designerDash.share.qrLabel")}
           dangerouslySetInnerHTML={{ __html: qrSvg }}

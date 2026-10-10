@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EditBriefForm } from "@/components/manage/edit-brief-form";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BackLink } from "@/components/ui/back-link";
+import { PageShell, Panel } from "@/components/ui/panel";
+import { PageTitle } from "@/components/ui/section-heading";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { contestRepository } from "@/lib/contests/services";
@@ -26,19 +28,20 @@ export default async function EditContestPage({ params }: PageProps<"/dashboard/
   const back = isAdmin && !contest.isOwner ? `/admin/contests/${contest.slug}` : `/dashboard/contests/${contest.slug}`;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-4">
-      <Link href={back} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-        ← {contest.brandName}
-      </Link>
-      <h1 className="mt-1 text-h1 font-bold tracking-tight text-ink lg:text-4xl">{t("manage.edit.title")}</h1>
-      <p className="mt-2 text-muted">{t("manage.edit.subtitle")}</p>
-      <div className="mt-6">
-        {contest.status === "open" ? (
-          <EditBriefForm contestId={contest.id} initial={record.brief} backHref={back} />
-        ) : (
-          <EmptyState title={t("manage.edit.closed")} />
-        )}
-      </div>
-    </div>
+    <PageShell>
+      <BackLink href={back}>{contest.brandName}</BackLink>
+      <Panel as="header" className="max-[720px]:py-6">
+        <PageTitle lead={t("manage.edit.title")} sub={t("manage.edit.subtitle")} />
+      </Panel>
+      <Panel tone="grey" className="flex-1 max-[720px]:py-4">
+        <div className="mx-auto w-full max-w-3xl">
+          {contest.status === "open" ? (
+            <EditBriefForm contestId={contest.id} initial={record.brief} backHref={back} />
+          ) : (
+            <EmptyState title={t("manage.edit.closed")} />
+          )}
+        </div>
+      </Panel>
+    </PageShell>
   );
 }

@@ -26,9 +26,9 @@ const IDLE: SettingsState = { status: "idle" };
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
-      <h2 className="text-lg font-bold text-ink">{title}</h2>
-      {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+    <section className="lc-card p-5 sm:p-7">
+      <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
+      {subtitle && <p className="m-0 mt-1 text-[15px] text-muted">{subtitle}</p>}
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -177,8 +177,8 @@ export function ProfileForm({
       )}
       {username && (
         <div>
-          <p className="text-sm font-medium text-ink">{t("designerSignup.username.label")}</p>
-          <p className="mt-1.5 flex min-h-12 items-center justify-between gap-3 rounded-md bg-canvas px-3.5 ring-1 ring-inset ring-line">
+          <p className="text-[15px] font-semibold text-ink">{t("designerSignup.username.label")}</p>
+          <p className="mt-1.5 flex min-h-[52px] items-center justify-between gap-3 rounded-[14px] bg-chip px-4 ring-1 ring-inset ring-line">
             <span className="truncate font-mono text-sm text-ink">@{username}</span>
             {profileUrl && (
               <a href={profileUrl} className="shrink-0 text-sm font-semibold text-primary hover:underline">
@@ -323,7 +323,7 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
       className="space-y-4"
       noValidate
     >
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-canvas p-1 ring-1 ring-line" role="tablist">
+      <div className="grid grid-cols-2 gap-1 rounded-[18px] bg-chip p-1 ring-1 ring-line" role="tablist">
         {(["bkash", "bank"] as const).map((type) => (
           <button
             key={type}
@@ -331,7 +331,7 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
             role="tab"
             aria-selected={v.type === type}
             onClick={() => set("type", type)}
-            className={`min-h-10 rounded-full text-sm font-semibold transition-colors ${v.type === type ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+            className={`min-h-11 rounded-[14px] text-[15px] font-bold transition-colors ${v.type === type ? "bg-surface text-primary shadow-card" : "text-muted hover:text-ink"}`}
           >
             {t(`designerSignup.payout.${type}`)}
           </button>

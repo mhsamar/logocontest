@@ -25,10 +25,10 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
 
   return (
     // Gold frame that slowly flows around the card
-    <div className="featured-frame group h-full rounded-[1.6rem] p-[2px] shadow-card transition-[box-shadow,translate] duration-300 hover:-translate-y-1 hover:shadow-raised">
-      <article className="relative flex h-full flex-col overflow-clip rounded-[1.5rem] bg-surface">
+    <div className="lc-card group h-full p-2.5 transition-[box-shadow,translate] duration-300 hover:-translate-y-1 hover:shadow-card">
+      <article className="relative flex h-full flex-col">
         {/* The logo fills the top */}
-        <div className="relative aspect-[4/3] overflow-clip bg-cream/40">
+        <div className="relative aspect-[16/10] overflow-clip rounded-[20px] bg-tile">
           <BrandTile
             name={contest.brandName}
             isPrivate={contest.isPrivate}
@@ -36,12 +36,7 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
             flat
             className="h-full w-full text-[2.4rem] transition-transform duration-700 ease-out group-hover:scale-[1.06]"
           />
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#f4bd2f] to-[#c9860a] px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-raised">
-            <svg viewBox="0 0 24 24" className="size-3.5 animate-[wiggle_2.4s_ease-in-out_infinite]" fill="currentColor" aria-hidden>
-              <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" />
-            </svg>
-            {t("contest.featured")}
-          </span>
+          <span className="absolute left-3 top-3 rounded-full border border-line bg-surface px-2.5 py-1 text-[13px] font-bold text-ink">{t("contest.featured")}</span>
           {contest.isUrgent && (
             <span className="absolute bottom-4 left-3">
               <UrgentBadge label={t("home.card.urgent")} />
@@ -56,30 +51,29 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
           )}
         </div>
 
-        <div className="flex flex-1 flex-col p-4">
+        <div className="flex flex-1 flex-col px-3.5 pb-3.5 pt-5">
           <div className="flex flex-wrap items-center gap-1.5">
             <PackagePill pkg={contest.package} t={t} />
             <ContestNumber n={contest.number} t={t} locale={locale} />
-            {contest.isBlind && <span className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">{t("home.card.blind")}</span>}
-            {secret && <span className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">{secret}</span>}
+            {contest.isBlind && <span className="rounded-full bg-chip px-2.5 py-0.5 text-[13px] font-bold text-ink">{t("home.card.blind")}</span>}
+            {secret && <span className="rounded-full bg-chip px-2.5 py-0.5 text-[13px] font-bold text-ink">{secret}</span>}
           </div>
 
-          <h3 className="mt-2 truncate text-2xl font-bold leading-tight tracking-tight text-ink transition-colors group-hover:text-primary">
+          <h3 className="m-0 mt-2.5 truncate text-[23px] font-semibold leading-tight tracking-[-0.03em] text-ink transition-colors group-hover:text-primary">
             {/* Stretched link: the whole card opens the contest; the heart stays its own button. */}
             <Link href={`/contest/${contest.slug}`} className="after:absolute after:inset-0">
               {contestTitle(contest, t)}
             </Link>
           </h3>
-          <p className="truncate text-sm text-muted">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
+          <p className="m-0 truncate text-base text-muted">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
 
           {/* Prize: shining gold on a dark band, with the way in */}
-          <div className="relative mt-3 flex items-center justify-between gap-3 overflow-clip rounded-2xl bg-gradient-to-r from-[#1f0a05] via-[#3a1208] to-primary-dark px-4 py-3 shadow-card">
-            <span className="pointer-events-none absolute -right-6 -top-8 size-24 rounded-full bg-[#f4bd2f]/20 blur-2xl" aria-hidden />
-            <div className="relative min-w-0">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-[#f6d98b]">{t("browse.featuredCard.prize")}</p>
-              <p className={cx("truncate text-[1.75rem] font-extrabold leading-tight tabular-nums tracking-tight", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
+          <div className="mt-4 flex items-end justify-between gap-3 border-t border-line-soft pt-4">
+            <div className="min-w-0">
+              <p className="m-0 text-xs font-semibold text-muted">{t("browse.featuredCard.prize")}</p>
+              <p className={cx("m-0 truncate text-[36px] font-semibold leading-none tabular-nums", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
             </div>
-            <span className="relative inline-flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/20 transition-colors group-hover:bg-white group-hover:text-ink">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tint px-3 py-1.5 text-[13px] font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-white">
               {open ? (contest.entries === 0 ? t("browse.featuredCard.beFirst") : t("browse.featuredCard.cta")) : t("browse.featuredCard.ctaClosed")}
               <svg viewBox="0 0 24 24" className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M5 12h14M13 6l6 6-6 6" />

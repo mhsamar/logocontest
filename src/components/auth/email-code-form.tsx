@@ -63,11 +63,11 @@ export function EmailCodeForm({ length, variant, onConfirmed }: { length: number
             aria-label={t("auth.verify.codeLabel")}
             aria-invalid={error ? true : undefined}
             className={cx(
-              "min-h-10 w-0 flex-1 rounded-md bg-surface px-3 text-center font-mono text-lg tracking-[0.35em] text-ink ring-1 ring-inset ring-line placeholder:text-line focus:outline-none focus:ring-2 focus:ring-primary",
+              "min-h-11 w-0 flex-1 rounded-[14px] bg-surface px-3 text-center font-mono text-lg tracking-[0.35em] text-ink ring-1 ring-inset ring-line placeholder:text-line focus:outline-none focus:ring-2 focus:ring-primary",
               error && "ring-2 ring-danger",
             )}
           />
-          <Button type="submit" loading={pending} className="min-h-10 px-4">
+          <Button type="submit" loading={pending} className="px-4">
             {t("auth.verify.confirm")}
           </Button>
         </form>

@@ -1,8 +1,8 @@
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { Svg } from "./hero";
+import { Svg } from "@/components/ui/svg";
 import { LogoTile } from "./logo-tile";
-import { SectionHead } from "./section-head";
+import { IconBadge, SectionHead } from "@/components/ui/section-heading";
 
 // Freelancer, design agency, logocontest.bd (same rows as before).
 const COMPARE: { key: "many" | "price" | "original" | "copyright" | "held"; values: [boolean, boolean] }[] = [
@@ -23,9 +23,9 @@ const ICONS = {
 function Feature({ icon, dark, title, body, className = "" }: { icon: string; dark?: boolean; title: string; body: string; className?: string }) {
   return (
     <div className={`lc-rv flex flex-col gap-7 rounded-[28px] bg-[var(--lc-panel-alt)] p-7 ${className}`}>
-      <span className={`lc-g flex h-[60px] w-[60px] items-center justify-center rounded-[18px] ${dark ? "bg-[image:var(--lc-grad-dark)]" : "bg-[image:var(--lc-grad-icon)]"}`}>
+      <IconBadge size="lg" dark={dark}>
         <Svg d={icon} size={28} stroke="#FFFFFF" />
-      </span>
+      </IconBadge>
       <div className="flex flex-col gap-1.5">
         <h3 className="m-0 text-2xl font-semibold tracking-[-0.03em]">{title}</h3>
         <p className="m-0 text-[var(--lc-muted)]">{body}</p>

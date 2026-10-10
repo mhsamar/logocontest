@@ -19,7 +19,7 @@ export default async function VerifyEmailPage() {
 
   if (!user.email || user.emailVerifiedAt) {
     return (
-      <AuthCard title={t("auth.verify.okTitle")} subtitle={t("auth.verify.okBody")}>
+      <AuthCard icon="shield" title={t("auth.verify.okTitle")} subtitle={t("auth.verify.okBody")}>
         <ButtonLink href="/" size="lg" block>
           {t("notFound.home")}
         </ButtonLink>
@@ -29,7 +29,7 @@ export default async function VerifyEmailPage() {
 
   const length = await getSetting("auth.email_code_length");
   return (
-    <AuthCard title={t("auth.verify.pageTitle")} subtitle={t("auth.verify.pageSubtitle", { email: user.email, length })}>
+    <AuthCard icon="mail" title={t("auth.verify.pageTitle")} subtitle={t("auth.verify.pageSubtitle", { email: user.email, length })}>
       <EmailCodeForm length={length} variant="page" />
     </AuthCard>
   );

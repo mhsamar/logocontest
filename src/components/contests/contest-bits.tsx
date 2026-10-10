@@ -51,20 +51,19 @@ export function BrandTile({
       className={cx(
         "flex shrink-0 items-center justify-center overflow-hidden",
         // flat: fills a panel edge to edge (list rows), so no corners or ring of its own.
-        !flat && "rounded-lg ring-1 ring-inset",
-        isPrivate ? "bg-ink text-cream ring-ink" : "bg-cream/60 text-primary-dark ring-cream",
+        !flat && "rounded-[18px]",
+        isPrivate ? "bg-[image:var(--gradient-red-dark)] text-white" : "bg-[#F4EFE4] text-[#7A1E12]",
         className,
       )}
       aria-hidden
     >
-      {isPrivate ? <LockIcon className="size-1/3" /> : <span className="font-serif text-[2.4em] font-bold leading-none">{letter}</span>}
+      {isPrivate ? <LockIcon className="size-1/3" /> : <span className="text-[2.4em] font-medium leading-none" style={{ fontFamily: "Georgia, serif" }}>{letter}</span>}
     </div>
   );
 }
 
-/** Prize amount in metallic gold (owner, 2026-10-08: the flat amber wasn't eye-catching). */
-/** Gold prize amount with a shine that sweeps across (globals.css, UI-JOURNEY §1.5). */
-export const PRIZE_TEXT = "prize-text";
+/** Prize amount: brand red in the heading font (site design, owner 2026-10-10). */
+export const PRIZE_TEXT = "lc-d text-primary tracking-[-0.03em]";
 
 /** Contest name for public lists: private contests never show theirs. */
 export function contestTitle(c: Pick<ContestRow, "brandName" | "isPrivate">, t: Translate) {
@@ -72,18 +71,18 @@ export function contestTitle(c: Pick<ContestRow, "brandName" | "isPrivate">, t: 
 }
 
 const PACKAGE_PILL: Record<PackageKey, string> = {
-  economy: "bg-muted text-white",
-  standard: "bg-ink text-cream",
-  pro: "bg-[#1d4ed8] text-white",
-  premium: "bg-primary text-white",
-  elite: "bg-gradient-to-r from-[#8a5105] via-[#c9860a] to-[#8a5105] text-white",
-  custom: "bg-accent text-white",
+  economy: "bg-chip text-ink",
+  standard: "bg-ink text-white",
+  pro: "bg-ink text-white",
+  premium: "bg-tint text-primary",
+  elite: "bg-tint text-primary",
+  custom: "bg-tint text-primary",
 };
 
-/** Filled package pill (UI-JOURNEY P-02): Starter grey, Growth ink, Pro blue, Premium red, Elite gold, Custom gold. */
+/** Package chip (site design, owner 2026-10-10): Starter grey, Growth and Pro dark, Premium, Elite and Custom red tint. */
 export function PackagePill({ pkg, t }: { pkg: PackageKey; t: Translate }) {
   return (
-    <span className={cx("rounded px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wider", PACKAGE_PILL[pkg])}>
+    <span className={cx("rounded-lg px-2.5 py-1 text-[13px] font-bold", PACKAGE_PILL[pkg])}>
       {t(`wizard.packages.${pkg}.name`)}
     </span>
   );
@@ -106,7 +105,7 @@ function addonLabels(contest: BadgeFlags, t: Translate): string[] {
 export function UpgradePills({ contest, t }: { contest: BadgeFlags; t: Translate }) {
   const pills = addonLabels(contest, t);
   return pills.map((p) => (
-    <span key={p} className="rounded px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary ring-1 ring-inset ring-primary/40">
+    <span key={p} className="rounded-full bg-chip px-2.5 py-0.5 text-[13px] font-bold text-ink">
       {p}
     </span>
   ));
@@ -118,7 +117,7 @@ export function ContestBadges({ contest, t, className }: { contest: BadgeFlags; 
   return (
     <span className={cx("flex flex-wrap gap-1.5", className)}>
       {badges.map((b) => (
-        <span key={b} className="rounded-full bg-cream px-2.5 py-0.5 text-xs font-semibold text-primary-dark">
+        <span key={b} className="rounded-full bg-tint px-2.5 py-1 text-[13px] font-bold text-primary">
           {b}
         </span>
       ))}
@@ -180,7 +179,7 @@ export function StatusLine({
 /** Urgent add-on: a red badge with a pulsing dot (owner, 2026-10-08). */
 export function UrgentBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-white shadow-card">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[13px] font-bold text-white">
       <span className="relative flex size-1.5" aria-hidden>
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-white/80" />
         <span className="relative inline-flex size-1.5 rounded-full bg-white" />
@@ -193,7 +192,7 @@ export function UrgentBadge({ label }: { label: string }) {
 /** Highlight add-on: a gold badge (owner, 2026-10-08). */
 export function HighlightBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#f4bd2f] to-[#c9860a] px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-white shadow-card">
+    <span className="inline-flex items-center gap-1 rounded-full bg-gold px-2.5 py-1 text-[13px] font-bold text-gold-ink">
       <svg viewBox="0 0 24 24" className="size-3" fill="currentColor" aria-hidden>
         <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.7L12 15.4l-5.6 4.1 2.1-6.7L3 8.8h6.8Z" />
       </svg>
