@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
-import { AdmCard, AdmEmpty, ADM_INPUT, CardTitle, KpiGrid, KpiTile, Tabs } from "@/components/admin/ui";
-import { dhakaStart } from "@/lib/admin/analytics";
+import { CustomRange, PeriodTabs } from "@/components/admin/period";
+import { AdmCard, AdmEmpty, CardTitle, KpiGrid, KpiTile } from "@/components/admin/ui";
 import { adminUser } from "@/lib/admin/core";
-import { dashboardStats, type StatsPeriod } from "@/lib/admin/dashboard";
+import { dashboardStats } from "@/lib/admin/dashboard";
 import { firstAdminPage } from "@/lib/admin/nav";
+import { PERIODS, readPeriod } from "@/lib/admin/period";
 import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
@@ -19,51 +20,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("admin.title"), robots: { index: false } };
 }
 
-// Period switcher (design/admin/dashboard.html): Today / 3 days / 7 days / 30 days / All time / Custom.
-const RANGES = ["today", "3", "7", "30", "all", "custom"] as const;
-type Range = (typeof RANGES)[number];
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
-
-/** The period to count, from the ?range= (and ?from=&to= for Custom, Dhaka days). */
-function periodOf(range: Range, from: string, to: string): StatsPeriod | null {
-  if (range === "today") return { since: dhakaStart(0), until: null };
-  if (range === "all") return { since: null, until: null };
-  if (range === "custom") {
-    if (!DAY.test(from) || !DAY.test(to)) return null;
-    const since = new Date(`${from}T00:00:00+06:00`);
-    const until = new Date(new Date(`${to}T00:00:00+06:00`).getTime() + 86_400_000);
-    return Number.isNaN(since.getTime()) || Number.isNaN(until.getTime()) || until <= since ? null : { since, until };
-  }
-  return { since: dhakaStart(Number(range) - 1), until: null };
-}
-
 // A-01 Dashboard (BLUEPRINT §13.1, owner 2026-10-09; design/admin/dashboard.html, owner 2026-10-10).
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
   // Staff without the Dashboard go to the first page they may see (BLUEPRINT §13.2).
   const me = await adminUser();
   if (!me) notFound();
   if (!hasPermission(me, "dashboard.view")) redirect(firstAdminPage(me) ?? "/");
-  const sp = await searchParams;
-  const range: Range = RANGES.find((r) => r === sp.range) ?? "30";
-  const from = typeof sp.from === "string" ? sp.from : "";
-  const to = typeof sp.to === "string" ? sp.to : "";
-  const period = periodOf(range, from, to);
-  const [{ t, locale }, s] = await Promise.all([getI18n(), period ? dashboardStats(period) : dashboardStats({ since: dhakaStart(29), until: null })]);
+  const { range, from, to, period, effective } = readPeriod(await searchParams);
+  const [{ t, locale }, s] = await Promise.all([getI18n(), dashboardStats(effective)]);
   const taka = (n: number) => formatTaka(n, locale);
   const num = (n: number) => formatNumber(n, locale);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
 
-  const switcher = (
-    <Tabs
-      label={t("admin.dashboard.range")}
-      items={RANGES.map((r) => ({
-        href: r === "30" ? "/admin" : `/admin?range=${r}`,
-        label: t(`admin.dashboard.ranges.${r}`),
-        active: r === range,
-        icon: r === "custom" ? ("calendar" as const) : undefined,
-      }))}
-    />
-  );
+  const switcher = <PeriodTabs base="/admin" keys={PERIODS} current={range} />;
 
   if (!s) return <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.notConfigured")} />;
 
@@ -79,25 +48,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     <div className="flex flex-col gap-5">
       <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.lead")} actions={switcher} />
 
-      {range === "custom" && (
-        <AdmCard className="p-4">
-          <form action="/admin" className="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="range" value="custom" />
-            <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-semibold text-adm-strong sm:flex-none">
-              {t("admin.dashboard.from")}
-              <input type="date" name="from" defaultValue={from} required className={ADM_INPUT} />
-            </label>
-            <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-semibold text-adm-strong sm:flex-none">
-              {t("admin.dashboard.to")}
-              <input type="date" name="to" defaultValue={to} required className={ADM_INPUT} />
-            </label>
-            <button type="submit" className="h-12 rounded-[12px] bg-primary px-6 text-[15px] font-bold text-white hover:bg-adm-deep">
-              {t("admin.dashboard.show")}
-            </button>
-            {!period && <p className="m-0 w-full text-sm text-muted">{t("admin.dashboard.customHint")}</p>}
-          </form>
-        </AdmCard>
-      )}
+      {range === "custom" && <CustomRange base="/admin" from={from} to={to} valid={Boolean(period)} />}
 
       <KpiGrid>
         <KpiTile label={t("admin.dashboard.tiles.live")} value={num(s.contestsLive)} icon="live" href="/admin/contests?status=open" />

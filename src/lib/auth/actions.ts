@@ -41,3 +41,12 @@ export async function logout() {
   }
   redirect("/");
 }
+
+/** Sign out from the admin panel: the "You're signed out" page with Sign in again (owner, 2026-10-10). */
+export async function adminLogout() {
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  }
+  redirect("/admin-signed-out");
+}

@@ -59,25 +59,62 @@ export type AdminUserDetail = AdminUserRow & {
   strikeHistory: { id: string; reason: string; issuerRole: string; issuer: string | null; contest: { slug: string; brand: string } | null; createdAt: Date; removedAt: Date | null }[];
   contests: { slug: string; brand: string; status: string; createdAt: Date }[];
   entries: { slug: string; brand: string; number: number; status: string; createdAt: Date }[];
+  /** The profile page's extra facts (design/admin/user-profile.html, owner 2026-10-10). */
+  bio: string | null;
+  designer: {
+    entries: number;
+    wins: number;
+    ratings: Record<1 | 2 | 3 | 4 | 5, number>;
+    payoutType: "bkash" | "bank" | null;
+    agreedAt: Date | null;
+    withdrawals: { amount: number; status: string; method: string; createdAt: Date }[];
+    waiting: number;
+    paidOut: number;
+  } | null;
 };
 
 export async function getUser(id: string): Promise<AdminUserDetail | null> {
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = createAdminClient();
-  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name`).eq("id", id).maybeSingle();
+  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio`).eq("id", id).maybeSingle();
   if (!p) return null;
-  const [strikes, contests, entries, balance] = await Promise.all([
+  const isDesigner = p.role === "designer";
+  const head = { count: "exact" as const, head: true };
+  const none = Promise.resolve({ data: null, count: null });
+  const [strikes, contests, entries, balance, entryCount, winCount, ratings, payout, agreement, withdrawals] = await Promise.all([
     db.from("strikes").select("id, reason, issuer_role, created_at, removed_at, issuer:profiles!issued_by(name), contest:contests!contest_id(slug, brand_name)").eq("user_id", id).order("created_at", { ascending: false }),
     p.role === "client" ? db.from("contests").select("slug, brand_name, status, created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [] }),
     p.role === "designer"
       ? db.from("entries").select("number, status, created_at, contest:contests!contest_id(slug, brand_name)").eq("designer_id", id).order("created_at", { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     p.role === "designer" ? db.rpc("wallet_balance", { p_designer_id: id }) : Promise.resolve({ data: null }),
+    isDesigner ? db.from("entries").select("id", head).eq("designer_id", id) : none,
+    isDesigner ? db.from("entries").select("id", head).eq("designer_id", id).eq("status", "winner") : none,
+    isDesigner ? db.from("entries").select("rating").eq("designer_id", id).not("rating", "is", null).limit(1000) : none,
+    isDesigner ? db.from("designer_payout_methods").select("type").eq("user_id", id).eq("is_default", true).maybeSingle() : none,
+    isDesigner ? db.from("designer_agreements").select("signed_at").eq("designer_id", id).maybeSingle() : none,
+    isDesigner ? db.from("withdrawals").select("amount, status, method_type, created_at").eq("designer_id", id).order("created_at", { ascending: false }).limit(50) : none,
   ]);
+  const ratingCounts: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const r of ((ratings.data ?? []) as { rating: number }[])) if (r.rating >= 1 && r.rating <= 5) ratingCounts[r.rating as 1 | 2 | 3 | 4 | 5]++;
+  const wd = ((withdrawals.data ?? []) as { amount: number; status: string; method_type: string; created_at: string }[]).map((w) => ({ amount: w.amount, status: w.status, method: w.method_type, createdAt: new Date(w.created_at) }));
   return {
     ...toRow(p),
     suspendedUntil: p.suspended_until ? new Date(p.suspended_until as string) : null,
     businessName: (p.business_name as string | null) ?? null,
+    bio: (p.bio as string | null) ?? null,
+    designer: isDesigner
+      ? {
+          entries: entryCount.count ?? 0,
+          wins: winCount.count ?? 0,
+          ratings: ratingCounts,
+          payoutType: ((payout.data as { type: string } | null)?.type as "bkash" | "bank" | undefined) ?? null,
+          agreedAt: (agreement.data as { signed_at: string } | null)?.signed_at ? new Date((agreement.data as { signed_at: string }).signed_at) : null,
+          withdrawals: wd,
+          waiting: wd.filter((w) => w.status === "requested").reduce((a, w) => a + w.amount, 0),
+          paidOut: wd.filter((w) => w.status === "paid").reduce((a, w) => a + w.amount, 0),
+        }
+      : null,
     balance: (balance.data as number | null) ?? null,
     strikeHistory: (strikes.data ?? []).map((s) => {
       const c = one(s.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);

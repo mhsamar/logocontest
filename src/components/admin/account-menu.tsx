@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { logout } from "@/lib/auth/actions";
+import { adminLogout } from "@/lib/auth/actions";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/money";
 import type { AdminMe } from "./admin-nav";
@@ -70,7 +70,7 @@ export function AccountMenu({ me, initial, unread, links }: { me: AdminMe; initi
               ))}
             </div>
           )}
-          <form action={logout} className="flex justify-end px-4 py-3.5">
+          <form action={adminLogout} className="flex justify-end px-4 py-3.5">
             <button type="submit" role="menuitem" className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-tint px-[18px] text-[15px] font-bold text-primary hover:bg-[#f6dad8]">
               <AdminIcon name="logout" size={16} />
               {t("nav.logout")}

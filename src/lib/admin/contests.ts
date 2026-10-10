@@ -61,6 +61,55 @@ export async function listAdminContests(q: { search: string; status: string; pag
   };
 }
 
+/** A-02 Contests page (design/admin/contests.html, owner 2026-10-10): every paid contest with what its cards show. */
+export type AdminContestOverviewRow = AdminContestRow & {
+  package: string;
+  featured: boolean;
+  urgent: boolean;
+  highlighted: boolean;
+  isPrivate: boolean;
+  completedAt: Date | null;
+};
+
+/** Paid contests (not drafts or unpaid), newest first, up to 1,000, with their design counts. */
+export async function adminContestOverview(): Promise<{ rows: AdminContestOverviewRow[]; unpaid: number }> {
+  if (!isSupabaseConfigured()) return { rows: [], unpaid: 0 };
+  const db = createAdminClient();
+  const [{ data }, unpaid] = await Promise.all([
+    db
+      .from("contests")
+      .select("id, slug, contest_number, brand_name, status, package, prize_amount, total_amount, ends_at, completed_at, created_at, is_promoted, is_urgent, is_highlighted, is_private, entries(count), client:profiles!client_id(id, name)")
+      .not("status", "in", "(draft,pending_payment)")
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    db.from("contests").select("id", { count: "exact", head: true }).in("status", ["draft", "pending_payment"]),
+  ]);
+  const rows = (data ?? []).map((c) => {
+    const client = one(c.client as { id: string; name: string } | { id: string; name: string }[] | null);
+    const entries = one(c.entries as { count: number } | { count: number }[] | null);
+    return {
+      id: c.id as string,
+      slug: c.slug as string,
+      number: (c.contest_number as number | null) ?? null,
+      brand: c.brand_name as string,
+      status: c.status as string,
+      client: { id: client?.id ?? "", name: client?.name ?? "—" },
+      prize: c.prize_amount as number,
+      total: c.total_amount as number,
+      entries: entries?.count ?? 0,
+      endsAt: c.ends_at ? new Date(c.ends_at as string) : null,
+      createdAt: new Date(c.created_at as string),
+      package: c.package as string,
+      featured: Boolean(c.is_promoted),
+      urgent: Boolean(c.is_urgent),
+      highlighted: Boolean(c.is_highlighted),
+      isPrivate: Boolean(c.is_private),
+      completedAt: c.completed_at ? new Date(c.completed_at as string) : null,
+    };
+  });
+  return { rows, unpaid: unpaid.count ?? 0 };
+}
+
 export type AdminContestDetail = AdminContestRow & {
   serviceFee: number;
   upgrades: number;

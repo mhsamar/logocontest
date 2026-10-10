@@ -11,12 +11,17 @@ export type AdminEntry = {
   number: number;
   status: string;
   coverUrl: string | null;
-  contest: { slug: string; brand: string };
+  contest: { slug: string; brand: string; number: number | null };
   designer: { id: string; name: string; username: string | null };
   createdAt: Date;
+  /** Comments on the design (design/admin/designs.html). */
+  comments: number;
+  /** True when an image of this design was flagged as a near-duplicate on upload. */
+  flagged: boolean;
 };
 
-const ENTRY_SELECT = "id, number, status, created_at, contest:contests!contest_id(slug, brand_name), designer:profiles!designer_id(id, name, username), images:entry_images!entry_id(position, preview_path)";
+const ENTRY_SELECT =
+  "id, number, status, created_at, contest:contests!contest_id(slug, brand_name, contest_number), designer:profiles!designer_id(id, name, username), images:entry_images!entry_id(position, preview_path, duplicate_of_entry_id), comments:entry_comments(count)";
 
 type EntryRow = {
   id: string;
@@ -25,7 +30,8 @@ type EntryRow = {
   created_at: string;
   contest: unknown;
   designer: unknown;
-  images: { position: number; preview_path: string }[] | null;
+  images: { position: number; preview_path: string; duplicate_of_entry_id: string | null }[] | null;
+  comments: unknown;
 };
 
 const coverPath = (r: EntryRow) => [...(r.images ?? [])].sort((a, b) => a.position - b.position)[0]?.preview_path ?? null;
@@ -36,7 +42,8 @@ async function toEntries(rows: EntryRow[]): Promise<AdminEntry[]> {
     .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600)
     .catch(() => new Map<string, string>());
   return rows.map((r) => {
-    const c = one(r.contest as { slug: string; brand_name: string } | null);
+    const c = one(r.contest as { slug: string; brand_name: string; contest_number: number | null } | null);
+    const n = one(r.comments as { count: number } | { count: number }[] | null);
     const d = one(r.designer as { id: string; name: string; username: string | null } | null);
     const p = coverPath(r);
     return {
@@ -44,9 +51,11 @@ async function toEntries(rows: EntryRow[]): Promise<AdminEntry[]> {
       number: r.number,
       status: r.status,
       coverUrl: p ? (urls.get(p) ?? null) : null,
-      contest: { slug: c?.slug ?? "", brand: c?.brand_name ?? "" },
+      contest: { slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null },
       designer: d ?? { id: "", name: "—", username: null },
       createdAt: new Date(r.created_at),
+      comments: n?.count ?? 0,
+      flagged: (r.images ?? []).some((i) => Boolean(i.duplicate_of_entry_id)),
     };
   });
 }
@@ -69,7 +78,7 @@ export async function duplicatePairs(): Promise<{ entry: AdminEntry; original: A
 
 export async function recentEntries(limit = 40): Promise<AdminEntry[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data } = await createAdminClient().from("entries").select(ENTRY_SELECT).order("created_at", { ascending: false }).limit(limit);
+  const { data } = await createAdminClient().from("entries").select(ENTRY_SELECT).order("created_at", { ascending: false }).limit(Math.min(limit, 300));
   return toEntries((data ?? []) as unknown as EntryRow[]);
 }
 

@@ -38,7 +38,7 @@ export function TableCard({ className, children }: { className?: string; childre
   );
 }
 
-export type PillTone = "good" | "warn" | "bad" | "sample" | "brand" | "neutral";
+export type PillTone = "good" | "warn" | "bad" | "sample" | "brand" | "neutral" | "dark" | "red" | "gold";
 const PILL: Record<PillTone, string> = {
   good: "bg-adm-good-bg text-adm-good",
   warn: "bg-adm-warn-bg text-adm-warn",
@@ -46,6 +46,9 @@ const PILL: Record<PillTone, string> = {
   sample: "bg-adm-sample-bg text-adm-sample",
   brand: "bg-tint text-primary",
   neutral: "bg-[#f0f1f4] text-adm-strong",
+  dark: "bg-ink text-white",
+  red: "bg-primary text-white",
+  gold: "bg-gold text-gold-ink",
 };
 
 export function Pill({ tone = "neutral", className, children }: { tone?: PillTone; className?: string; children: React.ReactNode }) {
@@ -58,7 +61,7 @@ export function KpiTile({ label, value, hint, icon, href, accent = false }: { la
     <>
       <div className="flex min-w-0 flex-col gap-1.5">
         <span className={cx("text-[14.5px] font-semibold", accent ? "text-[#f6dad8]" : "text-muted")}>{label}</span>
-        <span className="lc-d text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums sm:text-[34px]">{value}</span>
+        <span className="lc-d truncate text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums sm:text-[34px]">{value}</span>
         {hint && <span className={cx("text-sm", accent ? "text-[#f6dad8]" : "text-muted")}>{hint}</span>}
       </div>
       {icon && (
@@ -136,6 +139,27 @@ export function AdmCheckbox({ label, className, ...rest }: { label?: React.React
       </span>
       {label}
     </label>
+  );
+}
+
+/** Four small bars for a contest's stage: `step` of them red, or all green when `done`. */
+export function StageSteps({ step, done = false }: { step: number; done?: boolean }) {
+  return (
+    <span className="flex gap-1" aria-hidden>
+      {[1, 2, 3, 4].map((i) => (
+        <span key={i} className={cx("h-1.5 w-[26px] rounded-full", i <= step ? (done ? "bg-adm-pay" : "bg-primary") : "bg-[#e3e4e8]")} />
+      ))}
+    </span>
+  );
+}
+
+/** "29 days left" chip: orange, red in the last day. */
+export function TimeLeft({ children, urgent = false }: { children: React.ReactNode; urgent?: boolean }) {
+  return (
+    <span className={cx("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-[11px] py-[5px] text-sm font-bold", urgent ? "bg-adm-bad-bg text-adm-bad" : "bg-adm-warn-bg text-adm-warn")}>
+      <AdminIcon name="unpaid" size={15} />
+      {children}
+    </span>
   );
 }
 

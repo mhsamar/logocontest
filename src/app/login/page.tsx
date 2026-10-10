@@ -54,14 +54,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const nextPath = typeof sp.next === "string" ? sp.next : undefined;
   const as: As | null = sp.as === "client" || sp.as === "designer" ? sp.as : null;
 
-  // Admin links skip the client/designer choice: the form is the same, and an admin is neither.
-  if (!as && (nextPath === "/admin" || nextPath?.startsWith("/admin/"))) {
-    return (
-      <AuthCard icon="shield" title={t("auth.login.adminTitle")} subtitle={t("auth.login.adminSubtitle")}>
-        <LoginForm next={nextPath} />
-      </AuthCard>
-    );
-  }
+  // Admin links go to the admin sign-in page (owner, 2026-10-10): an admin is neither client nor designer.
+  if (!as && (nextPath === "/admin" || nextPath?.startsWith("/admin/"))) redirect(`/admin-login?next=${encodeURIComponent(nextPath)}`);
 
   if (!as) {
     return (

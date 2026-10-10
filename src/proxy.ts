@@ -13,7 +13,8 @@ export async function proxy(request: NextRequest) {
   // Optimistic check only. Real authorization happens in each page via policies.
   if (!userId && SIGNED_IN_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    // The admin panel has its own sign-in page (owner, 2026-10-10).
+    url.pathname = pathname === "/admin" || pathname.startsWith("/admin/") ? "/admin-login" : "/login";
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
+import { AdminBar } from "@/components/layout/admin-bar";
 import { PointerFx } from "@/components/layout/pointer-fx";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
@@ -13,6 +14,7 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { NoticeBar } from "@/components/layout/notice-bar";
 import { currentNotice } from "@/lib/content/notice";
 import { getMessages } from "@/lib/content/texts";
+import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
@@ -47,7 +49,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const { locale } = await getI18n();
+  const { t, locale } = await getI18n();
   const [messages, notice, user] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser()]);
   // Guests and admins get the designed home page, whose hero holds the nav (owner, 2026-10-10).
   const guestHome = showsLanding(user?.role);
@@ -59,6 +61,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <SiteChrome>
               {/* Measured by ScrollReveal so the floating nav sits below these bars. */}
               <div data-top-bars>
+                {/* Admins browsing the site: who they are and the way back (owner, 2026-10-10). */}
+                {can(user, "admin.access") && <AdminBar role={user!.isSuperAdmin ? t("admin.shell.superAdmin") : user!.adminTitle || t("admin.shell.staff")} />}
                 {notice && <NoticeBar notice={notice} />}
                 <EmailBannerSlot />
               </div>
