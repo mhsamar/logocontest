@@ -50,7 +50,10 @@ async function NavLogo() {
  */
 export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const { t, locale } = await getI18n();
-  const links = (await visibleList("header_menu", locale)).map((item) => ({ href: item.href ?? "/", label: item.text.label }));
+  // Owner, 2026-10-11: a signed-in client gets "My contests" (P-14) where the menu has Browse Contests.
+  const links = (await visibleList("header_menu", locale)).map((item) =>
+    user?.role === "client" && item.href === "/contests" ? { href: "/my-contests", label: t("nav.myContests") } : { href: item.href ?? "/", label: item.text.label },
+  );
   const now = new Date();
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
   const otherLocale = locale === "en" ? "bn" : "en";

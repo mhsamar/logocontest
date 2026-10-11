@@ -201,6 +201,10 @@ Owner, 2026-10-11:
 
 Masonry-style grid of winning logos with business-type filter chips. Tile tap opens the contest in `P-03`.
 
+### P-14 My contests (owner, 2026-10-11)
+
+`/my-contests`, for signed-in clients only (others go to log in or to `/contests`). In the menu (desktop and the phone drawer) a client sees **My contests** where everyone else sees **Browse Contests**. Its own look, not the dashboard, and not every detail: a dark red banner ("Hi [first name], here are your logos", three numbers: Running, Designs received, Logos won, and **New contest**); **Running now**: one large card per running contest with its three newest designs fanned like cards (or "Designs are on the way"), a Live / Choose your winner / Files on the way chip, the brand, what happens next ("5 days left to get designs", "Pick your winner by 19 Oct", "Your winner is preparing the final files"), a four-step bar (Getting designs → Pick a winner → Final files → Done), designs, designers and prize, "N new designs to rate", **Review designs** (or **See the files**) and **Public page**; **Not started yet**: dashed cards to finish a draft or pay; **Your logo shelf**: finished contests as square tiles, the winning logo framed in gold with the trophy, "Finished [month]" or "Ended without a winner". At the bottom: "Need every detail, payments or add-ons? Open the dashboard". English and Bangla.
+
 ### P-13 Design Studio (owner, 2026-10-08)
 
 `/design-studio`, public and indexable. Every design uploaded to any contest collects here automatically, newest first, so visitors see how many logos are made on the site and that new ones come in every day.
