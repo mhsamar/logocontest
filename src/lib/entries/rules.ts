@@ -10,6 +10,12 @@ export type EntryStatus = "active" | "rejected" | "withdrawn" | "removed" | "win
 /** Statuses everyone who can see the contest's entries sees. */
 export const SHOWN_STATUSES: EntryStatus[] = ["active", "winner", "forfeited"];
 
+/**
+ * Designs nobody sees on the site (only admins): removed by an admin, or withdrawn by their own designer
+ * (owner, 2026-10-11).
+ */
+export const GONE_STATUSES: EntryStatus[] = ["removed", "withdrawn"];
+
 export type EntryViewer = { id: string; role: "client" | "designer" | "admin" } | null;
 
 export type ContestForEntries = {
@@ -42,12 +48,12 @@ export function entryScope(contest: ContestForEntries, viewer: EntryViewer): Ent
 export function canSeeEntry(scope: EntryScope, entry: { status: EntryStatus; designerId: string }): boolean {
   switch (scope.kind) {
     case "all":
-      return entry.status !== "removed";
+      return !GONE_STATUSES.includes(entry.status);
     case "public":
-      if (entry.designerId === scope.ownerDesignerId) return entry.status !== "removed";
+      if (entry.designerId === scope.ownerDesignerId) return !GONE_STATUSES.includes(entry.status);
       return SHOWN_STATUSES.includes(entry.status);
     case "own":
-      if (scope.designerId && entry.designerId === scope.designerId) return entry.status !== "removed";
+      if (scope.designerId && entry.designerId === scope.designerId) return !GONE_STATUSES.includes(entry.status);
       return scope.winnerOnly && entry.status === "winner";
     case "none":
       return false;
@@ -71,4 +77,50 @@ export function isPublicDesign(entry: { status: EntryStatus }, contest: PublicDe
   if (!SHOWN_STATUSES.includes(entry.status) || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status) || contest.isPrivate) return false;
   if (!contest.isBlind) return true;
   return entry.status === "winner" && contest.status === "completed" && contest.winnerIsPublic;
+}
+
+/**
+ * A designer may remove (withdraw) their own design while the contest still takes designs (owner, 2026-10-11:
+ * uploaded by mistake, or they think it isn't good). A rejected design can go too; a winner never.
+ */
+export function canWithdraw(entry: { status: EntryStatus; designerId: string }, contest: { status: string; endsAt: Date | null }, viewerId: string | null | undefined, now = new Date()): boolean {
+  if (!viewerId || entry.designerId !== viewerId) return false;
+  if (entry.status !== "active" && entry.status !== "rejected") return false;
+  return contest.status === "open" && (!contest.endsAt || contest.endsAt > now);
+}
+
+export type VoteViewer = { id: string; role: "client" | "designer" | "admin"; status: string } | null;
+
+/**
+ * Like and dislike on designs (owner, 2026-10-11): any designer on other designers' designs they can see,
+ * never their own; a client only on designs in their own contest. Admins don't vote.
+ */
+export function canVote(viewer: VoteViewer, ctx: { contestOwnerId: string; entryDesignerId: string }): boolean {
+  if (!viewer || viewer.status !== "active") return false;
+  if (viewer.role === "client") return viewer.id === ctx.contestOwnerId;
+  if (viewer.role === "designer") return viewer.id !== ctx.entryDesignerId;
+  return false;
+}
+
+/** Ways to order the designs on a contest (owner, 2026-10-11). "top" (best rated first) is the default. */
+export const ENTRY_SORTS = ["top", "liked", "disliked", "comments", "newest"] as const;
+export type EntrySort = (typeof ENTRY_SORTS)[number];
+export const isEntrySort = (v: unknown): v is EntrySort => (ENTRY_SORTS as readonly unknown[]).includes(v);
+
+type Sortable = { number: number; status: EntryStatus; rating: number | null; upVotes: number; downVotes: number; commentCount: number };
+
+/**
+ * Best rated first by default, with the winner on top; the other orders sort by that count only.
+ * Ties: stars, then likes, then the newest design.
+ */
+export function sortEntries<T extends Sortable>(list: readonly T[], sort: EntrySort): T[] {
+  const key = (e: T): number => (sort === "liked" ? e.upVotes : sort === "disliked" ? e.downVotes : sort === "comments" ? e.commentCount : 0);
+  return [...list].sort((a, b) => {
+    if (sort === "newest") return b.number - a.number;
+    if (sort === "top") {
+      const w = Number(b.status === "winner") - Number(a.status === "winner");
+      if (w) return w;
+    }
+    return key(b) - key(a) || (b.rating ?? 0) - (a.rating ?? 0) || b.upVotes - a.upVotes || b.number - a.number;
+  });
 }

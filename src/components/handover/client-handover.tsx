@@ -12,7 +12,7 @@ import { countWords, type HandoverFileType, type HandoverStatus } from "@/lib/ha
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 
-type FileItem = { id: string; type: HandoverFileType; name: string; size: number; url: string | null };
+type FileItem = { id: string; type: HandoverFileType; name: string; size: number; url: string | null; link: string | null };
 
 /** C-17 Handover for the client: waiting, review (download, change, approve) and done. */
 export function ClientHandover({
@@ -80,9 +80,15 @@ export function ClientHandover({
         <li key={f.id} className="flex items-center gap-3 rounded-2xl bg-surface p-3 ring-1 ring-line">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-ink text-[0.6875rem] font-extrabold uppercase text-white">{f.type === "extra" ? "+" : f.type}</span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-ink">{f.name}</span>
+            <span className="block truncate text-sm font-semibold text-ink">{f.link ? t("handover.review.driveName", { type: f.type.toUpperCase() }) : f.name}</span>
             <span className="block text-xs text-muted">{t(`handover.types.${f.type}`)}</span>
           </span>
+          {/* AI and EPS come as Google Drive links (owner, 2026-10-11) */}
+          {f.link && (
+            <a href={f.link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-chip px-3 text-sm font-semibold text-primary ring-1 ring-line hover:ring-primary">
+              {t("handover.review.openDrive")}
+            </a>
+          )}
           {f.url && (
             <a href={f.url} target="_blank" rel="noopener" className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-chip px-3 text-sm font-semibold text-primary ring-1 ring-line hover:ring-primary">
               {t("handover.review.download")}

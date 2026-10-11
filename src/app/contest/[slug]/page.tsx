@@ -9,7 +9,10 @@ import { ContestStats } from "@/components/contests/contest-stats";
 import { EntryCard } from "@/components/entries/entry-card";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { EntrySort } from "@/components/entries/entry-sort";
 import { ReportButton } from "@/components/entries/report-button";
+import { VoteButtons } from "@/components/entries/vote-buttons";
+import { WithdrawButton } from "@/components/entries/withdraw-button";
 import { SaveButton } from "@/components/contests/save-button";
 import { ShareContest } from "@/components/contests/share-contest";
 import { UsedOnIcon } from "@/components/contests/used-on-icon";
@@ -26,7 +29,7 @@ import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
-import { entryScope } from "@/lib/entries/rules";
+import { canVote, canWithdraw, entryScope, isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { siteOrigin } from "@/lib/email";
 import { LikeButton } from "@/components/rewards/like-button";
 import { getI18n } from "@/lib/i18n/server";
@@ -83,6 +86,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const tab = sp.tab === "entries" || sp.tab === "brief" || sp.tab === "comments" ? sp.tab : defaultTab;
   const canSave = can(user, "contest.save");
   const entryNumber = tab === "entries" && typeof sp.entry === "string" ? Number(sp.entry) : null;
+  // Order of the designs (owner, 2026-10-11): best rated first unless the visitor picks another.
+  const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
   const [judgingDays, commentCount, saved, comments, commentMax, entries, entry, viewerHasEntry, designers, fileDays] = await Promise.all([
     getSetting("timers.judging_window_days"),
     contest.canSeeBrief ? countComments(contest.id) : 0,
@@ -90,7 +95,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     tab === "comments" && contest.canSeeBrief ? listComments(contest.id, contest.ownerId, user) : [],
     getSetting("limits.contest_comment_max_length"),
     // Also used for the strip of designs in the header.
-    !blindHidden ? listEntries(contest.id, entryContest, user) : [],
+    !blindHidden ? listEntries(contest.id, entryContest, user, sort) : [],
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
     user?.role === "designer" ? hasEntryIn(contest.id, user.id) : false,
     contestDesigners(contest.id, 5),
@@ -98,7 +103,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   ]);
   const fmt = (n: number) => formatNumber(n, locale);
   const contestUrl = `${await siteOrigin()}/contest/${contest.slug}`;
-  const entriesHref = `/contest/${contest.slug}?tab=entries`;
+  const sortHref = (s: EntrySortKey) => `/contest/${contest.slug}?tab=entries${s === "top" ? "" : `&sort=${s}`}`;
+  const entriesHref = sortHref(sort);
   const loginHref = `/login?next=${encodeURIComponent(`/contest/${contest.slug}?tab=comments`)}`;
   const statusKnown = contest.rawStatus === contest.status;
 
@@ -366,8 +372,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <ContestComments
               contestId={contest.id}
               comments={comments}
-              canComment={can(user, "contest.comment", { contestOwnerId: contest.ownerId })}
+              canComment={can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })}
               loginHref={user ? null : loginHref}
+              designerMustSubmit={user?.role === "designer" && !viewerHasEntry}
               maxLength={commentMax}
             />
           ) : (
@@ -405,13 +412,20 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             />
           </div>
         ) : entries.length > 0 ? (
-          <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
-            {entries.map((e) => (
-              <li key={e.id} className="lc-rv-soft">
-                <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} />
-              </li>
-            ))}
-          </ul>
+          <>
+            {entries.length > 1 && (
+              <div className="mb-4">
+                <EntrySort current={sort} href={sortHref} t={t} />
+              </div>
+            )}
+            <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
+              {entries.map((e) => (
+                <li key={e.id} className="lc-rv-soft">
+                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} />
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <div className="mx-auto max-w-xl">
             <EmptyState
@@ -442,17 +456,42 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <span className="text-xs text-muted">{t(canLike(user, entry.designerId) ? "likes.hint" : "likes.designersOnly")}</span>
             </div>
           )}
+          {/* Like and dislike (owner, 2026-10-11) */}
+          <div className="mb-5">
+            <VoteButtons
+              entryId={entry.id}
+              up={entry.upVotes}
+              down={entry.downVotes}
+              mine={entry.myVote}
+              canVote={canVote(user, { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
+              hint={
+                !user
+                  ? t("entry.votes.login")
+                  : entry.mine
+                    ? t("entry.votes.own")
+                    : user.role === "client"
+                      ? t("entry.votes.ownContest")
+                      : null
+              }
+            />
+          </div>
           <EntryComments
             entryId={entry.id}
             comments={entry.comments}
-            canComment={can(user, "entry.comment", { contestOwnerId: contest.ownerId, isBlind: contest.isBlind, entryDesignerId: entry.designerId, viewerHasEntry })}
-            reason={!user ? "login" : user.role === "designer" && !viewerHasEntry ? "submitFirst" : "notAllowed"}
+            canComment={can(user, "entry.comment", { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
+            reason={!user ? "login" : user.role === "designer" ? "ownOnly" : "notAllowed"}
             loginHref={`/login?next=${encodeURIComponent(`${entriesHref}&entry=${entry.number}`)}`}
             maxLength={commentMax}
           />
           {!entry.mine && (
             <div className="mt-5 border-t border-line pt-2">
               <ReportButton entryId={entry.id} number={entry.number} loginHref={user ? null : `/login?next=${encodeURIComponent(`${entriesHref}&entry=${entry.number}`)}`} />
+            </div>
+          )}
+          {/* The designer removes their own design while the contest is open (owner, 2026-10-11) */}
+          {canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) && (
+            <div className="mt-5 border-t border-line pt-2">
+              <WithdrawButton entryId={entry.id} number={entry.number} afterHref={entriesHref} />
             </div>
           )}
         </EntryViewer>

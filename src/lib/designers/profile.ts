@@ -56,7 +56,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
       "number, status, rating, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
     )
     .eq("designer_id", designerId)
-    .neq("status", "removed")
+    .not("status", "in", "(removed,withdrawn)")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw new Error(error.message);

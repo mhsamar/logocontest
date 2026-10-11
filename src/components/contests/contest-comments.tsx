@@ -12,6 +12,7 @@ export async function ContestComments({
   canComment,
   loginHref,
   maxLength,
+  designerMustSubmit = false,
 }: {
   contestId: string;
   comments: ContestComment[];
@@ -19,6 +20,8 @@ export async function ContestComments({
   /** Set for guests, who get a log-in link. */
   loginHref: string | null;
   maxLength: number;
+  /** A designer who hasn't submitted to this contest yet (owner, 2026-10-11: only they can't comment). */
+  designerMustSubmit?: boolean;
 }) {
   const { t, locale } = await getI18n();
   const now = new Date();
@@ -77,7 +80,7 @@ export async function ContestComments({
           <CommentForm target={{ kind: "contest", contestId }} maxLength={maxLength} />
         ) : (
           <div className="flex flex-col items-center gap-3 py-2 text-center sm:flex-row sm:justify-between sm:text-left">
-            <p className="text-sm text-muted">{loginHref ? t("contest.comments.loginToComment") : t("contest.comments.notAllowed")}</p>
+            <p className="text-sm text-muted">{loginHref ? t("contest.comments.loginToComment") : designerMustSubmit ? t("contest.comments.submitFirst") : t("contest.comments.notAllowed")}</p>
             {loginHref && (
               <ButtonLink href={loginHref} variant="secondary">
                 {t("nav.login")}

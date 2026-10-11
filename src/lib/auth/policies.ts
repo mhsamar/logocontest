@@ -29,9 +29,9 @@ export type CurrentUser = {
 /** What a check may need to know about the thing being acted on. */
 export type PolicyContext = {
   contestOwnerId?: string;
-  /** Design comments: the contest is blind, whose design it is, and whether the viewer submitted to this contest. */
-  isBlind?: boolean;
+  /** Design comments: whose design it is. */
   entryDesignerId?: string;
+  /** Contest comments: whether the viewer submitted a design to this contest. */
   viewerHasEntry?: boolean;
 };
 
@@ -42,15 +42,14 @@ const POLICIES = {
   "admin.access": (user: CurrentUser | null) => isActiveAdmin(user),
   // Guests may start the wizard; signed-in users must be active clients (one account = one role).
   "contest.create": (user: CurrentUser | null) => user === null || (user.role === "client" && user.status === "active"),
-  // Public contest comments: the contest's own client, or any designer (BLUEPRINT §10, owner 2026-10-08).
+  // Public contest comments: the contest's own client, or a designer who submitted to it
+  // (BLUEPRINT §10; owner 2026-10-11: no longer any designer).
   "contest.comment": (user: CurrentUser | null, ctx?: PolicyContext) =>
-    active(user) && (user.role === "designer" || (user.role === "client" && user.id === ctx?.contestOwnerId)),
-  // Design comments (owner, 2026-10-08): the contest's client, or a designer who submitted to it.
-  // In a blind contest other designers can't see the design, so only its own designer.
+    active(user) && ((user.role === "designer" && Boolean(ctx?.viewerHasEntry)) || (user.role === "client" && user.id === ctx?.contestOwnerId)),
+  // Design comments (owner, 2026-10-11): the contest's client, or the design's own designer. Other designers
+  // can't comment on someone else's design (they can like, dislike or report it).
   "entry.comment": (user: CurrentUser | null, ctx?: PolicyContext) =>
-    active(user) &&
-    ((user.role === "client" && user.id === ctx?.contestOwnerId) ||
-      (user.role === "designer" && (ctx?.isBlind ? user.id === ctx.entryDesignerId : Boolean(ctx?.viewerHasEntry)))),
+    active(user) && ((user.role === "client" && user.id === ctx?.contestOwnerId) || (user.role === "designer" && user.id === ctx?.entryDesignerId)),
   // Submitting designs: active designers only (the contest must also be open).
   "entry.submit": (user: CurrentUser | null) => active(user) && user.role === "designer",
   // Saved contests (heart) are for designers.

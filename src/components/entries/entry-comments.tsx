@@ -17,8 +17,8 @@ export async function EntryComments({
   entryId: string;
   comments: EntryComment[];
   canComment: boolean;
-  /** Why the box is missing: a guest, a designer who hasn't submitted yet, or anyone else. */
-  reason: "login" | "submitFirst" | "notAllowed";
+  /** Why the box is missing: a guest, a designer on someone else's design (owner, 2026-10-11), or anyone else. */
+  reason: "login" | "ownOnly" | "notAllowed";
   loginHref: string;
   maxLength: number;
 }) {

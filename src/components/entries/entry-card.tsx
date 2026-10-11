@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { ThumbIcon } from "@/components/entries/vote-buttons";
 import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
 import type { EntryCard as Entry } from "@/lib/entries/queries";
@@ -85,11 +86,22 @@ export function EntryCard({ entry, href, t, fmt }: { entry: Entry; href: string;
             )}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-xs text-muted">
-          {entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}
-        </p>
+        <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted">
+          <span className="min-w-0 truncate">{entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}</span>
+          <span className="shrink-0">{entry.imageCount === 1 ? t("entry.oneMockup") : t("entry.mockups", { n: fmt(entry.imageCount) })}</span>
+        </div>
         <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
-          <span>{entry.imageCount === 1 ? t("entry.oneMockup") : t("entry.mockups", { n: fmt(entry.imageCount) })}</span>
+          {/* Like and dislike counts (owner, 2026-10-11) */}
+          <span className="flex items-center gap-2.5">
+            <span className={cx("flex items-center gap-1", entry.myVote === 1 && "font-semibold text-success")} aria-label={`${t("entry.votes.like")}: ${fmt(entry.upVotes)}`}>
+              <ThumbIcon filled={entry.myVote === 1} className="size-3.5" />
+              {fmt(entry.upVotes)}
+            </span>
+            <span className={cx("flex items-center gap-1", entry.myVote === -1 && "font-semibold text-ink")} aria-label={`${t("entry.votes.dislike")}: ${fmt(entry.downVotes)}`}>
+              <ThumbIcon down filled={entry.myVote === -1} className="size-3.5" />
+              {fmt(entry.downVotes)}
+            </span>
+          </span>
           <span className="flex items-center gap-1" aria-label={`${t("entry.comments.title")}: ${fmt(entry.commentCount)}`}>
             <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
               <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.7A8 8 0 1 1 21 12Z" strokeLinejoin="round" />

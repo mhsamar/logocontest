@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
+import { hasEntryIn } from "@/lib/entries/queries";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { passesNda } from "./nda";
@@ -22,7 +23,8 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   const user = await getCurrentUser();
   const contest = await contestForAction(String(formData.get("contestId") ?? ""));
   if (!contest || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status)) return fail("auth.errors.generic");
-  if (!can(user, "contest.comment", { contestOwnerId: contest.ownerId })) return fail("contest.comments.notAllowed");
+  const viewerHasEntry = user?.role === "designer" ? await hasEntryIn(contest.id, user.id) : false;
+  if (!can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })) return fail(user?.role === "designer" ? "contest.comments.submitFirst" : "contest.comments.notAllowed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
 
   const body = String(formData.get("body") ?? "").replace(/\r\n/g, "\n").trim();

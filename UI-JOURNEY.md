@@ -174,8 +174,8 @@ Owner, 2026-10-10 (fixes from the owner's screenshot): the menu bar stays still 
 Three tabs, **Entries** always first (owner, 2026-10-10: opening a contest shows its designs; with none yet it says so):
 
 - **Brief:** description, short name / app name, logo text and slogan, target audience, chosen styles (as small labelled thumbnails), colours (swatches with hex), where the logo will be used, **What the client needs** (always-included items plus the ticked extras), **Requirements** next to it (owner, 2026-10-08: likes and dislikes are no longer shown, older contests included) (always-on rules plus the ticked ones and other requirements), reference files (owner, 2026-10-08).
-- **Entries:** grid of entry cards (2 columns on phones, 3 on tablets, 4 on desktop). Clicking a card opens `P-04`.
-- **Comments:** the public contest comments, newest last, each with the commenter's name ("Client" badge) or designer username. The client and signed-in designers see a box at the bottom (500 characters, counter); others see "Only the client and designers can comment." with **Log in** for guests. Authors can delete their own comment.
+- **Entries:** grid of entry cards (2 columns on phones, 3 on tablets, 4 on desktop). Clicking a card opens `P-04`. Owner, 2026-10-11: a **Sort** row above the grid (when there are two or more designs): **Top rated** (the default: the winner first, then the client's stars), **Most liked**, **Most disliked**, **Most comments**, **Newest** (`?sort=liked` etc.). Each card shows its like and dislike counts next to the comment count.
+- **Comments:** the public contest comments, newest last, each with the commenter's name ("Client" badge) or designer username. The client and designers who submitted to this contest see a box at the bottom (500 characters, counter) (owner, 2026-10-11: no longer every designer); a designer who hasn't submitted sees "Submit a design to this contest to comment here."; others see "Only the client and designers who submitted to this contest can comment." with **Log in** for guests. Authors can delete their own comment.
 
 What the Entries tab shows depends on who is looking:
 
@@ -189,7 +189,11 @@ Primary button changes by viewer: guest → **Log in to submit**; designer → *
 
 ### P-04 Entry detail (lightbox)
 
-Opens when an entry card is clicked (`?tab=entries&entry=14`, so it can be shared). A large viewer with every mockup of the design (arrows, swipe on mobile, keyboard arrows, a row of thumbnails, "2 / 4"). Owner, 2026-10-08: beside the images (below on phones) the **comment box** for that design: every comment with the author's name ("Client" badge or designer username), newest last, and a box for the client and designers who submitted to the contest (500 characters; no mobile numbers, emails or social names — "Contact details are not allowed."). Below: star rating if given, designer name linking to `P-06` (in blind contests, hidden from everyone except the client), and a small **Report** link (flag icon) → bottom sheet. Owner, 2026-10-08, reasons as a radio list, each with a short line: **Copied from another logo**, **Made with AI**, **Uses a famous brand or trademark**, **Shows contact details**, **Nude, sexual or offensive**, **Something else**; then an optional note (500 characters) and optional links. Anyone signed in who can see the design may report it, except its own designer; guests see "Log in to report". One open report per person per design ("You've already reported this design."). When a designer reports an entry as copied, the sheet also asks for an image of the similar logo (upload) and one or more links to where it appears. Under the submit button, in small text: "False flags get a warning. 3 warnings and your account is closed."
+Opens when an entry card is clicked (`?tab=entries&entry=14`, so it can be shared). A large viewer with every mockup of the design (arrows, swipe on mobile, keyboard arrows, a row of thumbnails, "2 / 4"). Owner, 2026-10-08: beside the images (below on phones) the **comment box** for that design: every comment with the author's name ("Client" badge or designer username), newest last, and a box for the contest's client and the design's own designer (owner, 2026-10-11: other designers can't comment on someone else's design, they like, dislike or report it; they see "Designers can comment only on their own designs.") (500 characters; no mobile numbers, emails or social names — "Contact details are not allowed."). Below: star rating if given, designer name linking to `P-06` (in blind contests, hidden from everyone except the client), and a small **Report** link (flag icon) → bottom sheet. Owner, 2026-10-08, reasons as a radio list, each with a short line: **Copied from another logo**, **Made with AI**, **Uses a famous brand or trademark**, **Shows contact details**, **Nude, sexual or offensive**, **Something else**; then an optional note (500 characters) and optional links. Anyone signed in who can see the design may report it, except its own designer; guests see "Log in to report". One open report per person per design ("You've already reported this design."). When a designer reports an entry as copied, the sheet also asks for an image of the similar logo (upload) and one or more links to where it appears. Under the submit button, in small text: "False flags get a warning. 3 warnings and your account is closed."
+
+Owner, 2026-10-11:
+- **Like / Dislike** (thumbs up and down with counts) above the comments. Any signed-in designer can vote on other designers' designs (never their own); a client only on designs in their own contest; one vote each, tapping it again takes it back, tapping the other switches. Everyone who sees the design sees the counts. Guests see "Log in to like or dislike designs." These votes are separate from the heart likes on winning designs (Leaderboard, §11 of BLUEPRINT).
+- **Remove this design** (bin icon, at the bottom, only for the design's own designer while the contest is open): a confirm pop-up "Remove design #14? It disappears from this contest for everyone, the client too, and can't be brought back." with **Keep it** and **Yes, remove it**. The design becomes withdrawn: hidden on the site, kept for admins.
 
 ### P-05 Winners gallery
 
@@ -332,6 +336,10 @@ Image carousel on top (owner, 2026-10-08: the same large viewer as `P-04`, with 
 
 Confirmation modal with the entry preview: "Make #14 by Rafi your winner? This can't be undone. The designer will send your final files within 3 days." Buttons **Yes, pick this winner** and Cancel. Success screen: "Winner selected! We'll notify you when your files are ready."
 
+Owner, 2026-10-11: after picking, a **congratulations pop-up** (`?won=14` on the manage page, so it survives the refresh) with the winning design (Winner badge and trophy), "Congratulations! You have a winner for [brand]!", "You picked design #14 by @rafi.", and "The designer now has N days to send your final files. Check the logo with the AI copyright checker before you approve them." Two buttons: **AI copyright checker** (opens the checker for that design; when the add-on isn't bought or no checks are left, it scrolls to the checker box, which says why) and **Go to dashboard**. The checker keeps working after the winner is picked (winner selected and handover).
+
+The manage page has the same **Sort** row as `P-03` above the design grid, and the design view has **Like / Dislike** for the client.
+
 ### C-17 Handover
 
 A four-step tracker: Winner picked → Files uploaded → Your review → Done.
@@ -429,13 +437,15 @@ At `/dashboard/agreement`. Intro: "One-time agreement before your first design."
 
 "Design submitted. You're #14 in this contest." Buttons **View my design** (opens it on the contest page) and **Find more contests**.
 
+Owner, 2026-10-11: this is now a **pop-up** over the submit form: a green tick, "Design submitted", "Your design is #14 in this contest.", and two buttons: **View design** (opens it on the contest page) and **Submit new design** (closes the pop-up and empties the form for the next design; closing the pop-up does the same).
+
 ### D-06 My entries
 
 Tabs: Active | Rejected | Won | Past. Each row: preview, contest name, status chip, stars if rated, and an unread-comment dot. Rejected rows show the reason given by the client.
 
 ### D-07 Entry detail (designer view)
 
-Carousel, rating, the design's comment box, and **Submit a new design** (opens `D-04` for the same contest) when the client has asked for changes in a comment. A **Withdraw entry** link sits at the bottom.
+Carousel, rating, the design's comment box, and **Submit a new design** (opens `D-04` for the same contest) when the client has asked for changes in a comment. A **Withdraw entry** link sits at the bottom (owner, 2026-10-11: **Remove this design** in `P-04`, while the contest is open).
 
 ### D-08 You won
 
@@ -443,7 +453,7 @@ Full-screen celebration: "You won! ৳5,000 contest: [brand]". Shows the breakdo
 
 ### D-09 Deliver files
 
-Six required upload rows, one per file type (AI, EPS, SVG, PDF, PNG transparent, JPG), each with a tick when done; when the client asked for extras, an **Extra files** row listing what they asked for (owner, 2026-10-08). Font names field. A copyright transfer agreement in a scroll box with a checkbox. Button **Send files to client**.
+Six required rows, one per file type (AI, EPS, SVG, PDF, PNG transparent, JPG), each with a tick when done (owner, 2026-10-11: **AI and EPS are Google Drive links**, not uploads, because they are big: a blue note says to put them in Google Drive with sharing "Anyone with the link can view" and paste the two links; each row has a link box and **Save link**, then shows the link with **Open** and **Change**. The site checks the link opens for anyone: a private link gets "This link is private. In Google Drive choose Share, then General access: Anyone with the link (Viewer).", a wrong one "Google Drive can't find this file." SVG, PDF, PNG and JPG are still uploaded; the client sees **Open in Google Drive** for the two links and **Download** for the files); when the client asked for extras, an **Extra files** row listing what they asked for (owner, 2026-10-08). Font names field. A copyright transfer agreement in a scroll box with a checkbox. Button **Send files to client**.
 
 After sending: the same four-step tracker as `C-17`, with "Waiting for the client until [date]. If they don't respond, the prize is shared equally among all designers." If a change is requested, the client's note appears at the top with the upload rows reopened.
 

@@ -23,7 +23,8 @@ export type CheckLimits = {
 };
 
 /** Contest statuses in which the client may run a check: judging time, before a winner is picked. */
-export const CHECKABLE_STATUSES = ["open", "judging"] as const;
+// Owner, 2026-10-11: also after a winner is picked (the "You picked a winner" pop-up offers the checker).
+export const CHECKABLE_STATUSES = ["open", "judging", "winner_selected", "handover"] as const;
 export const isCheckable = (status: string) => (CHECKABLE_STATUSES as readonly string[]).includes(status);
 
 export function accessFor(prize: number, addonBought: boolean, limits: Pick<CheckLimits, "freeFrom">): CheckAccess {

@@ -5,6 +5,7 @@ import type { PaymentMethod, VerifiedCallback } from "@/lib/payments/gateway";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CHECKABLE_STATUSES } from "@/lib/logo-check/rules";
 import { checkLimits } from "@/lib/logo-check/run";
 import type { AddonKey } from "./addons";
 
@@ -53,8 +54,8 @@ export async function startAddonCheckout(
     .eq("id", contestId)
     .maybeSingle<ContestFlags>();
   if (!c || c.client_id !== user.id) return { ok: false, error: "not_found" };
-  // The AI copyright checker can also be bought while the client is judging (owner, 2026-10-10).
-  const checkerWhileJudging = "addon" in order && order.addon === "logo_scan" && c.status === "judging";
+  // The AI copyright checker can also be bought while the client is judging (owner, 2026-10-10) and after a winner is picked (2026-10-11).
+  const checkerWhileJudging = "addon" in order && order.addon === "logo_scan" && (CHECKABLE_STATUSES as readonly string[]).includes(c.status);
   if (c.status !== "open" && !checkerWhileJudging) return { ok: false, error: "closed" };
 
   const prices = await addonPrices();

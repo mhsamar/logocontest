@@ -5,6 +5,28 @@ export type HandoverFileType = RequiredFileType | "extra";
 
 export const MAX_EXTRA_FILES = 10;
 
+/**
+ * The AI and EPS files are big, so the winner shares them as Google Drive links ("Anyone with the link can
+ * view") instead of uploading them to the site (owner, 2026-10-11). The other four are still uploaded.
+ */
+export const LINK_TYPES = ["ai", "eps"] as const satisfies readonly RequiredFileType[];
+export const isLinkType = (t: HandoverFileType): t is (typeof LINK_TYPES)[number] => (LINK_TYPES as readonly string[]).includes(t);
+
+/** A Google Drive (or Google Docs) web address: https only, at most 500 characters. Returns it cleaned, or null. */
+export function cleanDriveUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || raw.length > 500) return null;
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" || !["drive.google.com", "docs.google.com"].includes(u.hostname) || u.username || u.password) return null;
+  if (u.pathname === "/" || u.pathname === "") return null;
+  return u.toString();
+}
+
 /** Private bucket for the final files (migration 0022): any type up to 50 MB; extensions are checked here. */
 export const HANDOVER_FILES_BUCKET = "handover-files";
 

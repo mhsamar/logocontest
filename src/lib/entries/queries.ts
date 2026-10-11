@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canSeeEntry, entryScope, SHOWN_STATUSES, showDesignerName, type ContestForEntries, type EntryStatus } from "./rules";
+import { canSeeEntry, entryScope, GONE_STATUSES, SHOWN_STATUSES, showDesignerName, sortEntries, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
 
 /** Designs (entries) on the contest page: the grid, the viewer and their comments (UI-JOURNEY P-03, P-04). */
 
@@ -29,6 +29,10 @@ export type EntryCard = {
   /** Likes on a winning design (owner, 2026-10-09); 0 for other designs. */
   likes: number;
   liked: boolean;
+  /** Like and dislike votes on the design (owner, 2026-10-11), and the viewer's own vote. */
+  upVotes: number;
+  downVotes: number;
+  myVote: -1 | 0 | 1;
 };
 
 export type EntryComment = {
@@ -63,14 +67,30 @@ async function commentCounts(entryIds: string[]): Promise<Map<string, number>> {
   return out;
 }
 
+/** Like and dislike counts per design, and the viewer's own vote (owner, 2026-10-11). */
+async function voteCounts(entryIds: string[], viewerId: string | null): Promise<Map<string, { up: number; down: number; mine: -1 | 0 | 1 }>> {
+  const out = new Map<string, { up: number; down: number; mine: -1 | 0 | 1 }>();
+  if (entryIds.length === 0) return out;
+  const { data } = await createAdminClient().from("entry_votes").select("entry_id, user_id, vote").in("entry_id", entryIds);
+  for (const r of data ?? []) {
+    const v = out.get(r.entry_id as string) ?? { up: 0, down: 0, mine: 0 };
+    if (r.vote === 1) v.up += 1;
+    else v.down += 1;
+    if (viewerId && r.user_id === viewerId) v.mine = r.vote === 1 ? 1 : -1;
+    out.set(r.entry_id as string, v);
+  }
+  return out;
+}
+
 async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentUser | null, previewLimit: number): Promise<EntryCard[]> {
   const sorted = rows.map((r) => ({ ...r, images: [...(r.images ?? [])].sort((a, b) => a.position - b.position) }));
   const paths = sorted.flatMap((r) => r.images.slice(0, previewLimit).map((i) => i.preview_path));
   const winners = sorted.filter((r) => r.status === "winner").map((r) => r.id);
-  const [urls, counts, likes] = await Promise.all([
+  const [urls, counts, likes, votes] = await Promise.all([
     getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS).catch(() => new Map<string, string>()),
     commentCounts(sorted.map((r) => r.id)),
     likesFor(winners, viewer?.id ?? null),
+    voteCounts(sorted.map((r) => r.id), viewer?.id ?? null),
   ]);
   return sorted.map((r) => ({
     id: r.id,
@@ -89,21 +109,23 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     mine: r.designer_id === viewer?.id,
     likes: likes.counts.get(r.id) ?? 0,
     liked: likes.mine.has(r.id),
+    upVotes: votes.get(r.id)?.up ?? 0,
+    downVotes: votes.get(r.id)?.down ?? 0,
+    myVote: votes.get(r.id)?.mine ?? 0,
   }));
 }
 
 const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path)";
 
-/** The designs this viewer may see, winner first, then newest first. */
-export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null): Promise<EntryCard[]> {
+/** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
+export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {
   if (!isSupabaseConfigured()) return [];
   const scope = entryScope(contest, viewer);
   if (scope.kind === "none") return [];
-  const { data, error } = await createAdminClient().from("entries").select(SELECT).eq("contest_id", contestId).neq("status", "removed").order("number", { ascending: false }).limit(500);
+  const { data, error } = await createAdminClient().from("entries").select(SELECT).eq("contest_id", contestId).not("status", "in", `(${GONE_STATUSES.join(",")})`).order("number", { ascending: false }).limit(500);
   if (error) throw new Error(error.message);
   const rows = ((data ?? []) as Row[]).filter((r) => canSeeEntry(scope, { status: r.status, designerId: r.designer_id }));
-  rows.sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner"));
-  return toCards(rows, contest, viewer, 4);
+  return sortEntries(await toCards(rows, contest, viewer, 4), sort);
 }
 
 /** One design with every mockup, its story and its comments; null when this viewer may not see it. */
@@ -143,7 +165,7 @@ export async function listEntryComments(entryId: string, contestOwnerId: string,
 /** Whether this designer has submitted at least one design to the contest (may comment on designs). */
 export async function hasEntryIn(contestId: string, userId: string | undefined): Promise<boolean> {
   if (!userId || !isSupabaseConfigured()) return false;
-  const { count } = await createAdminClient().from("entries").select("id", { count: "exact", head: true }).eq("contest_id", contestId).eq("designer_id", userId).neq("status", "removed");
+  const { count } = await createAdminClient().from("entries").select("id", { count: "exact", head: true }).eq("contest_id", contestId).eq("designer_id", userId).not("status", "in", `(${GONE_STATUSES.join(",")})`);
   return (count ?? 0) > 0;
 }
 

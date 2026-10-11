@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@/components/contests/contest-bits";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { Collage } from "@/components/entries/entry-card";
+import { EntrySort } from "@/components/entries/entry-sort";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { VoteButtons } from "@/components/entries/vote-buttons";
 import { CopyClaim } from "@/components/claims/copy-claim";
 import { ClientHandover } from "@/components/handover/client-handover";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { AddonsPanel } from "@/components/manage/addons-panel";
 import { OwnerActions } from "@/components/manage/owner-actions";
+import { WinnerPopup } from "@/components/manage/winner-popup";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BackLink } from "@/components/ui/back-link";
@@ -27,6 +30,7 @@ import { checkerReady } from "@/lib/logo-check/start";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, listEntries } from "@/lib/entries/queries";
+import { isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
 import { getHandoverByContest } from "@/lib/handover/queries";
@@ -62,8 +66,16 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     winnerIsPublic: contest.winnerIsPublic,
   };
   const entryNumber = typeof sp.entry === "string" ? Number(sp.entry) : null;
+  // Order of the designs (owner, 2026-10-11): best rated first unless the client picks another.
+  const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
+  const listHref = (f: Filter, o: EntrySortKey) => {
+    const q = [f !== "all" && `filter=${f}`, o !== "top" && `sort=${o}`].filter(Boolean).join("&");
+    return q ? `${base}?${q}` : base;
+  };
+  const here = listHref(filter, sort);
+  const withParam = (href: string, param: string) => `${href}${href.includes("?") ? "&" : "?"}${param}`;
   const [entries, prices, s, entry, handover, checks] = await Promise.all([
-    listEntries(contest.id, entryContest, user),
+    listEntries(contest.id, entryContest, user, sort),
     addonPrices(),
     getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days"]),
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
@@ -83,6 +95,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const fileDays = s["timers.designer_file_upload_days"];
   const reviewing = contest.status === "open" || contest.status === "judging";
+  const won = typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
   const fmt = (n: number) => formatNumber(n, locale);
 
   const shown = entries.filter((e) =>
@@ -277,7 +290,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                   {FILTERS.map((f) => (
                     <li key={f}>
                       <Link
-                        href={f === "all" ? base : `${base}?filter=${f}`}
+                        href={listHref(f, sort)}
                         scroll={false}
                         aria-current={f === filter ? "page" : undefined}
                         className={cx(
@@ -295,6 +308,11 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             </nav>
           </div>
 
+          {shown.length > 1 && (
+            <div className="mt-4">
+              <EntrySort current={sort} href={(o) => listHref(filter, o)} t={t} tone="surface" />
+            </div>
+          )}
           {shown.length > 0 ? (
             <ul className="m-0 mt-5 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5">
               {shown.map((e) => (
@@ -306,7 +324,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                   )}
                 >
                   <Link
-                    href={`${base}?${filter !== "all" ? `filter=${filter}&` : ""}entry=${e.number}`}
+                    href={withParam(here, `entry=${e.number}`)}
                     scroll={false}
                     className="relative block"
                     aria-label={t("entry.open", { n: fmt(e.number) })}
@@ -338,6 +356,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         canAct={reviewing && e.status === "active"}
                         fileDays={fileDays}
                         variant="card"
+                        wonHref={withParam(here, `won=${e.number}`)}
                       />
                       <CheckCardAction entryId={e.id} />
                     </div>
@@ -386,7 +405,6 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           </div>
         </aside>
       </Panel>
-      </CheckerProvider>
 
       {/* C-15: one design with the owner tools */}
       {entry && (
@@ -394,7 +412,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           number={entry.number}
           images={entry.previews}
           winner={entry.status === "winner"}
-          closeHref={filter !== "all" ? `${base}?filter=${filter}` : base}
+          closeHref={here}
           byline={
             entry.designer
               ? t("entry.by", {
@@ -412,11 +430,28 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               canAct={reviewing && entry.status === "active"}
               fileDays={fileDays}
               variant="panel"
+              wonHref={withParam(here, `won=${entry.number}`)}
             />
+            {/* Like and dislike (owner, 2026-10-11): the client votes on designs in their own contest */}
+            <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote />
             <EntryComments entryId={entry.id} comments={entry.comments} canComment reason="notAllowed" loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
           </div>
         </EntryViewer>
       )}
+
+      {/* C-16 (owner, 2026-10-11): "You picked a winner" with the AI copyright checker and Go to dashboard */}
+      {won && !entry && (
+        <WinnerPopup
+          entryId={won.id}
+          number={won.number}
+          brand={contest.brandName}
+          designer={won.designer ? (won.designer.username ? `@${won.designer.username}` : won.designer.name) : null}
+          cover={won.previews[0] ?? null}
+          fileDays={fileDays}
+          closeHref={here}
+        />
+      )}
+      </CheckerProvider>
     </PageShell>
   );
 }

@@ -195,3 +195,23 @@ export function CheckCardAction({ entryId }: { entryId: string }) {
     </button>
   );
 }
+
+/**
+ * Opens the checker for one design when it can run (owner, 2026-10-11: from the "You picked a winner" pop-up):
+ * its finished or running check, or a new check. Returns false when it can't (add-on not bought, no checks
+ * left, checker switched off); the caller then shows the checker box, which says why.
+ */
+export function useCheckEntry(): (entryId: string) => boolean {
+  const { setup, open } = useChecker();
+  return (entryId: string) => {
+    if (!setup) return false;
+    const c = setup.state.checks.find((x) => x.entryId === entryId && x.status !== "failed");
+    if (c) {
+      open({ checkId: c.id, step: c.status === "done" ? 3 : undefined });
+      return true;
+    }
+    if (!setup.ready || setup.state.access === "locked" || !setup.state.checkable || setup.state.left <= 0) return false;
+    open({ entryId });
+    return true;
+  };
+}

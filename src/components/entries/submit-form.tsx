@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";
+import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
@@ -128,39 +129,22 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
     ticked.size < DECLARATION_KEYS.length && t("submit.missing.declarations"),
   ].filter(Boolean) as string[];
 
+  // "Submit new design": an empty form for the next design.
+  const startNew = () => {
+    setDone(null);
+    setItems([]);
+    setTicked(new Set());
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const submit = () =>
     start(async () => {
       setError(null);
       const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), declarations: [...ticked] });
       if (!res.ok) return setError(t(res.error.key, res.error.params));
       setDone(res.number);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     });
-
-  if (done !== null) {
-    return (
-      <div className="rounded-2xl bg-surface p-6 text-center shadow-card ring-1 ring-line sm:p-10">
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10 text-success">
-          <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
-            <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <h2 className="mt-4 text-h2 font-bold text-ink">{t("submit.done.title")}</h2>
-        <p className="mt-2 text-muted">{t("submit.done.body", { n: fmt(done) })}</p>
-        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-          <ButtonLink href={`/contest/${slug}?tab=entries&entry=${done}`} size="lg">
-            {t("submit.done.view")}
-          </ButtonLink>
-          <Button variant="secondary" size="lg" onClick={() => location.reload()}>
-            {t("submit.done.another")}
-          </Button>
-          <ButtonLink href="/contests" variant="ghost" size="lg">
-            {t("submit.done.more")}
-          </ButtonLink>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -266,7 +250,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
           </div>
         )}
         {error && <Alert tone="danger">{error}</Alert>}
-        <Button size="lg" block onClick={submit} loading={busy} disabled={missing.length > 0}>
+        <Button size="lg" block onClick={submit} loading={busy} disabled={missing.length > 0 || done !== null}>
           {t("submit.button")}
         </Button>
         <p className="text-center text-sm">
@@ -276,6 +260,33 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
         </p>
       </div>
 
+      {/* D-05 (owner, 2026-10-11): a pop-up after submitting, with View design and Submit new design */}
+      <Modal
+        open={done !== null}
+        onClose={startNew}
+        title={t("submit.done.title")}
+        closeLabel={t("common.close")}
+        footer={
+          <div className="flex w-full flex-col gap-2 sm:flex-row">
+            <ButtonLink href={`/contest/${slug}?tab=entries&entry=${done ?? ""}`} size="lg" className="flex-1">
+              {t("submit.done.view")}
+            </ButtonLink>
+            <Button variant="secondary" size="lg" className="flex-1" onClick={startNew}>
+              {t("submit.done.another")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col items-center py-2 text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-success/10 text-success">
+            <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+              <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <p className="mt-4 text-lg font-semibold text-ink">{done !== null && t("submit.done.body", { n: fmt(done) })}</p>
+          <p className="mt-1 text-sm text-muted">{t("submit.done.next")}</p>
+        </div>
+      </Modal>
     </div>
   );
 }

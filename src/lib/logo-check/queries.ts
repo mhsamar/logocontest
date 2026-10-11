@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Reading } from "./ai";
-import { accessFor, checksLeft, isCheckable, type CheckAccess, type CheckLimits, type CheckStatus, type MatchSource, type Verdict } from "./rules";
+import { accessFor, CHECKABLE_STATUSES, checksLeft, isCheckable, type CheckAccess, type CheckLimits, type CheckStatus, type MatchSource, type Verdict } from "./rules";
 import { checkLimits, LOGO_CHECKS_BUCKET, type Sources } from "./run";
 
 /** Reading checks back (owner, 2026-10-10). Only the contest's client and admins with copyright.view see a check. */
@@ -200,7 +200,7 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
       .eq("requested_by", userId)
       .order("created_at", { ascending: false })
       .limit(200),
-    db.from("contests").select("id, slug, brand_name, contest_number, status, prize_amount, logo_scan").eq("client_id", userId).in("status", ["open", "judging"]),
+    db.from("contests").select("id, slug, brand_name, contest_number, status, prize_amount, logo_scan").eq("client_id", userId).in("status", [...CHECKABLE_STATUSES]),
   ]);
   const list = (rows ?? []) as unknown as Record<string, unknown>[];
   const urls = await getFileStorage()

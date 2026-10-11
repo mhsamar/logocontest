@@ -13,7 +13,8 @@ import { getFileStorage } from "@/lib/storage";
 import { HANDOVER_FILES_BUCKET } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
-import { acceptsFile, countWords, extensionOf, isHandoverType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
+import { driveLinkAccess } from "./drive";
+import { acceptsFile, cleanDriveUrl, countWords, extensionOf, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -50,6 +51,7 @@ export async function prepareHandoverUpload(input: { handoverId: string; fileTyp
   const own = await editableForWinner(input.handoverId);
   if (!own) return fail("handover.errors.closed");
   if (!isHandoverType(input.fileType) || !acceptsFile(input.fileType, input.name)) return fail("handover.errors.type");
+  if (isLinkType(input.fileType)) return fail("handover.errors.useLink");
   const mb = await getSetting("limits.handover_file_max_mb");
   if (!(input.size > 0) || input.size > mb * 1024 * 1024) return fail("handover.errors.size", { mb });
   if (input.fileType === "extra") {
@@ -65,7 +67,7 @@ export async function recordHandoverFile(input: { handoverId: string; fileType: 
   const own = await editableForWinner(input.handoverId);
   if (!own) return fail("handover.errors.closed");
   const type = input.fileType as HandoverFileType;
-  if (!isHandoverType(type) || !pathPattern(own.h).test(input.path) || !input.path.includes(`/${type}-`)) return fail("handover.errors.type");
+  if (!isHandoverType(type) || isLinkType(type) || !pathPattern(own.h).test(input.path) || !input.path.includes(`/${type}-`)) return fail("handover.errors.type");
   const storage = getFileStorage();
   if (!(await storage.exists(HANDOVER_FILES_BUCKET, input.path))) return fail("handover.errors.upload");
   const db = createAdminClient();
@@ -73,10 +75,40 @@ export async function recordHandoverFile(input: { handoverId: string; fileType: 
     const { data: old } = await db.from("handover_files").select("id, path").eq("handover_id", own.h.id).eq("file_type", type);
     if (old?.length) {
       await db.from("handover_files").delete().in("id", old.map((o) => o.id as string));
-      await storage.remove(HANDOVER_FILES_BUCKET, old.map((o) => o.path as string)).catch(() => {});
+      const paths = old.map((o) => o.path as string | null).filter((p): p is string => Boolean(p));
+      if (paths.length) await storage.remove(HANDOVER_FILES_BUCKET, paths).catch(() => {});
     }
   }
   const { error } = await db.from("handover_files").insert({ handover_id: own.h.id, file_type: type, path: input.path, original_name: input.name.slice(0, 200), size_bytes: Math.round(input.size) });
+  if (error) return fail("handover.errors.upload");
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * D-09 (owner, 2026-10-11): the AI and EPS files as Google Drive links. The link must open for anyone
+ * ("Anyone with the link can view"); a new link replaces the old one.
+ */
+export async function saveHandoverLink(input: { handoverId: string; fileType: string; url: string }): Promise<{ ok: true } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const own = await editableForWinner(input.handoverId);
+  if (!own) return fail("handover.errors.closed");
+  const type = input.fileType as HandoverFileType;
+  if (!isHandoverType(type) || !isLinkType(type)) return fail("handover.errors.type");
+  const url = cleanDriveUrl(input.url);
+  if (!url) return fail("handover.errors.driveLink");
+  const access = await driveLinkAccess(url);
+  if (access === "private") return fail("handover.errors.drivePrivate");
+  if (access === "missing") return fail("handover.errors.driveMissing");
+
+  const db = createAdminClient();
+  const { data: old } = await db.from("handover_files").select("id, path").eq("handover_id", own.h.id).eq("file_type", type);
+  if (old?.length) {
+    await db.from("handover_files").delete().in("id", old.map((o) => o.id as string));
+    const paths = old.map((o) => o.path as string | null).filter((p): p is string => Boolean(p));
+    if (paths.length) await getFileStorage().remove(HANDOVER_FILES_BUCKET, paths).catch(() => {});
+  }
+  const { error } = await db.from("handover_files").insert({ handover_id: own.h.id, file_type: type, link_url: url, path: null, size_bytes: null, original_name: "Google Drive" });
   if (error) return fail("handover.errors.upload");
   refresh();
   return { ok: true };
@@ -90,7 +122,7 @@ export async function removeHandoverFile(fileId: string): Promise<{ ok: true } |
   const own = await editableForWinner(file.handover_id as string);
   if (!own) return fail("handover.errors.closed");
   await db.from("handover_files").delete().eq("id", fileId);
-  await getFileStorage().remove(HANDOVER_FILES_BUCKET, [file.path as string]).catch(() => {});
+  if (file.path) await getFileStorage().remove(HANDOVER_FILES_BUCKET, [file.path as string]).catch(() => {});
   refresh();
   return { ok: true };
 }

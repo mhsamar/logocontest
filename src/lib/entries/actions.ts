@@ -18,9 +18,9 @@ import { hasSignedAgreement } from "@/lib/agreements/queries";
 import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
-import { ENTRY_FILES_BUCKET, hasEntryIn } from "./queries";
+import { ENTRY_FILES_BUCKET } from "./queries";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
-import { canSeeEntry, entryScope } from "./rules";
+import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES } from "./rules";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -93,7 +93,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
 
   const db = createAdminClient();
   if (maxPerDesigner > 0) {
-    const { count } = await db.from("entries").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).eq("designer_id", user!.id).neq("status", "removed");
+    const { count } = await db.from("entries").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).eq("designer_id", user!.id).not("status", "in", `(${GONE_STATUSES.join(",")})`);
     if ((count ?? 0) >= maxPerDesigner) return fail("submit.errors.tooMany", { max: maxPerDesigner });
   }
 
@@ -210,12 +210,7 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
   const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
   if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return commentFail("auth.errors.generic");
-  const allowed = can(user, "entry.comment", {
-    contestOwnerId: c.client_id,
-    isBlind: c.is_blind,
-    entryDesignerId: data.designer_id,
-    viewerHasEntry: user.role === "designer" ? await hasEntryIn(c.id, user.id) : false,
-  });
+  const allowed = can(user, "entry.comment", { contestOwnerId: c.client_id, entryDesignerId: data.designer_id });
   if (!allowed) return commentFail("entry.comments.notAllowed");
 
   const body = String(formData.get("body") ?? "").replace(/\r\n/g, "\n").trim();
@@ -331,4 +326,67 @@ export async function reportEntry(input: ReportInput): Promise<{ ok: true } | Fa
   });
   if (error) return fail(error.code === "23505" ? "entry.report.already" : "auth.errors.generic");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// The designer removes their own design (owner, 2026-10-11)
+// ---------------------------------------------------------------------------
+
+/** Uploaded by mistake, or not good enough: the design is withdrawn and disappears from the contest for everyone. */
+export async function withdrawEntry(entryId: string): Promise<{ ok: true } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const user = await getCurrentUser();
+  if (!user || user.status !== "active" || !UUID.test(entryId)) return fail("auth.errors.generic");
+  const db = createAdminClient();
+  const { data } = await db.from("entries").select("id, status, designer_id, contest:contests!contest_id(status, ends_at)").eq("id", entryId).maybeSingle();
+  const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { status: string; ends_at: string | null } | null);
+  if (!data || !c) return fail("auth.errors.generic");
+  if (!canWithdraw({ status: data.status, designerId: data.designer_id }, { status: c.status, endsAt: c.ends_at ? new Date(c.ends_at) : null }, user.id)) return fail("entry.withdraw.notNow");
+  const { data: done } = await db
+    .from("entries")
+    .update({ status: "withdrawn", withdrawn_at: new Date().toISOString(), is_shortlisted: false })
+    .eq("id", entryId)
+    .eq("designer_id", user.id)
+    .in("status", ["active", "rejected"])
+    .select("id")
+    .maybeSingle();
+  if (!done) return fail("entry.withdraw.notNow");
+  refresh();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Like and dislike (owner, 2026-10-11)
+// ---------------------------------------------------------------------------
+
+export type VoteResult = { ok: true; likes: number; dislikes: number; mine: -1 | 0 | 1 } | Fail;
+
+/** 1 = like, -1 = dislike, 0 = take the vote back. Tapping the other one switches the vote. */
+export async function voteEntry(entryId: string, vote: number): Promise<VoteResult> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const user = await getCurrentUser();
+  if (!user) return fail("entry.votes.login");
+  if (!UUID.test(entryId) || ![-1, 0, 1].includes(vote)) return fail("auth.errors.generic");
+
+  const db = createAdminClient();
+  const { data } = await db
+    .from("entries")
+    .select("id, status, designer_id, contest:contests!contest_id(id, client_id, is_blind, is_nda, status, winner_is_public)")
+    .eq("id", entryId)
+    .maybeSingle();
+  const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; client_id: string; is_blind: boolean; is_nda: boolean; status: string; winner_is_public: boolean } | null);
+  if (!data || !c) return fail("auth.errors.generic");
+  if (!canVote(user, { contestOwnerId: c.client_id, entryDesignerId: data.designer_id }))
+    return fail(user.role === "designer" ? "entry.votes.own" : user.role === "client" ? "entry.votes.ownContest" : "entry.votes.notAllowed");
+  const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
+  const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
+  if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return fail("auth.errors.generic");
+
+  const { error } = vote === 0
+    ? await db.from("entry_votes").delete().eq("entry_id", entryId).eq("user_id", user.id)
+    : await db.from("entry_votes").upsert({ entry_id: entryId, user_id: user.id, vote, created_at: new Date().toISOString() }, { onConflict: "entry_id,user_id" });
+  if (error) return fail("auth.errors.generic");
+  const { data: rows } = await db.from("entry_votes").select("vote").eq("entry_id", entryId);
+  const likes = (rows ?? []).filter((r) => r.vote === 1).length;
+  return { ok: true, likes, dislikes: (rows ?? []).length - likes, mine: vote as -1 | 0 | 1 };
 }

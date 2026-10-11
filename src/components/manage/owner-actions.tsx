@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ type Props = {
   fileDays: number;
   /** "card": stars, heart and a "…" menu; "panel": everything spelled out (C-15). */
   variant: "card" | "panel";
+  /** Where to go after picking this design as the winner: the page with the winner pop-up open. */
+  wonHref: string;
 };
 
 function StarIcon({ on, className }: { on: boolean; className?: string }) {
@@ -32,8 +35,9 @@ function StarIcon({ on, className }: { on: boolean; className?: string }) {
 }
 
 /** The client's tools on one design (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
-export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant }: Props) {
+export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant, wonHref }: Props) {
   const { t } = useI18n();
+  const router = useRouter();
   const toast = useToast();
   const [stars, setStars] = useState(rating ?? 0);
   const [hover, setHover] = useState(0);
@@ -90,7 +94,8 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
       const res = await pickWinner(entryId);
       if (!res.ok) return setError(t(res.error));
       setPicking(false);
-      toast(t("manage.winner.done"));
+      // The page shows the "You picked a winner" pop-up (owner, 2026-10-11).
+      router.push(wonHref, { scroll: false });
     });
 
   const starRow = (size: string) => (

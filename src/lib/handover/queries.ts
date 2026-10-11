@@ -36,13 +36,14 @@ export type HandoverView = {
   rating: number | null;
   feedback: string | null;
   deliverables: Deliverable[];
-  files: { id: string; type: HandoverFileType; name: string; size: number; url: string | null }[];
+  /** `link` is a Google Drive link (AI and EPS, owner 2026-10-11); `url` a short-lived download link for an uploaded file. */
+  files: { id: string; type: HandoverFileType; name: string; size: number; url: string | null; link: string | null }[];
 };
 
 const SELECT =
   "id, contest_id, entry_id, designer_id, status, created_at, credited_at, prize, fee_rate, revision_count, revision_note, fonts_note, due_at, submitted_at, review_due_at, approved_at, client_rating, client_feedback, " +
   "contest:contests!contest_id(slug, brand_name, client_id, deliverables), entry:entries!entry_id(number), designer:profiles!designer_id(name, username), " +
-  "files:handover_files!handover_id(id, file_type, path, original_name, size_bytes, created_at)";
+  "files:handover_files!handover_id(id, file_type, path, link_url, original_name, size_bytes, created_at)";
 
 type Row = {
   id: string;
@@ -66,7 +67,7 @@ type Row = {
   contest: { slug: string; brand_name: string; client_id: string; deliverables: Deliverable[] | null } | null;
   entry: { number: number } | null;
   designer: { name: string; username: string | null } | null;
-  files: { id: string; file_type: HandoverFileType; path: string; original_name: string; size_bytes: number; created_at: string }[] | null;
+  files: { id: string; file_type: HandoverFileType; path: string | null; link_url: string | null; original_name: string; size_bytes: number | null; created_at: string }[] | null;
 };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -75,7 +76,7 @@ const date = (v: string | null) => (v ? new Date(v) : null);
 async function toView(r: Row): Promise<HandoverView> {
   const files = [...(r.files ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const urls = await getFileStorage()
-    .createReadUrls(HANDOVER_FILES_BUCKET, files.map((f) => f.path), 3600)
+    .createReadUrls(HANDOVER_FILES_BUCKET, files.map((f) => f.path).filter((p): p is string => Boolean(p)), 3600)
     .catch(() => new Map<string, string>());
   const contest = one(r.contest);
   const { fee, credit } = payoutFor(r.prize, r.fee_rate);
@@ -106,7 +107,7 @@ async function toView(r: Row): Promise<HandoverView> {
     rating: r.client_rating,
     feedback: r.client_feedback,
     deliverables: contest?.deliverables ?? [],
-    files: files.map((f) => ({ id: f.id, type: f.file_type, name: f.original_name, size: f.size_bytes, url: urls.get(f.path) ?? null })),
+    files: files.map((f) => ({ id: f.id, type: f.file_type, name: f.original_name, size: f.size_bytes ?? 0, url: f.path ? (urls.get(f.path) ?? null) : null, link: f.link_url })),
   };
 }
 
