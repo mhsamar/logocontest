@@ -11,6 +11,7 @@ import { passesNda } from "./nda";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSetting } from "@/lib/settings";
 import { PUBLIC_STATUSES } from "./browse";
+import { isFinished } from "./public-statuses";
 import { blockedTerms, contestForAction, deleteOwnComment, insertComment, setSaved } from "./community";
 
 export type CommentFormState = { status: "idle" | "ok" | "error"; error?: { key: MessageKey; params?: MessageParams } };
@@ -23,6 +24,7 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   const user = await getCurrentUser();
   const contest = await contestForAction(String(formData.get("contestId") ?? ""));
   if (!contest || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status)) return fail("auth.errors.generic");
+  if (isFinished(contest.status)) return fail("contest.finished");
   const viewerHasEntry = user?.role === "designer" ? await hasEntryIn(contest.id, user.id) : false;
   if (!can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })) return fail(user?.role === "designer" ? "contest.comments.submitFirst" : "contest.comments.notAllowed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
@@ -54,6 +56,8 @@ export async function toggleSaved(contestId: string, saved: boolean): Promise<{ 
   if (!can(user, "contest.save")) return { ok: false, saved: !saved };
   const contest = await contestForAction(contestId);
   if (!contest || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status)) return { ok: false, saved: !saved };
+  // A finished contest can't be saved any more; taking an old save off still works.
+  if (saved && isFinished(contest.status)) return { ok: false, saved: false };
   await setSaved(user!.id, contest.id, saved);
   return { ok: true, saved };
 }

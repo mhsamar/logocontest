@@ -18,6 +18,7 @@ import { hasSignedAgreement } from "@/lib/agreements/queries";
 import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
+import { isFinished } from "@/lib/contests/public-statuses";
 import { ENTRY_FILES_BUCKET } from "./queries";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES } from "./rules";
@@ -207,6 +208,7 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
       winner_is_public: boolean;
     } | null);
   if (!data || !c) return commentFail("auth.errors.generic");
+  if (isFinished(c.status)) return commentFail("contest.finished");
   const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
   const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
   if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return commentFail("auth.errors.generic");
@@ -289,6 +291,7 @@ export async function reportEntry(input: ReportInput): Promise<{ ok: true } | Fa
     data &&
     ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; client_id: string; is_blind: boolean; is_private: boolean; is_nda: boolean; status: string; winner_is_public: boolean } | null);
   if (!data || !c) return fail("auth.errors.generic");
+  if (isFinished(c.status)) return fail("contest.finished");
   if (data.designer_id === user.id) return fail("entry.report.own");
   const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
   const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
@@ -376,6 +379,7 @@ export async function voteEntry(entryId: string, vote: number): Promise<VoteResu
     .maybeSingle();
   const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; client_id: string; is_blind: boolean; is_nda: boolean; status: string; winner_is_public: boolean } | null);
   if (!data || !c) return fail("auth.errors.generic");
+  if (isFinished(c.status)) return fail("contest.finished");
   if (!canVote(user, { contestOwnerId: c.client_id, entryDesignerId: data.designer_id }))
     return fail(user.role === "designer" ? "entry.votes.own" : user.role === "client" ? "entry.votes.ownContest" : "entry.votes.notAllowed");
   const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);

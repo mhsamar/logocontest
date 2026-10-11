@@ -56,7 +56,7 @@ async function toSquare(img: HTMLImageElement, px: number): Promise<Blob> {
   return jpeg;
 }
 
-/** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups, each made px×px automatically, and seven declarations. */
+/** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups in one box each (drag and drop works), each made px×px automatically, and seven declarations. */
 export function SubmitForm({ contestId, slug, limits }: { contestId: string; slug: string; limits: Limits }) {
   const { t, locale } = useI18n();
   const toast = useToast();
@@ -65,6 +65,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
   const [ticked, setTicked] = useState<Set<DeclarationKey>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  const [over, setOver] = useState(false);
   const [busy, start] = useTransition();
   const fmt = (n: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(n);
 
@@ -155,64 +156,103 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
           <span className="text-sm font-semibold tabular-nums text-muted">{t("submit.mockups.counter", { n: fmt(items.length), max: fmt(limits.max) })}</span>
         </div>
 
+        <p className="m-0 mt-1 text-sm font-medium text-primary-dark">{t("submit.mockups.rule", { max: fmt(limits.max), mb: fmt(limits.mb) })}</p>
+        <p className="m-0 mt-0.5 text-xs text-muted">
+          {slotsLeft <= 0 ? t("submit.mockups.full", { max: fmt(limits.max) }) : `${t("submit.mockups.drop")} ${t("submit.mockups.addHint", { px: limits.px })}`}
+        </p>
+
         <input
           ref={input}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           multiple
           className="sr-only"
+          tabIndex={-1}
           onChange={(e) => {
             const files = [...(e.target.files ?? [])];
             e.target.value = "";
             void pick(files);
           }}
         />
-        <button
-          type="button"
-          onClick={() => input.current?.click()}
-          disabled={slotsLeft <= 0}
-          className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-line bg-chip/60 px-4 py-8 text-center transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-line"
+        {/* One box per mockup (owner, 2026-10-11): filled boxes first, then the empty ones. Drop images anywhere here. */}
+        <div
+          className="relative mt-4"
+          onDragOver={(e) => {
+            if (slotsLeft <= 0 || !e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            setOver(true);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setOver(false);
+            const all = [...e.dataTransfer.files];
+            const files = all.filter((f) => TYPES.includes(f.type));
+            if (files.length < all.length) toast(t("submit.errors.type"), "danger");
+            void pick(files);
+          }}
         >
-          <span className="flex size-12 items-center justify-center rounded-full bg-tint text-primary" aria-hidden>
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 16V4M7 9l5-5 5 5M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <span className="font-semibold text-ink">{t("submit.mockups.add")}</span>
-          <span className="text-sm font-medium text-primary-dark">{t("submit.mockups.rule", { max: fmt(limits.max), mb: fmt(limits.mb) })}</span>
-          <span className="text-xs text-muted">{slotsLeft <= 0 ? t("submit.mockups.full", { max: fmt(limits.max) }) : t("submit.mockups.addHint", { px: limits.px })}</span>
-        </button>
-
-        {items.length > 0 && (
-          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {items.map((item, i) => (
-              <li key={item.key} className={cx("relative overflow-hidden rounded-[14px] bg-chip ring-1", i === 0 ? "ring-2 ring-primary" : "ring-line")}>
-                <img src={item.url} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square w-full object-cover" />
-                <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-xs font-bold text-white">
-                  {i === 0 ? t("submit.mockups.cover") : fmt(i + 1)}
-                </span>
-                {item.status !== "done" && (
-                  <div className={cx("absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs font-semibold", item.status === "failed" ? "bg-danger/80 text-white" : "bg-white/70 text-ink")}>
-                    {item.status === "uploading" && <Spinner className="size-5" />}
-                    {item.status === "uploading" ? t("submit.mockups.uploading") : t("submit.mockups.failed")}
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-1 border-t border-line bg-surface px-1.5 py-1">
-                  {i > 0 && item.status === "done" ? (
-                    <button type="button" onClick={() => makeCover(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-primary hover:bg-chip">
-                      {t("submit.mockups.makeCover")}
+          <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
+            {Array.from({ length: limits.max }, (_, i) => {
+              const item = items[i];
+              if (!item)
+                return (
+                  <li key={`empty-${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => input.current?.click()}
+                      aria-label={t("submit.mockups.slot", { n: fmt(i + 1) })}
+                      className={cx(
+                        "flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed bg-chip/60 text-muted transition-colors hover:border-primary hover:text-primary",
+                        i === items.length ? "border-primary/60" : "border-line",
+                      )}
+                    >
+                      <span className="flex size-10 items-center justify-center rounded-full bg-tint text-primary" aria-hidden>
+                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      <span className="text-xs font-semibold">{i === 0 ? t("submit.mockups.cover") : fmt(i + 1)}</span>
                     </button>
-                  ) : (
-                    <span />
+                  </li>
+                );
+              return (
+                <li key={item.key} className={cx("relative overflow-hidden rounded-[14px] bg-chip ring-1", i === 0 ? "ring-2 ring-primary" : "ring-line")}>
+                  <img src={item.url} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square w-full object-cover" />
+                  <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-xs font-bold text-white">
+                    {i === 0 ? t("submit.mockups.cover") : fmt(i + 1)}
+                  </span>
+                  {item.status !== "done" && (
+                    <div className={cx("absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs font-semibold", item.status === "failed" ? "bg-danger/80 text-white" : "bg-white/70 text-ink")}>
+                      {item.status === "uploading" && <Spinner className="size-5" />}
+                      {item.status === "uploading" ? t("submit.mockups.uploading") : t("submit.mockups.failed")}
+                    </div>
                   )}
-                  <button type="button" onClick={() => remove(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-muted hover:bg-chip hover:text-danger">
-                    {t("submit.mockups.remove")}
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center justify-between gap-1 border-t border-line bg-surface px-1.5 py-1">
+                    {i > 0 && item.status === "done" ? (
+                      <button type="button" onClick={() => makeCover(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-primary hover:bg-chip">
+                        {t("submit.mockups.makeCover")}
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                    <button type="button" onClick={() => remove(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-muted hover:bg-chip hover:text-danger">
+                      {t("submit.mockups.remove")}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-        )}
+          {over && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[14px] border-2 border-dashed border-primary bg-tint/90 text-center text-sm font-bold text-primary">
+              {t("submit.mockups.dropHere")}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* 2. Confirm */}

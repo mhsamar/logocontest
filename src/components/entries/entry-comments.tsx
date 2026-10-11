@@ -18,7 +18,7 @@ export async function EntryComments({
   comments: EntryComment[];
   canComment: boolean;
   /** Why the box is missing: a guest, a designer on someone else's design (owner, 2026-10-11), or anyone else. */
-  reason: "login" | "ownOnly" | "notAllowed";
+  reason: "login" | "ownOnly" | "notAllowed" | "finished";
   loginHref: string;
   maxLength: number;
 }) {
@@ -64,7 +64,7 @@ export async function EntryComments({
           <CommentForm target={{ kind: "entry", entryId }} maxLength={maxLength} />
         ) : (
           <div className="rounded-lg bg-canvas p-3 text-center text-sm text-muted">
-            <p>{t(`entry.comments.${reason}`)}</p>
+            <p>{reason === "finished" ? t("contest.finished") : t(`entry.comments.${reason}`)}</p>
             {reason === "login" && (
               <ButtonLink href={loginHref} variant="secondary" className="mt-2">
                 {t("nav.login")}

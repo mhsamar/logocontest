@@ -6,6 +6,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, UrgentBadge, contestTitle } from "./contest-bits";
 import { timeLeft } from "./countdown-pill";
+import { isFinished } from "@/lib/contests/public-statuses";
 import { SaveButton } from "./save-button";
 
 /**
@@ -42,7 +43,7 @@ export async function FeaturedCard({ contest, now, saved }: { contest: ContestRo
               <UrgentBadge label={t("home.card.urgent")} />
             </span>
           )}
-          {saved !== undefined && <SaveButton contestId={contest.id} saved={saved} className="absolute right-3 top-3 z-10" />}
+          {saved !== undefined && (saved || !isFinished(contest.status)) && <SaveButton contestId={contest.id} saved={saved} className="absolute right-3 top-3 z-10" />}
           {/* Time used, as a thin bar along the bottom of the picture */}
           {open && (
             <span className="absolute inset-x-0 bottom-0 h-1 bg-white/60" aria-hidden>

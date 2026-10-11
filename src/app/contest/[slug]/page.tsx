@@ -25,6 +25,7 @@ import { TrophyIcon } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
 import { contestTimeline } from "@/lib/contests/browse-query";
+import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
@@ -64,6 +65,8 @@ function primaryAction(contest: ContestDetail, user: CurrentUser | null, t: Tran
   if (contest.isOwner) return { href: `/dashboard/contests/${contest.slug}`, label: t("dashboard.manage") };
   if (open && !user) return { href: `/login?next=${encodeURIComponent(`/contest/${contest.slug}`)}`, label: t("contest.actions.login") };
   if (open && user?.role === "designer") return { href: `/contest/${contest.slug}/submit`, label: t("contest.actions.submit") };
+  // A finished contest only points to the open ones (owner, 2026-10-11).
+  if (isFinished(contest.status)) return { href: "/contests", label: t("contest.actions.browse") };
   return { href: "/start", label: t("contest.actions.own") };
 }
 
@@ -76,13 +79,15 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
 
   const now = new Date();
   const action = primaryAction(contest, user, t);
+  // Finished: nothing on this page can be changed any more, by anyone (owner, 2026-10-11).
+  const finished = isFinished(contest.status);
   const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
   // Blind contests: designers still see their own designs (UI-JOURNEY P-03).
   const blindHidden = contest.isBlind && entryScope(entryContest, user).kind === "none";
   // Owner, 2026-10-10: opening a contest always shows its designs first (an empty list says so).
   const defaultTab = "entries";
   const tab = sp.tab === "entries" || sp.tab === "brief" || sp.tab === "comments" ? sp.tab : defaultTab;
-  const canSave = can(user, "contest.save");
+  const canSave = can(user, "contest.save") && !finished;
   const entryNumber = tab === "entries" && typeof sp.entry === "string" ? Number(sp.entry) : null;
   // Order of the designs (owner, 2026-10-11): best rated first unless the visitor picks another.
   const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
@@ -265,7 +270,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                 </div>
               )}
 
-              <Link href={`/contest/${contest.slug}?tab=brief#tabs`} scroll={false} className="mt-5 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary hover:underline">
+              <Link href={`/contest/${contest.slug}?tab=brief#tabs`} className="mt-5 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary hover:underline">
                 {t("contest.brief.readFull")}
                 <span aria-hidden>→</span>
               </Link>
@@ -329,8 +334,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   </div>
                 ))}
               </dl>
-              {contest.canSeeBrief && (
-                <Link href={`/contest/${contest.slug}?tab=comments#tabs`} scroll={false} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+              {contest.canSeeBrief && !finished && (
+                <Link href={`/contest/${contest.slug}?tab=comments#tabs`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
                   {t("contest.facts.ask")}
                   <span aria-hidden>→</span>
                 </Link>
@@ -370,9 +375,10 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <ContestComments
               contestId={contest.id}
               comments={comments}
-              canComment={can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })}
+              canComment={!finished && can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })}
               loginHref={user ? null : loginHref}
               designerMustSubmit={user?.role === "designer" && !viewerHasEntry}
+              finished={finished}
               maxLength={commentMax}
             />
           ) : (
@@ -453,9 +459,11 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               up={entry.upVotes}
               down={entry.downVotes}
               mine={entry.myVote}
-              canVote={canVote(user, { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
+              canVote={!finished && canVote(user, { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
               hint={
-                !user
+                finished
+                  ? t("contest.finished")
+                  : !user
                   ? t("entry.votes.login")
                   : entry.mine
                     ? t("entry.votes.own")
@@ -468,12 +476,12 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           <EntryComments
             entryId={entry.id}
             comments={entry.comments}
-            canComment={can(user, "entry.comment", { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
-            reason={!user ? "login" : user.role === "designer" ? "ownOnly" : "notAllowed"}
+            canComment={!finished && can(user, "entry.comment", { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
+            reason={finished ? "finished" : !user ? "login" : user.role === "designer" ? "ownOnly" : "notAllowed"}
             loginHref={`/login?next=${encodeURIComponent(`${entriesHref}&entry=${entry.number}`)}`}
             maxLength={commentMax}
           />
-          {!entry.mine && (
+          {!entry.mine && !finished && (
             <div className="mt-5 border-t border-line pt-2">
               <ReportButton entryId={entry.id} number={entry.number} loginHref={user ? null : `/login?next=${encodeURIComponent(`${entriesHref}&entry=${entry.number}`)}`} />
             </div>

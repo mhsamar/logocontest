@@ -5,6 +5,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { cx } from "@/lib/cx";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
+import { isFinished } from "@/lib/contests/public-statuses";
 import { SaveButton } from "./save-button";
 
 /**
@@ -47,7 +48,7 @@ export async function ContestRow({ contest, now, saved }: { contest: Row; now: D
             </div>
             <p className="m-0 mt-1 text-[15px] text-muted">{meta}</p>
           </div>
-          {saved !== undefined && <SaveButton contestId={contest.id} saved={saved} className="relative z-10 -mr-1 -mt-1 shrink-0" />}
+          {saved !== undefined && (saved || !isFinished(contest.status)) && <SaveButton contestId={contest.id} saved={saved} className="relative z-10 -mr-1 -mt-1 shrink-0" />}
         </div>
         {contest.description && <p className="m-0 mt-3 line-clamp-2 text-[15px] leading-relaxed text-muted">{contest.description}</p>}
       </div>
