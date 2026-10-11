@@ -448,6 +448,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         <EntryViewer
           number={entry.number}
           images={entry.previews}
+          labels={entry.labels}
           winner={entry.status === "winner"}
           closeHref={entriesHref}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}

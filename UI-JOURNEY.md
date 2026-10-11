@@ -439,7 +439,7 @@ Same as `P-03`, plus a sticky bar: prize, time left, "Your entries: 2", and **Su
 
 ### D-04 Submit a design
 
-**Mockup boxes (owner, 2026-10-11):** the mockups part shows one box per mockup (8), the first marked Cover. Tapping an empty box opens the file picker (several files at once); images can also be dragged and dropped anywhere on the boxes. Filled boxes keep Make cover and Remove.
+**Mockup boxes (owner, 2026-10-11):** the mockups part shows one box per mockup (8), the first marked Cover. Tapping an empty box opens the file picker (several files at once); images can also be dragged and dropped anywhere on the boxes. Filled boxes keep Make cover and Remove. **Every mockup has a name** (owner, 2026-10-11): a field under each image, filled from the file name ("signboard_mockup.png" → "signboard mockup") and changeable, up to 60 characters, no phone numbers, emails or links (checked on the server); the design can't be sent while a name is empty. The name shows under the image in the design viewer (P-04, C-15) and on its thumbnail. Migration 0038 (`entry_images.label`).
 
 Owner, 2026-10-08. At `/contest/[slug]/submit`, for designers while the contest is open. One scrolling page:
 

@@ -411,6 +411,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
         <EntryViewer
           number={entry.number}
           images={entry.previews}
+          labels={entry.labels}
           winner={entry.status === "winner"}
           closeHref={here}
           byline={

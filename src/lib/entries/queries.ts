@@ -23,6 +23,8 @@ export type EntryCard = {
   imageCount: number;
   /** Signed links to the previews, cover first. The grid uses up to four. */
   previews: string[];
+  /** The designer's name for each preview, same order (owner, 2026-10-11; null on older designs). */
+  labels: (string | null)[];
   commentCount: number;
   mine: boolean;
   /** Like and dislike votes on the design (owner, 2026-10-11), and the viewer's own vote. */
@@ -50,7 +52,7 @@ type Row = {
   is_shortlisted: boolean;
   logo_story: string | null;
   designer: { name: string; username: string | null } | { name: string; username: string | null }[] | null;
-  images: { position: number; preview_path: string }[];
+  images: { position: number; preview_path: string; label?: string | null }[];
 };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -78,6 +80,15 @@ async function voteCounts(entryIds: string[], viewerId: string | null): Promise<
   return out;
 }
 
+/** The previews that have a link, with their names in the same order. */
+function shown(images: { preview_path: string; label?: string | null }[], urls: Map<string, string>) {
+  const kept = images.flatMap((i) => {
+    const url = urls.get(i.preview_path);
+    return url ? [{ url, label: i.label?.trim() || null }] : [];
+  });
+  return { previews: kept.map((k) => k.url), labels: kept.map((k) => k.label) };
+}
+
 async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentUser | null, previewLimit: number): Promise<EntryCard[]> {
   const sorted = rows.map((r) => ({ ...r, images: [...(r.images ?? [])].sort((a, b) => a.position - b.position) }));
   const paths = sorted.flatMap((r) => r.images.slice(0, previewLimit).map((i) => i.preview_path));
@@ -95,10 +106,7 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     rating: r.rating,
     isShortlisted: r.is_shortlisted,
     imageCount: r.images.length,
-    previews: r.images
-      .slice(0, previewLimit)
-      .map((i) => urls.get(i.preview_path))
-      .filter((u): u is string => Boolean(u)),
+    ...shown(r.images.slice(0, previewLimit), urls),
     commentCount: counts.get(r.id) ?? 0,
     mine: r.designer_id === viewer?.id,
     upVotes: votes.get(r.id)?.up ?? 0,
@@ -107,7 +115,7 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path)";
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {

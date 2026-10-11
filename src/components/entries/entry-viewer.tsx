@@ -15,6 +15,7 @@ import { useI18n } from "@/lib/i18n/client";
 export function EntryViewer({
   number,
   images,
+  labels = [],
   closeHref,
   byline,
   winner = false,
@@ -24,6 +25,8 @@ export function EntryViewer({
   /** The winning design shows the Winner badge and trophy on the picture (owner, 2026-10-10). */
   winner?: boolean;
   images: string[];
+  /** The designer's name for each image (owner, 2026-10-11), same order; may be empty. */
+  labels?: (string | null)[];
   closeHref: string;
   byline: React.ReactNode;
   /** Story and comment box, rendered on the server. */
@@ -88,13 +91,14 @@ export function EntryViewer({
           >
             {images[i] && (
               <div className="relative">
-                <img src={images[i]} alt={t("submit.mockups.image", { n: i + 1 })} className="aspect-square max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]" />
+                <img src={images[i]} alt={labels[i] ?? t("submit.mockups.image", { n: i + 1 })} className="aspect-square max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]" />
                 {winner && (
                   <>
                     <WinnerBadge label={t("entry.winner")} size="lg" className="absolute left-3 top-3" />
                     <WinnerTrophy size="lg" className="absolute right-3 top-3" />
                   </>
                 )}
+                {labels[i] && <p className="m-0 mt-2 truncate text-center text-sm font-semibold text-ink">{labels[i]}</p>}
               </div>
             )}
             {images.length > 1 && (
@@ -111,7 +115,7 @@ export function EntryViewer({
             <ul className="flex gap-2 overflow-x-auto px-3 pb-3 sm:px-5 sm:pb-5">
               {images.map((src, j) => (
                 <li key={src} className="shrink-0">
-                  <button type="button" onClick={() => setI(j)} aria-label={t("submit.mockups.image", { n: j + 1 })} aria-current={i === j} className={cx("block size-14 overflow-hidden rounded-md ring-2 transition sm:size-16", i === j ? "ring-primary" : "ring-transparent opacity-70 hover:opacity-100")}>
+                  <button type="button" onClick={() => setI(j)} aria-label={labels[j] ?? t("submit.mockups.image", { n: j + 1 })} title={labels[j] ?? undefined} aria-current={i === j} className={cx("block size-14 overflow-hidden rounded-md ring-2 transition sm:size-16", i === j ? "ring-primary" : "ring-transparent opacity-70 hover:opacity-100")}>
                     <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
                   </button>
                 </li>

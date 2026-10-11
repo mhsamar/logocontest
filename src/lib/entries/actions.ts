@@ -63,7 +63,10 @@ export async function discardEntryImage(contestId: string, path: string): Promis
   await getFileStorage().remove(ENTRY_FILES_BUCKET, [path]).catch(() => {});
 }
 
-export type SubmitInput = { contestId: string; paths: string[]; declarations: string[] };
+export type SubmitInput = { contestId: string; paths: string[]; declarations: string[]; /** One name per path (owner, 2026-10-11). */ labels: string[] };
+
+/** Longest mockup name (migration 0038). */
+const MOCKUP_LABEL_MAX = 60;
 
 /**
  * D-04 step 2: checks every mockup again on the server (exactly N×N, not nude),
@@ -85,12 +88,20 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     getSetting("limits.entry_preview_max_px"),
     getSetting("limits.max_entries_per_designer"),
   ]);
+  const labelOf = new Map(input.paths.map((p, i) => [p, String(input.labels?.[i] ?? "").replace(/\s+/g, " ").trim()]));
   const paths = [...new Set(input.paths)];
   if (paths.length < minImages) return fail("submit.errors.minImages", { min: minImages });
   if (paths.length > maxImages) return fail("submit.errors.maxImages", { max: maxImages });
   const pattern = originalPattern(contest.id, user!.id);
   if (!paths.every((p) => pattern.test(p))) return fail("auth.errors.generic");
   if (!DECLARATION_KEYS.every((k) => input.declarations.includes(k))) return fail("submit.errors.declarations");
+  // Every mockup has a name, without contact details (owner, 2026-10-11).
+  const terms = await blockedTerms();
+  for (const [i, p] of paths.entries()) {
+    const label = labelOf.get(p) ?? "";
+    if (!label || label.length > MOCKUP_LABEL_MAX) return fail("submit.errors.labelMissing", { n: i + 1 });
+    if (findContactDetails(label, terms)) return fail("submit.errors.labelContact", { n: i + 1 });
+  }
 
   const db = createAdminClient();
   if (maxPerDesigner > 0) {
@@ -159,7 +170,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
       if (upError) throw new Error(upError.message);
       previews.push(previewPath);
       const dup = known.find((k) => hammingDistance(k.hash, f.hash) <= NEAR_DUPLICATE_DISTANCE);
-      rows.push({ entry_id: entry.id, position, original_path: f.path, preview_path: previewPath, phash: f.hash, duplicate_of_entry_id: dup?.entry?.id ?? null });
+      rows.push({ entry_id: entry.id, position, original_path: f.path, preview_path: previewPath, label: labelOf.get(f.path) ?? null, phash: f.hash, duplicate_of_entry_id: dup?.entry?.id ?? null });
     }
     const { error: imgError } = await db.from("entry_images").insert(rows);
     if (imgError) throw new Error(imgError.message);

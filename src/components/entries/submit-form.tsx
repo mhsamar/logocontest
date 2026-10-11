@@ -17,7 +17,17 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-type Item = { key: string; url: string; status: "uploading" | "done" | "failed"; path?: string };
+type Item = { key: string; url: string; status: "uploading" | "done" | "failed"; path?: string; label: string };
+
+const LABEL_MAX = 60;
+/** "signboard_mockup-2.png" → "signboard mockup 2": the starting name of a mockup, which the designer can change. */
+const nameFromFile = (file: string) =>
+  file
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, LABEL_MAX);
 type Limits = { min: number; max: number; px: number; mb: number };
 
 function loadImage(url: string): Promise<HTMLImageElement | null> {
@@ -100,7 +110,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
       const key = crypto.randomUUID();
       // Already the right size and type: upload as it is. Anything else is made square first.
       if (img.naturalWidth === limits.px && img.naturalHeight === limits.px && TYPES.includes(file.type)) {
-        setItems((list) => [...list, { key, url: original, status: "uploading" }]);
+        setItems((list) => [...list, { key, url: original, status: "uploading", label: nameFromFile(file.name) }]);
         void upload(key, file);
         continue;
       }
@@ -111,7 +121,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
         toast(t("submit.errors.cantOpen"), "danger");
         continue;
       }
-      setItems((list) => [...list, { key, url: track(URL.createObjectURL(blob)), status: "uploading" }]);
+      setItems((list) => [...list, { key, url: track(URL.createObjectURL(blob)), status: "uploading", label: nameFromFile(file.name) }]);
       void upload(key, blob);
     }
   };
@@ -126,6 +136,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
   const ready = items.filter((i) => i.status === "done");
   const missing = [
     ready.length < limits.min && t("submit.missing.images"),
+    items.some((i) => !i.label.trim()) && t("submit.missing.names"),
     uploading && t("submit.missing.uploading"),
     ticked.size < DECLARATION_KEYS.length && t("submit.missing.declarations"),
   ].filter(Boolean) as string[];
@@ -142,7 +153,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
   const submit = () =>
     start(async () => {
       setError(null);
-      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), declarations: [...ticked] });
+      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked] });
       if (!res.ok) return setError(t(res.error.key, res.error.params));
       setDone(res.number);
     });
@@ -231,7 +242,21 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
                       {item.status === "uploading" ? t("submit.mockups.uploading") : t("submit.mockups.failed")}
                     </div>
                   )}
-                  <div className="flex items-center justify-between gap-1 border-t border-line bg-surface px-1.5 py-1">
+                  {/* Every mockup has a name (owner, 2026-10-11): it starts from the file name. */}
+                  <div className="border-t border-line bg-surface px-1.5 pt-1.5">
+                    <input
+                      value={item.label}
+                      onChange={(e) => update(item.key, { label: e.target.value.slice(0, LABEL_MAX) })}
+                      maxLength={LABEL_MAX}
+                      placeholder={t("submit.mockups.name")}
+                      aria-label={t("submit.mockups.nameLabel", { n: fmt(i + 1) })}
+                      className={cx(
+                        "h-9 w-full rounded-[10px] border bg-white px-2.5 text-[13px] font-medium text-ink placeholder:text-muted focus:outline-2 focus:outline-offset-1 focus:outline-primary",
+                        item.label.trim() ? "border-line" : "border-danger",
+                      )}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-1 bg-surface px-1.5 py-1">
                     {i > 0 && item.status === "done" ? (
                       <button type="button" onClick={() => makeCover(item)} className="min-h-9 rounded-[10px] px-2 text-xs font-semibold text-primary hover:bg-chip">
                         {t("submit.mockups.makeCover")}
