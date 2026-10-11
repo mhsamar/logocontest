@@ -16,7 +16,7 @@ const INPUT = "block w-full min-h-10 rounded-lg bg-canvas px-3 text-sm text-ink 
 
 /** A-11: one settings group. Saved together, with a reason for the audit log. */
 /** `reasonOptional`: site content (Brand & notice) saves without a reason; it is still written to the audit log. */
-export function SettingsGroup({ group, title, items, reasonOptional = false }: { group: string; title: string; items: SettingItem[]; reasonOptional?: boolean }) {
+export function SettingsGroup({ group, title, note, items, reasonOptional = false }: { group: string; title: string; note?: string; items: SettingItem[]; reasonOptional?: boolean }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
   const router = useRouter();
@@ -47,6 +47,7 @@ export function SettingsGroup({ group, title, items, reasonOptional = false }: {
   return (
     <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
       <h2 className="font-semibold text-ink">{title}</h2>
+      {note && <p className="mt-1 text-sm text-muted">{note}</p>}
       <div className="mt-4 divide-y divide-line">
         {items.map((i) => (
           <div key={i.key} className="grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start md:gap-6">

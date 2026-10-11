@@ -534,6 +534,15 @@ export const SETTINGS = {
     group: "home", type: "bool", schema: z.boolean(), default: true,
     description: "Show the \"Sample artwork\" pill under the home hero slides. Turn it off once the slides are real contest winners.",
   },
+  // The live designers tag in the home hero (owner, 2026-10-11; migration 0037): shown only from these numbers.
+  "home.live_online_min": {
+    group: "live", type: "int", schema: int(0, 100000), default: 10,
+    description: "Show \"designers online now\" on the home page only from this many online.",
+  },
+  "home.live_joined_min": {
+    group: "live", type: "int", schema: int(0, 1000000), default: 20,
+    description: "Show the live designers tag on the home page only from this many designers joined.",
+  },
   "legal.agreement_resign_since": {
     group: "legal", type: "string", schema: z.union([z.literal(""), z.string().datetime({ offset: true })]), default: "",
     description: "Set by Legal pages → Publish with \"Ask every designer to sign again\": agreements signed before this time must be signed again.",

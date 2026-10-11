@@ -92,6 +92,7 @@ const en = {
       },
     },
     eyebrow: "Logo contests · Bangladesh",
+    live: { label: "Designers on logocontest.bd", online: "designers online now", onlineOne: "designer online now", joined: "designers joined", joinedOne: "designer joined" },
     title: "Many designers. Many ideas. One perfect logo.",
     titleLead: "Many designers. Many ideas.",
     titleAccent: "One perfect logo.",
@@ -2163,7 +2164,8 @@ const en = {
     settings: {
       title: "Settings",
       lead: "Every number an admin can change. Each save needs a reason and is written to the audit log.",
-      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", timers: "Timers", limits: "Limits", monthly: "Monthly prize", site: "Site", auth: "Login and codes" },
+      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", timers: "Timers", limits: "Limits", monthly: "Monthly prize", site: "Site", auth: "Login and codes", live: "Home page: live designers" },
+      liveNote: "Right now: {joined} designers joined, {online} online.",
       on: "On",
       off: "Off",
       badJson: "That isn't valid JSON.",

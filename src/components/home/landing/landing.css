@@ -156,7 +156,11 @@
   .lc-mi .lc-ph { width: 62px !important; height: 62px !important; border-radius: 16px !important; }
   .lc-landing #faq summary { font-size: 17px !important; }
 }
+/* Live designers tag: a soft pulse around the green "online" dot. */
+.lc-live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: #1F9D55; animation: lc-live-pulse 2.4s ease-out infinite; }
+@keyframes lc-live-pulse { 0% { transform: scale(1); opacity: .45; } 70%, 100% { transform: scale(2.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
+  .lc-live-dot::after { display: none; }
   .lc-fl, .lc-w, .lc-hi, .lc-par, .lc-bob, .lc-scan { animation: none !important; }
   .lc-show-slide, .lc-hero-copy, .lc-dot { transition: none !important; }
   .lc-par { transform: none !important; }
