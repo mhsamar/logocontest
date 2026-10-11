@@ -492,6 +492,15 @@ export const SETTINGS = {
     group: "brand", type: "string", schema: z.string().regex(/^(share\/[0-9a-f-]{36}\.(png|jpg))?$/), default: "",
     description: "Share picture for Facebook and Google (1200×630). Empty uses the built-in card.",
   },
+  // Admin → Home hero (owner, 2026-10-11; migration 0034)
+  "home.hero_slide_seconds": {
+    group: "home", type: "int", schema: int(1, 10), default: 2,
+    description: "How many seconds each home hero slide shows.",
+  },
+  "home.hero_sample_pill": {
+    group: "home", type: "bool", schema: z.boolean(), default: true,
+    description: "Show the \"Sample artwork\" pill under the home hero slides. Turn it off once the slides are real contest winners.",
+  },
   "legal.agreement_resign_since": {
     group: "legal", type: "string", schema: z.union([z.literal(""), z.string().datetime({ offset: true })]), default: "",
     description: "Set by Legal pages → Publish with \"Ask every designer to sign again\": agreements signed before this time must be signed again.",

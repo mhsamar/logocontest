@@ -31,7 +31,7 @@ export default async function HomePage() {
   if (!showsLanding(user?.role)) return null;
 
   const { t, locale } = await getI18n();
-  const [{ pricing, params }, contests, logos, social, contact, pictures] = await Promise.all([
+  const [{ params }, contests, logos, social, contact, pictures] = await Promise.all([
     faqParams(t, locale),
     liveContests(3),
     homeLogos(12),
@@ -58,7 +58,7 @@ export default async function HomePage() {
     <div data-lc-landing className="lc-landing flex flex-1 flex-col gap-3.5 px-3.5 pt-3.5">
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <LandingHero logos={logos} premiumPrize={pricing.packagePrizes.premium} picture={pictures.hero} nav={<SiteNav user={user} />} />
+      <LandingHero picture={pictures.hero} nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
       <Steps logos={logos} />
       <Trusted logos={logos} />

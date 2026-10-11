@@ -96,6 +96,14 @@ const PATHS = {
       <path d="M10 20v-6h4v6" />
     </>
   ),
+  // Home hero slides (owner, 2026-10-11): a picture frame with dots under it.
+  hero: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
+      <path d="M7 12.5l3-3 2.5 2.5L15 9.5l2.5 3" />
+      <path d="M9 19.5h.01M12 19.5h2M17 19.5h.01" />
+    </>
+  ),
   blocked: (
     <>
       <circle cx="12" cy="12" r="9" />

@@ -59,6 +59,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/legal", icon: "legal", label: "admin.nav.legal", perm: "content.view" },
       { href: "/admin/brand", icon: "brand", label: "admin.nav.brand", perm: "content.view" },
       { href: "/admin/homepage", icon: "homepage", label: "admin.nav.homepage", perm: "content.view" },
+      { href: "/admin/hero", icon: "hero", label: "admin.nav.hero", perm: "content.view" },
       { href: "/admin/blocked-terms", icon: "blocked", label: "admin.nav.blockedTerms", perm: "content.view" },
     ],
   },
