@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { AdminAction } from "@/components/admin/admin-action";
 import { EntryThumb } from "@/components/admin/entry-thumb";
+import { HowVideosCard, type HowVideoTabData } from "@/components/admin/how-videos";
+import { PictureField } from "@/components/admin/picture-field";
+import { pictureUrl } from "@/lib/content/pictures";
+import { translatorFor } from "@/lib/content/texts";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { getSettings } from "@/lib/settings";
 import { AdminHead } from "@/components/admin/page-head";
 import { homepageLogos } from "@/lib/admin/misc";
 import { entriesByIds } from "@/lib/admin/moderation";
@@ -18,10 +24,30 @@ export default async function AdminHomepagePage() {
   await requirePermission("content.view");
   const { t } = await getI18n();
   const { featured, candidates } = await homepageLogos();
-  const [picked, available] = await Promise.all([entriesByIds(featured.map((f) => f.entryId)), entriesByIds(candidates)]);
+  const [picked, available, s, en, bn] = await Promise.all([
+    entriesByIds(featured.map((f) => f.entryId)),
+    entriesByIds(candidates),
+    getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer"]),
+    translatorFor("en"),
+    translatorFor("bn"),
+  ]);
+  // How it works videos (owner, 2026-10-11): the points are site texts, shown here with their current wording.
+  const point = (key: string) => ({ key, en: en(key as MessageKey), bn: bn(key as MessageKey) });
+  const videoTabs: HowVideoTabData[] = (["client", "designer"] as const).map((tab) => {
+    const side = tab === "client" ? "c" : "d";
+    const kind = tab === "client" ? "how_client" : "how_designer";
+    return {
+      tab,
+      title: t(`admin.homepage.videos.${tab}`),
+      video: s[tab === "client" ? "how.video_client" : "how.video_designer"],
+      points: [1, 2, 3, 4].map((n) => ({ title: point(`howPage.video.${side}.p${n}.title`), body: point(`howPage.video.${side}.p${n}.body`) })),
+      cover: <PictureField kind={kind} url={pictureUrl(s[tab === "client" ? "how.cover_client" : "how.cover_designer"])} fallback={null} />,
+    };
+  });
   return (
     <div className="space-y-6">
       <AdminHead title={t("admin.homepage.title")} lead={t("admin.homepage.lead")} />
+      <HowVideosCard tabs={videoTabs} autoplay={s["how.video_autoplay"]} />
       <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
         <h2 className="font-semibold text-ink">
           {t("admin.homepage.featured")} <span className="text-muted">({picked.length})</span>

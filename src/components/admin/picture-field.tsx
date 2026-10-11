@@ -17,6 +17,8 @@ const FRAME: Record<PictureKind, string> = {
   icon: "size-24 bg-white",
   hero: "aspect-[16/7] bg-canvas",
   share: "aspect-[1200/630] bg-canvas",
+  how_client: "aspect-video bg-canvas",
+  how_designer: "aspect-video bg-canvas",
 };
 
 /** A-17: one site picture with its preview, an upload button and "Use default". */

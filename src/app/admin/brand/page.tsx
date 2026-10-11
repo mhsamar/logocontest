@@ -4,7 +4,7 @@ import { PictureField } from "@/components/admin/picture-field";
 import { SettingsGroup, type SettingItem } from "@/components/admin/settings-form";
 import { NoticeBar } from "@/components/layout/notice-bar";
 import { noticeId, type NoticeTone } from "@/lib/content/notice-rules";
-import { PICTURE_KINDS, pictureUrl, type PictureKind } from "@/lib/content/pictures";
+import { BRAND_PICTURES, pictureUrl } from "@/lib/content/pictures";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const TONES: NoticeTone[] = ["info", "warning", "offer"];
 
 /** What each picture shows when none is uploaded. */
-const BUILT_IN: Record<PictureKind, string | null> = { logo: "/brand/logo-wordmark.png", icon: "/brand/logo-icon-tile.png", hero: null, share: "/opengraph-image" };
+const BUILT_IN: Record<(typeof BRAND_PICTURES)[number], string | null> = { logo: "/brand/logo-wordmark.png", icon: "/brand/logo-icon-tile.png", hero: null, share: "/opengraph-image" };
 
 // A-17 Brand & notice (BLUEPRINT §13.1): contact details and the site-wide notice bar.
 export default async function AdminBrandPage() {
@@ -69,7 +69,7 @@ export default async function AdminBrandPage() {
       <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
         <h2 className="font-semibold text-ink">{t("admin.brand.pictures.title")}</h2>
         <div className="divide-y divide-line">
-          {PICTURE_KINDS.map((kind) => {
+          {BRAND_PICTURES.map((kind) => {
             const path = stored.get(`brand.${kind}`)?.value;
             return <PictureField key={kind} kind={kind} url={pictureUrl(typeof path === "string" ? path : null)} fallback={BUILT_IN[kind]} />;
           })}

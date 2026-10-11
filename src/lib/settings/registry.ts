@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { howVideoSchema, NO_VIDEO } from "@/lib/home/how-video";
 
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
 const intList = z.array(z.number().int().positive()).min(1);
@@ -533,6 +534,27 @@ export const SETTINGS = {
   "home.hero_sample_pill": {
     group: "home", type: "bool", schema: z.boolean(), default: true,
     description: "Show the \"Sample artwork\" pill under the home hero slides. Turn it off once the slides are real contest winners.",
+  },
+  // "How it works" tutorial videos (owner, 2026-10-11): edited in Admin → Homepage, not on the Settings page.
+  "how.video_client": {
+    group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
+    description: "How it works page, For clients: the tutorial video (a YouTube or Vimeo link, checked when saved). Empty hides the video.",
+  },
+  "how.video_designer": {
+    group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
+    description: "How it works page, For designers: the tutorial video (a YouTube or Vimeo link, checked when saved). Empty hides the video.",
+  },
+  "how.video_autoplay": {
+    group: "how", type: "bool", schema: z.boolean(), default: true,
+    description: "Start the How it works video by itself (muted, with Tap for sound) when it is on screen.",
+  },
+  "how.cover_client": {
+    group: "how", type: "string", schema: z.string().regex(/^(how_client\/[0-9a-f-]{36}\.(png|jpg|webp))?$/), default: "",
+    description: "Cover picture of the clients' video, shown before it plays. Empty shows the built-in cover.",
+  },
+  "how.cover_designer": {
+    group: "how", type: "string", schema: z.string().regex(/^(how_designer\/[0-9a-f-]{36}\.(png|jpg|webp))?$/), default: "",
+    description: "Cover picture of the designers' video, shown before it plays. Empty shows the built-in cover.",
   },
   // The live designers tag in the home hero (owner, 2026-10-11; migration 0037): shown only from these numbers.
   "home.live_online_min": {

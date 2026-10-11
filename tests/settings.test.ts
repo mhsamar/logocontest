@@ -70,7 +70,8 @@ describe("BLUEPRINT defaults", () => {
     const groups = new Set(Object.values(SETTINGS).map((s) => s.group));
     // "monthly" has no settings since the Monthly Winner prize became a gift box (owner, 2026-10-09).
     // "brand", "contact" and "notice" are edited in /admin/brand, "legal" in /admin/legal (owner, 2026-10-09),
-    // "home" in /admin/hero, "rewards" in /admin/monthly; "live" (the live designers tag) is on A-11 (owner, 2026-10-11).
-    expect([...groups].sort()).toEqual(["auth", "brand", "contact", "fees", "home", "legal", "limits", "live", "notice", "packages", "rewards", "site", "timers", "upgrades"]);
+    // "home" in /admin/hero, "rewards" in /admin/monthly; "live" (the live designers tag) is on A-11; "how" (How it works
+    // videos) in /admin/homepage (owner, 2026-10-11).
+    expect([...groups].sort()).toEqual(["auth", "brand", "contact", "fees", "home", "how", "legal", "limits", "live", "notice", "packages", "rewards", "site", "timers", "upgrades"]);
   });
 });

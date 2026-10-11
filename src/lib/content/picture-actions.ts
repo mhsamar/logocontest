@@ -7,18 +7,18 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS } from "@/lib/settings/registry";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isPictureKind, PICTURE_MAX_BYTES, PICTURE_TYPES, picturePathPattern, SITE_BUCKET, type PictureKind } from "./pictures";
+import { isPictureKind, PICTURE_MAX_BYTES, PICTURE_SETTING, PICTURE_TYPES, picturePathPattern, SITE_BUCKET, type PictureKind } from "./pictures";
 
 type Fail = { ok: false; error: MessageKey };
 const fail = (error: MessageKey): Fail => ({ ok: false, error });
 
 async function storedPath(kind: PictureKind): Promise<string> {
-  const { data } = await createAdminClient().from("settings").select("value").eq("key", `brand.${kind}`).maybeSingle();
+  const { data } = await createAdminClient().from("settings").select("value").eq("key", PICTURE_SETTING[kind]).maybeSingle();
   return typeof data?.value === "string" ? data.value : "";
 }
 
 async function setPath(kind: PictureKind, path: string, adminId: string) {
-  const key = `brand.${kind}` as const;
+  const key = PICTURE_SETTING[kind];
   const def = SETTINGS[key];
   return createAdminClient().from("settings").upsert({ key, value: path, type: def.type, group: def.group, description: def.description, updated_by: adminId });
 }
