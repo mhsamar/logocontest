@@ -6,7 +6,7 @@ import type { BusinessType } from "@/lib/contests/brief";
 import { useI18n } from "@/lib/i18n/client";
 
 const SELECT =
-  "min-h-11 w-full rounded-[14px] bg-surface pl-3.5 pr-9 text-[15px] font-semibold text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary sm:w-auto";
+  "h-[46px] w-full rounded-xl border border-[#DCDEE3] bg-white pl-3.5 pr-9 text-[15px] font-semibold text-ink focus:outline-2 focus:outline-offset-1 focus:outline-primary sm:w-auto";
 
 /** P-02 business type (the admin's Business types list, A-15) and sort. Changes apply at once; without JavaScript the form's button does it. */
 export function BrowseFilters({ query, types }: { query: BrowseQuery; types: BusinessType[] }) {
@@ -17,6 +17,8 @@ export function BrowseFilters({ query, types }: { query: BrowseQuery; types: Bus
   return (
     <form action="/contests" className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
       {query.tab !== "open" && <input type="hidden" name="status" value={query.tab} />}
+      {query.quick.length > 0 && <input type="hidden" name="f" value={query.quick.join(",")} />}
+      {query.q && <input type="hidden" name="q" value={query.q} />}
       <label className="sr-only" htmlFor="browse-type">
         {t("browse.type.label")}
       </label>

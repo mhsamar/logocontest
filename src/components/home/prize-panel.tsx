@@ -8,7 +8,7 @@ import { monthKey, monthRange } from "@/lib/rewards/rules";
 import { getSetting } from "@/lib/settings";
 
 /** The drawn phone: never a real model (what the prize is stays a surprise). */
-const Phone = () => (
+export const Phone = () => (
   <span className="relative block h-[240px] w-[128px] rotate-[8deg] rounded-[27px] bg-[#111216] shadow-[0_26px_42px_rgba(0,0,0,.4)]">
     <span className="absolute inset-[7px] flex items-center justify-center rounded-[21px] bg-[linear-gradient(160deg,#FFE27A,#F6A93A)]">
       <svg viewBox="0 0 24 24" className="w-[45%]" fill="#111216" aria-hidden>
@@ -19,7 +19,7 @@ const Phone = () => (
   </span>
 );
 
-const GiftBox = () => (
+export const GiftBox = () => (
   <span className="relative block h-[200px] w-[190px] -rotate-6 drop-shadow-[0_24px_28px_rgba(92,10,12,.3)]">
     <span className="absolute inset-x-[9px] bottom-0 top-[70px] rounded-[6px_6px_16px_16px] bg-[linear-gradient(180deg,#A30F0F,#8B0000)]" />
     <span className="absolute inset-x-0 top-[38px] h-10 rounded-[11px] bg-[#B3201B]" />

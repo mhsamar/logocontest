@@ -235,6 +235,11 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(), default: 2,
     description: "Change requests a client can make during handover.",
   },
+  // Browse Contests "Big prize" quick filter (owner, 2026-10-11; Design/contest-pages).
+  "limits.big_prize_from": {
+    group: "limits", type: "int", schema: int(1), default: 10000,
+    description: "Browse Contests, \"Big prize\" filter: contests with a prize of at least this many taka.",
+  },
   "limits.max_entries_per_designer": {
     group: "limits", type: "int", schema: int(), default: 0,
     description: "Entries one designer can submit to one contest. 0 = unlimited.",

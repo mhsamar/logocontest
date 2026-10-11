@@ -4,7 +4,7 @@ import { browseHref, contestTimeline, pageList, parseBrowseQuery } from "@/lib/c
 
 describe("parseBrowseQuery", () => {
   it("defaults to open contests ending soonest", () => {
-    expect(parseBrowseQuery({})).toEqual({ tab: "open", sort: "ending", type: null, page: 1 });
+    expect(parseBrowseQuery({})).toEqual({ tab: "open", sort: "ending", type: null, page: 1, quick: [], q: "" });
   });
 
   it("reads valid values and ignores unknown ones", () => {
@@ -13,12 +13,32 @@ describe("parseBrowseQuery", () => {
       sort: "prize",
       type: "food",
       page: 3,
+      quick: [],
+      q: "",
     });
-    expect(parseBrowseQuery({ status: "draft", sort: "x", type: "cars", page: "-4" })).toEqual({ tab: "open", sort: "ending", type: null, page: 1 });
+    expect(parseBrowseQuery({ status: "draft", sort: "x", type: "cars", page: "-4" })).toEqual({ tab: "open", sort: "ending", type: null, page: 1, quick: [], q: "" });
   });
 
   it("'ending soon' falls back to newest outside the open tab", () => {
     expect(parseBrowseQuery({ status: "judging", sort: "ending" }).sort).toBe("newest");
+  });
+});
+
+describe("quick filters, search and Joined by me (owner, 2026-10-11)", () => {
+  it("reads known quick filters in a fixed order and drops the rest", () => {
+    expect(parseBrowseQuery({ f: "big,urgent,nope,urgent" }).quick).toEqual(["urgent", "big"]);
+  });
+  it("tidies the search words and keeps them short", () => {
+    expect(parseBrowseQuery({ q: "  tea   house " }).q).toBe("tea house");
+    expect(parseBrowseQuery({ q: "x".repeat(200) }).q).toHaveLength(60);
+  });
+  it("knows the designers' Joined by me tab", () => {
+    expect(parseBrowseQuery({ status: "joined" }).tab).toBe("joined");
+  });
+  it("puts filters and search in the link", () => {
+    const q = parseBrowseQuery({});
+    expect(browseHref(q, { quick: ["big", "featured"] })).toBe("/contests?f=featured%2Cbig");
+    expect(browseHref(q, { q: "tea house" })).toBe("/contests?q=tea+house");
   });
 });
 

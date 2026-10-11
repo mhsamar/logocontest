@@ -6,7 +6,10 @@ import { countDesigners, countShownEntries, designerFaces, leadingDesigns, type 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAcceptedNda } from "./nda";
 import type { BusinessType, Deliverable, LogoStyle, PackageKey, Requirement, StyleSlider, UsedOn } from "./brief";
-import { BROWSE_PAGE_SIZE, BROWSE_TABS, TAB_STATUSES, type BrowseQuery, type BrowseTab } from "./browse-query";
+import { GONE_STATUSES } from "@/lib/entries/rules";
+import { MESSAGES } from "@/lib/i18n/messages";
+import { addonRank } from "./addon-order";
+import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, ENDING_SOON_DAYS, TAB_STATUSES, type BrowseQuery, type BrowseTab } from "./browse-query";
 
 import { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 
@@ -105,36 +108,146 @@ async function toRows(rows: DbRow[]): Promise<ContestRow[]> {
   return rows.map((r) => toRow(r, entries, covers, faces));
 }
 
-/** P-02: one page of contests for a tab, plus how many contests each tab has. */
-export async function listContests(q: BrowseQuery): Promise<{ rows: ContestRow[]; total: number; counts: Record<BrowseTab, number> }> {
-  const empty = { rows: [], total: 0, counts: { open: 0, judging: 0, completed: 0 } };
-  if (!isSupabaseConfigured()) return empty;
+// ---------------------------------------------------------------------------
+// Browse Contests redesign (owner, 2026-10-11; Design/contest-pages)
+// ---------------------------------------------------------------------------
+
+type Light = {
+  id: string;
+  status: string;
+  brand_name: string;
+  business_type: string;
+  is_private: boolean;
+  is_nda: boolean;
+  is_promoted: boolean;
+  is_urgent: boolean;
+  is_highlighted: boolean;
+  prize_amount: number;
+  starts_at: string | null;
+  ends_at: string | null;
+};
+const LIGHT_COLUMNS = "id, status, brand_name, business_type, is_private, is_nda, is_promoted, is_urgent, is_highlighted, prize_amount, starts_at, ends_at";
+
+export type BrowseResult = { rows: ContestRow[]; total: number; counts: Record<BrowseTab, number>; openNow: number; featuredOpen: number };
+
+/** Contests this designer sent a design to (and didn't withdraw or have removed). */
+async function joinedContestIds(designerId: string): Promise<Set<string>> {
+  const { data } = await createAdminClient().from("entries").select("contest_id").eq("designer_id", designerId).not("status", "in", `(${GONE_STATUSES.join(",")})`);
+  return new Set((data ?? []).map((r) => r.contest_id as string));
+}
+
+/** Business types whose English or Bangla name contains the search words. */
+function typesMatching(words: string): Set<string> {
+  const out = new Set<string>();
+  for (const msgs of Object.values(MESSAGES)) {
+    const names = (msgs as unknown as { wizard: { businessTypes: Record<string, string> } }).wizard.businessTypes;
+    for (const [key, name] of Object.entries(names)) if (name.toLowerCase().includes(words) || key.includes(words)) out.add(key);
+  }
+  return out;
+}
+
+/**
+ * P-02 list: every public contest's light facts are read once, then the search, the quick filters, the tab counts,
+ * the add-on order (open tab only) and the visitor's sort are worked out here; only the shown cards are read in full.
+ * Search matches the business type and the name of contests that aren't private or NDA, so it never reveals a
+ * hidden name. "Joined by me" exists only for a signed-in designer.
+ */
+export async function browseContests(q: BrowseQuery, opts: { designerId: string | null; bigPrize: number; now: Date }): Promise<BrowseResult> {
+  const tabs: readonly BrowseTab[] = opts.designerId ? DESIGNER_TABS : BROWSE_TABS;
+  const counts = { open: 0, joined: 0, judging: 0, completed: 0 } as Record<BrowseTab, number>;
+  if (!isSupabaseConfigured()) return { rows: [], total: 0, counts, openNow: 0, featuredOpen: 0 };
   const db = createAdminClient();
-
-  let query = db.from("contests").select(ROW_COLUMNS, { count: "exact" }).in("status", [...TAB_STATUSES[q.tab]]);
-  if (q.type) query = query.eq("business_type", q.type);
-  query =
-    q.sort === "ending"
-      ? query.order("ends_at", { ascending: true })
-      : q.sort === "prize"
-        ? query.order("prize_amount", { ascending: false }).order("starts_at", { ascending: false })
-        : query.order("starts_at", { ascending: false });
-  const from = (q.page - 1) * BROWSE_PAGE_SIZE;
-  const { data, count, error } = await query.range(from, from + BROWSE_PAGE_SIZE - 1);
+  let base = db.from("contests").select(LIGHT_COLUMNS).in("status", [...PUBLIC_STATUSES]).limit(5000);
+  if (q.type) base = base.eq("business_type", q.type);
+  const [{ data, error }, joined] = await Promise.all([base, opts.designerId ? joinedContestIds(opts.designerId) : Promise.resolve(new Set<string>())]);
   if (error) throw new Error(error.message);
+  const all = (data ?? []) as Light[];
 
-  const counts = Object.fromEntries(
-    await Promise.all(
-      BROWSE_TABS.map(async (tab) => {
-        let c = db.from("contests").select("id", { count: "exact", head: true }).in("status", [...TAB_STATUSES[tab]]);
-        if (q.type) c = c.eq("business_type", q.type);
-        const { count: n } = await c;
-        return [tab, n ?? 0] as const;
-      }),
-    ),
-  ) as Record<BrowseTab, number>;
+  const words = q.q.toLowerCase();
+  const types = words ? typesMatching(words) : null;
+  const soon = opts.now.getTime() + ENDING_SOON_DAYS * 86_400_000;
+  const keep = (r: Light) => {
+    if (types && !(types.has(r.business_type) || (!r.is_private && !r.is_nda && r.brand_name.toLowerCase().includes(words)))) return false;
+    for (const f of q.quick) {
+      if (f === "featured" && !r.is_promoted) return false;
+      if (f === "urgent" && !r.is_urgent) return false;
+      if (f === "big" && r.prize_amount < opts.bigPrize) return false;
+      if (f === "ending") {
+        const ends = r.ends_at ? new Date(r.ends_at).getTime() : null;
+        if (r.status !== "open" || ends === null || ends < opts.now.getTime() || ends > soon) return false;
+      }
+    }
+    return true;
+  };
+  const inTab = (r: Light, tab: BrowseTab) => (tab === "joined" ? joined.has(r.id) : TAB_STATUSES[tab].includes(r.status));
+  const shown = all.filter(keep);
+  for (const tab of tabs) counts[tab] = shown.filter((r) => inTab(r, tab)).length;
 
-  return { rows: await toRows((data ?? []) as DbRow[]), total: count ?? 0, counts };
+  const time = (v: string | null) => (v ? new Date(v).getTime() : null);
+  const bySort = (a: Light, b: Light) => {
+    if (q.sort === "prize") return b.prize_amount - a.prize_amount || (time(b.starts_at) ?? 0) - (time(a.starts_at) ?? 0);
+    const [x, y] = q.sort === "ending" ? [time(a.ends_at), time(b.ends_at)] : [time(b.starts_at), time(a.starts_at)];
+    if (x === null || y === null) return x === null ? (y === null ? 0 : 1) : -1;
+    return x - y;
+  };
+  const flags = (r: Light) => ({ isPromoted: r.is_promoted, isUrgent: r.is_urgent, isHighlighted: r.is_highlighted, isPrivate: r.is_private, isNda: r.is_nda });
+  // Paid add-ons stay ahead in the open list, whatever the sort (addon-order.ts).
+  const list = shown
+    .filter((r) => tabs.includes(q.tab) && inTab(r, q.tab))
+    .sort((a, b) => (q.tab === "open" ? addonRank(flags(a)) - addonRank(flags(b)) : 0) || bySort(a, b));
+
+  const ids = list.slice(0, q.page * BROWSE_PAGE_SIZE).map((r) => r.id);
+  let rows: ContestRow[] = [];
+  if (ids.length) {
+    const { data: full, error: fullError } = await db.from("contests").select(ROW_COLUMNS).in("id", ids);
+    if (fullError) throw new Error(fullError.message);
+    const byId = new Map((await toRows((full ?? []) as DbRow[])).map((r) => [r.id, r]));
+    rows = ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
+  }
+  const open = all.filter((r) => r.status === "open");
+  return { rows, total: list.length, counts, openNow: open.length, featuredOpen: open.filter((r) => r.is_promoted).length };
+}
+
+/** The four extra facts on a designer's card (owner, 2026-10-11). */
+export type DesignerFacts = {
+  /** False for an NDA contest this designer hasn't accepted: style and colours stay hidden. */
+  unlocked: boolean;
+  styles: LogoStyle[];
+  colors: string[];
+  clientSeen: Date | null;
+  mine: number;
+  best: number | null;
+};
+
+export async function designerFacts(ids: string[], designerId: string): Promise<Map<string, DesignerFacts>> {
+  const out = new Map<string, DesignerFacts>();
+  if (!isSupabaseConfigured() || ids.length === 0) return out;
+  const db = createAdminClient();
+  const [{ data: contests }, { data: ndas }, { data: mine }] = await Promise.all([
+    db.from("contests").select("id, client_id, is_nda, styles, colors").in("id", ids),
+    db.from("nda_acceptances").select("contest_id").eq("user_id", designerId).in("contest_id", ids),
+    db.from("entries").select("contest_id, rating").eq("designer_id", designerId).in("contest_id", ids).not("status", "in", `(${GONE_STATUSES.join(",")})`),
+  ]);
+  const clientIds = [...new Set((contests ?? []).map((c) => c.client_id as string))];
+  // profiles.last_seen_at (migration 0037); a missing column just leaves "not yet".
+  const { data: seen } = clientIds.length ? await db.from("profiles").select("id, last_seen_at").in("id", clientIds) : { data: [] };
+  const seenBy = new Map((seen ?? []).map((p) => [p.id as string, (p as { last_seen_at?: string | null }).last_seen_at ?? null]));
+  const accepted = new Set((ndas ?? []).map((n) => n.contest_id as string));
+  for (const c of contests ?? []) {
+    const own = (mine ?? []).filter((e) => e.contest_id === c.id);
+    const ratings = own.map((e) => e.rating as number | null).filter((r): r is number => r != null);
+    const unlocked = !c.is_nda || accepted.has(c.id as string);
+    const lastSeen = seenBy.get(c.client_id as string);
+    out.set(c.id as string, {
+      unlocked,
+      styles: unlocked ? ((c.styles ?? []) as LogoStyle[]) : [],
+      colors: unlocked ? ((c.colors ?? []) as string[]) : [],
+      clientSeen: lastSeen ? new Date(lastSeen) : null,
+      mine: own.length,
+      best: ratings.length ? Math.max(...ratings) : null,
+    });
+  }
+  return out;
 }
 
 /** P-02 "Featured contests": open contests with the Promoted upgrade, ending soonest first. */
