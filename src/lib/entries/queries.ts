@@ -1,5 +1,4 @@
 import "server-only";
-import { likesFor } from "@/lib/rewards/likes";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
@@ -26,9 +25,6 @@ export type EntryCard = {
   previews: string[];
   commentCount: number;
   mine: boolean;
-  /** Likes on a winning design (owner, 2026-10-09); 0 for other designs. */
-  likes: number;
-  liked: boolean;
   /** Like and dislike votes on the design (owner, 2026-10-11), and the viewer's own vote. */
   upVotes: number;
   downVotes: number;
@@ -85,11 +81,9 @@ async function voteCounts(entryIds: string[], viewerId: string | null): Promise<
 async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentUser | null, previewLimit: number): Promise<EntryCard[]> {
   const sorted = rows.map((r) => ({ ...r, images: [...(r.images ?? [])].sort((a, b) => a.position - b.position) }));
   const paths = sorted.flatMap((r) => r.images.slice(0, previewLimit).map((i) => i.preview_path));
-  const winners = sorted.filter((r) => r.status === "winner").map((r) => r.id);
-  const [urls, counts, likes, votes] = await Promise.all([
+  const [urls, counts, votes] = await Promise.all([
     getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS).catch(() => new Map<string, string>()),
     commentCounts(sorted.map((r) => r.id)),
-    likesFor(winners, viewer?.id ?? null),
     voteCounts(sorted.map((r) => r.id), viewer?.id ?? null),
   ]);
   return sorted.map((r) => ({
@@ -107,8 +101,6 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
       .filter((u): u is string => Boolean(u)),
     commentCount: counts.get(r.id) ?? 0,
     mine: r.designer_id === viewer?.id,
-    likes: likes.counts.get(r.id) ?? 0,
-    liked: likes.mine.has(r.id),
     upVotes: votes.get(r.id)?.up ?? 0,
     downVotes: votes.get(r.id)?.down ?? 0,
     myVote: votes.get(r.id)?.mine ?? 0,

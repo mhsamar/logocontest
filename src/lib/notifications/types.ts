@@ -64,5 +64,14 @@ export const NOTIFICATION_TYPES = [
   "support_reply",
   "admin_message",
   "support_message_admin",
+  // Owner, 2026-10-11: the designer's contest win card is ready.
+  "win_card_ready",
+  "monthly_smartphone_won",
+  "monthly_gift_box_won",
+  "monthly_review",
+  "monthly_sent",
+  "monthly_no_winner",
+  "monthly_claimed",
+  "monthly_claim_reminder",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

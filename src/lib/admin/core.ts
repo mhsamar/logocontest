@@ -28,8 +28,8 @@ export async function superAdmin() {
   return user?.isSuperAdmin ? user : null;
 }
 
-/** Writes one row to the audit log (BLUEPRINT §13.12). Never throws: a failed log is reported, not fatal. */
-export async function audit(adminId: string, action: string, subjectType: string, subjectId: string | null, changes: Record<string, unknown> = {}): Promise<void> {
+/** Writes one row to the audit log (BLUEPRINT §13.12); no admin = a scheduled job. Never throws: a failed log is reported, not fatal. */
+export async function audit(adminId: string | null, action: string, subjectType: string, subjectId: string | null, changes: Record<string, unknown> = {}): Promise<void> {
   const { error } = await createAdminClient().from("audit_logs").insert({ admin_id: adminId, action, subject_type: subjectType, subject_id: subjectId, changes });
   if (error) console.error("[audit] insert failed:", error.message);
 }

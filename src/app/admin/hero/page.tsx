@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdminHeroPage() {
   await requirePermission("content.view");
   const { t, locale } = await getI18n();
-  const [slides, s] = await Promise.all([allHeroSlides(), getSettings(["home.hero_slide_seconds", "home.hero_sample_pill"])]);
+  const [slides, s] = await Promise.all([allHeroSlides(), getSettings(["home.hero_slide_seconds", "home.hero_sample_pill", "home.hero_offer_slide"])]);
   const fmt = (n: number) => formatNumber(n, locale);
   const on = (slides ?? []).filter((x) => x.is_active).length;
 
@@ -93,7 +93,7 @@ export default async function AdminHeroPage() {
 
           <AdmCard className="p-5">
             <CardTitle title={t("admin.hero.settings.title")} />
-            <HeroSettingsForm seconds={s["home.hero_slide_seconds"]} samplePill={s["home.hero_sample_pill"]} />
+            <HeroSettingsForm seconds={s["home.hero_slide_seconds"]} samplePill={s["home.hero_sample_pill"]} offerSlide={s["home.hero_offer_slide"]} />
           </AdmCard>
 
           <AdmCard className="p-5">

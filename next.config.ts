@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   // The compressed Chromium files are read at run time, so they are added to the functions that make certificates.
   outputFileTracingIncludes: {
     "/api/logo-checks/**": ["./node_modules/@sparticuz/chromium/bin/**"],
+    // Win cards and monthly prize cards (owner, 2026-10-11) are pictures made the same way.
+    "/api/cards/**": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
   // Lets `NEXT_DIST_DIR=.next-check next build` run without touching a running dev server.
   distDir: process.env.NEXT_DIST_DIR || ".next",

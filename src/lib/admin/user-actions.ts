@@ -69,3 +69,17 @@ export async function setUserStatus(userId: string, status: string, f: Fields): 
   refresh();
   return { ok: true };
 }
+
+/**
+ * Marks an account as a test account, or back (owner, 2026-10-11): test accounts never take part in the monthly
+ * race (smartphone and gift box) and are the only ones counted in its test mode.
+ */
+export async function setTestAccount(userId: string, on: boolean): Promise<Result> {
+  const admin = await adminUser("users.manage");
+  if (!admin || !UUID.test(userId)) return fail("auth.errors.generic");
+  const { data, error } = await createAdminClient().from("profiles").update({ is_test: on }).eq("id", userId).neq("role", "admin").select("id").maybeSingle();
+  if (error || !data) return fail("admin.errors.generic");
+  await audit(admin.id, on ? "mark_test_account" : "unmark_test_account", "user", userId, {});
+  refresh();
+  return { ok: true };
+}

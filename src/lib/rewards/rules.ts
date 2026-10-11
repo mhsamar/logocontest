@@ -1,4 +1,4 @@
-/** Monthly Winner and leaderboard rules (BLUEPRINT §11, owner 2026-10-09). Pure, so they are tested. */
+/** Month maths for the monthly prizes and the leaderboard (BLUEPRINT §11), in Asia/Dhaka time. Pure, so they are tested. */
 
 const DHAKA_OFFSET_MS = 6 * 3600 * 1000; // Bangladesh has no daylight saving
 
@@ -26,19 +26,4 @@ export function recentMonths(from: string, n: number): string[] {
   const out = [from];
   while (out.length < n) out.push(previousMonth(out.at(-1)!));
   return out;
-}
-
-export type LikedDesign = { entryId: string; likes: number; rating: number | null; finishedAt: Date };
-
-/**
- * Leaderboard and Monthly Winner order (owner, 2026-10-09): most likes, then the client's star rating,
- * then the contest that finished first.
- */
-export function rankDesigns<T extends LikedDesign>(designs: T[]): T[] {
-  return [...designs].sort((a, b) => b.likes - a.likes || (b.rating ?? 0) - (a.rating ?? 0) || a.finishedAt.getTime() - b.finishedAt.getTime());
-}
-
-/** Who may like a winning design: a signed-in, active designer who didn't make it. */
-export function canLike(viewer: { id: string; role: string; status: string } | null, designerId: string): boolean {
-  return Boolean(viewer && viewer.role === "designer" && viewer.status === "active" && viewer.id !== designerId);
 }

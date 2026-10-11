@@ -2,12 +2,11 @@ import Link from "next/link";
 import { cx } from "@/lib/cx";
 import type { Translate } from "@/lib/i18n/translate";
 import type { WinningDesign } from "@/lib/rewards/queries";
-import { LikeButton } from "./like-button";
 
 const MEDAL = ["from-[#f6d98b] to-[#f4bd2f] text-[#5b3a00]", "from-[#eef1f5] to-[#cfd6e0] text-ink", "from-[#f3d2b3] to-[#d89a66] text-[#5b2c06]"];
 
-/** A winning design with its likes (leaderboard, winners gallery). `rank` shows a medal number on the corner. */
-export function DesignTile({ d, t, canLike, rank, tall = false }: { d: WinningDesign; t: Translate; canLike: boolean; rank?: number; tall?: boolean }) {
+/** A winning design (winners gallery). `rank` shows a medal number on the corner. Owner, 2026-10-11: no heart likes any more. */
+export function DesignTile({ d, t, rank, tall = false }: { d: WinningDesign; t: Translate; rank?: number; tall?: boolean }) {
   return (
     <div className="group relative overflow-clip rounded-2xl bg-surface shadow-card ring-1 ring-line transition-[box-shadow,translate] duration-300 hover:-translate-y-1 hover:shadow-raised">
       <Link href={`/contest/${d.contestSlug}?tab=entries&entry=${d.number}`} className="block">
@@ -44,7 +43,6 @@ export function DesignTile({ d, t, canLike, rank, tall = false }: { d: WinningDe
             )}
           </p>
         </div>
-        <LikeButton entryId={d.entryId} likes={d.likes} liked={d.liked} canLike={canLike} size="sm" />
       </div>
     </div>
   );

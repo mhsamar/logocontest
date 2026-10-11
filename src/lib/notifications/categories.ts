@@ -41,6 +41,10 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   contest_ended_entered: "ending",
   contest_extended: "ending",
   winner_picked: "winner",
+  win_card_ready: "winner",
+  monthly_smartphone_won: "winner",
+  monthly_gift_box_won: "winner",
+  monthly_claim_reminder: "winner",
   contest_closed: "winner",
   monthly_champion: "winner",
   monthly_announced: "winner",
@@ -92,6 +96,10 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   support_message_admin: "admin",
   claim_opened_admin: "admin",
   monthly_proposed: "admin",
+  monthly_review: "admin",
+  monthly_sent: "admin",
+  monthly_no_winner: "admin",
+  monthly_claimed: "admin",
   gift_address_given: "admin",
 };
 

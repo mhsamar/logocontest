@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShareProfile } from "@/components/designers/share-profile";
+import { PrizeBanner } from "@/components/rewards/prize-banner";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
@@ -10,6 +11,7 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import type { DesignerContest, DesignerProfile } from "@/lib/designers/profile";
 import { getI18n } from "@/lib/i18n/server";
+import type { MyReward } from "@/lib/rewards/claims";
 import { formatNumber, formatTaka } from "@/lib/money";
 
 function Block({ title, action, children, className }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -42,6 +44,8 @@ export async function DesignerDashboard({
   qrSvg,
   handovers,
   balance,
+  winCards = [],
+  prizes = [],
 }: {
   designer: DesignerProfile;
   contests: DesignerContest[];
@@ -51,6 +55,10 @@ export async function DesignerDashboard({
   /** Wins whose files are still to be delivered or approved (owner, 2026-10-08). */
   handovers: { slug: string; brand: string; status: string; dueAt: Date; credit: number }[];
   balance: number;
+  /** Win cards (owner, 2026-10-11), newest first. */
+  winCards?: { slug: string; brand: string | null; image: string }[];
+  /** Monthly prizes waiting for a claim (2026-10-11). */
+  prizes?: MyReward[];
 }) {
   const { t, locale } = await getI18n();
   const wins = contests.filter((c) => c.won);
@@ -101,6 +109,29 @@ export async function DesignerDashboard({
       </Panel>
 
       <Panel tone="grey" className="space-y-3.5 max-[720px]:py-4">
+        <PrizeBanner rewards={prizes} />
+        {/* Win cards to download and share (owner, 2026-10-11; D-12) */}
+        {winCards.length > 0 && (
+          <section aria-labelledby="dd-cards" className="lc-card rounded-[22px] p-4 sm:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="dd-cards" className="m-0 text-lg font-semibold tracking-[-0.02em] text-ink">
+                {t("winCard.dashboard.title")}
+              </h2>
+              <span className="text-sm text-muted">{t("winCard.dashboard.lead")}</span>
+            </div>
+            <ul className="m-0 mt-3 flex list-none gap-3 overflow-x-auto p-0 pb-1 [scrollbar-width:thin]">
+              {winCards.map((w) => (
+                <li key={w.slug} className="w-36 shrink-0 sm:w-40">
+                  <Link href={`/dashboard/wins/${w.slug}`} className="group block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={w.image} alt="" loading="lazy" className="aspect-square w-full rounded-[16px] bg-[#8B0000] object-cover transition-transform duration-300 group-hover:-translate-y-0.5" />
+                    <span className="mt-1.5 block truncate text-sm font-semibold text-ink">{w.brand ?? t("winCard.page.hiddenBrand")}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* You won: files to deliver (D-08), and the wallet (D-10) */}
         <div className="grid gap-3.5 lg:grid-cols-[1.4fr_1fr]">

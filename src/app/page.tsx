@@ -1,12 +1,12 @@
 import { ClientHome } from "@/components/home/client-home";
 import { DesignerHome } from "@/components/home/designer-home";
+import { AiChecker } from "@/components/home/landing/ai-checker";
 import { LandingFaq } from "@/components/home/landing/faq";
 import { LandingHero } from "@/components/home/landing/hero";
 import { SiteNav } from "@/components/layout/site-nav";
 import { Join } from "@/components/home/landing/join";
 import { LiveContests } from "@/components/home/landing/live-contests";
 import { Steps } from "@/components/home/landing/steps";
-import { Trusted } from "@/components/home/landing/trusted";
 import { Why } from "@/components/home/landing/why";
 import "@/components/home/landing/landing.css";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -61,7 +61,8 @@ export default async function HomePage() {
       <LandingHero picture={pictures.hero} nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
       <Steps logos={logos} />
-      <Trusted logos={logos} />
+      {/* Owner, 2026-10-11: the AI copyright checker replaces "Work with designers you can trust". */}
+      <AiChecker />
       <Why logos={logos} />
       <Join />
       <LandingFaq params={params} />

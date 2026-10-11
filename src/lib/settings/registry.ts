@@ -492,6 +492,39 @@ export const SETTINGS = {
     group: "brand", type: "string", schema: z.string().regex(/^(share\/[0-9a-f-]{36}\.(png|jpg))?$/), default: "",
     description: "Share picture for Facebook and Google (1200×630). Empty uses the built-in card.",
   },
+  // Monthly rewards and win cards (owner, 2026-10-11; migration 0035; Admin → Monthly winner)
+  "rewards.win_card_on": {
+    group: "rewards", type: "bool", schema: z.boolean(), default: true,
+    description: "Send the contest win card to the designer right after a winner is picked.",
+  },
+  "rewards.smartphone_card_on": {
+    group: "rewards", type: "bool", schema: z.boolean(), default: true,
+    description: "Send the smartphone card to the top client when the month closes.",
+  },
+  "rewards.gift_box_card_on": {
+    group: "rewards", type: "bool", schema: z.boolean(), default: true,
+    description: "Send the gift box card to the top designer when the month closes.",
+  },
+  "rewards.ask_first": {
+    group: "rewards", type: "bool", schema: z.boolean(), default: false,
+    description: "Hold the monthly cards until an admin approves them.",
+  },
+  "rewards.claim_deadline": {
+    group: "rewards", type: "string", schema: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]), default: "",
+    description: "Last day to claim a monthly prize (YYYY-MM-DD). Empty shows no deadline.",
+  },
+  "rewards.claim_reminder_days": {
+    group: "rewards", type: "int", schema: int(1, 30), default: 3,
+    description: "Days between reminders to a monthly prize winner who hasn't claimed yet.",
+  },
+  "rewards.claim_reminders_max": {
+    group: "rewards", type: "int", schema: int(0, 10), default: 3,
+    description: "How many claim reminders a monthly prize winner gets at most (0 = none).",
+  },
+  "home.hero_offer_slide": {
+    group: "home", type: "bool", schema: z.boolean(), default: true,
+    description: "Show the monthly prizes slide (slide 5) after the home hero slides.",
+  },
   // Admin → Home hero (owner, 2026-10-11; migration 0034)
   "home.hero_slide_seconds": {
     group: "home", type: "int", schema: int(1, 10), default: 2,

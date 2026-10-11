@@ -301,7 +301,7 @@ export async function copySampleSlides(): Promise<{ ok: true } | Fail> {
 // The two hero settings
 // ---------------------------------------------------------------------------------------------------------------
 
-export async function saveHeroSettings(input: { seconds: number; samplePill: boolean }): Promise<{ ok: true } | Fail> {
+export async function saveHeroSettings(input: { seconds: number; samplePill: boolean; offerSlide: boolean }): Promise<{ ok: true } | Fail> {
   const admin = await adminUser("content.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!Number.isInteger(input.seconds) || input.seconds < 1 || input.seconds > 10) return fail("admin.hero.errors.seconds");
@@ -309,11 +309,12 @@ export async function saveHeroSettings(input: { seconds: number; samplePill: boo
     [
       ["home.hero_slide_seconds", input.seconds],
       ["home.hero_sample_pill", Boolean(input.samplePill)],
+      ["home.hero_offer_slide", Boolean(input.offerSlide)],
     ] as const
   ).map(([key, value]) => ({ key, value, type: SETTINGS[key].type, group: SETTINGS[key].group, description: SETTINGS[key].description, updated_by: admin.id }));
   const { error } = await createAdminClient().from("settings").upsert(rows);
   if (error) return fail("admin.errors.generic");
-  await audit(admin.id, "update_hero_settings", "setting", "home.hero", { seconds: input.seconds, samplePill: input.samplePill });
+  await audit(admin.id, "update_hero_settings", "setting", "home.hero", { seconds: input.seconds, samplePill: input.samplePill, offerSlide: input.offerSlide });
   changed();
   return { ok: true };
 }

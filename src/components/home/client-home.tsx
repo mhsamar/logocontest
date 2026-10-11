@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "@/components/wizard/upgrade-meta";
 import { DELIVERABLES, PACKAGES, UPGRADES } from "@/lib/contests/brief";
-import { countRunningContests } from "@/lib/contests/dashboard";
 import { prizeWithFee } from "@/lib/contests/pricing";
 import { getPricingConfig } from "@/lib/contests/pricing-config";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { INPUT } from "@/components/ui/field";
+import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
+import { PrizePanel } from "./prize-panel";
 import { Arrow, IconBadge, Pill } from "@/components/ui/section-heading";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
@@ -25,7 +24,7 @@ const STEP_ICONS = [
 /** P-01c Client home (owner, 2026-10-08): everything a returning client needs to start the next contest. */
 export async function ClientHome({ user }: { user: { id: string; name: string } }) {
   const { t, locale } = await getI18n();
-  const [pricing, perDay, running] = await Promise.all([getPricingConfig(), getSetting("upgrades.extension_price_per_day"), countRunningContests(user.id)]);
+  const [pricing, perDay] = await Promise.all([getPricingConfig(), getSetting("upgrades.extension_price_per_day")]);
   const taka = (n: number) => formatTaka(n, locale);
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
 
@@ -33,28 +32,22 @@ export async function ClientHome({ user }: { user: { id: string; name: string } 
     <PageShell>
       {/* Start here */}
       <Panel as="header">
-        <div className="max-w-2xl">
-          <Pill>{t("clientHome.hi", { name: firstName })}</Pill>
-          <h1 className="m-0 mt-4 text-[clamp(32px,4.4vw,54px)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">{t("clientHome.title")}</h1>
-          <p className="m-0 mt-3 text-lg text-muted">{t("clientHome.lead")}</p>
-          <form action="/start" className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <input name="name" maxLength={60} placeholder={t("clientHome.namePlaceholder")} aria-label={t("clientHome.namePlaceholder")} className={cx(INPUT, "flex-1 bg-chip")} />
-            <Button type="submit" size="lg">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              {t("clientHome.start")}
-            </Button>
-          </form>
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-            <Link href="/dashboard" className="inline-flex min-h-11 items-center gap-1.5 font-bold text-primary hover:underline">
-              {t("clientHome.dashboard")} <Arrow />
-            </Link>
-            <span className="inline-flex items-center gap-2 text-muted">
-              {running > 0 && <span className="size-2 rounded-full bg-success" aria-hidden />}
-              {running === 0 ? t("clientHome.runningNone") : running === 1 ? t("clientHome.runningOne") : t("clientHome.running", { n: formatNumber(running, locale) })}
-            </span>
+        <div className="grid items-center gap-7 min-[941px]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] min-[941px]:gap-10">
+          <div className="min-w-0 max-w-2xl">
+            <Pill>{t("clientHome.hi", { name: firstName })}</Pill>
+            <h1 className="m-0 mt-4 text-[clamp(32px,4.4vw,54px)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">{t("clientHome.title")}</h1>
+            <p className="m-0 mt-3 text-lg text-muted">{t("clientHome.lead")}</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <ButtonLink href="/start" size="lg">
+                {t("clientHome.startShort")} <Arrow />
+              </ButtonLink>
+              <ButtonLink href="/dashboard" variant="secondary" size="lg">
+                {t("clientHome.dashboard")}
+              </ButtonLink>
+            </div>
           </div>
+          {/* The smartphone race this month (owner, 2026-10-11) */}
+          <PrizePanel kind="smartphone" userId={user.id} />
         </div>
       </Panel>
 

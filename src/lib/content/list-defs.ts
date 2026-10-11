@@ -38,7 +38,8 @@ export const LISTS: Record<ListKey, ListDef> = {
     href: true,
     canAdd: true,
     max: 6,
-    builtIn: [link("browse", "/contests", "nav.browse"), link("studio", "/design-studio", "nav.studio"), link("how", "/how-it-works", "nav.how"), link("help", "/help", "nav.help")],
+    // Owner, 2026-10-11: the monthly prizes leaderboard is in the main menu.
+    builtIn: [link("browse", "/contests", "nav.browse"), link("studio", "/design-studio", "nav.studio"), link("leaderboard", "/leaderboard", "nav.leaderboard"), link("how", "/how-it-works", "nav.how"), link("help", "/help", "nav.help")],
   },
   footer_links: {
     fields: [{ name: "label", max: 60 }],

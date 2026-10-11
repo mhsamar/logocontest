@@ -4,6 +4,7 @@ import { homeHero } from "@/lib/home/hero";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { HeroForm } from "../hero-form";
+import { HeroOffer } from "./hero-offer";
 import { ShowcaseArt, SlideText } from "./hero-showcase";
 import { HeroSlider } from "./hero-slider";
 
@@ -29,7 +30,8 @@ export async function LandingHero({ nav, picture }: { nav: React.ReactNode; pict
           <SlideText key={s.key} slide={s} first={i === 0} />
         ))}
         labels={hero.slides.map((s) => t("home.hero.brandLabel", { brand: s.brand }))}
-        dotLabel={hero.slides.map((_, i) => t("home.hero.dot", { n: formatNumber(i + 1, locale) }))}
+        dotLabel={Array.from({ length: hero.slides.length + (hero.offer ? 1 : 0) }, (_, i) => t("home.hero.dot", { n: formatNumber(i + 1, locale) }))}
+        offer={hero.offer ? <HeroOffer t={t} /> : null}
         sampleLabel={hero.sample ? t("home.hero.sample") : null}
         aside={{
           top: (

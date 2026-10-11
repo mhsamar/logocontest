@@ -7,7 +7,7 @@ import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, Pill, type PillTone } from "@/components/admin/ui";
 import { adminUser, requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
-import { giveStrike, removeStrike, setUserStatus } from "@/lib/admin/user-actions";
+import { giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
 import { getUser } from "@/lib/admin/users";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
@@ -93,6 +93,11 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                 {t(`admin.users.roles.${u.role}`)}
               </span>
               {u.status === "suspended" && u.suspendedUntil && <span className="mt-1 text-sm font-semibold text-adm-warn">{t("admin.users.suspendedUntil", { date: when(u.suspendedUntil) })}</span>}
+              {u.isTest && (
+                <span className="mt-1.5">
+                  <Pill tone="sample">{t("admin.users.testAccount")}</Pill>
+                </span>
+              )}
             </div>
             {d && (
               <div className="grid grid-cols-3 gap-2 px-2">
@@ -182,6 +187,17 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                   )}
                   {u.status !== "banned" && <AdminAction label={t("admin.users.ban")} body={t("admin.users.banBody")} tone="danger" run={setUserStatus.bind(null, u.id, "banned")} />}
                   {u.status !== "active" && <AdminAction label={t("admin.users.reactivate")} tone="primary" run={setUserStatus.bind(null, u.id, "active")} />}
+                  {/* Owner, 2026-10-11: test accounts never take part in the monthly race */}
+                  {u.role !== "admin" && (
+                    <AdminAction
+                      label={t(u.isTest ? "admin.users.unmarkTest" : "admin.users.markTest")}
+                      body={t(u.isTest ? "admin.users.unmarkTestBody" : "admin.users.markTestBody")}
+                      tone="ghost"
+                      fields={[]}
+                      run={setTestAccount.bind(null, u.id, !u.isTest)}
+                      done={t("admin.saved")}
+                    />
+                  )}
                 </div>
                 <p className="m-0 text-[13.5px] text-muted">{t("admin.users.ladder")}</p>
               </div>

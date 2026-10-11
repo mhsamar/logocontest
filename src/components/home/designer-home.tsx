@@ -3,6 +3,7 @@ import { ContestCard } from "@/components/contests/contest-card";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
+import { PrizePanel } from "./prize-panel";
 import { Arrow, IconBadge, Pill } from "@/components/ui/section-heading";
 import { liveContests } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
@@ -22,7 +23,7 @@ const TIP_ICONS = [
 const H2 = "m-0 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink";
 
 /** P-01d Designer home (owner, 2026-10-08): open contests, tips, how to upload, rules and fees. */
-export async function DesignerHome({ user }: { user: { name: string } }) {
+export async function DesignerHome({ user }: { user: { id: string; name: string } }) {
   const { t, locale } = await getI18n();
   const [open, s] = await Promise.all([
     liveContests(3),
@@ -48,18 +49,22 @@ export async function DesignerHome({ user }: { user: { name: string } }) {
   return (
     <PageShell>
       <Panel as="header">
-        <div className="max-w-2xl">
-          <Pill>{t("designerHome.hi", { name: firstName })}</Pill>
-          <h1 className="m-0 mt-4 text-[clamp(32px,4.4vw,54px)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">{t("designerHome.title")}</h1>
-          <p className="m-0 mt-3 text-lg text-muted">{t("designerHome.lead")}</p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <ButtonLink href="/contests" size="lg">
-              {t("designerHome.browse")} <Arrow />
-            </ButtonLink>
-            <ButtonLink href="/dashboard" variant="secondary" size="lg">
-              {t("designerHome.dashboard")}
-            </ButtonLink>
+        <div className="grid items-center gap-7 min-[941px]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] min-[941px]:gap-10">
+          <div className="min-w-0 max-w-2xl">
+            <Pill>{t("designerHome.hi", { name: firstName })}</Pill>
+            <h1 className="m-0 mt-4 text-[clamp(32px,4.4vw,54px)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">{t("designerHome.title")}</h1>
+            <p className="m-0 mt-3 text-lg text-muted">{t("designerHome.lead")}</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <ButtonLink href="/contests" size="lg">
+                {t("designerHome.browse")} <Arrow />
+              </ButtonLink>
+              <ButtonLink href="/dashboard" variant="secondary" size="lg">
+                {t("designerHome.dashboard")}
+              </ButtonLink>
+            </div>
           </div>
+          {/* The gift box race this month (owner, 2026-10-11) */}
+          <PrizePanel kind="gift_box" userId={user.id} />
         </div>
       </Panel>
 

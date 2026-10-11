@@ -1,4 +1,5 @@
 import "server-only";
+import { launchChrome } from "@/lib/render/chrome";
 import QRCode from "qrcode";
 import { certNumber, type Verdict } from "./rules";
 
@@ -116,20 +117,9 @@ h1{margin:0;font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.035
 </div></div></body></html>`;
 }
 
-/** Headless Chrome: the serverless build on Vercel, the installed Chrome on a computer. */
-async function launch() {
-  const puppeteer = await import("puppeteer-core");
-  if (process.env.VERCEL || process.platform === "linux") {
-    const chromium = (await import("@sparticuz/chromium")).default;
-    return puppeteer.launch({ args: chromium.args, executablePath: await chromium.executablePath(), headless: true });
-  }
-  const executablePath = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-  return puppeteer.launch({ executablePath, headless: true });
-}
-
 /** Renders the certificate to an A4 PDF and a PNG (2x) from the same HTML. */
 export async function renderCertificate(html: string): Promise<{ pdf: Uint8Array; png: Uint8Array }> {
-  const browser = await launch();
+  const browser = await launchChrome();
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });

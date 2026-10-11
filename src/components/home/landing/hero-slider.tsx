@@ -29,6 +29,7 @@ export function HeroSlider({
   sampleLabel,
   aside,
   intervalMs,
+  offer = null,
 }: {
   /** One showcase picture per slide, rendered on the server. */
   showcases: React.ReactNode[];
@@ -43,8 +44,12 @@ export function HeroSlider({
   /** The text column's top and bottom: the eyebrow pill and the form + chips, which never change. */
   aside: { top: React.ReactNode; bottom: React.ReactNode };
   intervalMs: number;
+  /** Slide 5 (owner, 2026-10-11): the monthly prizes, shown over the whole hero after the showcase slides. */
+  offer?: React.ReactNode;
 }) {
-  const count = showcases.length;
+  const shows = showcases.length;
+  const count = shows + (offer ? 1 : 0);
+
   const [active, setActive] = useState(0);
   const [leaving, setLeaving] = useState<number | null>(null);
   const [hover, setHover] = useState(false);
@@ -53,6 +58,7 @@ export function HeroSlider({
   const hidden = useSyncExternalStore(subscribeVisibility, () => document.hidden, () => false);
   const paused = reduced || hidden || hover || typing || count < 2;
   const activeRef = useRef(0);
+  const offerOn = Boolean(offer) && active === shows;
 
   const go = (next: number) => {
     const prev = activeRef.current;
@@ -74,7 +80,19 @@ export function HeroSlider({
     return () => window.clearTimeout(id);
   }, [paused, active, count, intervalMs]);
 
+  const dots = (
+    <div className="flex items-center">
+      {Array.from({ length: count }, (_, i) => (
+        <button key={i} type="button" onClick={() => go(i)} aria-label={dotLabel[i]} aria-current={i === active ? "true" : undefined} className="group flex h-11 items-center px-1">
+          <span className={cx("lc-dot block h-[11px] rounded-full", i === active ? "w-[26px] bg-[var(--lc-red)]" : "w-[11px] bg-[#C9CCD3] group-hover:bg-[#9A9DA6]")} />
+        </button>
+      ))}
+    </div>
+  );
+
   return (
+    // Slide 5 sits in the same grid cell as the hero, so the hero is as tall as the taller of the two (nothing is cut off).
+    <div className="lc-hero-stack">
     <div className="lc-hero-grid">
       <div className="flex flex-col items-center gap-3.5">
         <div className="lc-show" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
@@ -93,20 +111,7 @@ export function HeroSlider({
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3.5">
-          <div className="flex items-center">
-            {showcases.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={dotLabel[i]}
-                aria-current={i === active ? "true" : undefined}
-                className="group flex h-11 items-center px-1"
-              >
-                <span className={cx("lc-dot block h-[11px] rounded-full", i === active ? "w-[26px] bg-[var(--lc-red)]" : "w-[11px] bg-[#C9CCD3] group-hover:bg-[#9A9DA6]")} />
-              </button>
-            ))}
-          </div>
+          <div className={cx(offerOn && "invisible")}>{dots}</div>
           {sampleLabel && <span className="rounded-full bg-[#FFF4D1] px-2.5 py-0.5 text-[13px] font-bold text-[#6B4E00]">{sampleLabel}</span>}
         </div>
       </div>
@@ -133,6 +138,24 @@ export function HeroSlider({
         </div>
         {aside.bottom}
       </div>
+    </div>
+
+      {/* Slide 5 covers the hero while it shows; its own dots lead back (also with "reduce motion"). */}
+      {offer && (
+        <div
+          className="lc-hero-offer"
+          data-on={offerOn ? "" : undefined}
+          inert={!offerOn}
+          aria-hidden={offerOn ? undefined : true}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          onFocus={() => setTyping(true)}
+          onBlur={() => setTyping(false)}
+        >
+          <div className="lc-hero-offer-panels">{offer}</div>
+          <div className="flex justify-center">{dots}</div>
+        </div>
+      )}
     </div>
   );
 }

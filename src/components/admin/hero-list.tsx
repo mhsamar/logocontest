@@ -85,18 +85,19 @@ export function CopySamplesButton() {
 }
 
 /** Seconds per slide and the "Sample artwork" pill. */
-export function HeroSettingsForm({ seconds, samplePill }: { seconds: number; samplePill: boolean }) {
+export function HeroSettingsForm({ seconds, samplePill, offerSlide }: { seconds: number; samplePill: boolean; offerSlide: boolean }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
   const { busy, run } = useQuick();
   const [s, setS] = useState(String(seconds));
   const [pill, setPill] = useState(samplePill);
+  const [offer, setOffer] = useState(offerSlide);
   return (
     <form
       className="mt-4 flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        run(() => saveHeroSettings({ seconds: Number(s), samplePill: pill }), t("admin.saved"));
+        run(() => saveHeroSettings({ seconds: Number(s), samplePill: pill, offerSlide: offer }), t("admin.saved"));
       }}
     >
       <div className="flex max-w-xs flex-col gap-1.5">
@@ -109,6 +110,10 @@ export function HeroSettingsForm({ seconds, samplePill }: { seconds: number; sam
       <div>
         <AdmCheckbox label={t("admin.hero.settings.pill")} checked={pill} disabled={readOnly} onChange={(e) => setPill(e.target.checked)} />
         <p className="m-0 mt-1 text-[13px] text-muted">{t("admin.hero.settings.pillHint")}</p>
+      </div>
+      <div>
+        <AdmCheckbox label={t("admin.hero.settings.offer")} checked={offer} disabled={readOnly} onChange={(e) => setOffer(e.target.checked)} />
+        <p className="m-0 mt-1 text-[13px] text-muted">{t("admin.hero.settings.offerHint")}</p>
       </div>
       {!readOnly && (
         <div>

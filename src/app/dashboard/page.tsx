@@ -5,6 +5,7 @@ import { ClientContestCard } from "@/components/dashboard/client-contest-card";
 import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { DesignerDashboard } from "@/components/dashboard/designer-dashboard";
+import { PrizeBanner } from "@/components/rewards/prize-banner";
 import { ButtonLink } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,6 +18,8 @@ import { countSaved } from "@/lib/contests/community";
 import { DASHBOARD_TABS, getClientDashboard, type DashboardTab } from "@/lib/contests/dashboard";
 import { designerById, designerContests } from "@/lib/designers/profile";
 import { openHandovers } from "@/lib/handover/queries";
+import { myUnclaimedRewards } from "@/lib/rewards/claims";
+import { designerWinCards, winCardImage } from "@/lib/rewards/win-cards";
 import { getWallet } from "@/lib/wallet/queries";
 import { siteOrigin } from "@/lib/email";
 import { qrSvg } from "@/lib/profile/qr";
@@ -39,13 +42,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     const designer = await designerById(user.id);
     if (!designer) notFound();
     const profileUrl = `${await siteOrigin()}/d/${designer.username}`;
-    const [contests, savedCount, qr, handovers, wallet] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl), openHandovers(user.id), getWallet(user.id)]);
-    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} />;
+    const [contests, savedCount, qr, handovers, wallet, cards, prizes] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl), openHandovers(user.id), getWallet(user.id), designerWinCards(user.id), myUnclaimedRewards(user.id)]);
+    const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardImage(c.slug, "square", c.squarePath) }));
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} winCards={winCards} prizes={prizes} />;
   }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();
 
-  const [data, addons] = await Promise.all([getClientDashboard(user.id), addonPrices()]);
+  const [data, addons, prizes] = await Promise.all([getClientDashboard(user.id), addonPrices(), myUnclaimedRewards(user.id)]);
   const counts = Object.fromEntries(DASHBOARD_TABS.map((tab) => [tab, data.contests.filter((c) => c.tab === tab).length])) as Record<DashboardTab, number>;
   const asked = DASHBOARD_TABS.find((x) => x === sp.tab);
   // The first tab with contests opens by default.
@@ -136,6 +140,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       </Panel>
 
       <Panel tone="grey" className="flex-1 max-[720px]:py-6">
+        {prizes.length > 0 && (
+          <div className="mb-8">
+            <PrizeBanner rewards={prizes} />
+          </div>
+        )}
         {attention.length > 0 && (
           <section className="mb-8">
             <h2 className="m-0 text-sm font-bold uppercase tracking-[0.12em] text-muted">{t("dashboard.attention.title")}</h2>

@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { feeRateFor } from "@/lib/wallet/fees";
 import { adminUser, audit, cleanReason, UUID } from "./core";
+import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
@@ -75,6 +76,7 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
   await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, admin.id);
   await notify([c.client_id], "winner_picked_by_admin", n, `/dashboard/contests/${c.slug}`, admin.id);
   await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
+  await afterWinnerPicked(c.id, entry.id as string);
   refresh();
   return { ok: true };
 }

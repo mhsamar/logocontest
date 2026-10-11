@@ -15,10 +15,12 @@ export type AdminUserRow = {
   email: string | null;
   strikes: number;
   flagWarnings: number;
+  /** A test account (owner, 2026-10-11): never counted in the monthly race. */
+  isTest: boolean;
   createdAt: Date;
 };
 
-const COLUMNS = "id, name, username, role, status, mobile, email, strikes, flag_warnings, created_at, suspended_until";
+const COLUMNS = "id, name, username, role, status, mobile, email, strikes, flag_warnings, is_test, created_at, suspended_until";
 const PAGE = 30;
 
 const toRow = (r: Record<string, unknown>): AdminUserRow => ({
@@ -31,6 +33,7 @@ const toRow = (r: Record<string, unknown>): AdminUserRow => ({
   email: (r.email as string | null) ?? null,
   strikes: (r.strikes as number) ?? 0,
   flagWarnings: (r.flag_warnings as number) ?? 0,
+  isTest: Boolean(r.is_test),
   createdAt: new Date(r.created_at as string),
 });
 

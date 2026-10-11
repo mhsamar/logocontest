@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { designerEndingKind, designerNoticesDue } from "@/lib/lifecycle/rules";
-import { canLike, isMonthKey, monthKey, monthRange, previousMonth, rankDesigns, recentMonths } from "@/lib/rewards/rules";
+import { isMonthKey, monthKey, monthRange, previousMonth, recentMonths } from "@/lib/rewards/rules";
 
 describe("months in Bangladesh time", () => {
   it("puts a moment in its Dhaka month", () => {
@@ -17,29 +17,6 @@ describe("months in Bangladesh time", () => {
     expect(recentMonths("2026-02", 3)).toEqual(["2026-02", "2026-01", "2025-12"]);
     expect(isMonthKey("2026-13")).toBe(false);
     expect(isMonthKey("2026-09")).toBe(true);
-  });
-});
-
-describe("leaderboard and Monthly Winner order (owner, 2026-10-09)", () => {
-  const d = (entryId: string, likes: number, rating: number | null, day: number) => ({ entryId, likes, rating, finishedAt: new Date(Date.UTC(2026, 8, day)) });
-
-  it("orders by likes, then the client's stars, then who finished first", () => {
-    const ranked = rankDesigns([d("a", 3, 4, 10), d("b", 7, 2, 12), d("c", 3, 5, 20), d("e", 3, 5, 5), d("f", 0, null, 1)]);
-    expect(ranked.map((x) => x.entryId)).toEqual(["b", "e", "c", "a", "f"]);
-  });
-
-  it("is empty with no designs", () => {
-    expect(rankDesigns([])).toEqual([]);
-  });
-});
-
-describe("who may like a winning design", () => {
-  it("only an active designer who didn't make it", () => {
-    expect(canLike({ id: "x", role: "designer", status: "active" }, "y")).toBe(true);
-    expect(canLike({ id: "y", role: "designer", status: "active" }, "y")).toBe(false);
-    expect(canLike({ id: "x", role: "client", status: "active" }, "y")).toBe(false);
-    expect(canLike({ id: "x", role: "designer", status: "suspended" }, "y")).toBe(false);
-    expect(canLike(null, "y")).toBe(false);
   });
 });
 

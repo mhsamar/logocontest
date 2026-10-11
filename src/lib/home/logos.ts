@@ -15,7 +15,7 @@ export async function homeLogos(limit = 12): Promise<string[]> {
   const featuredIds = (data ?? []).map((r) => r.entry_id as string);
   const [featured, newest] = await Promise.all([
     featuredIds.length ? winningDesigns({ entryIds: featuredIds, limit }) : Promise.resolve([]),
-    winningDesigns({ order: "newest", limit }),
+    winningDesigns({ limit }),
   ]);
   return pickLogos(featuredIds, featured, newest, limit);
 }

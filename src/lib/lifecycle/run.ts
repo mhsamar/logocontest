@@ -1,5 +1,4 @@
 import "server-only";
-import { adminIdsWith } from "@/lib/admin/recipients";
 import { PAGE_VIEW_DAYS } from "@/lib/analytics/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { contestDesignerIds, notify } from "@/lib/notifications";
@@ -7,22 +6,23 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
 import { broadcastToDesigners } from "@/lib/notifications/broadcast";
-import { winningDesigns } from "@/lib/rewards/queries";
-import { monthKey, previousMonth } from "@/lib/rewards/rules";
+import { remindUnclaimed } from "@/lib/rewards/claims";
+import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
+import { missedMonth } from "@/lib/rewards/race-rules";
 import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, type SplitEntry } from "./rules";
 
 /**
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; proposed: number; announced: number; designerReminders: number; filesDue: number; errors: string[] };
+export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
 const DAY = 86_400_000;
 
 export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
-  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, proposed: 0, announced: 0, designerReminders: 0, filesDue: 0, errors: [] };
+  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, monthClosed: null, claimReminders: 0, announced: 0, designerReminders: 0, filesDue: 0, errors: [] };
   if (!isSupabaseConfigured()) return report;
   const db = createAdminClient();
   const s = await getSettings([
@@ -248,22 +248,26 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     else report.unsuspended = (data as number) ?? 0;
   }
 
-  // 9. Monthly Winner: once a month has ended, propose its most-liked winning design for an admin to pick (§11).
+  // 9. Monthly prizes (owner, 2026-10-11): the month closes at 23:59 on its last day (/api/cron/month-close). On the
+  //    1st this closes last month if that run was missed, and sends any reward a stopped run left unsent.
   try {
-    const month = previousMonth(monthKey(now));
-    const { data: existing } = await db.from("monthly_winners").select("month").eq("month", month).maybeSingle();
-    if (!existing) {
-      const [top] = await winningDesigns({ month, limit: 1 });
-      if (top) {
-        const { error } = await db.from("monthly_winners").insert({ month, entry_id: top.entryId, designer_id: top.designerId, likes: top.likes, status: "proposed" });
-        if (!error) {
-          await notify(await adminIdsWith("monthly.view"), "monthly_proposed", { month }, `/admin/monthly?month=${month}`);
-          report.proposed++;
-        }
-      }
+    const month = missedMonth(now);
+    if (month) {
+      const origin = jobOrigin();
+      const done = await closeMonth(month, { origin });
+      if (done.status === "already") {
+        const { data: m } = await db.from("reward_months").select("status").eq("month", month).eq("is_test", false).maybeSingle();
+        if (m?.status === "sent") await sendMonthRewards(month, false, origin);
+      } else report.monthClosed = month;
     }
   } catch (e) {
-    fail("monthly", "-", e);
+    fail("month_close", "-", e);
+  }
+  // Winners who haven't claimed their monthly prize get a reminder every few days (Settings → Rewards).
+  try {
+    report.claimReminders = await remindUnclaimed(jobOrigin(), now);
+  } catch (e) {
+    fail("claim_reminders", "-", e);
   }
 
   // 10. Visit data: page views are kept 180 days, "online now" rows a day (BLUEPRINT §13.2 item 3).

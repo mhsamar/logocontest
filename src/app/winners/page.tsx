@@ -9,9 +9,7 @@ import { visibleBusinessTypes } from "@/lib/content/lists";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { DesignTile } from "@/components/rewards/design-tile";
-import { getCurrentUser } from "@/lib/auth/session";
 import { winningDesigns } from "@/lib/rewards/queries";
-import { canLike } from "@/lib/rewards/rules";
 import { openGraphFor } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,8 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function WinnersPage({ searchParams }: PageProps<"/winners">) {
   const sp = await searchParams;
   const type = typeof sp.type === "string" && (BUSINESS_TYPES as readonly string[]).includes(sp.type) ? sp.type : null;
-  const [{ t }, user, types] = await Promise.all([getI18n(), getCurrentUser(), visibleBusinessTypes(type)]);
-  const logos = await winningDesigns({ type, viewerId: user?.id ?? null, order: "newest", limit: 60 });
+  const [{ t }, types] = await Promise.all([getI18n(), visibleBusinessTypes(type)]);
+  const logos = await winningDesigns({ type, limit: 60 });
   const chip = (active: boolean) =>
     cx("inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[14px] px-4 text-[15px] font-semibold transition-colors", active ? "bg-ink text-white" : "bg-chip text-ink hover:bg-line");
   return (
@@ -60,7 +58,7 @@ export default async function WinnersPage({ searchParams }: PageProps<"/winners"
         <ul className="m-0 mt-8 list-none columns-2 gap-3.5 p-0 sm:columns-3 lg:columns-4 [&>li]:mb-3.5">
           {logos.map((d, i) => (
             <li key={d.entryId} className="lc-rv break-inside-avoid">
-              <DesignTile d={d} t={t} canLike={canLike(user, d.designerId)} tall={i % 3 === 1} />
+              <DesignTile d={d} t={t} tall={i % 3 === 1} />
             </li>
           ))}
         </ul>
