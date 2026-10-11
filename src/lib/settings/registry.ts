@@ -523,7 +523,7 @@ export const SETTINGS = {
   },
   "home.hero_offer_slide": {
     group: "home", type: "bool", schema: z.boolean(), default: true,
-    description: "Show the monthly prizes slide (slide 5) after the home hero slides.",
+    description: "Show the monthly prizes section (smartphone and gift box) under the live contests on the home page.",
   },
   // Admin → Home hero (owner, 2026-10-11; migration 0034)
   "home.hero_slide_seconds": {

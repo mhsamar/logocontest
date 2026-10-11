@@ -168,6 +168,7 @@ const en = {
       formats: "PDF + image",
     },
     offer: {
+      section: "Monthly prizes",
       clients: {
         eyebrow: "For business owners",
         line1: "Create a logo contest.",
@@ -2235,8 +2236,8 @@ const en = {
         secondsHint: "1 to 10. The design uses 2.",
         pill: "Show the \"Sample artwork\" pill",
         pillHint: "Keep it on while any slide uses example material. Turn it off once every slide is a real contest winner who agreed to be shown.",
-        offer: "Show the monthly prizes slide (slide 5)",
-        offerHint: "After your slides: the smartphone for clients and the gift box for designers, with links to start a contest, join and the leaderboard.",
+        offer: "Show the monthly prizes section",
+        offerHint: "On the home page, under the live contests: the smartphone for clients and the gift box for designers, with links to start a contest, join and the leaderboard.",
         save: "Save settings",
       },
       help: {

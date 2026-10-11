@@ -78,13 +78,10 @@
 /* AI checker section (owner, 2026-10-11): the scan line moving over the example logo. */
 .lc-scan { animation: lc-scan 2.2s ease-in-out infinite alternate; }
 @keyframes lc-scan { from { top: 6%; } to { top: 92%; } }
-/* Slide 5 (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html): the monthly prizes, over the whole hero. */
-.lc-hero-stack { display: grid; width: 100%; }
-.lc-hero-stack > .lc-hero-grid { grid-area: 1 / 1; }
-.lc-hero-offer { grid-area: 1 / 1; position: relative; margin: -8px; z-index: 3; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 8px; background: #fff; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s linear 0.25s; }
-.lc-hero-offer[data-on] { opacity: 1; visibility: visible; transition: opacity 0.25s ease; }
-/* The two panels fill the hero's whole height, as in the design (Design/rewards/home-hero-offer-slide.html). */
-.lc-hero-offer-panels { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* The monthly prizes (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html). */
+/* The same two panels as a section under the live contests (owner, 2026-10-11). */
+.lc-prizes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lc-prizes-grid > .lc-offer { min-height: 440px; }
 .lc-offer { position: relative; display: flex; align-items: center; gap: 20px; min-width: 0; overflow: hidden; padding: 30px 36px; border-radius: 28px; }
 .lc-offer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .lc-offer-title { font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif; font-size: clamp(26px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
@@ -135,8 +132,8 @@
   .lc-hero-txt { align-items: center !important; text-align: center; }
   .lc-hero-copy { align-items: center; }
   .lc-hero-row { justify-content: center; }
-  .lc-hero-offer { justify-content: flex-start; }
-  .lc-hero-offer-panels { flex: none; grid-template-columns: minmax(0, 1fr); }
+  .lc-prizes-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .lc-prizes-grid > .lc-offer { min-height: 0; }
   .lc-offer { padding: 26px; }
   .lc-offer-art { position: absolute; right: 6px; bottom: 6px; transform: scale(0.55); transform-origin: bottom right; padding: 0; opacity: 0.95; }
   .lc-offer-text { padding-right: 70px; }
@@ -144,8 +141,9 @@
 @media (max-width: 720px) {
   .lc-landing { padding: 8px 8px 0 !important; gap: 8px !important; }
   .lc-landing :is(section, .lc-hero, footer) { border-radius: 24px !important; }
-  /* (Not the slide 5 prize panels: they keep the design's own padding.) */
-  .lc-landing section:not(.lc-offer) { padding: 52px 16px !important; }
+  /* (Not the monthly prize panels: they keep the design's own padding.) */
+  .lc-landing section:not(.lc-offer):not(.lc-prizes) { padding: 52px 16px !important; }
+  .lc-landing .lc-prizes { padding: 8px !important; }
   .lc-landing #join { padding: 0 !important; gap: 8px !important; }
   .lc-landing #join > div { padding: 28px 22px !important; }
   .lc-hero { padding: 8px 16px 44px !important; }

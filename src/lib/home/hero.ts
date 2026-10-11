@@ -101,13 +101,12 @@ const loadActive = unstable_cache(
   { tags: [CONTENT_TAG], revalidate: 3600 },
 );
 
-export type HomeHero = { slides: HeroSlideView[]; intervalMs: number; sample: boolean; /** Slide 5, the monthly prizes (owner, 2026-10-11). */ offer: boolean };
+export type HomeHero = { slides: HeroSlideView[]; intervalMs: number; sample: boolean };
 
 /** The home hero: the admin's switched-on slides, or the built-in samples (always with the "Sample artwork" pill). */
 export async function homeHero(locale: Locale, t: Translate): Promise<HomeHero> {
-  const [rows, s] = await Promise.all([loadActive(), getSettings(["home.hero_slide_seconds", "home.hero_sample_pill", "home.hero_offer_slide"]).catch(() => null)]);
+  const [rows, s] = await Promise.all([loadActive(), getSettings(["home.hero_slide_seconds", "home.hero_sample_pill"]).catch(() => null)]);
   const intervalMs = s ? s["home.hero_slide_seconds"] * 1000 : HERO_SLIDE_MS;
-  const offer = s ? s["home.hero_offer_slide"] : true;
-  if (rows.length === 0) return { slides: builtInViews(t), intervalMs, sample: true, offer };
-  return { slides: rows.map((r) => rowToView(r, locale)), intervalMs, sample: s ? s["home.hero_sample_pill"] : true, offer };
+  if (rows.length === 0) return { slides: builtInViews(t), intervalMs, sample: true };
+  return { slides: rows.map((r) => rowToView(r, locale)), intervalMs, sample: s ? s["home.hero_sample_pill"] : true };
 }

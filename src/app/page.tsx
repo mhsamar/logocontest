@@ -5,6 +5,7 @@ import { LandingFaq } from "@/components/home/landing/faq";
 import { LandingHero } from "@/components/home/landing/hero";
 import { SiteNav } from "@/components/layout/site-nav";
 import { Join } from "@/components/home/landing/join";
+import { HeroOffer } from "@/components/home/landing/hero-offer";
 import { LiveContests } from "@/components/home/landing/live-contests";
 import { Steps } from "@/components/home/landing/steps";
 import { Why } from "@/components/home/landing/why";
@@ -31,11 +32,12 @@ export default async function HomePage() {
   if (!showsLanding(user?.role)) return null;
 
   const { t, locale } = await getI18n();
-  const [{ params }, contests, logos, social, contact, pictures] = await Promise.all([
+  const [{ params }, contests, logos, social, prizes, contact, pictures] = await Promise.all([
     faqParams(t, locale),
     liveContests(3),
     homeLogos(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
+    getSettings(["home.hero_offer_slide"]),
     getContact(locale),
     brandPictures(),
   ]);
@@ -60,6 +62,15 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <LandingHero picture={pictures.hero} nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
+      {/* Owner, 2026-10-11: the two monthly prizes (Design/rewards/home-hero-offer-slide.html) as their own section under the
+          live contests, not in the hero. On/off in Admin → Home hero. */}
+      {prizes["home.hero_offer_slide"] && (
+        <section aria-label={t("home.offer.section")} className="lc-prizes rounded-[32px] bg-white px-6 py-10 sm:px-10">
+          <div className="lc-prizes-grid mx-auto max-w-[1240px]">
+            <HeroOffer t={t} />
+          </div>
+        </section>
+      )}
       <Steps logos={logos} />
       {/* Owner, 2026-10-11: the AI copyright checker replaces "Work with designers you can trust". */}
       <AiChecker />

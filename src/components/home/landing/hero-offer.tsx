@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Translate } from "@/lib/i18n/translate";
 
 /**
- * Hero slide 5 (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html): the two monthly prizes. Left, for
+ * The monthly prizes section under the live contests (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html). Left, for
  * business owners (smartphone, red); right, for designers (gift box, cream). Both drawings are CSS, as in the design.
  * What the prizes are is never shown.
  */
