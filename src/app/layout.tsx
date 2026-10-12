@@ -9,6 +9,7 @@ import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
 import { SiteChrome } from "@/components/layout/site-chrome";
 import { SiteNav } from "@/components/layout/site-nav";
 import { VisitTracker } from "@/components/layout/visit-tracker";
+import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot";
 import { SupportSlot } from "@/components/support/support-slot";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { ToastProvider } from "@/components/ui/toast";
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <SiteChrome>
               <VisitTracker />
               <SupportSlot />
+              <VisitorPopupSlot signedIn={Boolean(user)} />
             </SiteChrome>
             <PointerFx />
             <MotionFx />

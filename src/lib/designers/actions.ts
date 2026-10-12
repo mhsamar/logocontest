@@ -16,6 +16,7 @@ import { normalizeBdMobile } from "@/lib/phone";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import { checkPayout, checkUsernameFormat, type PayoutInput } from "./signup";
 
 /** D-01 designer sign-up (UI-JOURNEY). Each step is checked on the server before the next one opens. */
@@ -133,6 +134,9 @@ export async function createDesignerAccount(input: {
     await admin.auth.admin.deleteUser(userId);
     return /username/i.test(profileError?.message ?? "") ? fail("designerSignup.username.taken", "username") : fail("auth.errors.generic");
   }
+
+  // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
+  await saveSignupSource(userId, await takeSignupSource());
 
   const ip = await clientIp();
   const signInError = await signIn(email, email, input.password, ip);

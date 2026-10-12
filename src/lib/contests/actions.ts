@@ -19,6 +19,7 @@ import { getSettings } from "@/lib/settings";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
 import { paymentsAvailable } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import {
   BUSINESS_TYPES,
   DELIVERABLES,
@@ -189,6 +190,8 @@ export async function createAccountAndDraft(input: {
     .from("profiles")
     .update({ business_name: brandName, username: makeSlug(brandName) })
     .eq("id", created.data.user.id);
+  // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
+  await saveSignupSource(created.data.user.id, await takeSignupSource());
 
   const ip = await clientIp();
   const signInError = await signIn(email, email, input.password, ip);

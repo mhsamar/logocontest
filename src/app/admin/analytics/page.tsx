@@ -3,6 +3,7 @@ import { BarBlock, BarRow, DayBarChart, SplitBar } from "@/components/admin/char
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { CustomRange, PeriodTabs } from "@/components/admin/period";
+import { PopupCard } from "@/components/admin/popup-card";
 import { AdmCard, AdmEmpty, CardTitle } from "@/components/admin/ui";
 import { traffic } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
@@ -11,6 +12,7 @@ import { readPeriod, type PeriodKey } from "@/lib/admin/period";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
+import { popupStats, readPopupRange, type PopupRange } from "@/lib/visitor-popup/stats";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -46,9 +48,19 @@ function Highlight({ icon, label, title, hint, tone = "brand" }: { icon: AdminIc
 // A-20 Analytics (BLUEPRINT §13.2 item 3; design/admin/analytics.html, owner 2026-10-10).
 export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
   await requirePermission("dashboard.view");
-  const { range, from, to, period, effective } = readPeriod(await searchParams, KEYS, "7");
+  const sp = await searchParams;
+  const { range, from, to, period, effective } = readPeriod(sp, KEYS, "7");
   const now = new Date();
-  const [{ t, locale }, s] = await Promise.all([getI18n(), traffic({ since: effective.since ?? now, until: effective.until }, now)]);
+  // The visitor pop-up card has its own 7 / 30 / 90-day range (?pop=), kept apart from the page's period.
+  const popRange = readPopupRange(sp.pop);
+  const [{ t, locale }, s, pop] = await Promise.all([getI18n(), traffic({ since: effective.since ?? now, until: effective.until }, now), popupStats(popRange, now)]);
+  const popHref = (r: PopupRange) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "pop") q.set(k, v);
+    if (r !== 7) q.set("pop", String(r));
+    const str = q.toString();
+    return `/admin/analytics${str ? `?${str}` : ""}#popup-card`;
+  };
   const brands = await brandsForPaths([...s.pages.map((p) => p.key), ...s.contests.map((c) => `/contest/${c.slug}`)]);
   const num = (n: number) => formatNumber(n, locale);
   const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0);
@@ -238,6 +250,8 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/a
           </div>
         </>
       )}
+
+      <PopupCard s={pop} range={popRange} t={t} num={num} dayLabel={dateOf} hrefFor={popHref} />
     </div>
   );
 }

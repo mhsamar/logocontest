@@ -465,6 +465,19 @@ export const SETTINGS = {
   },
 
   // ---- Help page: WhatsApp and live chat (owner, 2026-10-08; UI-JOURNEY P-14) ----
+  // Visitor welcome pop-up (owner, 2026-10-13; Design/visitor-popup): new visitors only, after active time and a scroll.
+  "popup.on": {
+    group: "site", type: "bool", schema: z.boolean(), default: true,
+    description: "Show the welcome pop-up (Start a contest / Join as a designer) to new visitors who are not signed in.",
+  },
+  "popup.seconds": {
+    group: "site", type: "int", schema: int(5, 600), default: 20,
+    description: "Seconds a new visitor spends on the site (and has scrolled) before the welcome pop-up opens.",
+  },
+  "popup.snooze_days": {
+    group: "site", type: "int", schema: int(1, 365), default: 7,
+    description: "Days the welcome pop-up stays hidden on that browser after it is closed or a button is clicked.",
+  },
   "contact.whatsapp": {
     group: "site", type: "string", schema: z.string().regex(/^01[3-9]\d{8}$/, "A Bangladesh mobile number like 01712028511"), default: "01712028511",
     description: "WhatsApp number on the Help page (01XXXXXXXXX).",
