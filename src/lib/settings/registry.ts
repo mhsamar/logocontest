@@ -529,6 +529,12 @@ export const SETTINGS = {
     description: "Share picture for Facebook and Google (1200×630). Empty uses the built-in card.",
   },
   // Monthly rewards and win cards (owner, 2026-10-11; migration 0035; Admin → Monthly winner)
+  // Owner, 2026-10-13: one switch for the whole monthly prizes program (smartphone and gift box). Off hides every
+  // offer, race, leaderboard link, claim and champion badge on the site, and the month closes with no winner.
+  "rewards.program_on": {
+    group: "rewards", type: "bool", schema: z.boolean(), default: true,
+    description: "Run the monthly prizes program (smartphone for clients, gift box for designers). Off hides it everywhere.",
+  },
   "rewards.win_card_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
     description: "Send the contest win card to the designer right after a winner is picked.",

@@ -11,6 +11,7 @@ import { Steps } from "@/components/home/landing/steps";
 import { Why } from "@/components/home/landing/why";
 import "@/components/home/landing/landing.css";
 import { getCurrentUser } from "@/lib/auth/session";
+import { cx } from "@/lib/cx";
 import { brandPictures } from "@/lib/content/brand";
 import { getContact } from "@/lib/content/contact";
 import { liveContests } from "@/lib/contests/browse";
@@ -18,6 +19,7 @@ import { faqParams } from "@/lib/home/faq-params";
 import { showsLanding } from "@/lib/home/landing";
 import { homeLogos } from "@/lib/home/logos";
 import { getI18n } from "@/lib/i18n/server";
+import { offersOn } from "@/lib/rewards/program";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 
@@ -32,12 +34,13 @@ export default async function HomePage() {
   if (!showsLanding(user?.role)) return null;
 
   const { t, locale } = await getI18n();
-  const [{ params }, contests, logos, social, prizes, contact, pictures] = await Promise.all([
+  const [{ params }, contests, logos, social, prizes, offers, contact, pictures] = await Promise.all([
     faqParams(t, locale),
     liveContests(3),
     homeLogos(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
     getSettings(["home.hero_offer_slide"]),
+    offersOn(),
     getContact(locale),
     brandPictures(),
   ]);
@@ -64,10 +67,10 @@ export default async function HomePage() {
       <LiveContests contests={contests} />
       {/* Owner, 2026-10-11: the two monthly prizes (Design/rewards/home-hero-offer-slide.html) as their own section under the
           live contests, not in the hero. On/off in Admin → Home hero. */}
-      {prizes["home.hero_offer_slide"] && (
+      {prizes["home.hero_offer_slide"] && (offers.smartphone || offers.giftBox) && (
         <section aria-label={t("home.offer.section")} className="lc-prizes rounded-[32px] bg-white px-6 py-10 sm:px-10">
-          <div className="lc-prizes-grid mx-auto max-w-[1240px]">
-            <HeroOffer t={t} />
+          <div className={cx("lc-prizes-grid mx-auto max-w-[1240px]", !(offers.smartphone && offers.giftBox) && "lc-prizes-one")}>
+            <HeroOffer t={t} smartphone={offers.smartphone} giftBox={offers.giftBox} />
           </div>
         </section>
       )}

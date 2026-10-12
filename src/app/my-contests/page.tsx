@@ -14,7 +14,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { aiConfigured } from "@/lib/logo-check/ai";
 import { contestChecks } from "@/lib/logo-check/queries";
 import { formatNumber, formatTaka } from "@/lib/money";
-import { getSetting } from "@/lib/settings";
+import { offersOn } from "@/lib/rewards/program";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -64,7 +64,7 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
   const tab = pick(TABS, sp.tab, "all");
   const sort = pick(SORTS, sp.sort, "action");
   const q = (typeof sp.q === "string" ? sp.q : "").replace(/\s+/g, " ").trim().slice(0, 60);
-  const [{ t, locale }, my, contact, phoneOn] = await Promise.all([getI18n(), getMyContests(user.id), getContact("en"), getSetting("rewards.smartphone_card_on")]);
+  const [{ t, locale }, my, contact, phoneOn] = await Promise.all([getI18n(), getMyContests(user.id), getContact("en"), offersOn().then((o) => o.smartphone)]);
   const now = new Date();
   const fmt = (n: number) => formatNumber(n, locale);
 

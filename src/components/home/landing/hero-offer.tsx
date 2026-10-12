@@ -4,12 +4,13 @@ import type { Translate } from "@/lib/i18n/translate";
 /**
  * The monthly prizes section under the live contests (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html). Left, for
  * business owners (smartphone, red); right, for designers (gift box, cream). Both drawings are CSS, as in the design.
- * What the prizes are is never shown.
+ * What the prizes are is never shown. Owner, 2026-10-13: each half only shows while its offer runs.
  */
-export function HeroOffer({ t }: { t: Translate }) {
+export function HeroOffer({ t, smartphone, giftBox }: { t: Translate; smartphone: boolean; giftBox: boolean }) {
   const btn = "inline-flex min-h-[52px] items-center gap-1.5 whitespace-nowrap rounded-full font-bold";
   return (
     <>
+      {smartphone && (
       <section className="lc-offer bg-[linear-gradient(150deg,#A30F0F,#8B0000_55%,#5C0A0C)] text-white">
         <div className="lc-offer-text">
           <span className="self-start whitespace-nowrap rounded-full bg-white/[0.16] px-3.5 py-[5px] text-[14px] font-bold">{t("home.offer.clients.eyebrow")}</span>
@@ -39,6 +40,8 @@ export function HeroOffer({ t }: { t: Translate }) {
           </span>
         </div>
       </section>
+      )}
+      {giftBox && (
       <section className="lc-offer bg-[#FFE9B8] text-[#111216]">
         <div className="lc-offer-text">
           <span className="self-start whitespace-nowrap rounded-full bg-[rgba(17,18,22,.08)] px-3.5 py-[5px] text-[14px] font-bold">{t("home.offer.designers.eyebrow")}</span>
@@ -67,6 +70,7 @@ export function HeroOffer({ t }: { t: Translate }) {
           </span>
         </div>
       </section>
+      )}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { offersOn } from "./program";
 import { monthRange } from "./rules";
 
 /** Winners gallery, home logos, the designer badge and client profiles (BLUEPRINT §8.4, §11). */
@@ -16,7 +17,8 @@ const one = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ?
  * months whose card went out.
  */
 export async function championMonths(designerId: string): Promise<string[]> {
-  if (!isSupabaseConfigured()) return [];
+  // Owner, 2026-10-13: champion badges hide while the monthly prizes program is off.
+  if (!isSupabaseConfigured() || !(await offersOn()).program) return [];
   const { data } = await createAdminClient()
     .from("monthly_rewards")
     .select("month")

@@ -11,6 +11,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { fillLegal } from "@/lib/legal/types";
 import { formatNumber } from "@/lib/money";
+import { offersOn } from "@/lib/rewards/program";
 import { getSettings } from "@/lib/settings";
 
 type StepFaq = { q: string; a: string };
@@ -51,11 +52,12 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
   const sp = await searchParams;
   const designers = sp.for === "designers";
   const { t, locale } = await getI18n();
-  const [{ params }, contact, homeFaq, s] = await Promise.all([
+  const [{ params }, contact, homeFaq, s, offers] = await Promise.all([
     faqParams(t, locale),
     getContact(locale),
     visibleList("home_faq", locale),
     getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer"]),
+    offersOn(),
   ]);
   const tk = (key: string, p?: Record<string, string | number>) => t(key as MessageKey, p);
   const fmt = (n: number) => formatNumber(n, locale);
@@ -73,7 +75,7 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
     ? [
         { key: "d1", faqs: [dfaq(1, 1), dfaq(1, 2), dfaq(1, 3)], art: <AccountArt t={t} /> },
         { key: "d2", faqs: [dfaq(2, 1), dfaq(2, 2), dfaq(2, 3)], art: <UploadArt t={t} fmt={fmt} /> },
-        { key: "d3", faqs: [dfaq(3, 1), dfaq(3, 2), dfaq(3, 3)], art: <WinArt t={t} /> },
+        { key: "d3", faqs: [dfaq(3, 1), dfaq(3, 2), dfaq(3, 3)], art: <WinArt t={t} giftBox={offers.giftBox} /> },
       ]
     : [
         { key: "c1", faqs: [...faq(2), ...faq(3), ...faq(9)], art: <BriefArt t={t} /> },

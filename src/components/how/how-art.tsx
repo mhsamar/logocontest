@@ -146,14 +146,14 @@ export function UploadArt({ t, fmt }: { t: Translate; fmt: (n: number) => string
   );
 }
 
-/** Designer step 3: the win. */
-export function WinArt({ t }: { t: Translate }) {
+/** Designer step 3: the win. The gift box line only shows while that monthly offer runs (owner, 2026-10-13). */
+export function WinArt({ t, giftBox }: { t: Translate; giftBox: boolean }) {
   return (
     <div aria-hidden className={`${FRAME} items-center justify-center gap-1.5 bg-[linear-gradient(150deg,#A30F0F,#8B0000_55%,#5C0A0C)] text-center text-white`}>
       <span className="rounded-full bg-[#FFE27A] px-3 py-[3px] text-[12.5px] font-bold text-[#111216]">{t("home.how.art.winner")}</span>
       <strong className="lc-d text-[26px] tracking-[-0.03em]">{t("howPage.art.congrats")}</strong>
       <span className="text-sm text-[#F6DAD8]">{t("howPage.art.prizeSent")}</span>
-      <span className="mt-1.5 rounded-xl bg-white/[0.14] px-4 py-2 text-sm font-bold">{t("howPage.art.giftBox")}</span>
+      {giftBox && <span className="mt-1.5 rounded-xl bg-white/[0.14] px-4 py-2 text-sm font-bold">{t("howPage.art.giftBox")}</span>}
     </div>
   );
 }

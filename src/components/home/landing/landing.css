@@ -82,6 +82,8 @@
 /* The same two panels as a section under the live contests (owner, 2026-10-11). */
 .lc-prizes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .lc-prizes-grid > .lc-offer { min-height: 440px; }
+/* Only one monthly offer running (owner, 2026-10-13): that half takes the full width. */
+.lc-prizes-grid.lc-prizes-one { grid-template-columns: minmax(0, 1fr); }
 .lc-offer { position: relative; display: flex; align-items: center; gap: 20px; min-width: 0; overflow: hidden; padding: 30px 36px; border-radius: 28px; }
 .lc-offer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .lc-offer-title { font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif; font-size: clamp(26px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }

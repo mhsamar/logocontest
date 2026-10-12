@@ -63,7 +63,7 @@ export default async function AdminMonthlyPage({ searchParams }: PageProps<"/adm
     adminRewards(test),
     monthClose(month, test),
     month === current ? monthClose(previousMonth(current), test) : Promise.resolve(null),
-    getSettings(["rewards.win_card_on", "rewards.smartphone_card_on", "rewards.gift_box_card_on", "rewards.ask_first"]),
+    getSettings(["rewards.program_on", "rewards.win_card_on", "rewards.smartphone_card_on", "rewards.gift_box_card_on", "rewards.ask_first"]),
   ]);
   const fmt = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
@@ -153,6 +153,9 @@ export default async function AdminMonthlyPage({ searchParams }: PageProps<"/adm
             )}
           </div>
         </div>
+        {/* Owner, 2026-10-13: one switch for the whole program; off hides it on the whole site. */}
+        <RewardSwitches items={[{ key: "rewards.program_on", title: t("admin.monthly.switches.program"), lead: t("admin.monthly.switches.programLead"), on: s["rewards.program_on"] }]} />
+        {!s["rewards.program_on"] && <p className="m-0 rounded-xl bg-[#FFF7ED] px-4 py-3 text-[14.5px] text-[#7A3A0C]">{t("admin.monthly.switches.programOff")}</p>}
         <RewardSwitches
           items={[
             { key: "rewards.win_card_on", title: t("admin.monthly.switches.win"), lead: t("admin.monthly.switches.winLead"), on: s["rewards.win_card_on"] },

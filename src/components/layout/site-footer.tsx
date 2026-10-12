@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getContact } from "@/lib/content/contact";
 import { visibleList } from "@/lib/content/lists";
+import { offersOn, showsLink } from "@/lib/rewards/program";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
@@ -61,7 +62,9 @@ const SOCIAL = [
 /** Site footer (owner, 2026-10-10; the home page design, on every page): links from Lists → Footer links, social links and phone from Settings. */
 export async function SiteFooter() {
   const { t, locale } = await getI18n();
-  const [links, contact, footerLinks] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale)]);
+  const [links, contact, allFooterLinks, offers] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale), offersOn()]);
+  // Owner, 2026-10-13: no leaderboard link while the monthly prizes program is off.
+  const footerLinks = allFooterLinks.filter((l) => showsLink(l.href, offers));
   const social = SOCIAL.filter((x) => links[x.key]);
   const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
   const columns = (["clients", "designers", "legal"] as const)

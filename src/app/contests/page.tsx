@@ -12,6 +12,7 @@ import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, browseHref, parseBrowseQu
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
+import { offersOn } from "@/lib/rewards/program";
 import { getSetting } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,10 +47,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
   const now = new Date();
   const filtered = Boolean(query.q || query.type || query.quick.length);
   const showFeatured = query.tab === "open" && !filtered;
-  const [list, featured, types] = await Promise.all([
+  const [list, featured, types, offers] = await Promise.all([
     getSetting("limits.big_prize_from").then((bigPrize) => browseContests(query, { designerId: designer?.id ?? null, bigPrize, now })),
     showFeatured ? featuredContests(3) : [],
     visibleBusinessTypes(query.type),
+    offersOn(),
   ]);
   const ids = list.rows.map((c) => c.id);
   const [saved, facts] = await Promise.all([
@@ -69,7 +71,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
           <div className="flex min-w-0 flex-col items-start gap-2">
             <span className="rounded-full bg-[#FBECEB] px-3 py-1 text-[13.5px] font-bold text-primary">{designer ? t("browse.x.designerEyebrow") : t("browse.hero.eyebrow")}</span>
             <h1 className="lc-d m-0 text-[clamp(28px,2.9vw,40px)] font-semibold leading-[1.06] tracking-[-0.04em] text-ink">{designer ? t("browse.x.designerTitle") : t("browse.x.guestTitle")}</h1>
-            <p className="m-0 max-w-[560px] text-[16.5px] text-muted">{designer ? t("browse.x.designerBody") : t("browse.x.guestBody")}</p>
+            <p className="m-0 max-w-[560px] text-[16.5px] text-muted">{designer ? t(offers.giftBox ? "browse.x.designerBody" : "browse.x.designerBodyPlain") : t("browse.x.guestBody")}</p>
             <div className="mt-1 flex flex-wrap gap-2 max-[640px]:w-full max-[640px]:flex-col">
               <Link href={designer ? "/dashboard" : "/start"} className={cx(BTN, RED)}>
                 {designer ? t("browse.x.myDesigns") : t("browse.hero.cta")}

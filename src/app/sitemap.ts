@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
+import { offersOn } from "@/lib/rewards/program";
 import { searchIndexingOn, siteUrl } from "@/lib/seo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -20,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/design-studio`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${base}/logo-checker`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/winners`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
-    { url: `${base}/leaderboard`, lastModified: now, changeFrequency: "daily", priority: 0.5 },
+    ...((await offersOn()).program ? [{ url: `${base}/leaderboard`, lastModified: now, changeFrequency: "daily" as const, priority: 0.5 }] : []),
     { url: `${base}/how-it-works`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/how-it-works?for=designers`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/designers/signup`, changeFrequency: "monthly", priority: 0.6 },

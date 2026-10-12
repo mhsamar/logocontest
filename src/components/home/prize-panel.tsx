@@ -3,9 +3,9 @@ import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { raceTally } from "@/lib/rewards/leaderboard";
+import { offersOn } from "@/lib/rewards/program";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { monthKey, monthRange } from "@/lib/rewards/rules";
-import { getSetting } from "@/lib/settings";
 
 /** The drawn phone: never a real model (what the prize is stays a surprise). */
 export const Phone = () => (
@@ -38,7 +38,8 @@ export const GiftBox = () => (
  */
 export async function PrizePanel({ kind, userId }: { kind: "smartphone" | "gift_box"; userId: string }) {
   const phone = kind === "smartphone";
-  if (!(await getSetting(phone ? "rewards.smartphone_card_on" : "rewards.gift_box_card_on"))) return null;
+  const on = await offersOn();
+  if (!(phone ? on.smartphone : on.giftBox)) return null;
   const now = new Date();
   const month = monthKey(now);
   const [{ t, locale }, tally] = await Promise.all([getI18n(), raceTally(month)]);

@@ -10,6 +10,7 @@ import { monthLabel } from "@/lib/notifications/render";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { renderPng } from "@/lib/render/chrome";
 import { getSettings } from "@/lib/settings";
+import { offersOn } from "./program";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CARD_SIZES, monthlyCardHtml, type CardSize } from "./card-html";
@@ -53,10 +54,12 @@ export async function closeMonth(month: string, opts: { testMode?: boolean; by?:
   const { data: done } = await db.from("reward_months").select("status").eq("month", month).eq("is_test", isTest).maybeSingle();
   if (done) return { month, isTest, status: "already", rewards: 0 };
 
-  const s = await getSettings(["rewards.smartphone_card_on", "rewards.gift_box_card_on", "rewards.ask_first"]);
+  const s = await getSettings(["rewards.ask_first"]);
+  // Owner, 2026-10-13: with the program (or one prize) switched off when the month closes, that month has no winner.
+  const on = await offersOn();
   const race = await monthRace(month, { testMode: isTest });
-  const client = s["rewards.smartphone_card_on"] ? (race.clients[0] ?? null) : null;
-  const designer = s["rewards.gift_box_card_on"] ? (race.designers[0] ?? null) : null;
+  const client = on.smartphone ? (race.clients[0] ?? null) : null;
+  const designer = on.giftBox ? (race.designers[0] ?? null) : null;
   const rows: { month: string; kind: RewardKind; is_test: boolean; winner_id: string; stats: Record<string, number> }[] = [];
   if (client) rows.push({ month, kind: "smartphone", is_test: isTest, winner_id: client.id, stats: { contests: client.contests, prize_total: client.prizeTotal, spent: client.spent } });
   if (designer) rows.push({ month, kind: "gift_box", is_test: isTest, winner_id: designer.id, stats: { wins: designer.wins, joined: designer.joined, earned: designer.earned } });

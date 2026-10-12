@@ -5,9 +5,9 @@ import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { raceTally } from "@/lib/rewards/leaderboard";
+import { offersOn } from "@/lib/rewards/program";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { monthKey } from "@/lib/rewards/rules";
-import { getSettings } from "@/lib/settings";
 
 /**
  * The right side of the short hero on the contest list pages (owner, 2026-10-11; Design/contest-pages): the monthly
@@ -22,10 +22,10 @@ const Arrow = () => (
 
 /** Guests: "For clients · Win a smartphone" and "For designers · Win a gift box", both to the leaderboard. */
 export async function OfferCards({ t }: { t: Translate }) {
-  const s = await getSettings(["rewards.smartphone_card_on", "rewards.gift_box_card_on"]);
+  const on = await offersOn();
   const cards = [
-    s["rewards.smartphone_card_on"] && { key: "offerPhone" as const, phone: true },
-    s["rewards.gift_box_card_on"] && { key: "offerGift" as const, phone: false },
+    on.smartphone && { key: "offerPhone" as const, phone: true },
+    on.giftBox && { key: "offerGift" as const, phone: false },
   ].filter((c): c is { key: "offerPhone" | "offerGift"; phone: boolean } => Boolean(c));
   if (!cards.length) return null;
   return (
@@ -60,8 +60,8 @@ export async function OfferCards({ t }: { t: Translate }) {
 /** Signed-in designer (gift box) or client (smartphone): their own number, the leader's, and how many more to lead. */
 export async function RacePanel({ kind, userId, t, locale }: { kind: "smartphone" | "gift_box"; userId: string; t: Translate; locale: Locale }) {
   const phone = kind === "smartphone";
-  const s = await getSettings(["rewards.smartphone_card_on", "rewards.gift_box_card_on"]);
-  if (!s[phone ? "rewards.smartphone_card_on" : "rewards.gift_box_card_on"]) return null;
+  const on = await offersOn();
+  if (!(phone ? on.smartphone : on.giftBox)) return null;
   const now = new Date();
   const month = monthKey(now);
   const tally = await raceTally(month);

@@ -8,6 +8,7 @@ import { monthLabel } from "@/lib/notifications/render";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { monthlyCardImage, rewardLink, rewardNumber, type RewardKind } from "./month-close";
+import { offersOn } from "./program";
 
 /**
  * Claiming a monthly prize (owner, 2026-10-11; Design/rewards/client-smartphone-claim.html and
@@ -47,16 +48,19 @@ function toMine(r: Record<string, unknown>): MyReward {
   };
 }
 
-/** One of the user's own prizes, once it was sent to them (a held month stays hidden). */
+/**
+ * One of the user's own prizes, once it was sent to them (a held month stays hidden). Owner, 2026-10-13: while the
+ * monthly prizes program is off, no prize can be seen or claimed (the owner closes it in the first week of a month).
+ */
 export async function myReward(id: string, userId: string): Promise<MyReward | null> {
-  if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id) || !(await offersOn()).program) return null;
   const { data } = await createAdminClient().from("monthly_rewards").select(SELECT).eq("id", id).eq("winner_id", userId).not("sent_at", "is", null).maybeSingle();
   return data ? toMine(data as Record<string, unknown>) : null;
 }
 
 /** The user's prizes still waiting for a claim, newest first (the dashboard banner). */
 export async function myUnclaimedRewards(userId: string): Promise<MyReward[]> {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured() || !(await offersOn()).program) return [];
   const { data } = await createAdminClient()
     .from("monthly_rewards")
     .select(SELECT)
@@ -69,7 +73,7 @@ export async function myUnclaimedRewards(userId: string): Promise<MyReward[]> {
 
 /** The user's newest prize (for the old /dashboard/gift link). */
 export async function myLatestRewardId(userId: string): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !(await offersOn()).program) return null;
   const { data } = await createAdminClient().from("monthly_rewards").select("id").eq("winner_id", userId).not("sent_at", "is", null).order("month", { ascending: false }).limit(1).maybeSingle();
   return (data?.id as string | undefined) ?? null;
 }
@@ -105,7 +109,7 @@ export async function tellAdminsClaimed(reward: { id: string; month: string; kin
  * in the app and by email. Not after the claim deadline. Returns how many were reminded.
  */
 export async function remindUnclaimed(origin: string, now = new Date()): Promise<number> {
-  if (!isSupabaseConfigured()) return 0;
+  if (!isSupabaseConfigured() || !(await offersOn()).program) return 0;
   const s = await getSettings(["rewards.claim_reminder_days", "rewards.claim_reminders_max", "rewards.claim_deadline"]);
   const deadline = claimDeadline(s["rewards.claim_deadline"]);
   if (s["rewards.claim_reminders_max"] <= 0 || (deadline && now > deadline)) return 0;

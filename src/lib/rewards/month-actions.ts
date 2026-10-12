@@ -48,8 +48,8 @@ export async function clearTestResults(month: string): Promise<Result> {
   return { ok: true };
 }
 
-/** The four switches on Admin → Monthly winner (owner, 2026-10-11). */
-const SWITCHES = ["rewards.win_card_on", "rewards.smartphone_card_on", "rewards.gift_box_card_on", "rewards.ask_first"] as const;
+/** The switches on Admin → Monthly winner (owner, 2026-10-11; the program master switch 2026-10-13). */
+const SWITCHES = ["rewards.program_on", "rewards.win_card_on", "rewards.smartphone_card_on", "rewards.gift_box_card_on", "rewards.ask_first"] as const;
 export type RewardSwitch = (typeof SWITCHES)[number];
 
 export async function setRewardSwitch(key: RewardSwitch, on: boolean): Promise<Result> {

@@ -9,12 +9,35 @@ import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { pastMonthWinners, publicRace, raceMonths, type PastWinners, type PublicPerson } from "@/lib/rewards/leaderboard";
+import { offersOn } from "@/lib/rewards/program";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { isMonthKey, monthKey, monthRange } from "@/lib/rewards/rules";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
+  const [{ t }, offers] = await Promise.all([getI18n(), offersOn()]);
+  if (!offers.program) return { title: t("leaderboard.soon.title"), robots: { index: false } };
   return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription") };
+}
+
+/** Owner, 2026-10-13: while the monthly prizes program is off, the leaderboard says it is coming soon. */
+function ComingSoon({ t }: { t: Translate }) {
+  return (
+    <PageShell className="pt-3.5">
+      <section className="mx-auto flex w-full max-w-[760px] flex-col items-center gap-4 rounded-[28px] bg-white px-6 py-14 text-center sm:px-12">
+        <span className="rounded-full bg-[#FFE27A] px-3.5 py-[5px] text-[13.5px] font-bold text-[#3A2A00]">{t("leaderboard.soon.badge")}</span>
+        <h1 className="m-0 text-[clamp(30px,3.6vw,46px)] font-semibold leading-[1.05] tracking-[-0.045em]">{t("leaderboard.soon.title")}</h1>
+        <p className="m-0 max-w-[520px] text-[17px] text-muted">{t("leaderboard.soon.body")}</p>
+        <div className="mt-2 flex flex-wrap justify-center gap-2.5">
+          <Link href="/contests" className="inline-flex min-h-12 items-center rounded-full bg-[linear-gradient(180deg,#B3201B,#8B0000)] px-6 font-bold text-white">
+            {t("leaderboard.soon.browse")}
+          </Link>
+          <Link href="/" className="inline-flex min-h-12 items-center rounded-full border border-line bg-white px-6 font-bold text-ink hover:border-primary hover:text-primary">
+            {t("leaderboard.soon.home")}
+          </Link>
+        </div>
+      </section>
+    </PageShell>
+  );
 }
 
 /** Rows shown before "See the full list". */
@@ -156,7 +179,8 @@ function PastCard({ w, t, locale }: { w: PastWinners; t: Translate; locale: Loca
 // P-07 Leaderboard (owner, 2026-10-11; Design/rewards/leaderboard.html): who is winning this month's smartphone and gift box.
 export default async function LeaderboardPage({ searchParams }: PageProps<"/leaderboard">) {
   const sp = await searchParams;
-  const { t, locale } = await getI18n();
+  const [{ t, locale }, offers] = await Promise.all([getI18n(), offersOn()]);
+  if (!offers.program) return <ComingSoon t={t} />;
   const now = new Date();
   const current = monthKey(now);
   const months = await raceMonths(current, 6);
