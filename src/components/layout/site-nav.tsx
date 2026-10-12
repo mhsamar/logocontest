@@ -11,6 +11,7 @@ import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
+import { NavLinks } from "./nav-links";
 import { SiteNavDrawer } from "./site-nav-drawer";
 
 /** Account menu items (UI-JOURNEY §2.1). */
@@ -31,7 +32,7 @@ async function NavLogo() {
   const { t } = await getI18n();
   const uploaded = (await brandPictures()).logo;
   return (
-    <Link href="/" aria-label={t("brand.home")} className="lc-d flex min-h-11 items-center gap-2 text-[19px] font-semibold tracking-[-0.03em]">
+    <Link href="/" aria-label={t("brand.home")} className="lc-nv-logo lc-d flex min-h-11 items-center gap-2 text-[19px] font-semibold tracking-[-0.03em]">
       {uploaded ? (
         <img src={uploaded} alt="" className="h-7 w-auto max-w-[10rem] object-contain" />
       ) : (
@@ -75,18 +76,16 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const pill = "inline-flex min-h-11 items-center rounded-[14px] font-semibold";
 
   return (
-    // The menu bar stays still: no lean-toward-the-mouse on its links and buttons (owner, 2026-10-10).
+    // The menu bar stays still: no lean-toward-the-mouse on its links and buttons (owner, 2026-10-10). Inside it,
+    // motion (owner, 2026-10-12): items ease in, a pill glides under the links, the logo tilts, the glass firms
+    // up on scroll (globals.css "Menu bar motion").
     <nav
       data-no-fx
       aria-label={t("nav.main")}
       className="lc-nv lc-sh z-50 flex w-max max-w-[calc(100%-28px)] flex-wrap items-center justify-center gap-x-7 gap-y-1 rounded-[22px] border border-line bg-white/90 py-2 pl-[22px] pr-2 text-base font-medium backdrop-blur-[16px]"
     >
       <NavLogo />
-      {links.map((l) => (
-        <Link key={l.href} href={l.href} className="lc-nv-link py-[11px]">
-          {l.label}
-        </Link>
-      ))}
+      <NavLinks links={links} />
       <div className="lc-nv-link">{languageForm("py-[11px] font-medium")}</div>
       <div className="flex items-center gap-1.5">
         {user ? (
@@ -96,10 +95,10 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
           </>
         ) : (
           <>
-            <Link href="/designers/signup" className={`lc-nv-join ${pill} border border-line px-[18px]`}>
+            <Link href="/designers/signup" className={`lc-nv-join ${pill} border border-line px-[18px] hover:border-primary/40 hover:bg-tint hover:text-primary`}>
               {t("nav.becomeDesigner")}
             </Link>
-            <Link href="/login" className={`${pill} bg-ink px-[22px] text-white`}>
+            <Link href="/login" className={`lc-ripple btn-sheen relative ${pill} bg-ink px-[22px] text-white hover:bg-primary`}>
               {t("nav.login")}
             </Link>
           </>

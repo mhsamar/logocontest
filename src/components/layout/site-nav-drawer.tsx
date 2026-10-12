@@ -57,8 +57,8 @@ export function SiteNavDrawer({ links, openLabel, closeLabel, children }: { link
       {open &&
         createPortal(
         <div className="fixed inset-0 z-[60] font-sans text-ink" role="dialog" aria-modal="true" aria-label={openLabel}>
-          <button type="button" aria-label={closeLabel} className="absolute inset-0 bg-[#111216]/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-          <div ref={panel} className="absolute inset-y-2 right-2 flex w-[min(20rem,calc(100%-1rem))] flex-col gap-1 overflow-y-auto rounded-[24px] bg-white p-4 shadow-[0_16px_40px_rgba(17,18,22,.18)]">
+          <button type="button" aria-label={closeLabel} className="absolute inset-0 animate-fade-in bg-[#111216]/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+          <div ref={panel} className="lc-drawer absolute inset-y-2 right-2 flex w-[min(20rem,calc(100%-1rem))] flex-col gap-1 overflow-y-auto rounded-[24px] bg-white p-4 shadow-[0_16px_40px_rgba(17,18,22,.18)]">
             <div className="mb-2 flex justify-end">
               <button type="button" onClick={() => setOpen(false)} aria-label={closeLabel} className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-line">
                 <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -67,7 +67,13 @@ export function SiteNavDrawer({ links, openLabel, closeLabel, children }: { link
               </button>
             </div>
             {links.map((l) => (
-              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="flex min-h-12 items-center rounded-[14px] px-3 text-lg font-semibold hover:bg-chip">
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                aria-current={l.href !== "/" && (path === l.href || path.startsWith(`${l.href}/`)) ? "page" : undefined}
+                className="flex min-h-12 items-center rounded-[14px] px-3 text-lg font-semibold hover:bg-chip aria-[current=page]:bg-tint aria-[current=page]:text-primary"
+              >
                 {l.label}
               </Link>
             ))}

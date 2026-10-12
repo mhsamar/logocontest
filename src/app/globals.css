@@ -251,7 +251,9 @@ body {
 }
 @media (max-width: 940px) {
   .lc-nv {
-    position: static;
+    position: relative; /* static in the flow, but the gliding pill is placed inside it */
+    top: auto;
+    left: auto;
     transform: none;
     width: auto !important;
     max-width: none !important;
@@ -584,4 +586,82 @@ select:focus-visible {
 @keyframes lc-ripple {
   from { scale: 0; opacity: 0.28; }
   to { scale: 1; opacity: 0; }
+}
+
+/* ---- Menu bar motion (owner, 2026-10-12: "home menu also be interactive, feel motion"). The bar stays where
+   it is (owner, 2026-10-10); things inside it move. The gliding pill is components/layout/nav-links.tsx. ---- */
+.lc-nv-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: 13px;
+  background: rgb(139 0 0 / 0.07);
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 420ms;
+  transition-timing-function: var(--ease-premium);
+}
+.lc-nv-link {
+  transition: color 240ms var(--ease-premium);
+}
+.lc-nv-link:hover,
+.lc-nv-link[aria-current="page"] {
+  color: var(--color-primary);
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Items ease in one after another when the page opens. */
+  .lc-nv > :not(.lc-nv-pill) {
+    animation: lc-nav-in 640ms var(--ease-premium) backwards;
+  }
+  .lc-nv > :nth-child(3) { animation-delay: 60ms; }
+  .lc-nv > :nth-child(4) { animation-delay: 110ms; }
+  .lc-nv > :nth-child(5) { animation-delay: 160ms; }
+  .lc-nv > :nth-child(6) { animation-delay: 210ms; }
+  .lc-nv > :nth-child(7) { animation-delay: 260ms; }
+  .lc-nv > :nth-child(n + 8) { animation-delay: 310ms; }
+
+  /* The logo's tile tilts with a spring when you point at it. */
+  .lc-nv-logo img {
+    transition: rotate 520ms var(--ease-spring), scale 520ms var(--ease-spring);
+  }
+  .lc-nv-logo:hover img {
+    rotate: -10deg;
+    scale: 1.1;
+  }
+
+  /* The glass firms up and the shadow deepens as the page scrolls. */
+  @supports (animation-timeline: scroll()) {
+    .lc-nv {
+      animation: lc-nav-scrolled linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 140px;
+    }
+  }
+
+  /* Phone menu: the drawer slides in and its links rise in one by one. */
+  .lc-drawer {
+    animation: lc-drawer-in 460ms var(--ease-premium) backwards;
+  }
+  .lc-drawer > :is(a, div) {
+    animation: lc-item-rise 520ms var(--ease-premium) backwards;
+  }
+  .lc-drawer > :nth-child(2) { animation-delay: 80ms; }
+  .lc-drawer > :nth-child(3) { animation-delay: 120ms; }
+  .lc-drawer > :nth-child(4) { animation-delay: 160ms; }
+  .lc-drawer > :nth-child(5) { animation-delay: 200ms; }
+  .lc-drawer > :nth-child(6) { animation-delay: 240ms; }
+  .lc-drawer > :nth-child(n + 7) { animation-delay: 280ms; }
+}
+@keyframes lc-nav-in {
+  from { opacity: 0; translate: 0 -8px; filter: blur(4px); }
+}
+@keyframes lc-nav-scrolled {
+  to {
+    background-color: rgb(255 255 255 / 0.97);
+    box-shadow: 0 18px 44px -18px rgb(15 23 42 / 0.28), 0 2px 8px rgb(15 23 42 / 0.06);
+  }
+}
+@keyframes lc-drawer-in {
+  from { opacity: 0; translate: 32px 0; scale: 0.98; }
 }
