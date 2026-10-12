@@ -79,6 +79,9 @@ const bn: Messages = {
   home: {
     landing: {
       namePlaceholder: "যেমন: নদী টি হাউস",
+      // The hero field types these one after another (owner, 2026-10-12), separated by |.
+      namePrefix: "যেমন: ",
+      nameExamples: "নদী টি হাউস|ঢাকা বাইটস|শাপলা ফ্যাশন|পদ্মা ফার্মা|সবুজ বাংলা এগ্রো|রংধনু সুইটস",
       step: "ধাপ {n}",
       compareHead: "আপনি কী পাচ্ছেন",
       english: "English",

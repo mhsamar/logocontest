@@ -77,6 +77,9 @@ const en = {
   home: {
     landing: {
       namePlaceholder: "e.g. Nodi Tea House",
+      // The hero field types these one after another (owner, 2026-10-12), separated by |.
+      namePrefix: "e.g. ",
+      nameExamples: "Nodi Tea House|Dhaka Bites|Shapla Fashion|Padma Pharma|Green Bay Agro|Rangdhanu Sweets",
       step: "Step {n}",
       compareHead: "What you get",
       english: "English",

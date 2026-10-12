@@ -479,10 +479,6 @@ select:focus-visible {
     transition-duration: 240ms;
     transition-timing-function: var(--ease-premium);
   }
-  /* Fields without their own focus ring get a soft red glow. */
-  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus {
-    box-shadow: 0 0 0 4px rgb(139 0 0 / 0.08);
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
