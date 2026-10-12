@@ -322,11 +322,14 @@ const en = {
     ways: {
       contest: {
         title: "Run a logo contest",
-        body: "Describe your business once and get logo ideas from designers across Bangladesh. Your money is held safe until you approve the final files.",
+        label: "For business owners",
+        body: "Describe your business once. Get logo ideas from designers across Bangladesh.",
+        ideas: "Ideas coming in",
         cta: "Start a contest",
       },
       designer: {
-        body: "Enter contests, build a public profile with a QR code to share anywhere, and get your prize to bKash or your bank when you win.",
+        label: "For designers",
+        body: "Enter contests, build a public profile with a QR code, and get your prize when you win.",
         cta: "Sign up as a designer",
       },
     },

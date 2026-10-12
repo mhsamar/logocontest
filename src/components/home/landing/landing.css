@@ -167,3 +167,265 @@
   .lc-mo .lc-rv .lc-pop { opacity: 1 !important; filter: none !important; transform: none !important; transition: none !important; }
   .lc-mo .lc-rv.lc-in .lc-knob { animation: none !important; }
 }
+
+/* "Run a logo contest / Join as a designer" (owner, 2026-10-12; Design/home-cta/home-two-cards.html): two short
+   coloured cards, each one a link. The lift uses `translate`, so it never fights the scroll reveal's transform. */
+.lc-j2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 14px;
+}
+.lc-j2 > div {
+  display: flex;
+}
+.lc-jc {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 200px;
+  padding: 28px 30px;
+  border-radius: 28px;
+  text-decoration: none;
+  transition: translate 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.45s;
+}
+/* Stays solid: the home page's links otherwise fade on hover (.lc-landing a:hover). */
+.lc-landing .lc-jc:hover {
+  opacity: 1;
+  translate: 0 -5px;
+  box-shadow: 0 26px 50px rgba(17, 18, 22, 0.16);
+}
+.lc-jc:focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 3px;
+}
+/* The light that passes over the card on hover. */
+.lc-jc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.9s ease;
+  pointer-events: none;
+}
+.lc-jc:hover::after {
+  background-position: -30% 0;
+}
+.lc-jc-l {
+  background: radial-gradient(120% 140% at 100% 0%, #c0262a 0%, #8b0000 45%, #4a0709 100%);
+  color: #ffffff;
+}
+.lc-jc-r {
+  background: linear-gradient(135deg, #fff6dc 0%, #ffe7a6 100%);
+  color: #2a1f00;
+  border: 1px solid #f1dfa0;
+}
+.lc-jtx {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 330px;
+}
+.lc-jk {
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.16);
+}
+.lc-jc-r .lc-jk {
+  background: rgba(139, 0, 0, 0.08);
+  color: #8b0000;
+}
+.lc-jtx h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 2.4vw, 34px);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.lc-jc-r .lc-jtx h2 {
+  color: #8b0000;
+}
+.lc-jtx p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+.lc-jbt {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  min-height: 46px;
+  padding: 0 8px 0 20px;
+  border-radius: 999px;
+  font-size: 15.5px;
+  font-weight: 700;
+  background: #ffffff;
+  color: #8b0000;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+.lc-jc-r .lc-jbt {
+  background: #8b0000;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(139, 0, 0, 0.25);
+}
+.lc-jbt i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fbeceb;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lc-jc-r .lc-jbt i {
+  background: rgba(255, 255, 255, 0.18);
+}
+.lc-jc:hover .lc-jbt i {
+  transform: translateX(4px) rotate(-45deg);
+}
+.lc-jvz {
+  position: relative;
+  flex: none;
+  width: 190px;
+  height: 150px;
+}
+/* Letter tiles: decoration only. They float, and fan out on hover. */
+.lc-jt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78px;
+  height: 78px;
+  margin: -39px 0 0 -39px;
+  border-radius: 20px;
+  font: 600 34px/1 var(--font-display);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.25);
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lc-jt1 { transform: translate(-46px, -14px) rotate(-14deg); animation: lc-jfl 5s ease-in-out infinite; }
+.lc-jt2 { transform: translate(-14px, -30px) rotate(-4deg); animation: lc-jfl 6s ease-in-out infinite 0.4s; }
+.lc-jt3 { transform: translate(22px, -18px) rotate(8deg); animation: lc-jfl 5.5s ease-in-out infinite 0.8s; }
+.lc-jt4 { transform: translate(48px, 6px) rotate(16deg); animation: lc-jfl 6.5s ease-in-out infinite 1.2s; }
+@keyframes lc-jfl {
+  50% { margin-top: -45px; }
+}
+.lc-jc:hover .lc-jt1 { transform: translate(-78px, -6px) rotate(-22deg); }
+.lc-jc:hover .lc-jt2 { transform: translate(-30px, -40px) rotate(-8deg); }
+.lc-jc:hover .lc-jt3 { transform: translate(26px, -38px) rotate(10deg); }
+.lc-jc:hover .lc-jt4 { transform: translate(70px, 0) rotate(22deg); }
+.lc-jcount {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  translate: -50% 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #ffe27a;
+  color: #3a2a00;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+/* The designer's profile card with its QR code, and a trophy that bobs. */
+.lc-jpc {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  width: 140px;
+  padding: 14px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(120, 80, 0, 0.18);
+  transform: rotate(-6deg);
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lc-jc:hover .lc-jpc {
+  transform: rotate(0) translateY(-4px) scale(1.04);
+}
+.lc-jav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #b3201b, #5c0a0c);
+  color: #ffffff;
+  font: 600 17px var(--font-display);
+}
+.lc-jl1,
+.lc-jl2 {
+  display: block;
+  height: 7px;
+  border-radius: 7px;
+  background: #ecedf0;
+}
+.lc-jl1 { width: 80px; }
+.lc-jl2 { width: 56px; }
+.lc-jqr {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #ecedf0;
+}
+.lc-jtro {
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  box-shadow: 0 10px 22px rgba(208, 138, 30, 0.4);
+  animation: lc-jbob 3.2s ease-in-out infinite;
+}
+@keyframes lc-jbob {
+  50% { transform: translateY(-7px) rotate(8deg); }
+}
+@media (max-width: 720px) {
+  .lc-jc {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 22px;
+  }
+  .lc-jvz {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-jt,
+  .lc-jtro {
+    animation: none;
+  }
+}
