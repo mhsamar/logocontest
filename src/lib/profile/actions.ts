@@ -19,7 +19,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { checkPayout, type PayoutInput } from "@/lib/designers/signup";
-import { EXPERIENCE_MAX, OTHER_MAX, isLanguageKey, isSkillKey, isSkillLevel, isToolKey } from "@/lib/designers/portfolio-options";
+import { EXPERIENCE_MAX, OTHER_MAX, isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { AVATAR_TYPES, AVATARS_BUCKET } from "./avatar";
 
 /** D-12 / C-20 profile settings (UI-JOURNEY, owner 2026-10-08). */
@@ -87,30 +87,6 @@ export async function savePortfolio(_prev: SettingsState, formData: FormData): P
 
   const { error } = await createAdminClient().from("profiles").update({ skills, tools, experience_years: years }).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
-
-  // Profile extras (owner, 2026-10-12; migration 0042): languages, a level per skill and years per tool, all
-  // optional. The form sends them only once the database has the columns.
-  if (formData.get("extras") === "1") {
-    const otherLanguage = other("otherLanguage");
-    if (otherLanguage.error) return otherLanguage.error;
-    const languages: string[] = [...new Set(formData.getAll("languages").map(String).filter(isLanguageKey))];
-    if (otherLanguage.value) languages.push(otherLanguage.value);
-    const skillLevels: Record<string, string> = {};
-    for (const k of skills) {
-      const v = String(formData.get(`level_${isSkillKey(k) ? k : "other"}`) ?? "");
-      if (isSkillLevel(v)) skillLevels[k] = v;
-    }
-    const toolYears: Record<string, number> = {};
-    for (const k of tools) {
-      const raw = String(formData.get(`years_${isToolKey(k) ? k : "other"}`) ?? "").trim();
-      if (!raw) continue;
-      const v = Number(raw);
-      if (!Number.isInteger(v) || v < 0 || v > EXPERIENCE_MAX) return fail("portfolio.errors.years", `years_${isToolKey(k) ? k : "other"}`, { max: EXPERIENCE_MAX });
-      toolYears[k] = v;
-    }
-    const { error: extrasError } = await createAdminClient().from("profiles").update({ languages, skill_levels: skillLevels, tool_years: toolYears }).eq("id", user.id);
-    if (extrasError) return fail("portfolio.extrasLater");
-  }
   refresh();
   return { status: "ok" };
 }

@@ -367,7 +367,7 @@ The winner uploads AI, EPS, SVG, PDF, transparent PNG and JPG files plus font na
 
 ### 9.4 Public profile (`/d/{username}`)
 
-Shows only: name, bio, photo, badges, **portfolio details** (owner, 2026-10-08: years of experience, skills, tools — chosen from fixed lists plus one "other" of each, no contact details), win count (owner, 2026-10-12: **no money on the public profile**, total earned is no longer shown there; profile redesign in UI-JOURNEY P-06), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
+Shows only: name, bio, photo, badges, **portfolio details** (owner, 2026-10-08: years of experience, skills, tools — chosen from fixed lists plus one "other" of each, no contact details), win count, **total earned** (public: sum of `prize_credit`, `split_share` and `bonus` wallet transactions, after fees), winning logos, all submitted logos with their star ratings, a QR code and a copyable profile link. No contact details anywhere. Entries from private contests are never shown. Entries from blind contests are never shown, except the winning logo once the client has made it public. The win count shown is `wins_count` (all completed wins).
 
 **Portfolio (owner, 2026-10-08):** the public profile is the designer's portfolio. Anyone can share its link or download it as a **PDF** (`/d/[username]/portfolio`, made on our server with pdf-lib): photo, name, username, bio, experience, skills, tools, wins and designs, up to 12 public contest designs with their contest names, the profile link and its QR code. The portfolio shows only designs submitted to contests on this site (no outside uploads). PDF text uses the Latin font, so a bio written in Bangla is left out of the PDF until a Bangla font is added.
 
@@ -592,7 +592,7 @@ Finish, test and commit each milestone before starting the next.
 7. **Handover and wallet:** file delivery, missed-deadline cancellation, approval with rating and feedback, no-result split payout, fee tiers, wallet ledger, withdrawals
 8. **Admin panel:** everything in section 13
 9. **Real integrations:** payment gateway driver, SMS provider, email, S3 storage
-10. **Profiles and gamification:** public designer profile (no money since 2026-10-12), public client profile with total spent, badges, leaderboard, monthly winner
+10. **Profiles and gamification:** public designer profile with QR and total earned, public client profile with total spent, badges, leaderboard, monthly winner
 11. **Launch polish:** Bangla translations, SEO basics (titles, sitemap, `noindex` for private contests), legal pages, performance pass, backups
 12. **Site content (owner, 2026-10-09):** texts, lists, legal pages, pictures, contact details and a notice bar, all editable in the admin panel (section 13.1)
 13. **Admin panel 2.0 (owner, 2026-10-09):** own admin layout, Super admin and staff permissions, live visitors and analytics, unpaid contests, support chat and messages to users (section 13.2)

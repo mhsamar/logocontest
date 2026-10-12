@@ -23,10 +23,8 @@ export default async function ProfileSettingsPage() {
   if (!user) redirect("/login?next=/dashboard/profile");
   if (user.role !== "designer" && user.role !== "client") notFound();
 
-  const [{ data: profile }, extrasRes, s] = await Promise.all([
+  const [{ data: profile }, s] = await Promise.all([
     createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years").eq("id", user.id).single(),
-    // Profile extras (migration 0042); before that SQL runs the query fails and the fields stay hidden.
-    createAdminClient().from("profiles").select("languages, skill_levels, tool_years").eq("id", user.id).maybeSingle(),
     getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
   ]);
   let payout: PayoutValues | null = null;
@@ -76,20 +74,7 @@ export default async function ProfileSettingsPage() {
           </Section>
           {user.role === "designer" && (
             <Section title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
-              <PortfolioForm
-                skills={(profile?.skills ?? []) as string[]}
-                tools={(profile?.tools ?? []) as string[]}
-                experienceYears={(profile?.experience_years as number | null) ?? null}
-                extras={
-                  extrasRes.error || !extrasRes.data
-                    ? null
-                    : {
-                        languages: (extrasRes.data.languages as string[] | null) ?? [],
-                        skillLevels: (extrasRes.data.skill_levels as Record<string, string> | null) ?? {},
-                        toolYears: (extrasRes.data.tool_years as Record<string, number> | null) ?? {},
-                      }
-                }
-              />
+              <PortfolioForm skills={(profile?.skills ?? []) as string[]} tools={(profile?.tools ?? []) as string[]} experienceYears={(profile?.experience_years as number | null) ?? null} />
             </Section>
           )}
           {payout && (
