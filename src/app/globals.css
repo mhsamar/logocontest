@@ -588,54 +588,164 @@ select:focus-visible {
   to { scale: 1; opacity: 0; }
 }
 
-/* ---- Menu bar motion (owner, 2026-10-12: "home menu also be interactive, feel motion"). The bar stays where
-   it is (owner, 2026-10-10); things inside it move. The gliding pill is components/layout/nav-links.tsx. ---- */
+/* ---- Menu bar motion (owner, 2026-10-12: "make the home menu more premium, more advanced"). The bar stays where
+   it is (owner, 2026-10-10); things inside it move. The pill and the spotlight are driven by
+   components/layout/nav-links.tsx. ---- */
+@property --lc-spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* The elastic pill: a soft tint where it rests (current page), glossy red where the pointer is. */
 .lc-nv-pill {
   position: absolute;
   top: 0;
   left: 0;
+  right: 100%;
+  height: 40px;
   z-index: -1;
   border-radius: 13px;
   background: rgb(139 0 0 / 0.07);
   opacity: 0;
+  scale: 0.92;
   pointer-events: none;
-  transition-duration: 420ms;
-  transition-timing-function: var(--ease-premium);
 }
+.lc-nv-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-red);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 10px 22px -8px rgb(139 0 0 / 0.55);
+  opacity: 0;
+  transition: opacity 260ms var(--ease-premium);
+}
+.lc-nv-pill[data-mode="hot"]::before {
+  opacity: 1;
+}
+
 .lc-nv-link {
-  transition: color 240ms var(--ease-premium);
+  transition: color 260ms var(--ease-premium);
 }
-.lc-nv-link:hover,
-.lc-nv-link[aria-current="page"] {
+.lc-nv-link[aria-current="page"],
+.lc-nv-link:hover {
   color: var(--color-primary);
 }
+.lc-nv-link[data-hot] {
+  color: #fff;
+}
+
+/* Rolling labels: the text rolls up and a fresh copy rolls in from below. */
+.lc-roll {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  height: 1.6em;
+  line-height: 1.6em;
+}
+.lc-roll > span,
+.lc-roll::after {
+  display: block;
+  transition: translate 520ms var(--ease-premium);
+}
+.lc-roll::after {
+  content: attr(data-text);
+  content: attr(data-text) / ""; /* the copy is decoration: screen readers skip it */
+  position: absolute;
+  left: 0;
+  top: 100%;
+  white-space: nowrap;
+}
+
+/* The gold spotlight under the pointer and the red-gold light round the edge (mouse only). */
+.lc-nv::before,
+.lc-nv::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 420ms var(--ease-premium);
+}
+.lc-nv::before {
+  z-index: -2;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgb(244 189 47 / 0.2), transparent 70%);
+}
+.lc-nv::after {
+  inset: -1px;
+  padding: 1.5px;
+  background: conic-gradient(from var(--lc-spin), transparent 0deg, rgb(193 18 31 / 0.9) 60deg, rgb(244 189 47 / 0.95) 110deg, transparent 170deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+/* Log in: an arrow slides in. */
+.lc-nv-cta svg {
+  width: 0;
+  height: 16px;
+  margin-left: -8px;
+  opacity: 0;
+  transition: width 360ms var(--ease-premium), margin 360ms var(--ease-premium), opacity 260ms;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .lc-nv:hover::before,
+  .lc-nv:hover::after {
+    opacity: 1;
+  }
+  .lc-nv:hover::after {
+    animation: lc-spin 3.2s linear infinite;
+  }
+  :is(.lc-nv-link, .lc-nv-join, .lc-nv-cta):hover .lc-roll > span,
+  :is(.lc-nv-link, .lc-nv-join, .lc-nv-cta):hover .lc-roll::after {
+    translate: 0 -100%;
+  }
+  .lc-nv-cta:hover {
+    background: var(--gradient-red);
+  }
+  .lc-nv-cta:hover svg {
+    width: 16px;
+    margin-left: 0;
+    opacity: 1;
+  }
+  /* The logo tile flips in 3D. */
+  .lc-nv-logo img {
+    transition: rotate 900ms var(--ease-spring), scale 500ms var(--ease-spring);
+  }
+  .lc-nv-logo:hover img {
+    rotate: y 360deg;
+    scale: 1.08;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  /* Items ease in one after another when the page opens. */
+  /* The bar settles in once when the page opens; then its items follow one after another. */
+  .lc-nv {
+    animation: lc-nav-settle 760ms var(--ease-premium) backwards;
+  }
   .lc-nv > :not(.lc-nv-pill) {
     animation: lc-nav-in 640ms var(--ease-premium) backwards;
   }
-  .lc-nv > :nth-child(3) { animation-delay: 60ms; }
-  .lc-nv > :nth-child(4) { animation-delay: 110ms; }
-  .lc-nv > :nth-child(5) { animation-delay: 160ms; }
-  .lc-nv > :nth-child(6) { animation-delay: 210ms; }
-  .lc-nv > :nth-child(7) { animation-delay: 260ms; }
-  .lc-nv > :nth-child(n + 8) { animation-delay: 310ms; }
-
-  /* The logo's tile tilts with a spring when you point at it. */
-  .lc-nv-logo img {
-    transition: rotate 520ms var(--ease-spring), scale 520ms var(--ease-spring);
-  }
-  .lc-nv-logo:hover img {
-    rotate: -10deg;
-    scale: 1.1;
-  }
+  .lc-nv > :nth-child(1) { animation-delay: 140ms; }
+  .lc-nv > :nth-child(3) { animation-delay: 200ms; }
+  .lc-nv > :nth-child(4) { animation-delay: 250ms; }
+  .lc-nv > :nth-child(5) { animation-delay: 300ms; }
+  .lc-nv > :nth-child(6) { animation-delay: 350ms; }
+  .lc-nv > :nth-child(7) { animation-delay: 400ms; }
+  .lc-nv > :nth-child(n + 8) { animation-delay: 450ms; }
 
   /* The glass firms up and the shadow deepens as the page scrolls. */
   @supports (animation-timeline: scroll()) {
     .lc-nv {
-      animation: lc-nav-scrolled linear both;
-      animation-timeline: scroll(root);
-      animation-range: 0 140px;
+      animation:
+        lc-nav-settle 760ms var(--ease-premium) backwards,
+        lc-nav-scrolled linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 140px;
     }
   }
 
@@ -652,6 +762,12 @@ select:focus-visible {
   .lc-drawer > :nth-child(5) { animation-delay: 200ms; }
   .lc-drawer > :nth-child(6) { animation-delay: 240ms; }
   .lc-drawer > :nth-child(n + 7) { animation-delay: 280ms; }
+}
+@keyframes lc-spin {
+  to { --lc-spin: 360deg; }
+}
+@keyframes lc-nav-settle {
+  from { opacity: 0; scale: 0.97; filter: blur(6px); }
 }
 @keyframes lc-nav-in {
   from { opacity: 0; translate: 0 -8px; filter: blur(4px); }

@@ -11,7 +11,7 @@ import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
-import { NavLinks } from "./nav-links";
+import { NavLinks, Roll } from "./nav-links";
 import { SiteNavDrawer } from "./site-nav-drawer";
 
 /** Account menu items (UI-JOURNEY §2.1). */
@@ -58,11 +58,11 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const now = new Date();
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
   const otherLocale = locale === "en" ? "bn" : "en";
-  const languageForm = (className: string) => (
+  const languageForm = (className: string, roll = false) => (
     <form action={setLocale}>
       <input type="hidden" name="locale" value={otherLocale} />
       <button type="submit" lang={otherLocale} aria-label={t("nav.switchToLabel")} className={className}>
-        {t("nav.switchTo")}
+        {roll ? <Roll>{t("nav.switchTo")}</Roll> : t("nav.switchTo")}
       </button>
     </form>
   );
@@ -77,8 +77,9 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
 
   return (
     // The menu bar stays still: no lean-toward-the-mouse on its links and buttons (owner, 2026-10-10). Inside it,
-    // motion (owner, 2026-10-12): items ease in, a pill glides under the links, the logo tilts, the glass firms
-    // up on scroll (globals.css "Menu bar motion").
+    // motion (owner, 2026-10-12, "more premium, more advanced"): the bar settles in, an elastic red pill slides under
+    // the links, labels roll, a gold spotlight follows the pointer, a red-gold light runs round the edge, the logo
+    // flips, the glass firms up on scroll (globals.css "Menu bar motion").
     <nav
       data-no-fx
       aria-label={t("nav.main")}
@@ -86,7 +87,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
     >
       <NavLogo />
       <NavLinks links={links} />
-      <div className="lc-nv-link">{languageForm("py-[11px] font-medium")}</div>
+      <div className="lc-nv-link">{languageForm("py-[11px] font-medium", true)}</div>
       <div className="flex items-center gap-1.5">
         {user ? (
           <>
@@ -96,10 +97,13 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
         ) : (
           <>
             <Link href="/designers/signup" className={`lc-nv-join ${pill} border border-line px-[18px] hover:border-primary/40 hover:bg-tint hover:text-primary`}>
-              {t("nav.becomeDesigner")}
+              <Roll>{t("nav.becomeDesigner")}</Roll>
             </Link>
-            <Link href="/login" className={`lc-ripple btn-sheen relative ${pill} bg-ink px-[22px] text-white hover:bg-primary`}>
-              {t("nav.login")}
+            <Link href="/login" className={`lc-nv-cta lc-ripple btn-sheen relative ${pill} bg-ink px-[22px] text-white`}>
+              <Roll>{t("nav.login")}</Roll>
+              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h13M13 6l6 6-6 6" />
+              </svg>
             </Link>
           </>
         )}
