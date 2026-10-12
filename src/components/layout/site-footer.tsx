@@ -7,10 +7,11 @@ import { getSettings } from "@/lib/settings";
 import { Svg } from "@/components/ui/svg";
 
 const SOCIAL = [
-  { key: "social.facebook", name: "Facebook page", icon: <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.7-.1-1.5-.2-2.3-.2-2.3 0-3.8 1.4-3.8 3.9v2.4H8v3h2.5V21z" fill="currentColor" /> },
+  { key: "social.facebook", name: "Facebook page", brand: "#1877F2", icon: <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.7-.1-1.5-.2-2.3-.2-2.3 0-3.8 1.4-3.8 3.9v2.4H8v3h2.5V21z" fill="currentColor" /> },
   {
     key: "social.facebook_group",
     name: "Facebook group",
+    brand: "#1877F2",
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="9" cy="8" r="3.2" />
@@ -23,6 +24,7 @@ const SOCIAL = [
   {
     key: "social.instagram",
     name: "Instagram",
+    brand: "linear-gradient(45deg, #F58529, #DD2A7B 50%, #8134AF)",
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="4" y="4" width="16" height="16" rx="4.5" />
@@ -34,6 +36,7 @@ const SOCIAL = [
   {
     key: "social.youtube",
     name: "YouTube",
+    brand: "#FF0000",
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
         <rect x="3" y="6" width="18" height="12" rx="3.5" />
@@ -44,6 +47,7 @@ const SOCIAL = [
   {
     key: "social.linkedin",
     name: "LinkedIn",
+    brand: "#0A66C2",
     icon: (
       <g fill="currentColor">
         <rect x="4" y="9" width="3.4" height="11" rx=".6" />
@@ -64,17 +68,19 @@ export async function SiteFooter() {
     .map((column) => ({ title: t(column === "legal" ? "footer.legal" : `footer.${column}`), links: footerLinks.filter((l) => l.column === column) }))
     .filter((c) => c.links.length > 0);
   const languageButton = (l: "en" | "bn") => (
-    <button type="submit" name="locale" value={l} lang={l} aria-current={locale === l ? "true" : undefined} className={locale === l ? "font-semibold text-ink" : "hover:opacity-70"}>
+    <button type="submit" name="locale" value={l} lang={l} aria-current={locale === l ? "true" : undefined} className={locale === l ? "lc-ft-lang font-semibold text-ink" : "lc-ft-lang hover:text-ink"}>
       {t(l === "en" ? "home.landing.english" : "home.landing.bangla")}
     </button>
   );
 
   return (
-    <footer className="overflow-hidden rounded-[32px] bg-white px-10 pt-16">
+    // Footer motion (owner, 2026-10-12): columns rise in, links slide with a red line, the phone rings, social icons
+    // lift into their brand colours, and each letter of the wordmark jumps up in gold (globals.css "Footer motion").
+    <footer className="lc-ft overflow-hidden rounded-[32px] bg-white px-10 pt-16">
       <div className="lc-fg mx-auto grid max-w-[1160px] grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))] gap-9 text-base">
-        <div className="flex flex-col items-start gap-3.5">
+        <div className="lc-rv-soft flex flex-col items-start gap-3.5">
           <p className="lc-d m-0 max-w-[260px] text-xl font-semibold leading-tight tracking-[-0.03em]">{t("footer.blurb")}</p>
-          <a href={contact.phoneHref} className="inline-flex min-h-11 items-center gap-2 rounded-[14px] bg-chip px-4 font-bold">
+          <a href={contact.phoneHref} className="lc-ft-phone inline-flex min-h-11 items-center gap-2 rounded-[14px] bg-chip px-4 font-bold hover:bg-tint hover:text-primary">
             <Svg d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2C10.3 21 3 13.7 3 6a2 2 0 0 1 2-2z" size={16} stroke="var(--color-primary)" width={2.2} />
             {contact.phone}
           </a>
@@ -88,7 +94,15 @@ export async function SiteFooter() {
               <span className="text-[15px] font-bold">{t("footer.social")}</span>
               <div className="flex gap-2">
                 {social.map((s) => (
-                  <a key={s.key} href={links[s.key]} target="_blank" rel="noopener noreferrer" aria-label={s.name} className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary text-white">
+                  <a
+                    key={s.key}
+                    href={links[s.key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.name}
+                    style={{ "--brand": s.brand } as React.CSSProperties}
+                    className="lc-ft-social relative flex h-[46px] w-[46px] items-center justify-center overflow-hidden rounded-[14px] bg-primary text-white"
+                  >
                     <svg aria-hidden width="20" height="20" viewBox="0 0 24 24">
                       {s.icon}
                     </svg>
@@ -99,17 +113,17 @@ export async function SiteFooter() {
           )}
         </div>
         {columns.map((col) => (
-          <nav key={col.title} aria-label={col.title} className="flex flex-col gap-0.5 text-muted">
-            <span className="pb-2 font-bold text-ink">{col.title}</span>
+          <nav key={col.title} aria-label={col.title} className="lc-rv-soft flex flex-col items-start gap-0.5 text-muted">
+            <span className="lc-ft-head pb-2 font-bold text-ink">{col.title}</span>
             {col.links.map((l) => (
-              <Link key={l.id} href={l.href ?? "/"} className="py-1.5">
+              <Link key={l.id} href={l.href ?? "/"} className="lc-ft-link py-1.5">
                 {l.text.label}
               </Link>
             ))}
           </nav>
         ))}
       </div>
-      <div className="mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 border-t border-line-soft pt-5 text-[15px] text-muted">
+      <div className="lc-ft-bar lc-rv-soft relative mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 pt-5 text-[15px] text-muted">
         <span>{t("footer.rights", { year })}</span>
         <form action={setLocale} aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
           {languageButton("en")}
@@ -118,8 +132,15 @@ export async function SiteFooter() {
         </form>
         <span>{t("footer.madeIn")}</span>
       </div>
-      <div aria-hidden className="lc-d lc-rv lc-big mb-[-0.16em] mt-7 whitespace-nowrap text-center text-[clamp(54px,14.5vw,212px)] font-semibold leading-[0.82] tracking-[-0.06em] text-primary">
-        {t("brand.name")}
+      <div aria-hidden className="lc-ft-word lc-d lc-rv lc-big mb-[-0.16em] mt-7 whitespace-nowrap text-center text-[clamp(54px,14.5vw,212px)] font-semibold leading-[0.82] tracking-[-0.06em] text-primary">
+        {/* One span per letter so each can jump on hover; only for plain Latin text (Bangla letters must stay joined). */}
+        {/^[\x20-\x7E]+$/.test(t("brand.name"))
+          ? Array.from(t("brand.name")).map((ch, i) => (
+              <span key={i} style={{ "--i": i } as React.CSSProperties}>
+                {ch}
+              </span>
+            ))
+          : t("brand.name")}
       </div>
     </footer>
   );
