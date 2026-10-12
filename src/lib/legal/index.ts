@@ -15,7 +15,7 @@ import { fillLegal, LEGAL_VERSION, type AgreementText, type LegalBlock, type Leg
 export async function legalParams(t: Translate, locale: Locale): Promise<Record<string, string | number>> {
   const [{ params }, s, contact] = await Promise.all([
     faqParams(t, locale),
-    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "limits.strikes_for_ban"]),
+    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "timers.suspension_hours", "limits.strikes_for_ban"]),
     getContact(locale),
   ]);
   const n = (v: number) => formatNumber(v, locale);
@@ -26,10 +26,11 @@ export async function legalParams(t: Translate, locale: Locale): Promise<Record<
     claimDays: n(s["timers.copy_claim_days"]),
     repick: n(s["timers.repick_window_days"]),
     phone: contact.phone,
-    // The strike and payout rules (owner, 2026-10-12).
+    // The suspension, ban and payout rules (owner, 2026-10-12).
     strikeDays: n(s["timers.strike_expiry_days"]),
     strikeHours: n(s["timers.files_strike_hours"]),
     holdDays: n(s["timers.payout_hold_days"]),
+    suspendHours: n(s["timers.suspension_hours"]),
     ban: n(s["limits.strikes_for_ban"]),
   };
 }

@@ -21,7 +21,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 async function ownEntry(entryId: string) {
   if (!isSupabaseConfigured() || !UUID.test(entryId)) return null;
   const user = await getCurrentUser();
-  if (!user || user.role !== "client" || user.status !== "active") return null;
+  if (!user || user.role !== "client" || user.status === "banned") return null;
   const { data } = await createAdminClient()
     .from("entries")
     .select("id, number, status, designer_id, contest:contests!contest_id(id, slug, brand_name, client_id, status, logo_scan)")

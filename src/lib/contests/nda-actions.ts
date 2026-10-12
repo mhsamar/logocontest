@@ -11,7 +11,7 @@ import { PUBLIC_STATUSES } from "./public-statuses";
 export async function acceptNda(contestId: string): Promise<{ ok: true } | { ok: false; error: MessageKey }> {
   if (!isSupabaseConfigured()) return { ok: false, error: "auth.errors.notConfigured" };
   const user = await getCurrentUser();
-  if (!user || user.role !== "designer" || user.status !== "active") return { ok: false, error: "contest.nda.designersOnly" };
+  if (!user || user.role !== "designer" || user.status === "banned") return { ok: false, error: "contest.nda.designersOnly" };
   if (!/^[0-9a-f-]{36}$/i.test(contestId)) return { ok: false, error: "auth.errors.generic" };
   const db = createAdminClient();
   const { data } = await db.from("contests").select("id, status, is_nda").eq("id", contestId).maybeSingle();

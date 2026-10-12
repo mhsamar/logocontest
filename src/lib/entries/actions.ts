@@ -9,6 +9,7 @@ import { blockedTerms } from "@/lib/contests/community";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
+import { checkComment, suspendedError } from "@/lib/moderation/suspension";
 import { getImageModerator } from "@/lib/moderation/images";
 import { getSetting } from "@/lib/settings";
 import { notify } from "@/lib/notifications";
@@ -41,6 +42,8 @@ const originalPattern = (contestId: string, userId: string) => new RegExp(`^orig
 export async function prepareEntryImageUpload(input: { contestId: string; type: string; size: number }): Promise<{ ok: true; path: string; token: string } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
+  const held = suspendedError(user);
+  if (held) return fail(held.key, held.params);
   if (!can(user, "entry.submit")) return fail("submit.errors.designersOnly");
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
@@ -75,6 +78,8 @@ const MOCKUP_LABEL_MAX = 60;
 export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
+  const held = suspendedError(user);
+  if (held) return fail(held.key, held.params);
   if (!can(user, "entry.submit")) return fail("submit.errors.designersOnly");
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
@@ -223,6 +228,8 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const canSeeBrief = await passesNda({ id: c.id, isNda: Boolean(c.is_nda), ownerId: c.client_id }, user);
   const scope = entryScope({ ownerId: c.client_id, isBlind: c.is_blind, canSeeBrief, status: c.status, winnerIsPublic: c.winner_is_public }, user);
   if (!canSeeEntry(scope, { status: data.status, designerId: data.designer_id })) return commentFail("auth.errors.generic");
+  const held = suspendedError(user);
+  if (held) return commentFail(held.key, held.params);
   const allowed = can(user, "entry.comment", { contestOwnerId: c.client_id, entryDesignerId: data.designer_id });
   if (!allowed) return commentFail("entry.comments.notAllowed");
 
@@ -230,7 +237,12 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const max = Math.min(2000, await getSetting("limits.contest_comment_max_length"));
   if (!body) return commentFail("contest.comments.emptyBody");
   if (body.length > max) return commentFail("contest.comments.tooLong", { max });
-  if (findContactDetails(body, await blockedTerms())) return commentFail("contest.comments.contact");
+  // Contact details or bad words: not posted, and a designer is suspended (owner, 2026-10-12).
+  const blocked = await checkComment(user, body, { contestId: c.id, entryId });
+  if (blocked) {
+    refresh();
+    return commentFail(blocked.key, blocked.params);
+  }
 
   const { error } = await db.from("entry_comments").insert({ entry_id: entryId, user_id: user.id, body });
   if (error) return commentFail("auth.errors.generic");
@@ -350,7 +362,7 @@ export async function reportEntry(input: ReportInput): Promise<{ ok: true } | Fa
 export async function withdrawEntry(entryId: string): Promise<{ ok: true } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
-  if (!user || user.status !== "active" || !UUID.test(entryId)) return fail("auth.errors.generic");
+  if (!user || user.status === "banned" || !UUID.test(entryId)) return fail("auth.errors.generic");
   const db = createAdminClient();
   const { data } = await db.from("entries").select("id, status, designer_id, contest:contests!contest_id(status, ends_at)").eq("id", entryId).maybeSingle();
   const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { status: string; ends_at: string | null } | null);
@@ -380,6 +392,8 @@ export async function voteEntry(entryId: string, vote: number): Promise<VoteResu
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
   if (!user) return fail("entry.votes.login");
+  const held = suspendedError(user);
+  if (held) return fail(held.key, held.params);
   if (!UUID.test(entryId) || ![-1, 0, 1].includes(vote)) return fail("auth.errors.generic");
 
   const db = createAdminClient();

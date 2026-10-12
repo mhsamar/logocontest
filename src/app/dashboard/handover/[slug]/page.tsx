@@ -28,12 +28,13 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/dashboard/handover/${slug}`)}`);
   const h = await getDesignerHandover(slug, user.id);
   if (!h) notFound();
-  const [{ t, locale }, maxMb, claim, strikeHours, messages] = await Promise.all([
+  const [{ t, locale }, maxMb, claim, strikeHours, messages, suspendHours] = await Promise.all([
     getI18n(),
     getSetting("limits.handover_file_max_mb"),
     latestClaim(h.id),
     getSetting("timers.files_strike_hours"),
     handoverMessages(h.id, user.id, h.clientId),
+    getSetting("timers.suspension_hours"),
   ]);
   const taka = (n: number) => formatTaka(n, locale);
   const editable = h.status === "awaiting_files" || h.status === "revision_requested";
@@ -62,8 +63,8 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
             ))}
           </dl>
           {h.status !== "approved" && <p className="m-0 mt-4 text-sm text-white/80">{t("handover.won.after", { amount: taka(h.credit) })}</p>}
-          {/* Only the first delivery has a deadline (owner, 2026-10-12): a strike after 24 hours, a ban after 3 days. */}
-          {h.status === "awaiting_files" && <p className="m-0 mt-1 text-sm font-semibold text-gold">{t("handover.won.dueWarn", { hours: strikeHours, date: formatDate(h.dueAt, locale, "long") })}</p>}
+          {/* Only the first delivery has a deadline (owner, 2026-10-12): a 48-hour suspension after 24 hours, a ban after 3 days. */}
+          {h.status === "awaiting_files" && <p className="m-0 mt-1 text-sm font-semibold text-gold">{t("handover.won.dueWarn", { hours: strikeHours, suspend: suspendHours, date: formatDate(h.dueAt, locale, "long") })}</p>}
         </div>
       </section>
 

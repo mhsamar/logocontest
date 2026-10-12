@@ -76,9 +76,12 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   win_cancelled: "safety",
   strike_received: "safety",
   late_files_strike: "safety",
+  agreement_photo_requested: "safety",
+  agreement_rejected: "safety",
   files_missed_banned: "safety",
   account_suspended: "safety",
   account_banned: "safety",
+  account_reactivated: "safety",
   flag_warning: "safety",
   report_upheld: "safety",
   report_dismissed: "safety",
@@ -107,6 +110,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   late_files_admin: "admin",
   files_missed_admin: "admin",
   withdrawal_requested_admin: "admin",
+  agreement_photo_added_admin: "admin",
 };
 
 const P = {

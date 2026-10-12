@@ -81,9 +81,11 @@ export async function signIn(key: string, authEmail: string, password: string, i
     .select("status")
     .eq("id", data.user.id)
     .maybeSingle<{ status: ProfileStatus["status"] }>();
-  if (!profile || profile.status !== "active") {
+  // Owner, 2026-10-12: a suspended user can log in and use the site, but can't send designs, comment or like until
+  // the 48 hours are over (src/lib/auth/policies.ts). A banned user can't log in.
+  if (!profile || profile.status === "banned") {
     await supabase.auth.signOut();
-    return fail(profile?.status === "banned" ? "auth.errors.banned" : "auth.errors.suspended");
+    return fail("auth.errors.banned");
   }
 
   await guard.record(key, ip, true);

@@ -13,6 +13,7 @@ export async function ContestComments({
   loginHref,
   maxLength,
   designerMustSubmit = false,
+  heldNote = null,
   finished = false,
 }: {
   contestId: string;
@@ -23,6 +24,8 @@ export async function ContestComments({
   maxLength: number;
   /** A designer who hasn't submitted to this contest yet (owner, 2026-10-11: only they can't comment). */
   designerMustSubmit?: boolean;
+  /** A suspended user's note (owner, 2026-10-12): why they can't comment, and until when. */
+  heldNote?: string | null;
   /** A finished contest: read-only (owner, 2026-10-11). */
   finished?: boolean;
 }) {
@@ -83,7 +86,7 @@ export async function ContestComments({
           <CommentForm target={{ kind: "contest", contestId }} maxLength={maxLength} />
         ) : (
           <div className="flex flex-col items-center gap-3 py-2 text-center sm:flex-row sm:justify-between sm:text-left">
-            <p className="text-sm text-muted">{finished ? t("contest.finished") : loginHref ? t("contest.comments.loginToComment") : designerMustSubmit ? t("contest.comments.submitFirst") : t("contest.comments.notAllowed")}</p>
+            <p className="text-sm text-muted">{finished ? t("contest.finished") : heldNote ? heldNote : loginHref ? t("contest.comments.loginToComment") : designerMustSubmit ? t("contest.comments.submitFirst") : t("contest.comments.notAllowed")}</p>
             {loginHref && !finished && (
               <ButtonLink href={loginHref} variant="secondary">
                 {t("nav.login")}

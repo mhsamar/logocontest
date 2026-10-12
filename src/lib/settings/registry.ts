@@ -198,14 +198,19 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "New-entry emails to the client are batched over this many hours.",
   },
-  // After a contest (owner, 2026-10-12; migration 0039): no suspensions any more, strikes run out.
+  // Suspension and ban rules (owner, 2026-10-12; migrations 0039, 0041): every rule break is a 48-hour suspension
+  // that ends on its own; 3 suspensions within 30 days = permanent ban.
+  "timers.suspension_hours": {
+    group: "timers", type: "int", schema: int(1, 720), default: 48,
+    description: "Hours a suspension lasts. It ends on its own.",
+  },
   "timers.strike_expiry_days": {
-    group: "timers", type: "int", schema: int(1, 365), default: 45,
-    description: "Days a strike counts. Strikes older than this no longer count toward a ban.",
+    group: "timers", type: "int", schema: int(1, 365), default: 30,
+    description: "Days a suspension counts toward a ban. 3 suspensions (Limits) inside this time = permanent ban.",
   },
   "timers.files_strike_hours": {
     group: "timers", type: "int", schema: int(1, 72), default: 24,
-    description: "Hours the winner has to send the first final files before getting a strike.",
+    description: "Hours the winner has to send the first final files before getting a suspension.",
   },
   "timers.payout_hold_days": {
     group: "timers", type: "int", schema: int(0, 30), default: 3,
@@ -297,7 +302,7 @@ export const SETTINGS = {
   },
   "limits.strikes_for_ban": {
     group: "limits", type: "int", schema: int(1), default: 3,
-    description: "Strikes within the strike days (Timers) that trigger a permanent ban.",
+    description: "Suspensions within the suspension days (Timers) that trigger a permanent ban.",
   },
   "limits.false_flag_warnings_for_ban": {
     group: "limits", type: "int", schema: int(1), default: 3,

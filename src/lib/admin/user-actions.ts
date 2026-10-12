@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { notify } from "@/lib/notifications";
+import { suspendUser, tellUser } from "@/lib/moderation/suspension";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
 
@@ -10,61 +10,57 @@ type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
 const fail = (error: MessageKey): Result => ({ ok: false, error });
 
-/** A-05: a strike from an admin (BLUEPRINT §10: 1 warning, 2 suspension, 3 ban). */
+/** Suspensions and bans are for clients and designers only: never an admin or a super admin (owner, 2026-10-12). */
+async function actionable(userId: string): Promise<boolean> {
+  const { data } = await createAdminClient().from("profiles").select("role, is_super_admin").eq("id", userId).maybeSingle();
+  return Boolean(data) && data!.role !== "admin" && !data!.is_super_admin;
+}
+
+/**
+ * A-05 Suspend for 48 hours (owner, 2026-10-12): one row in strikes, ends on its own; the 3rd within 30 days bans
+ * the account. For misuse such as contact details, a fake NID/passport/birth certificate, or rude comments.
+ */
 export async function giveStrike(userId: string, f: Fields): Promise<Result> {
-  const input = { userId, reason: f.reason ?? "" };
   const admin = await adminUser("users.manage");
-  if (!admin || !UUID.test(input.userId) || input.userId === admin.id) return fail("auth.errors.generic");
-  const reason = cleanReason(input.reason);
+  if (!admin || !UUID.test(userId) || userId === admin.id) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason ?? "");
   if (!reason) return fail("admin.errors.reason");
-  const days = 0; // strikes no longer suspend (owner, 2026-10-12)
-  const { data, error } = await createAdminClient().rpc("give_strike", {
-    p_user_id: input.userId,
-    p_reason: reason,
-    p_entry_id: null,
-    p_contest_id: null,
-    p_issued_by: admin.id,
-    p_issuer_role: "admin",
-    p_suspend_days: days,
-  });
-  if (error) return fail("admin.errors.generic");
-  const p = data as { status: string; strikes: number };
-  await audit(admin.id, "give_strike", "user", input.userId, { reason, strikes: p.strikes, status: p.status });
-  await notify([input.userId], "strike_received", { reason, number: p.strikes }, "/dashboard", admin.id);
+  if (!(await actionable(userId))) return fail("admin.users.x.actions.notStaff");
+  const p = await suspendUser({ userId, reason, issuedBy: admin.id, issuerRole: "admin" });
+  if (!p) return fail("admin.errors.generic");
+  await audit(admin.id, p.status === "banned" ? "ban_user" : "suspend_user", "user", userId, { reason, suspensions: p.strikes, until: p.suspendedUntil });
   refresh();
   return { ok: true };
 }
 
+/** Takes one suspension off the count (it no longer counts toward a ban). Never lifts a ban or the current hold. */
 export async function removeStrike(strikeId: string, f: Fields): Promise<Result> {
-  const input = { strikeId, reason: f.reason ?? "" };
   const admin = await adminUser("users.manage");
-  if (!admin || !UUID.test(input.strikeId)) return fail("auth.errors.generic");
-  const reason = cleanReason(input.reason);
+  if (!admin || !UUID.test(strikeId)) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason ?? "");
   if (!reason) return fail("admin.errors.reason");
-  const days = 0; // strikes no longer suspend (owner, 2026-10-12)
-  const { data, error } = await createAdminClient().rpc("remove_strike", { p_strike_id: input.strikeId, p_admin_id: admin.id, p_suspend_days: days });
+  const { data, error } = await createAdminClient().rpc("remove_strike", { p_strike_id: strikeId, p_admin_id: admin.id, p_suspend_days: 0 });
   if (error || !data) return fail("admin.errors.generic");
   const p = data as { id: string; strikes: number };
-  await audit(admin.id, "remove_strike", "user", p.id, { strike: input.strikeId, reason, strikes: p.strikes });
+  await audit(admin.id, "remove_strike", "user", p.id, { strike: strikeId, reason, suspensions: p.strikes });
   refresh();
   return { ok: true };
 }
 
-/** A-05: suspend (for N days), ban, or make active again. Never your own account. */
+/**
+ * A-05: ban for good, or make the account active again (lifts a suspension early, or a ban). Never your own account.
+ * Suspending goes through giveStrike, so every suspension counts toward the ban.
+ */
 export async function setUserStatus(userId: string, status: string, f: Fields): Promise<Result> {
-  const input = { userId, status, days: Number(f.days ?? 0), reason: f.reason ?? "" };
   const admin = await adminUser("users.manage");
-  if (!admin || !UUID.test(input.userId) || input.userId === admin.id || !["active", "suspended", "banned"].includes(input.status)) return fail("auth.errors.generic");
-  const reason = cleanReason(input.reason);
+  if (!admin || !UUID.test(userId) || userId === admin.id || !["active", "banned"].includes(status)) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason ?? "");
   if (!reason) return fail("admin.errors.reason");
-  const days = Math.floor(Number(input.days));
-  if (input.status === "suspended" && !(days >= 1 && days <= 365)) return fail("admin.errors.days");
-  const until = input.status === "suspended" ? new Date(Date.now() + days * 86_400_000).toISOString() : null;
-  const { error } = await createAdminClient().from("profiles").update({ status: input.status, suspended_until: until }).eq("id", input.userId);
+  if (!(await actionable(userId))) return fail("admin.users.x.actions.notStaff");
+  const { error } = await createAdminClient().from("profiles").update({ status, suspended_until: null }).eq("id", userId);
   if (error) return fail("admin.errors.generic");
-  const action = input.status === "banned" ? "ban_user" : input.status === "suspended" ? "suspend_user" : "reactivate_user";
-  await audit(admin.id, action, "user", input.userId, { reason, days: input.status === "suspended" ? days : undefined });
-  if (input.status !== "active") await notify([input.userId], input.status === "banned" ? "account_banned" : "account_suspended", { reason, days: input.status === "suspended" ? days : undefined }, null, admin.id);
+  await audit(admin.id, status === "banned" ? "ban_user" : "reactivate_user", "user", userId, { reason });
+  await tellUser(userId, status === "banned" ? "banned" : "reactivated", reason, null, admin.id);
   refresh();
   return { ok: true };
 }

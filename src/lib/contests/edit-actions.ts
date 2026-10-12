@@ -21,7 +21,7 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
   const user = await getCurrentUser();
   // The client, or an admin (A-02 Edit brief, BLUEPRINT §13.3).
   const isAdmin = user?.role === "admin";
-  if (!user || (user.role !== "client" && !isAdmin) || user.status !== "active" || !/^[0-9a-f-]{36}$/i.test(contestId)) return { ok: false, error: "auth.errors.generic" };
+  if (!user || (user.role !== "client" && !isAdmin) || user.status === "banned" || !/^[0-9a-f-]{36}$/i.test(contestId)) return { ok: false, error: "auth.errors.generic" };
   const contest = await contestRepository().findContest(contestId);
   if (!contest || (contest.clientId !== user.id && !isAdmin)) return { ok: false, error: "auth.errors.generic" };
   if (contest.status !== "open") return { ok: false, error: "manage.edit.closed" };

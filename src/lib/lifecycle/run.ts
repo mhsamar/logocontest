@@ -2,6 +2,7 @@ import "server-only";
 import { PAGE_VIEW_DAYS } from "@/lib/analytics/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { adminIdsWith } from "@/lib/admin/recipients";
+import { emailUser, tellUser } from "@/lib/moderation/suspension";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,6 +39,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     "timers.files_due_notice_hours",
     "timers.files_strike_hours",
     "timers.strike_expiry_days",
+    "timers.suspension_hours",
   ]);
   const iso = now.toISOString();
   const fail = (step: string, id: string, e: unknown) => report.errors.push(`${step} ${id}: ${e instanceof Error ? e.message : String(e)}`);
@@ -172,8 +174,9 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     return { name: ((data?.name as string | null) ?? "").trim() || "—", phone: ((data?.mobile as string | null) ?? "").replace(/^\+88/, "") || "—" };
   };
 
-  // 4c. No first files 24 hours after the win (Settings): one strike, once per win; the admins hear with the phone
-  //     number so they can call. 3 strikes within the strike days ban the account (migration 0039).
+  // 4c. No first files 24 hours after the win (Settings): a 48-hour suspension, once per win (they can still send
+  //     the files); the admins hear with the phone number so they can call. The 3rd suspension within 30 days bans
+  //     the account (owner, 2026-10-12; migrations 0039, 0041).
   {
     const hours = s["timers.files_strike_hours"];
     const { data } = await db
@@ -189,9 +192,13 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         const { data: p, error } = await db.rpc("strike_late_files", { p_handover_id: h.id });
         if (error) throw new Error(error.message);
         if (!p || !c) continue;
-        const profile = p as { status: string };
-        await notify([h.designer_id as string], "late_files_strike", { brand: c.brand_name, hours, days: s["timers.strike_expiry_days"] }, `/dashboard/handover/${c.slug}`);
-        if (profile.status === "banned") await notify([h.designer_id as string], "files_missed_banned", { brand: c.brand_name }, null);
+        const profile = p as { status: string; suspended_until: string | null };
+        const reason = `${c.brand_name}: final files not sent within ${hours} hours of winning`;
+        if (profile.status === "banned") await tellUser(h.designer_id as string, "banned", reason, null);
+        else {
+          await notify([h.designer_id as string], "late_files_strike", { brand: c.brand_name, hours, suspend: s["timers.suspension_hours"], days: s["timers.strike_expiry_days"] }, `/dashboard/handover/${c.slug}`);
+          await emailUser(h.designer_id as string, "suspended", { reason, until: profile.suspended_until });
+        }
         await notify(await adminIdsWith("users.view"), "late_files_admin", { ...(await designerContact(h.designer_id as string)), brand: c.brand_name, hours }, `/admin/users/${h.designer_id}`);
         report.lateStrikes++;
       } catch (e) {
@@ -281,7 +288,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     }
   }
 
-  // 8. Suspensions whose time is up (BLUEPRINT §13, strikes), and strikes older than the strike days stop counting.
+  // 8. Suspensions whose 48 hours are up end on their own, and suspensions older than 30 days stop counting toward a
+  //    ban (owner, 2026-10-12).
   {
     const { error: recountError } = await db.rpc("recount_strikes");
     if (recountError) fail("strikes", "-", recountError.message);

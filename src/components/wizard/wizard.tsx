@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { Stepper } from "@/components/ui/stepper";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -315,7 +316,7 @@ export function Wizard(props: WizardProps) {
     if (step === 11) {
       startBusy(async () => {
         void recordWizardStep(wizardVisitId(), 12, state.contestId);
-        const res = await startCheckout({ contestId: state.contestId!, method: method!, name, acceptedTerms: terms });
+        const res = await startCheckout({ contestId: state.contestId!, method: method!, name, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
         // On success the action redirects to the gateway, so we only get here on failure.
         if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
       });
@@ -358,6 +359,33 @@ export function Wizard(props: WizardProps) {
 
   return (
     <div ref={top} className="flex w-full flex-1 scroll-mt-32 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
+      {/* Owner, 2026-10-12: before a contest is made, the client agrees that it has no nude or sexual content. */}
+      <Modal
+        open={!state.contentOk}
+        // Closing after "I agree" also fires this (the dialog's close event), so only leave when not agreed.
+        onClose={() => {
+          if (!state.contentOk) router.push("/");
+        }}
+        title={t("wizard.contentRules.title")}
+        closeLabel={t("wizard.contentRules.leave")}
+        footer={
+          <div className="flex w-full flex-col gap-2">
+            <Button block size="lg" onClick={() => setState({ ...state, contentOk: true })}>
+              {t("wizard.contentRules.agree")}
+            </Button>
+            <Button block variant="ghost" onClick={() => router.push("/")}>
+              {t("wizard.contentRules.leave")}
+            </Button>
+          </div>
+        }
+      >
+        <p className="m-0 text-[15px] text-ink">{t("wizard.contentRules.body")}</p>
+        <ul className="m-0 mt-3 flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted">
+          <li>{t("wizard.contentRules.r1")}</li>
+          <li>{t("wizard.contentRules.r2")}</li>
+          <li className="font-semibold text-[#A3121B]">{t("wizard.contentRules.r3")}</li>
+        </ul>
+      </Modal>
       {/* Grey page panel; on larger screens the step sits on a white card (site design, owner 2026-10-10) */}
       <div className="flex-1 rounded-[32px] bg-frame px-6 py-10 sm:px-10 max-[720px]:rounded-[24px] max-[720px]:bg-surface max-[720px]:px-4 max-[720px]:py-5">
         <div className={showPrice ? "mx-auto max-w-[68rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8" : ""}>

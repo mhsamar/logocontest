@@ -123,9 +123,10 @@ describe("legal texts (P-10)", () => {
       "maxDays",
       "perDay",
       "phone",
-      // Strikes and the payout hold (owner, 2026-10-12)
+      // Suspensions, bans and the payout hold (owner, 2026-10-12)
       "strikeDays",
       "strikeHours",
+      "suspendHours",
       "holdDays",
       "ban",
     ]);

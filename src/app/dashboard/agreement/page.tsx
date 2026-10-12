@@ -46,7 +46,13 @@ export default async function AgreementPage({ searchParams }: PageProps<"/dashbo
           {signed ? (
             <>
               {/* Signed before ID photos were asked for: add one before the next design (owner, 2026-10-11). */}
-              {!signed.idPhotos.front && (
+              {/* The admin review (owner, 2026-10-12): a new photo when asked for or after a rejection. */}
+              {(signed.reviewStatus === "rejected" || (signed.photoRequestedAt && signed.idPhotos.front)) && (
+                <p className="m-0 mb-3.5 rounded-[20px] bg-[#fff6d6] px-5 py-4 text-[15px] font-medium text-gold-ink">
+                  {signed.reviewStatus === "rejected" ? t("agreement.review.rejected", { reason: signed.rejectReason ?? "—" }) : t("agreement.review.asked")}
+                </p>
+              )}
+              {(!signed.idPhotos.front || signed.photoRequestedAt || signed.reviewStatus === "rejected") && (
                 <div className="mb-3.5">
                   <IdPhotoForm idType={signed.idType} next={next} />
                 </div>

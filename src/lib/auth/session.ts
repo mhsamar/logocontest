@@ -14,10 +14,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, mobile, name, role, status, locale, email, email_verified_at, username, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title")
+    .select("id, mobile, name, role, status, suspended_until, locale, email, email_verified_at, username, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title")
     .eq("id", data.user.id)
     .maybeSingle<
-      Omit<CurrentUser, "emailVerifiedAt" | "avatarUrl" | "isSuperAdmin" | "adminActive" | "adminPermissions" | "adminTitle"> & {
+      Omit<CurrentUser, "emailVerifiedAt" | "avatarUrl" | "isSuperAdmin" | "adminActive" | "adminPermissions" | "adminTitle" | "suspendedUntil"> & {
+        suspended_until: string | null;
         email_verified_at: string | null;
         avatar_path: string | null;
         is_super_admin: boolean | null;
@@ -27,9 +28,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       }
     >();
   if (!profile) return null;
-  const { email_verified_at, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title, ...rest } = profile;
+  const { suspended_until, email_verified_at, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title, ...rest } = profile;
+  // A suspension ends on its own (owner, 2026-10-12): once its time is up the account is active again, even before
+  // the lifecycle job writes it back.
+  const over = rest.status === "suspended" && suspended_until !== null && new Date(suspended_until).getTime() <= Date.now();
   return {
     ...rest,
+    status: over ? "active" : rest.status,
+    suspendedUntil: rest.status === "suspended" && !over ? suspended_until : null,
     emailVerifiedAt: email_verified_at,
     avatarUrl: avatarUrl(avatar_path),
     isSuperAdmin: !!is_super_admin,

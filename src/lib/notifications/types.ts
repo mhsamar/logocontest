@@ -80,5 +80,10 @@ export const NOTIFICATION_TYPES = [
   "files_missed_admin",
   "handover_message",
   "withdrawal_requested_admin",
+  // Designer agreements review (owner, 2026-10-12)
+  "agreement_photo_requested",
+  "agreement_rejected",
+  "agreement_photo_added_admin",
+  "account_reactivated",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

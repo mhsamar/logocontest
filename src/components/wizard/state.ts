@@ -18,6 +18,8 @@ export type WizardState = {
   email: string;
   contestId: string | null;
   localFiles: LocalFile[];
+  /** The client agreed: no nude or sexual content in this contest (owner, 2026-10-12). */
+  contentOk?: boolean;
 };
 
 const KEY = "lc-wizard";

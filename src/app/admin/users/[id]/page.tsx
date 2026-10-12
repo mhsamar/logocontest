@@ -173,20 +173,12 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               <div className="flex flex-col gap-2.5 border-t border-adm-line-soft pt-[18px]">
                 <h2 className="m-0 text-[17px] font-semibold">{t("admin.users.actions")}</h2>
                 <div className="flex flex-wrap gap-2">
-                  <AdminAction label={t("admin.users.giveStrike")} body={t("admin.users.strikeBody")} tone="secondary" run={giveStrike.bind(null, u.id)} done={t("admin.users.strikeGiven")} />
-                  {u.status !== "suspended" && u.status !== "banned" && (
-                    <AdminAction
-                      label={t("admin.users.suspend")}
-                      tone="secondary"
-                      fields={[
-                        { name: "days", kind: "number", label: t("admin.users.days"), min: 1, max: 365, defaultValue: "14" },
-                        { name: "reason", kind: "reason" },
-                      ]}
-                      run={setUserStatus.bind(null, u.id, "suspended")}
-                    />
+                  {/* Owner, 2026-10-12: a suspension is 48 hours and counts toward the ban (3 within 30 days). */}
+                  {u.status === "active" && (
+                    <AdminAction label={t("admin.users.suspend")} body={t(u.strikes >= 2 ? "admin.users.x.actions.suspendBans" : "admin.users.strikeBody")} tone="secondary" run={giveStrike.bind(null, u.id)} done={t("admin.users.strikeGiven")} />
                   )}
                   {u.status !== "banned" && <AdminAction label={t("admin.users.ban")} body={t("admin.users.banBody")} tone="danger" run={setUserStatus.bind(null, u.id, "banned")} />}
-                  {u.status !== "active" && <AdminAction label={t("admin.users.reactivate")} tone="primary" run={setUserStatus.bind(null, u.id, "active")} />}
+                  {u.status !== "active" && <AdminAction label={t(u.status === "suspended" ? "admin.users.x.actions.unsuspend" : "admin.users.reactivate")} tone="primary" run={setUserStatus.bind(null, u.id, "active")} />}
                   {/* Owner, 2026-10-11: test accounts never take part in the monthly race */}
                   {u.role !== "admin" && (
                     <AdminAction

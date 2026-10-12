@@ -36,6 +36,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { contestIndexable, openGraphFor } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
+import { suspendedError } from "@/lib/moderation/suspension";
 import { getSetting } from "@/lib/settings";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 
@@ -81,6 +82,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const action = primaryAction(contest, user, t);
   // Finished: nothing on this page can be changed any more, by anyone (owner, 2026-10-11).
   const finished = isFinished(contest.status);
+  // Suspended (owner, 2026-10-12): no comments or likes until the suspension ends; the boxes say why.
+  const held = suspendedError(user);
+  const heldNote = held ? t(held.key, held.params) : null;
   const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
   // Blind contests: designers still see their own designs (UI-JOURNEY P-03).
   const blindHidden = contest.isBlind && entryScope(entryContest, user).kind === "none";
@@ -378,6 +382,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               canComment={!finished && can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })}
               loginHref={user ? null : loginHref}
               designerMustSubmit={user?.role === "designer" && !viewerHasEntry}
+              heldNote={heldNote}
               finished={finished}
               maxLength={commentMax}
             />
@@ -466,6 +471,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   ? t("contest.finished")
                   : !user
                   ? t("entry.votes.login")
+                  : heldNote
+                  ? heldNote
                   : entry.mine
                     ? t("entry.votes.own")
                     : user.role === "client"
@@ -479,6 +486,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             comments={entry.comments}
             canComment={!finished && can(user, "entry.comment", { contestOwnerId: contest.ownerId, entryDesignerId: entry.designerId })}
             reason={finished ? "finished" : !user ? "login" : user.role === "designer" ? "ownOnly" : "notAllowed"}
+            heldNote={heldNote}
             loginHref={`/login?next=${encodeURIComponent(`${entriesHref}&entry=${entry.number}`)}`}
             maxLength={commentMax}
           />

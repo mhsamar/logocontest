@@ -58,7 +58,8 @@ describe("BLUEPRINT defaults", () => {
     expect(d("timers.designer_file_upload_days")).toBe(3);
     expect(d("timers.client_response_days")).toBe(5);
     expect(d("limits.max_revision_requests")).toBe(0); // no limit, owner 2026-10-12
-    expect(d("timers.strike_expiry_days")).toBe(45);
+    expect(d("timers.strike_expiry_days")).toBe(30);
+    expect(d("timers.suspension_hours")).toBe(48);
     expect(d("timers.files_strike_hours")).toBe(24);
     expect(d("timers.payout_hold_days")).toBe(3);
     expect(d("limits.strikes_for_ban")).toBe(3);

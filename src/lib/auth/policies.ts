@@ -9,6 +9,8 @@ export type CurrentUser = {
   name: string;
   role: Role;
   status: UserStatus;
+  /** While suspended: when the suspension ends (owner, 2026-10-12: 48 hours, then it ends on its own). */
+  suspendedUntil?: string | null;
   locale: "en" | "bn";
   email: string | null;
   emailVerifiedAt: string | null;
@@ -35,13 +37,16 @@ export type PolicyContext = {
   viewerHasEntry?: boolean;
 };
 
+// Owner, 2026-10-12: a suspended user (48 hours) can't send a new design, comment, like/dislike or save; the rest of
+// the site works as usual (final files, the delivery chat, the wallet). A banned user can't do anything.
 const active = (user: CurrentUser | null): user is CurrentUser => user?.status === "active";
 
 const POLICIES = {
   // Admins: the Super admin, or a staff admin who is switched on (BLUEPRINT §13.2).
   "admin.access": (user: CurrentUser | null) => isActiveAdmin(user),
   // Guests may start the wizard; signed-in users must be active clients (one account = one role).
-  "contest.create": (user: CurrentUser | null) => user === null || (user.role === "client" && user.status === "active"),
+  // A suspension only stops designs, comments and likes (owner, 2026-10-12), so a suspended client can still start one.
+  "contest.create": (user: CurrentUser | null) => user === null || (user.role === "client" && user.status !== "banned"),
   // Public contest comments: the contest's own client, or a designer who submitted to it
   // (BLUEPRINT §10; owner 2026-10-11: no longer any designer).
   "contest.comment": (user: CurrentUser | null, ctx?: PolicyContext) =>
@@ -53,7 +58,7 @@ const POLICIES = {
   // Submitting designs: active designers only (the contest must also be open).
   "entry.submit": (user: CurrentUser | null) => active(user) && user.role === "designer",
   // Saved contests (heart) are for designers.
-  "contest.save": (user: CurrentUser | null) => active(user) && user.role === "designer",
+  "contest.save": (user: CurrentUser | null) => Boolean(user) && user!.status !== "banned" && user!.role === "designer",
 } satisfies Record<string, (user: CurrentUser | null, ctx?: PolicyContext) => boolean>;
 
 export type Ability = keyof typeof POLICIES;

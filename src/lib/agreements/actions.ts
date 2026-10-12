@@ -8,6 +8,10 @@ import { countryName, isCountryCode } from "@/lib/countries";
 import { checkAgreement, joinAddress, needsBackPhoto, type AddressField, type AgreementField } from "@/lib/legal/agreement-rules";
 import { formFiles, ID_DOCUMENTS_BUCKET, savePhoto } from "@/lib/uploads/photos";
 import { currentAgreementVersion } from "@/lib/legal/store";
+import { agreementText } from "@/lib/legal";
+import { getI18n } from "@/lib/i18n/server";
+import { adminIdsWith } from "@/lib/admin/recipients";
+import { notify } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AgreementState = { ok: boolean; errors?: Partial<Record<AgreementField | AddressField | "idFront" | "idBack", MessageKey>>; error?: MessageKey; next?: string };
@@ -28,7 +32,7 @@ const safeNext = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\
 /** D-12: a designer signs the originality agreement once (BLUEPRINT §9.6). */
 export async function signAgreement(_prev: AgreementState, formData: FormData): Promise<AgreementState> {
   const user = await getCurrentUser();
-  if (!user || user.role !== "designer" || user.status !== "active") return { ok: false, error: "auth.errors.generic" };
+  if (!user || user.role !== "designer" || user.status === "banned") return { ok: false, error: "auth.errors.generic" };
 
   // The address comes in parts (owner, 2026-10-10) and is joined into one line.
   const str = (k: string) => String(formData.get(k) ?? "");
@@ -64,6 +68,9 @@ export async function signAgreement(_prev: AgreementState, formData: FormData): 
   if (!(await savePhoto(ID_DOCUMENTS_BUCKET, frontPath, front!))) return { ok: false, errors: { idFront: "agreement.errors.idPhotoBad" } };
   if (backPath && !(await savePhoto(ID_DOCUMENTS_BUCKET, backPath, back!))) return { ok: false, errors: { idBack: "agreement.errors.idPhotoBad" } };
   const h = await headers();
+  // The exact text this designer read and signed, kept with the signature (owner, 2026-10-12).
+  const { locale } = await getI18n();
+  const signedText = await agreementText(locale);
   // Upsert: signing again after the admin publishes a new agreement replaces the old signature (A-16).
   const { error } = await createAdminClient()
     .from("designer_agreements")
@@ -83,6 +90,13 @@ export async function signAgreement(_prev: AgreementState, formData: FormData): 
       signed_at: new Date().toISOString(),
       signed_ip: await clientIp(),
       user_agent: h.get("user-agent")?.slice(0, 400) ?? null,
+      signed_text: signedText,
+      // A new signature is reviewed again (owner, 2026-10-12).
+      review_status: "needs_review",
+      reviewed_by: null,
+      reviewed_at: null,
+      reject_reason: null,
+      photo_requested_at: null,
     });
   if (error) return { ok: false, error: "agreement.errors.generic" };
   return { ok: true, next: safeNext(formData.get("next")) };
@@ -96,9 +110,9 @@ export type IdPhotoState = { ok: boolean; errors?: { idFront?: MessageKey; idBac
  */
 export async function addIdPhoto(_prev: IdPhotoState, formData: FormData): Promise<IdPhotoState> {
   const user = await getCurrentUser();
-  if (!user || user.role !== "designer" || user.status !== "active") return { ok: false, error: "auth.errors.generic" };
+  if (!user || user.role !== "designer" || user.status === "banned") return { ok: false, error: "auth.errors.generic" };
   const db = createAdminClient();
-  const { data: a } = await db.from("designer_agreements").select("id_type").eq("designer_id", user.id).maybeSingle();
+  const { data: a } = await db.from("designer_agreements").select("id_type, id_front_path, id_back_path").eq("designer_id", user.id).maybeSingle();
   if (!a) return { ok: false, error: "agreement.errors.required" };
   const idType = a.id_type as "nid" | "passport" | "birth_certificate";
   const front = formFiles(formData, "idFront")[0];
@@ -113,7 +127,15 @@ export async function addIdPhoto(_prev: IdPhotoState, formData: FormData): Promi
   const backPath = needsBackPhoto(idType) ? `${user.id}/back-${stamp}.jpg` : null;
   if (!(await savePhoto(ID_DOCUMENTS_BUCKET, frontPath, front!))) return { ok: false, errors: { idFront: "agreement.errors.idPhotoBad" } };
   if (backPath && !(await savePhoto(ID_DOCUMENTS_BUCKET, backPath, back!))) return { ok: false, errors: { idBack: "agreement.errors.idPhotoBad" } };
-  const { error } = await db.from("designer_agreements").update({ id_front_path: frontPath, id_back_path: backPath, id_photo_at: new Date().toISOString() }).eq("designer_id", user.id);
+  // A new photo goes back to the admins for review (owner, 2026-10-12): also after "Ask for a new photo" or a rejection.
+  const { error } = await db
+    .from("designer_agreements")
+    .update({ id_front_path: frontPath, id_back_path: backPath, id_photo_at: new Date().toISOString(), review_status: "needs_review", reviewed_by: null, reviewed_at: null, reject_reason: null, photo_requested_at: null })
+    .eq("designer_id", user.id);
   if (error) return { ok: false, error: "agreement.errors.generic" };
+  // The old photos are not kept once replaced.
+  const old = [a.id_front_path, a.id_back_path].filter((x): x is string => typeof x === "string" && x !== frontPath && x !== backPath);
+  if (old.length) await db.storage.from(ID_DOCUMENTS_BUCKET).remove(old).catch(() => {});
+  await notify(await adminIdsWith("agreements.manage"), "agreement_photo_added_admin", { name: user.name }, `/admin/agreements?tab=needs_review`, user.id);
   return { ok: true, next: safeNext(formData.get("next")) };
 }

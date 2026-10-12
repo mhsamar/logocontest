@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
 import { AdminBar } from "@/components/layout/admin-bar";
+import { SuspendedBar } from "@/components/layout/suspended-bar";
 import { PointerFx } from "@/components/layout/pointer-fx";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
@@ -15,6 +16,7 @@ import { NoticeBar } from "@/components/layout/notice-bar";
 import { currentNotice } from "@/lib/content/notice";
 import { getMessages } from "@/lib/content/texts";
 import { can } from "@/lib/auth/policies";
+import { suspendedError } from "@/lib/moderation/suspension";
 import { getCurrentUser } from "@/lib/auth/session";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
@@ -53,6 +55,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [messages, notice, user] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser()]);
   // Guests and admins get the designed home page, whose hero holds the nav (owner, 2026-10-10).
   const guestHome = showsLanding(user?.role);
+  // Suspended for 48 hours (owner, 2026-10-12): a bar on every page says until when and what is on hold.
+  const held = suspendedError(user);
   return (
     <html lang={locale} data-scroll-behavior="smooth" className={`${landingBody.variable} ${landingHeading.variable} ${bangla.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
@@ -70,6 +74,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 {/* Admins browsing the site: who they are and the way back (owner, 2026-10-10). */}
                 {can(user, "admin.access") && <AdminBar role={user!.isSuperAdmin ? t("admin.shell.superAdmin") : user!.adminTitle || t("admin.shell.staff")} />}
                 {notice && <NoticeBar notice={notice} />}
+                {held && <SuspendedBar text={t(held.key, held.params)} rulesLabel={t("suspension.rules")} />}
                 <EmailBannerSlot />
               </div>
             </SiteChrome>

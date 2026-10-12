@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { contestDesignerIds, notify } from "@/lib/notifications";
+import { tellUser } from "@/lib/moderation/suspension";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { feeRateFor } from "@/lib/wallet/fees";
@@ -36,7 +37,7 @@ export async function extendContest(contestId: string, f: Fields): Promise<Resul
   return { ok: true };
 }
 
-/** A-02 Cancel: reason required, no refund (owner, 2026-10-09). */
+/** A-02 Cancel: reason required, no refund (owner, 2026-10-09); "adult content" also bans the client (2026-10-12). */
 export async function cancelContest(contestId: string, f: Fields): Promise<Result> {
   const admin = await adminUser("contests.manage");
   const c = admin ? await loadContest(contestId) : null;
@@ -46,9 +47,17 @@ export async function cancelContest(contestId: string, f: Fields): Promise<Resul
   const designers = await contestDesignerIds(c.id);
   const { error } = await createAdminClient().rpc("admin_cancel_contest", { p_contest_id: c.id, p_admin_id: admin.id, p_reason: reason });
   if (error) return fail("admin.contests.cannotCancel");
-  await audit(admin.id, "cancel_contest", "contest", c.id, { reason, status: c.status });
-  await notify([c.client_id], "contest_cancelled_client", { brand: c.brand_name, reason }, `/dashboard`, admin.id);
+  // A nude or sexual contest (owner, 2026-10-12): the client agreed to the rule before paying, so the payment is
+  // kept, the contest leaves the site, and the client is banned for good.
+  const adult = f.adult === "1";
+  await audit(admin.id, "cancel_contest", "contest", c.id, { reason, status: c.status, adult: adult || undefined });
   await notify(designers, "contest_cancelled", { brand: c.brand_name }, null, admin.id);
+  if (adult) {
+    const { error: banError } = await createAdminClient().from("profiles").update({ status: "banned", suspended_until: null }).eq("id", c.client_id).neq("role", "admin");
+    if (banError) return fail("admin.errors.generic");
+    await audit(admin.id, "ban_user", "user", c.client_id, { reason, adult: true, contest: c.slug });
+    await tellUser(c.client_id, "banned", reason, null, admin.id);
+  } else await notify([c.client_id], "contest_cancelled_client", { brand: c.brand_name, reason }, `/dashboard`, admin.id);
   refresh();
   return { ok: true };
 }

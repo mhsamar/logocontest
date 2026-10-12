@@ -66,7 +66,7 @@ async function toSquare(img: HTMLImageElement, px: number): Promise<Blob> {
   return jpeg;
 }
 
-/** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups in one box each (drag and drop works), each made px×px automatically, and seven declarations. */
+/** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups in one box each (drag and drop works), each made px×px automatically, and eight declarations (one: no nude or sexual content). */
 export function SubmitForm({ contestId, slug, limits }: { contestId: string; slug: string; limits: Limits }) {
   const { t, locale } = useI18n();
   const toast = useToast();

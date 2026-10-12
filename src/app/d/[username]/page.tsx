@@ -83,6 +83,12 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
           <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:gap-10">
             <div className="min-w-0">
             <div className="mt-4 flex flex-wrap items-center gap-2">
+              {/* Suspended (owner, 2026-10-12): shown on the profile until the 48 hours are over. */}
+              {designer.suspendedUntil && (
+                <span className="inline-flex min-h-8 items-center rounded-full bg-[#FFEDD5] px-3 text-sm font-bold text-[#9A3412]">
+                  {t("designerProfile.suspended", { date: designer.suspendedUntil.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) })}
+                </span>
+              )}
               <DesignerBadges top={designer.isTopDesigner} months={champion} t={t} locale={locale} />
               <span className="text-sm text-muted">{t("dashboard.memberSince", { date: formatDate(designer.memberSince, locale, "month") })}</span>
             </div>

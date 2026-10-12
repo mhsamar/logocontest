@@ -31,6 +31,8 @@ export type DesignerProfile = {
   skills: string[];
   tools: string[];
   experienceYears: number | null;
+  /** While suspended (owner, 2026-10-12: 48 hours): when it ends. The profile shows it. */
+  suspendedUntil: Date | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -118,6 +120,8 @@ type Row = {
   skills: string[] | null;
   tools: string[] | null;
   experience_years: number | null;
+  status: string;
+  suspended_until: string | null;
 };
 
 async function toProfile(r: Row, view: "own" | "public"): Promise<DesignerProfile> {
@@ -130,6 +134,7 @@ async function toProfile(r: Row, view: "own" | "public"): Promise<DesignerProfil
     avatarUrl: avatarUrl(r.avatar_path),
     memberSince: new Date(r.created_at),
     isTopDesigner: r.counted_wins_count >= topMin,
+    suspendedUntil: r.status === "suspended" && r.suspended_until && new Date(r.suspended_until).getTime() > Date.now() ? new Date(r.suspended_until) : null,
     stats: await statsFor(r.id, r.wins_count, view),
     skills: r.skills ?? [],
     tools: r.tools ?? [],
@@ -137,9 +142,9 @@ async function toProfile(r: Row, view: "own" | "public"): Promise<DesignerProfil
   };
 }
 
-const COLUMNS = "id, name, username, bio, avatar_path, created_at, wins_count, counted_wins_count, skills, tools, experience_years";
+const COLUMNS = "id, name, username, bio, avatar_path, created_at, wins_count, counted_wins_count, skills, tools, experience_years, status, suspended_until";
 
-/** Active designer by username (case-insensitive), or null. */
+/** A designer by username (case-insensitive), or null. Banned accounts are gone; a suspended one shows its suspension. */
 export async function designerByUsername(username: string): Promise<DesignerProfile | null> {
   if (!isSupabaseConfigured() || !/^[a-z0-9_]{3,20}$/i.test(username)) return null;
   const { data } = await createAdminClient()
@@ -147,7 +152,7 @@ export async function designerByUsername(username: string): Promise<DesignerProf
     .select(COLUMNS)
     .eq("username", username.toLowerCase())
     .eq("role", "designer")
-    .eq("status", "active")
+    .neq("status", "banned")
     .maybeSingle<Row>();
   return data ? toProfile(data, "public") : null;
 }

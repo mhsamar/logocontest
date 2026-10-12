@@ -11,7 +11,7 @@ import { isAddonKey } from "./addons";
 export async function buyAddon(input: { contestId: string; addon?: string; extensionDays?: number; method: "bkash" | "card" }): Promise<{ ok: true; redirectUrl: string } | { ok: false; error: MessageKey }> {
   if (!isSupabaseConfigured()) return { ok: false, error: "auth.errors.notConfigured" };
   const user = await getCurrentUser();
-  if (!user || user.role !== "client" || user.status !== "active") return { ok: false, error: "auth.errors.generic" };
+  if (!user || user.role !== "client" || user.status === "banned") return { ok: false, error: "auth.errors.generic" };
   if (input.method !== "bkash" && input.method !== "card") return { ok: false, error: "auth.errors.generic" };
   const order = input.addon && isAddonKey(input.addon) ? { addon: input.addon } : typeof input.extensionDays === "number" ? { extensionDays: input.extensionDays } : null;
   if (!order) return { ok: false, error: "auth.errors.generic" };

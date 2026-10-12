@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { blockedTerms } from "@/lib/contests/community";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
+import { findBadWord } from "@/lib/moderation/bad-words";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { notify } from "@/lib/notifications";
 import { getSetting, getSettings } from "@/lib/settings";
@@ -38,7 +39,7 @@ async function loadHandover(id: string): Promise<HandoverRow | null> {
 async function editableForWinner(id: string) {
   const user = await getCurrentUser();
   const h = await loadHandover(id);
-  if (!user || user.status !== "active" || !h || h.designer_id !== user.id) return null;
+  if (!user || user.status === "banned" || !h || h.designer_id !== user.id) return null;
   if (h.status !== "awaiting_files" && h.status !== "revision_requested") return null;
   return { user, h };
 }
@@ -146,7 +147,7 @@ export async function submitHandover(input: { handoverId: string; fontsNote: str
 async function forClient(id: string) {
   const user = await getCurrentUser();
   const h = await loadHandover(id);
-  if (!user || user.status !== "active" || !h || h.contest?.client_id !== user.id) return null;
+  if (!user || user.status === "banned" || !h || h.contest?.client_id !== user.id) return null;
   return { user, h };
 }
 
@@ -206,11 +207,13 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
   const h = await loadHandover(input.handoverId);
-  if (!user || user.status !== "active" || !h || (user.id !== h.designer_id && user.id !== h.contest?.client_id)) return fail("auth.errors.generic");
+  if (!user || user.status === "banned" || !h || (user.id !== h.designer_id && user.id !== h.contest?.client_id)) return fail("auth.errors.generic");
   if (!CHAT_STATUSES.includes(h.status)) return fail("handover.chat.closed");
   const body = input.body.replace(/\r\n/g, "\n").trim();
   if (body.length < 1 || body.length > 1000) return fail("handover.chat.length");
   if (findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
+  // Bad words are blocked here too; the files chat never suspends, so a winner can always deliver (owner, 2026-10-12).
+  if (findBadWord(body)) return fail("contest.comments.abuse");
   const { error } = await createAdminClient().from("handover_messages").insert({ handover_id: h.id, author_id: user.id, body });
   if (error) return fail("auth.errors.generic");
   const toClient = user.id === h.designer_id;

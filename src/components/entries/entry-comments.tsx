@@ -13,6 +13,7 @@ export async function EntryComments({
   reason,
   loginHref,
   maxLength,
+  heldNote = null,
 }: {
   entryId: string;
   comments: EntryComment[];
@@ -21,6 +22,8 @@ export async function EntryComments({
   reason: "login" | "ownOnly" | "notAllowed" | "finished";
   loginHref: string;
   maxLength: number;
+  /** A suspended user's note (owner, 2026-10-12): why they can't comment, and until when. */
+  heldNote?: string | null;
 }) {
   const { t, locale } = await getI18n();
   const now = new Date();
@@ -64,7 +67,7 @@ export async function EntryComments({
           <CommentForm target={{ kind: "entry", entryId }} maxLength={maxLength} />
         ) : (
           <div className="rounded-lg bg-canvas p-3 text-center text-sm text-muted">
-            <p>{reason === "finished" ? t("contest.finished") : t(`entry.comments.${reason}`)}</p>
+            <p>{reason === "finished" ? t("contest.finished") : heldNote ? heldNote : t(`entry.comments.${reason}`)}</p>
             {reason === "login" && (
               <ButtonLink href={loginHref} variant="secondary" className="mt-2">
                 {t("nav.login")}

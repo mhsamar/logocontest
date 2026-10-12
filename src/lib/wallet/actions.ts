@@ -29,7 +29,7 @@ export async function requestWithdrawal(input: {
 }): Promise<{ ok: true; status: "paid" | "requested"; txnId: string | null } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
-  if (!user || user.role !== "designer" || user.status !== "active") return fail("auth.errors.generic");
+  if (!user || user.role !== "designer" || user.status === "banned") return fail("auth.errors.generic");
   const min = await getSetting("limits.withdrawal_min");
   if (!Number.isInteger(input.amount) || input.amount < min) return fail("wallet.errors.min", { min });
 

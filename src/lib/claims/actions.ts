@@ -29,7 +29,7 @@ export async function openCopyClaim(form: FormData): Promise<{ ok: true } | Fail
   const photos = formFiles(form, "photos");
   if (photos.length > CLAIM_MAX_PHOTOS) return fail("claims.errors.photos");
   const user = await getCurrentUser();
-  if (!user || user.status !== "active" || !UUID.test(input.handoverId)) return fail("auth.errors.generic");
+  if (!user || user.status === "banned" || !UUID.test(input.handoverId)) return fail("auth.errors.generic");
   const db = createAdminClient();
   const { data: h } = await db
     .from("handovers")

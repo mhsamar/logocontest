@@ -93,7 +93,7 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
             run={forceAward.bind(null, c.id)}
           />
         )}
-        {canCancel && <AdminAction label={t("admin.contests.cancel")} body={t("admin.contests.cancelBody")} tone="danger" run={cancelContest.bind(null, c.id)} />}
+        {canCancel && <AdminAction label={t("admin.contests.cancel")} body={t("admin.contests.cancelBody")} tone="danger" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.contests.adult.label"), options: [{ value: "0", label: t("admin.contests.adult.no") }, { value: "1", label: t("admin.contests.adult.yes") }] }]} run={cancelContest.bind(null, c.id)} />}
       </div>
 
       <dl className="grid gap-3 rounded-2xl bg-surface p-5 text-sm shadow-card ring-1 ring-line sm:grid-cols-2 xl:grid-cols-4">

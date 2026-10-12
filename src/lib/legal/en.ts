@@ -31,7 +31,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "You must be at least 18 years old, or have a parent or guardian's permission, to use the site.",
               "Give true information and keep your mobile number and email up to date. One person, one account.",
               "Keep your password secret. You are responsible for what happens in your account.",
-              "We may close (ban) an account that breaks these terms, the Designer Rules or the law. Designers get strikes for some rule breaks; {ban} strikes within {strikeDays} days mean a permanent ban (see the Designer Rules).",
+              "Some rule breaks suspend an account for {suspendHours} hours: it can't send designs, comment or like until then, and the suspension ends on its own. {ban} suspensions within {strikeDays} days mean a permanent ban (see the Designer Rules).",
+              "We ban an account permanently when it breaks these terms, the Designer Rules or the law in a serious way: for example a nude or sexual contest or design, or no final files within {upload} days of winning.",
             ],
           },
         ],
@@ -76,7 +77,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "Sharing or asking for phone numbers, emails, social media or other contact details, or arranging work or payment outside the site.",
               "Sending copied, traced, stock, pre-made or AI-generated logos.",
               "Using trademarks or famous brand elements without the right to do so.",
-              "Abusive, hateful, sexual or illegal content in briefs, designs or comments.",
+              "Abusive, hateful or illegal content in briefs, designs or comments, including bad words.",
+              "Nude, sexual or adult content of any kind: in a contest, a brief, a reference image or a design. Before making a contest the client agrees to this rule. A client who makes such a contest anyway is banned permanently, the contest is removed and the payment is not refunded. A designer who sends such a design is banned permanently.",
               "Fake accounts, fake ratings, or trying to trick the contest, the payment system or other users.",
             ],
           },
@@ -228,7 +230,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
             list: [
               "you do not like the designs or receive fewer designs than you hoped;",
               "you do not pick a winner in time (the prize is then shared among the designers, see below);",
-              "you change your mind, close your business or no longer need a logo.",
+              "you change your mind, close your business or no longer need a logo;",
+              "your contest is removed because it asks for nude, sexual or adult content. Your account is then also banned permanently.",
             ],
           },
           "Please read your brief carefully before you pay.",
@@ -291,8 +294,9 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     summary: [
       "Only your own, original, human-made logos.",
       "No contact details, no dealing outside the site.",
-      "If you win, send the final files within {strikeHours} hours (or get a strike), and never later than {upload} days (or your account is banned).",
-      "{ban} strikes within {strikeDays} days mean a permanent ban. There is no suspension.",
+      "If you win, send the final files within {strikeHours} hours (or you are suspended for {suspendHours} hours), and never later than {upload} days (or your account is banned).",
+      "A suspension lasts {suspendHours} hours and ends on its own. {ban} suspensions within {strikeDays} days mean a permanent ban.",
+      "No nude or sexual designs: one means a permanent ban.",
       "Copying means a fine or a permanent ban, and logocontest.bd will take legal action.",
     ],
     sections: [
@@ -330,7 +334,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           {
             list: [
-              "Upload the AI, EPS, SVG, PDF, transparent PNG and JPG files, the font names, and any extras the client asked for. Send them within {strikeHours} hours of winning, or you get a strike. If you send nothing within {upload} days, the win is cancelled, you get no prize and your account is banned permanently.",
+              "Upload the AI, EPS, SVG, PDF, transparent PNG and JPG files, the font names, and any extras the client asked for. Send them within {strikeHours} hours of winning, or you are suspended for {suspendHours} hours (you can still send the files). If you send nothing within {upload} days, the win is cancelled, you get no prize and your account is banned permanently.",
               "Accept the copyright transfer: once the client approves, the design belongs to the client.",
               "If the client asks for changes, answer in the messages on the files page and send the files again, as many times as needed, until the client approves.",
               "Your prize reaches your wallet {holdDays} days after the client approves the files, with no copy claim open. Then you can withdraw it to bKash or a bank account.",
@@ -347,25 +351,43 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         ],
       },
       {
-        id: "strikes",
-        heading: "Strikes",
+        id: "suspensions",
+        heading: "Suspensions",
         blocks: [
+          "You are suspended for {suspendHours} hours when you:",
           {
             list: [
-              "Some rule breaks give you a strike, for example not sending the final files within {strikeHours} hours of winning. An admin can also give a strike, and you always see the reason.",
-              "Each strike counts for {strikeDays} days. After that it no longer counts.",
-              "There is no suspension: with one or two strikes you can keep sending designs and winning contests.",
-              "If you get {ban} strikes within {strikeDays} days, your account is banned permanently. A ban is not lifted when a strike runs out.",
-              "Sending no final files at all within {upload} days of winning bans your account at once, even without strikes.",
+              "do not send the first final files within {strikeHours} hours of winning;",
+              "share or ask for a phone number, email, link, Facebook or other social media name in a comment, or deal with a client outside the site;",
+              "write bad or abusive words in a comment (in English, Bangla or Banglish);",
+              "send a fake NID, passport or birth certificate.",
             ],
           },
+          "A comment with contact details or bad words is not posted, and you are suspended at once. You get a warning by notice and email, with the reason, and your profile shows the suspension.",
+          "While you are suspended you can't send a new design, comment anywhere, or like or dislike designs. You can still log in, send the final files of a contest you won, use the files chat and withdraw your money. After {suspendHours} hours the suspension ends on its own.",
+        ],
+      },
+      {
+        id: "bans",
+        heading: "Permanent ban",
+        blocks: [
+          "Your account is banned permanently, and you can no longer log in, when you:",
+          {
+            list: [
+              "send no final files within {upload} days of winning (the win is cancelled and you get no prize);",
+              "get {ban} suspensions within {strikeDays} days;",
+              "send a nude, sexual or adult design. When you send a design you confirm it has no such content;",
+              "send a copied design, when our admin decides on a ban (see above).",
+            ],
+          },
+          "A ban is not lifted when time passes.",
         ],
       },
       {
         id: "conduct",
         heading: "Respect",
         blocks: [
-          "Be polite in comments. No abusive, hateful or sexual content. Do not make fake accounts or rate or report others unfairly. Repeated false reports lead to warnings and a ban.",
+          "Be polite in comments. No bad words and no abusive, hateful or sexual content: such a comment is not posted and you are suspended for {suspendHours} hours. Do not make fake accounts or rate or report others unfairly. Repeated false reports lead to warnings and a ban.",
         ],
       },
     ],

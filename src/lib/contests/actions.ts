@@ -96,7 +96,7 @@ async function contactError(brief: Brief) {
 
 async function currentClient() {
   const user = await getCurrentUser();
-  return user && user.role === "client" && user.status === "active" ? user : null;
+  return user && user.role === "client" && user.status !== "banned" ? user : null;
 }
 
 const SAVE_ERRORS: Record<string, MessageKey> = {
@@ -213,6 +213,7 @@ export async function startCheckout(input: {
   method: "bkash" | "card";
   name: string;
   acceptedTerms: boolean;
+  acceptedContentRules?: boolean;
 }): Promise<WizardResult> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const user = await currentClient();
@@ -221,6 +222,8 @@ export async function startCheckout(input: {
   const name = input.name.trim();
   if (name.length < 2 || name.length > 80) return err("wizard.errors.name");
   if (!input.acceptedTerms) return err("wizard.errors.terms");
+  // No nude or sexual contests (owner, 2026-10-12): agreed in the wizard's first popup, saved with the contest.
+  if (!input.acceptedContentRules) return err("wizard.errors.contentRules");
   if (input.method !== "bkash" && input.method !== "card") return err("wizard.errors.generic");
   // Live site before SSLCommerz is connected: the draft stays saved; the client is told payments open soon.
   if (!paymentsAvailable()) return err("wizard.errors.paymentsClosed");
@@ -233,6 +236,7 @@ export async function startCheckout(input: {
   }
 
   await createAdminClient().from("profiles").update({ name }).eq("id", user.id);
+  await createAdminClient().from("contests").update({ content_rules_agreed_at: new Date().toISOString() }).eq("id", input.contestId).eq("client_id", user.id);
 
   const result = await contestService().startCheckout({
     clientId: user.id,

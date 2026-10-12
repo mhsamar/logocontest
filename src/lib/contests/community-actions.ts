@@ -6,13 +6,13 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import { hasEntryIn } from "@/lib/entries/queries";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
-import { findContactDetails } from "@/lib/moderation/contact-filter";
+import { checkComment, suspendedError } from "@/lib/moderation/suspension";
 import { passesNda } from "./nda";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSetting } from "@/lib/settings";
 import { PUBLIC_STATUSES } from "./browse";
 import { isFinished } from "./public-statuses";
-import { blockedTerms, contestForAction, deleteOwnComment, insertComment, setSaved } from "./community";
+import { contestForAction, deleteOwnComment, insertComment, setSaved } from "./community";
 
 export type CommentFormState = { status: "idle" | "ok" | "error"; error?: { key: MessageKey; params?: MessageParams } };
 
@@ -25,6 +25,8 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   const contest = await contestForAction(String(formData.get("contestId") ?? ""));
   if (!contest || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status)) return fail("auth.errors.generic");
   if (isFinished(contest.status)) return fail("contest.finished");
+  const held = suspendedError(user);
+  if (held) return fail(held.key, held.params);
   const viewerHasEntry = user?.role === "designer" ? await hasEntryIn(contest.id, user.id) : false;
   if (!can(user, "contest.comment", { contestOwnerId: contest.ownerId, viewerHasEntry })) return fail(user?.role === "designer" ? "contest.comments.submitFirst" : "contest.comments.notAllowed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
@@ -33,7 +35,12 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   const max = Math.min(2000, await getSetting("limits.contest_comment_max_length"));
   if (!body) return fail("contest.comments.emptyBody");
   if (body.length > max) return fail("contest.comments.tooLong", { max });
-  if (findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
+  // Contact details or bad words: not posted, and a designer is suspended (owner, 2026-10-12).
+  const blocked = await checkComment(user!, body, { contestId: contest.id });
+  if (blocked) {
+    refresh();
+    return fail(blocked.key, blocked.params);
+  }
 
   await insertComment(contest.id, user!.id, body);
   await notify([contest.ownerId, ...(await contestDesignerIds(contest.id))], "contest_comment", { brand: contest.brand }, `/contest/${contest.slug}?tab=comments`, user!.id);

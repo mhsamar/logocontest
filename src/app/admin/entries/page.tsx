@@ -113,7 +113,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
           {e.comments > 0 && <Pill>{t("admin.entries.comments", { n: num(e.comments) })}</Pill>}
           {e.status !== "removed" && e.status !== "winner" && (
             <span className="ml-auto">
-              <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="ghost" run={removeEntry.bind(null, e.id)} />
+              <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="ghost" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.entries.adult.label"), options: [{ value: "0", label: t("admin.entries.adult.no") }, { value: "1", label: t("admin.entries.adult.yes") }] }]} run={removeEntry.bind(null, e.id)} />
             </span>
           )}
         </div>
@@ -203,7 +203,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
                   <EntryThumb entry={original} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="danger" run={removeEntry.bind(null, entry.id)} />
+                  <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="danger" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.entries.adult.label"), options: [{ value: "0", label: t("admin.entries.adult.no") }, { value: "1", label: t("admin.entries.adult.yes") }] }]} run={removeEntry.bind(null, entry.id)} />
                   <AdminAction label={t("admin.entries.notCopy")} body={t("admin.entries.notCopyBody")} fields={[]} run={clearDuplicate.bind(null, entry.id)} />
                 </div>
               </AdmCard>
