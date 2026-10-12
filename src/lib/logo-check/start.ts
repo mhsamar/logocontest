@@ -7,12 +7,14 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aiConfigured } from "./ai";
 import { CHECK_UPLOAD_MAX, CHECK_UPLOAD_TYPES, normalizeLogo } from "./images";
-import { LOGO_CHECKS_BUCKET } from "./run";
+import { accessFor, limitFor } from "./rules";
+import { checkLimits, LOGO_CHECKS_BUCKET } from "./run";
 
 /**
  * Starting a check (owner, 2026-10-10). The image is prepared and stored first, then one database call
- * checks every rule (owner, open or judging, free or paid, 3 per contest, design not checked yet) and is
- * safe against double clicks (the browser sends the same request key).
+ * checks every rule (owner, open or judging, free or paid, checks left, design not checked yet) and is
+ * safe against double clicks (the browser sends the same request key). Owner, 2026-10-13: a free contest gets 20
+ * checks and the paid add-on 10 (Settings); the count is checked here too, before the image is prepared.
  */
 
 export type StartError = "not_found" | "closed" | "locked" | "limit" | "checked" | "invalid" | "bad_file" | "too_big" | "not_set_up";
@@ -33,6 +35,15 @@ export async function startCheck(user: CurrentUser, input: StartInput): Promise<
   // A double click: the first request already made the check.
   const { data: same } = await db.from("logo_checks").select("id, requested_by").eq("request_key", input.requestKey).maybeSingle();
   if (same) return same.requested_by === user.id ? { ok: true, id: same.id as string } : { ok: false, error: "invalid" };
+
+  // Checks left: free and paid contests get different numbers.
+  const { data: contest } = await db.from("contests").select("client_id, prize_amount, logo_scan").eq("id", input.contestId).maybeSingle();
+  if (!contest || contest.client_id !== user.id) return { ok: false, error: "not_found" };
+  const limits = await checkLimits();
+  const access = accessFor(contest.prize_amount as number, Boolean(contest.logo_scan), limits);
+  if (access === "locked") return { ok: false, error: "locked" };
+  const { count: used } = await db.from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", input.contestId).neq("status", "failed");
+  if ((used ?? 0) >= limitFor(access, limits)) return { ok: false, error: "limit" };
 
   // The image: the design's first mockup, or the uploaded file.
   let raw: Uint8Array | null = null;

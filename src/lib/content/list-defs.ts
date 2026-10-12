@@ -38,8 +38,9 @@ export const LISTS: Record<ListKey, ListDef> = {
     href: true,
     canAdd: true,
     max: 6,
-    // Owner, 2026-10-11: the monthly prizes leaderboard is in the main menu.
-    builtIn: [link("browse", "/contests", "nav.browse"), link("studio", "/design-studio", "nav.studio"), link("leaderboard", "/leaderboard", "nav.leaderboard"), link("how", "/how-it-works", "nav.how"), link("help", "/help", "nav.help")],
+    // Owner, 2026-10-11: the monthly prizes leaderboard is in the main menu. Owner, 2026-10-13: Logo Checker after
+    // Design Studio, with a NEW pill for its first 30 days (NEW_LINKS below).
+    builtIn: [link("browse", "/contests", "nav.browse"), link("studio", "/design-studio", "nav.studio"), link("checker", "/logo-checker", "nav.logoChecker"), link("leaderboard", "/leaderboard", "nav.leaderboard"), link("how", "/how-it-works", "nav.how"), link("help", "/help", "nav.help")],
   },
   footer_links: {
     fields: [{ name: "label", max: 60 }],
@@ -51,6 +52,7 @@ export const LISTS: Record<ListKey, ListDef> = {
       link("c-start", "/start", "footer.startContest", "clients"),
       link("c-browse", "/contests", "nav.browse", "clients"),
       link("c-studio", "/design-studio", "nav.studio", "clients"),
+      link("c-checker", "/logo-checker", "nav.logoChecker", "clients"),
       link("c-winners", "/winners", "footer.winners", "clients"),
       link("c-how", "/how-it-works", "nav.how", "clients"),
       link("c-help", "/help", "nav.help", "clients"),
@@ -78,6 +80,10 @@ export const LISTS: Record<ListKey, ListDef> = {
     builtIn: ["#0f766e", "#1d4ed8", "#dc2626", "#f59e0b", "#16a34a", "#7c3aed", "#db2777", "#111827", "#ffffff", "#a16207"].map((value, i) => ({ id: `c${i + 1}`, value })),
   },
 };
+
+/** Menu links that carry a gold NEW pill until the date (Dhaka), then lose it on their own. */
+export const NEW_LINKS: Record<string, string> = { "/logo-checker": "2026-11-12T00:00:00+06:00" };
+export const isNewLink = (href: string | undefined, now: Date) => !!href && href in NEW_LINKS && now < new Date(NEW_LINKS[href]);
 
 /** A link an admin may use: a page on this site ("/contests") or an https link. */
 export const isSafeLink = (v: string) => v.length <= 300 && (/^\/(?!\/)[^\s]*$/.test(v) || /^https:\/\/[^\s]+$/.test(v));

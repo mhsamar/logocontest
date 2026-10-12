@@ -39,7 +39,7 @@ export default async function MyLogoChecksPage() {
         <PageTitle lead={t("checker.my.title")} sub={t("checker.my.lead")} />
       </Panel>
       <Panel tone="grey" className="flex-1 max-[720px]:py-4">
-        <MyChecksList checks={data.checks} contests={data.contests} limit={data.limits.perContest} lens={Boolean(process.env.SEARCHAPI_API_KEY)} />
+        <MyChecksList checks={data.checks} contests={data.contests} lens={Boolean(process.env.SEARCHAPI_API_KEY)} />
       </Panel>
     </PageShell>
   );

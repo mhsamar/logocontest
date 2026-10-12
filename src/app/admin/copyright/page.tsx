@@ -8,7 +8,7 @@ import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { adminChecks, checkView, type AdminCheckRow } from "@/lib/logo-check/queries";
-import type { Verdict } from "@/lib/logo-check/rules";
+import { limitFor, type Verdict } from "@/lib/logo-check/rules";
 import { checkLimits } from "@/lib/logo-check/run";
 import { formatNumber, formatTaka } from "@/lib/money";
 
@@ -49,7 +49,8 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
   // Checks left per contest, from the contests that have checks.
   const contests = [...new Map(counted.map((r) => [r.contest.id, r.contest])).values()].map((c) => {
     const mine = counted.filter((r) => r.contest.id === c.id);
-    return { ...c, used: mine.length, paid: mine.some((r) => r.paid) };
+    const paid = mine.some((r) => r.paid);
+    return { ...c, used: mine.length, paid, limit: limitFor(paid ? "paid" : "free", limits) };
   });
 
   const resultLine = (r: AdminCheckRow) =>
@@ -77,9 +78,9 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
         />
         <dl className="m-0 mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            [t("admin.copyright.ruleLimit"), t("admin.copyright.ruleLimitValue", { n: num(limits.perContest) }), t("admin.copyright.ruleLimitLine")],
-            [t("admin.copyright.ruleFree"), t("admin.copyright.ruleFreeValue", { amount: formatTaka(limits.freeFrom, locale) }), t("admin.copyright.ruleFreeLine")],
-            [t("admin.copyright.rulePrice", { amount: formatTaka(limits.freeFrom, locale) }), formatTaka(limits.price, locale), t("admin.copyright.rulePriceLine", { n: num(limits.perContest) })],
+            [t("admin.copyright.ruleFree"), t("admin.copyright.ruleFreeValue", { amount: formatTaka(limits.freeFrom, locale) }), t("admin.copyright.ruleFreeLine", { n: num(limits.freeChecks) })],
+            [t("admin.copyright.rulePrice", { amount: formatTaka(limits.freeFrom, locale) }), formatTaka(limits.price, locale), t("admin.copyright.rulePriceLine", { n: num(limits.paidChecks) })],
+            [t("admin.copyright.ruleLimit"), t("admin.copyright.ruleLimitValue", { free: num(limits.freeChecks), paid: num(limits.paidChecks) }), t("admin.copyright.ruleLimitLine")],
             [t("admin.copyright.ruleClose"), t("admin.copyright.ruleCloseValue", { close: num(limits.closeFrom), high: num(limits.highRiskFrom) }), t("admin.copyright.ruleCloseLine")],
           ].map(([k, v, line]) => (
             <div key={k} className="rounded-[12px] bg-adm-bg p-4">
@@ -153,7 +154,7 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
                         {r.status === "done" && r.verdict ? <Pill tone={TONE[r.verdict]}>{t(`checker.verdicts.${r.verdict}`)}</Pill> : <Pill tone="neutral">{t(r.status === "failed" ? "admin.copyright.failedPill" : "admin.copyright.runningPill")}</Pill>}
                         <span className="mt-1 block text-[13.5px] text-muted">
                           {resultLine(r)}
-                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limits.perContest) })}` : ""}
+                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limitFor(r.paid ? "paid" : "free", limits)) })}` : ""}
                         </span>
                       </td>
                     </tr>
@@ -175,16 +176,14 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
                         <IdChip prefix="LC" n={c.number} />
                       </span>
                       <span className="block text-[13.5px] text-muted">
-                        {c.paid ? t("admin.copyright.paid") : t("admin.copyright.free")} · {t("admin.copyright.leftLine", { n: num(Math.max(0, limits.perContest - c.used)) })}
+                        {c.paid ? t("admin.copyright.paid") : t("admin.copyright.free")} · {t("admin.copyright.leftLine", { n: num(Math.max(0, c.limit - c.used)) })}
                       </span>
                     </Link>
                     <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-                      <span className="flex gap-1" aria-hidden>
-                        {Array.from({ length: limits.perContest }, (_, i) => (
-                          <span key={i} className={cx("h-1.5 w-5 rounded-full", i < c.used ? "bg-primary" : "bg-adm-line")} />
-                        ))}
+                      <span className="block h-1.5 w-24 overflow-hidden rounded-full bg-adm-line" aria-hidden>
+                        <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (c.used / c.limit) * 100)}%` }} />
                       </span>
-                      {t("admin.copyright.usedOf", { used: num(c.used), limit: num(limits.perContest) })}
+                      {t("admin.copyright.usedOf", { used: num(c.used), limit: num(c.limit) })}
                     </span>
                   </li>
                 ))}

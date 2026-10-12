@@ -21,7 +21,7 @@ export function Roll({ children }: { children: string }) {
  * - a gold spotlight follows the pointer across the glass, and a red-gold light runs round the edge.
  * Labels roll on hover (Roll). The current page is marked for everyone.
  */
-export function NavLinks({ links }: { links: { href: string; label: string }[] }) {
+export function NavLinks({ links }: { links: { href: string; label: string; badge?: string }[] }) {
   const path = usePathname();
   const pill = useRef<HTMLSpanElement>(null);
   const isCurrent = (href: string) => href !== "/" && (path === href || path.startsWith(`${href}/`));
@@ -102,6 +102,7 @@ export function NavLinks({ links }: { links: { href: string; label: string }[] }
       {links.map((l) => (
         <Link key={l.href} href={l.href} aria-current={isCurrent(l.href) ? "page" : undefined} className="lc-nv-link py-[11px]">
           <Roll>{l.label}</Roll>
+          {l.badge && <span className="lc-new">{l.badge}</span>}
         </Link>
       ))}
     </>

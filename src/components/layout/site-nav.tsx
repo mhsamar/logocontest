@@ -6,6 +6,7 @@ import { logout } from "@/lib/auth/actions";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 import type { Translate } from "@/lib/i18n/translate";
 import { brandPictures } from "@/lib/content/brand";
+import { isNewLink } from "@/lib/content/list-defs";
 import { visibleList } from "@/lib/content/lists";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
@@ -52,10 +53,12 @@ async function NavLogo() {
 export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const { t, locale } = await getI18n();
   // Owner, 2026-10-11: a signed-in client gets "My contests" (P-14) where the menu has Browse Contests.
-  const links = (await visibleList("header_menu", locale)).map((item) =>
-    user?.role === "client" && item.href === "/contests" ? { href: "/my-contests", label: t("nav.myContests") } : { href: item.href ?? "/", label: item.text.label },
-  );
   const now = new Date();
+  const links = (await visibleList("header_menu", locale)).map((item) =>
+    user?.role === "client" && item.href === "/contests"
+      ? { href: "/my-contests", label: t("nav.myContests") }
+      : { href: item.href ?? "/", label: item.text.label, badge: isNewLink(item.href, now) ? t("nav.new") : undefined },
+  );
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
   const otherLocale = locale === "en" ? "bn" : "en";
   const languageForm = (className: string, roll = false) => (

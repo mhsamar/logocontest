@@ -85,3 +85,12 @@ export function SourceList({ sources: s }: { sources: Sources }) {
     </ul>
   );
 }
+
+/** How many of the contest's checks are used, as a bar (20 free or 10 paid checks are too many for dots). */
+export function UsedBar({ used, limit, className }: { used: number; limit: number; className?: string }) {
+  return (
+    <span className={cx("block h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-line", className)} aria-hidden>
+      <span className="block h-full rounded-full bg-primary" style={{ width: `${limit > 0 ? Math.min(100, (used / limit) * 100) : 0}%` }} />
+    </span>
+  );
+}

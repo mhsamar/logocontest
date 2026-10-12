@@ -1,21 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { checkHeadline, sourceRows } from "@/lib/logo-check/present";
-import { accessFor, certNumber, checksLeft, isFetchableUrl, isOnHosts, overallScore, parseCertNumber, uniquenessScore, verdictFor } from "@/lib/logo-check/rules";
+import { accessFor, certNumber, checksLeft, limitFor, isFetchableUrl, isOnHosts, overallScore, parseCertNumber, uniquenessScore, verdictFor } from "@/lib/logo-check/rules";
 
-const limits = { perContest: 3, freeFrom: 8000, price: 500, closeFrom: 45, highRiskFrom: 85 };
+const limits = { freeChecks: 20, paidChecks: 10, freeFrom: 5000, price: 250, closeFrom: 45, highRiskFrom: 85 };
 
 describe("AI copyright checker rules (owner, 2026-10-10)", () => {
-  it("is free from ৳8,000, paid below that once the add-on is bought, locked otherwise", () => {
-    expect(accessFor(8000, false, limits)).toBe("free");
+  it("is free from ৳5,000, paid below that once the add-on is bought, locked otherwise (owner, 2026-10-13)", () => {
+    expect(accessFor(5000, false, limits)).toBe("free");
     expect(accessFor(15000, false, limits)).toBe("free");
-    expect(accessFor(7999, true, limits)).toBe("paid");
-    expect(accessFor(5000, false, limits)).toBe("locked");
+    expect(accessFor(4999, true, limits)).toBe("paid");
+    expect(accessFor(3000, false, limits)).toBe("locked");
+  });
+
+  it("gives 20 checks free and 10 with the add-on (also shown before it is bought)", () => {
+    expect(limitFor("free", limits)).toBe(20);
+    expect(limitFor("paid", limits)).toBe(10);
+    expect(limitFor("locked", limits)).toBe(10);
   });
 
   it("counts checks left and never goes below zero", () => {
-    expect(checksLeft(0, limits)).toBe(3);
-    expect(checksLeft(2, limits)).toBe(1);
-    expect(checksLeft(5, limits)).toBe(0);
+    expect(checksLeft(0, limitFor("free", limits))).toBe(20);
+    expect(checksLeft(2, limitFor("paid", limits))).toBe(8);
+    expect(checksLeft(12, limitFor("paid", limits))).toBe(0);
   });
 
   it("gives the verdict from the closest found logo", () => {

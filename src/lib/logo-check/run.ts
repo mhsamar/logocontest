@@ -26,9 +26,10 @@ const MAX_SITE = 6;
 const KEEP = 8;
 
 export async function checkLimits(): Promise<CheckLimits> {
-  const s = await getSettings(["limits.logo_checks_per_contest", "upgrades.logo_check_free_from", "upgrades.logo_scan_price", "limits.logo_check_close_from", "limits.logo_check_high_risk_from"]);
+  const s = await getSettings(["limits.logo_checks_per_contest", "limits.logo_checks_paid", "upgrades.logo_check_free_from", "upgrades.logo_scan_price", "limits.logo_check_close_from", "limits.logo_check_high_risk_from"]);
   return {
-    perContest: s["limits.logo_checks_per_contest"],
+    freeChecks: s["limits.logo_checks_per_contest"],
+    paidChecks: s["limits.logo_checks_paid"],
     freeFrom: s["upgrades.logo_check_free_from"],
     price: s["upgrades.logo_scan_price"],
     closeFrom: s["limits.logo_check_close_from"],

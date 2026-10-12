@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import "@/components/logo-checker/checker-page.css";
+import { LogoCheckerPage } from "@/components/logo-checker/checker-page";
+import { PageShell } from "@/components/ui/panel";
+import { getI18n } from "@/lib/i18n/server";
+import { checkLimits } from "@/lib/logo-check/run";
+import { openGraphFor } from "@/lib/seo";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { t, locale } = await getI18n();
+  const title = t("checkerPage.metaTitle");
+  const description = t("checkerPage.metaDescription");
+  return { title: { absolute: title }, description, alternates: { canonical: "/logo-checker" }, openGraph: openGraphFor({ title, description, path: "/logo-checker", locale }) };
+}
+
+/**
+ * Public Logo Checker page (owner, 2026-10-13; Design/logo-checker). Open to everyone; only the contest's client
+ * can run a check, inside their contest. The price and the number of checks come from Settings.
+ */
+export default async function LogoCheckerRoute() {
+  const limits = await checkLimits();
+  return (
+    <PageShell>
+      <div className="mx-auto flex w-full max-w-[1384px] flex-col gap-5">
+        <LogoCheckerPage numbers={{ freeFrom: limits.freeFrom, price: limits.price, freeChecks: limits.freeChecks, paidChecks: limits.paidChecks, closeFrom: limits.closeFrom }} />
+      </div>
+    </PageShell>
+  );
+}

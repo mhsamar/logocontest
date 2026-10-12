@@ -110,7 +110,7 @@ export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerS
             <p className="m-0 truncate text-[17px] font-semibold text-ink">{t("checker.title")}</p>
             <p className="m-0 truncate text-[13.5px] text-muted">
               {brand}
-              {state && used !== null ? ` · ${t("checker.usedOf", { used: String(used), limit: String(state.limits.perContest) })}` : ""}
+              {state && used !== null ? ` · ${t("checker.usedOf", { used: String(used), limit: String(state.limit) })}` : ""}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label={t("checker.close")} className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-chip text-ink hover:text-primary">

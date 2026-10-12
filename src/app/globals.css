@@ -272,6 +272,19 @@ body {
     width: 100% !important;
   }
 }
+/* Seven links since Logo Checker joined (owner, 2026-10-13): a little less space between them on laptop widths, and
+   the Join as a designer pill only from 1280px (UI-JOURNEY §2: below that it is in the footer and How It Works),
+   so the menu stays on one line from 1100px. */
+@media (min-width: 941px) and (max-width: 1365px) {
+  .lc-nv {
+    column-gap: 20px !important;
+  }
+}
+@media (min-width: 941px) and (max-width: 1279px) {
+  .lc-nv .lc-nv-join {
+    display: none !important;
+  }
+}
 @media (max-width: 720px) {
   .lc-nv {
     justify-content: space-between !important;
@@ -630,6 +643,20 @@ select:focus-visible {
 }
 .lc-nv-link[data-hot] {
   color: #fff;
+}
+/* A gold NEW pill on a menu link for its first weeks (owner, 2026-10-13; content/list-defs.ts NEW_LINKS). */
+.lc-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #ffe27a;
+  color: #5c3d00;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  vertical-align: 2px;
 }
 
 /* Rolling labels: the text rolls up and a fresh copy rolls in from below. */

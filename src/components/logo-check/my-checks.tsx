@@ -6,20 +6,20 @@ import { useI18n } from "@/lib/i18n/client";
 import type { ContestCheckCount, MyCheck } from "@/lib/logo-check/queries";
 import { certNumber } from "@/lib/logo-check/rules";
 import { CheckerProvider, useChecker } from "./checker-context";
-import { ShieldIcon, VerdictPill } from "./parts";
+import { ShieldIcon, UsedBar, VerdictPill } from "./parts";
 
 const lc = (n: number | null) => (n ? `LC-${String(n).padStart(4, "0")}` : null);
 
 /** The list on My logo checks (owner, 2026-10-10). */
-export function MyChecksList({ checks, contests, limit, lens }: { checks: MyCheck[]; contests: ContestCheckCount[]; limit: number; lens: boolean }) {
+export function MyChecksList({ checks, contests, lens }: { checks: MyCheck[]; contests: ContestCheckCount[]; lens: boolean }) {
   return (
     <CheckerProvider setup={null} lens={lens}>
-      <Body checks={checks} contests={contests} limit={limit} />
+      <Body checks={checks} contests={contests} />
     </CheckerProvider>
   );
 }
 
-function Body({ checks, contests, limit }: { checks: MyCheck[]; contests: ContestCheckCount[]; limit: number }) {
+function Body({ checks, contests }: { checks: MyCheck[]; contests: ContestCheckCount[] }) {
   const { t, locale } = useI18n();
   const { open } = useChecker();
   const nf = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
@@ -141,12 +141,8 @@ function Body({ checks, contests, limit }: { checks: MyCheck[]; contests: Contes
                 ) : (
                   <>
                     <div className="mt-2.5 flex items-center justify-between gap-3 rounded-[12px] bg-frame px-3.5 py-2.5">
-                      <span className="text-[14px] font-semibold text-ink">{t("checker.usedOf", { used: nf.format(c.used), limit: nf.format(limit) })}</span>
-                      <span className="flex gap-1" aria-hidden>
-                        {Array.from({ length: limit }, (_, i) => (
-                          <span key={i} className={cx("h-1.5 w-5 rounded-full", i < c.used ? "bg-primary" : "bg-line")} />
-                        ))}
-                      </span>
+                      <span className="text-[14px] font-semibold text-ink">{t("checker.usedOf", { used: nf.format(c.used), limit: nf.format(c.limit) })}</span>
+                      <UsedBar used={c.used} limit={c.limit} />
                     </div>
                     <p className="m-0 mt-2 text-[13.5px] text-muted">
                       {c.access === "free" ? t("checker.my.free") : t("checker.my.addon")} · {c.checkable ? t("checker.my.leftLine", { n: nf.format(c.left) }) : t("checker.my.closed")}

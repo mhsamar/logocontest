@@ -116,13 +116,14 @@ export const SETTINGS = {
     group: "upgrades", type: "int", schema: int(), default: 1000,
     description: "Promoted contest upgrade price (taka).",
   },
+  // Owner, 2026-10-13: free with 20 checks from a ৳5,000 prize; below that ৳250 for 10 checks.
   "upgrades.logo_scan_price": {
-    group: "upgrades", type: "int", schema: int(), default: 500,
-    description: "Price of the AI copyright checker add-on (3 logo checks) for contests under the free prize (taka; owner, 2026-10-10).",
+    group: "upgrades", type: "int", schema: int(), default: 250,
+    description: "Price of the AI logo checker add-on for contests under the free prize (taka). It gives the paid number of checks (Limits).",
   },
   "upgrades.logo_check_free_from": {
-    group: "upgrades", type: "int", schema: int(), default: 8000,
-    description: "Contests with this prize (taka) or more get the AI copyright checker free.",
+    group: "upgrades", type: "int", schema: int(), default: 5000,
+    description: "Contests with this prize (taka) or more get the AI logo checker free.",
   },
   "upgrades.highlight_price": {
     group: "upgrades", type: "int", schema: int(), default: 500,
@@ -223,8 +224,12 @@ export const SETTINGS = {
     description: "Below this many active entries, the client is prompted to buy an extension.",
   },
   "limits.logo_checks_per_contest": {
-    group: "limits", type: "int", schema: int(1), default: 3,
-    description: "AI logo checks per contest (free or paid). Failed checks do not count.",
+    group: "limits", type: "int", schema: int(1), default: 20,
+    description: "AI logo checks per contest when the checker is free (prize at or over the free limit). Failed checks do not count.",
+  },
+  "limits.logo_checks_paid": {
+    group: "limits", type: "int", schema: int(1), default: 10,
+    description: "AI logo checks the paid add-on gives a contest under the free prize. Failed checks do not count.",
   },
   "limits.logo_check_close_from": {
     group: "limits", type: "int", schema: int(1), default: 45,

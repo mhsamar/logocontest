@@ -10,8 +10,10 @@ export type MatchSource = "lens" | "vision" | "site";
 export type CheckAccess = "free" | "paid" | "locked";
 
 export type CheckLimits = {
-  /** Checks per contest. */
-  perContest: number;
+  /** Checks per contest when the checker is free (owner, 2026-10-13: 20). */
+  freeChecks: number;
+  /** Checks the paid add-on gives (owner, 2026-10-13: 10). */
+  paidChecks: number;
   /** Prize (taka) from which the checker is free. */
   freeFrom: number;
   /** Add-on price (taka) below the free prize. */
@@ -32,7 +34,10 @@ export function accessFor(prize: number, addonBought: boolean, limits: Pick<Chec
   return addonBought ? "paid" : "locked";
 }
 
-export const checksLeft = (used: number, limits: Pick<CheckLimits, "perContest">) => Math.max(0, limits.perContest - used);
+/** Checks a contest gets: the free number, or the paid number (also shown before the add-on is bought). */
+export const limitFor = (access: CheckAccess, limits: Pick<CheckLimits, "freeChecks" | "paidChecks">) => (access === "free" ? limits.freeChecks : limits.paidChecks);
+
+export const checksLeft = (used: number, limit: number) => Math.max(0, limit - used);
 
 /** The verdict from the similarity of every found logo. */
 export function verdictFor(similarities: number[], limits: Pick<CheckLimits, "closeFrom" | "highRiskFrom">): Verdict {

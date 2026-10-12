@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Database and storage backups (BLUEPRINT §18.4): personal data, never commit
 /backups/
+
+# Design reference with third-party stock logos (owner, 2026-10-13): keep on this computer, never publish.
+Design/logo-checker/logo-checker.html

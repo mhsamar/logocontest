@@ -9,12 +9,14 @@ import { buyAddon } from "@/lib/contests/addon-actions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { useChecker } from "./checker-context";
-import { ShieldIcon, VerdictPill } from "./parts";
+import { ShieldIcon, UsedBar, VerdictPill } from "./parts";
 
 /**
  * The "AI copyright checker" box beside the designs (owner, 2026-10-10; client-judging-page.html): active,
- * free and unused, locked add-on (buy it here), or all checks used.
+ * free and unused, locked add-on (buy it here), or all checks used. Owner, 2026-10-13: 20 free checks or 10 paid,
+ * so the box lists the latest checks and one line for the checks still to use.
  */
+const SHOWN = 5;
 export function CheckerBox() {
   const { t, locale } = useI18n();
   const { setup, open } = useChecker();
@@ -45,40 +47,29 @@ export function CheckerBox() {
       {state.access === "locked" ? (
         <>
           <span className="mt-4 inline-flex rounded-full bg-[#ffedd5] px-2.5 py-0.5 text-[12.5px] font-bold text-[#9a3412]">{t("checker.box.lockedChip", { amount: taka(state.limits.freeFrom) })}</span>
-          <p className="m-0 mt-2 text-[14.5px] text-ink">{t("checker.box.lockedLead", { n: nf.format(state.limits.perContest) })}</p>
+          <p className="m-0 mt-2 text-[14.5px] text-ink">{t("checker.box.lockedLead", { n: nf.format(state.limits.paidChecks) })}</p>
           <div className="mt-3 flex items-center justify-between gap-3 rounded-[14px] bg-frame px-3.5 py-3">
-            <span className="text-[14px] text-muted">{t("checker.box.checks", { n: nf.format(state.limits.perContest) })}</span>
+            <span className="text-[14px] text-muted">{t("checker.box.checks", { n: nf.format(state.limits.paidChecks) })}</span>
             <span className="lc-d text-[22px] font-semibold text-ink">{taka(state.limits.price)}</span>
           </div>
           <Button block className="mt-3" disabled={!state.checkable} onClick={() => setBuying(true)}>
             {t("checker.box.add")}
           </Button>
           {!state.checkable && <p className="m-0 mt-2 text-[13px] text-muted">{t("checker.errors.closed")}</p>}
-          <BuyChecker contestId={setup.contest.id} price={taka(state.limits.price)} n={nf.format(state.limits.perContest)} open={buying} onClose={() => setBuying(false)} />
+          <BuyChecker contestId={setup.contest.id} price={taka(state.limits.price)} n={nf.format(state.limits.paidChecks)} open={buying} onClose={() => setBuying(false)} />
         </>
       ) : (
         <>
           {state.access === "free" && counted.length === 0 && <span className="mt-4 inline-flex rounded-full bg-[#e3f3ea] px-2.5 py-0.5 text-[12.5px] font-bold text-[#14633c]">{t("checker.box.freeChip", { amount: taka(state.limits.freeFrom) })}</span>}
           <p className="m-0 mt-3 text-[14.5px] text-ink">{allUsed ? t("checker.box.allUsedLead") : t("checker.box.lead")}</p>
           <div className="mt-3 flex items-center justify-between gap-3 rounded-[12px] bg-frame px-3.5 py-2.5">
-            <span className="text-[14px] font-semibold text-ink">{t("checker.usedOf", { used: nf.format(state.used), limit: nf.format(state.limits.perContest) })}</span>
-            <span className="flex gap-1" aria-hidden>
-              {Array.from({ length: state.limits.perContest }, (_, i) => (
-                <span key={i} className={cx("h-1.5 w-5 rounded-full", i < state.used ? "bg-primary" : "bg-line")} />
-              ))}
-            </span>
+            <span className="text-[14px] font-semibold text-ink">{t("checker.usedOf", { used: nf.format(state.used), limit: nf.format(state.limit) })}</span>
+            <UsedBar used={state.used} limit={state.limit} />
           </div>
 
           {!allUsed && (
             <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
-              {Array.from({ length: state.limits.perContest }, (_, i) => {
-                const c = counted[i];
-                if (!c)
-                  return (
-                    <li key={i} className="flex min-h-12 items-center rounded-[12px] border border-dashed border-line px-3.5 text-[13.5px] text-muted">
-                      {t("checker.box.slot", { n: nf.format(i + 1) })}
-                    </li>
-                  );
+              {counted.slice(-SHOWN).reverse().map((c) => {
                 const d = designOf(c.entryId);
                 return (
                   <li key={c.id}>
@@ -95,6 +86,14 @@ export function CheckerBox() {
                   </li>
                 );
               })}
+              <li className="flex min-h-12 items-center justify-between gap-2 rounded-[12px] border border-dashed border-line px-3.5 text-[13.5px] text-muted">
+                {t("checker.box.leftSlot", { n: nf.format(state.left) })}
+                {counted.length > SHOWN && (
+                  <Link href="/dashboard/logo-checks" className="font-bold text-primary hover:underline">
+                    {t("checker.box.seeAllShort")}
+                  </Link>
+                )}
+              </li>
             </ul>
           )}
 

@@ -28,7 +28,7 @@ describe("BLUEPRINT defaults", () => {
       3000, 5000, 8000, 12000, 15000,
     ]);
     expect([d("timers.contest_duration_min_days"), d("timers.contest_duration_max_days")]).toEqual([3, 30]);
-    expect([d("upgrades.logo_scan_price"), d("upgrades.highlight_price"), d("upgrades.urgent_price"), d("upgrades.nda_price")]).toEqual([500, 500, 500, 1500]);
+    expect([d("upgrades.logo_scan_price"), d("upgrades.highlight_price"), d("upgrades.urgent_price"), d("upgrades.nda_price")]).toEqual([250, 500, 500, 1500]);
     expect([d("packages.custom_min_prize"), d("packages.custom_step")]).toEqual([3000, 500]);
     // Owner, 2026-10-08: 25%, or 15% for prizes above ৳30,000.
     expect([d("fees.client_service_fee_percent"), d("fees.client_service_fee_large_percent"), d("fees.client_service_fee_large_from")]).toEqual([25, 15, 30000]);

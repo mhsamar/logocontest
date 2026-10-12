@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Reading } from "./ai";
-import { accessFor, CHECKABLE_STATUSES, checksLeft, isCheckable, type CheckAccess, type CheckLimits, type CheckStatus, type MatchSource, type Verdict } from "./rules";
+import { accessFor, CHECKABLE_STATUSES, checksLeft, isCheckable, limitFor, type CheckAccess, type CheckLimits, type CheckStatus, type MatchSource, type Verdict } from "./rules";
 import { checkLimits, LOGO_CHECKS_BUCKET, type Sources } from "./run";
 
 /** Reading checks back (owner, 2026-10-10). Only the contest's client and admins with copyright.view see a check. */
@@ -28,6 +28,8 @@ export type CheckListItem = {
 export type ContestChecks = {
   access: CheckAccess;
   limits: CheckLimits;
+  /** Checks this contest gets (free or paid number). */
+  limit: number;
   /** Checks that count (not failed). */
   used: number;
   left: number;
@@ -55,11 +57,12 @@ const toItem = (r: Record<string, unknown>): CheckListItem => ({
 export async function contestChecks(contest: { id: string; prize: number; logoScan: boolean; status: string }): Promise<ContestChecks> {
   const limits = await checkLimits();
   const access = accessFor(contest.prize, contest.logoScan, limits);
-  if (!isSupabaseConfigured()) return { access, limits, used: 0, left: limits.perContest, checkable: false, checks: [] };
+  const limit = limitFor(access, limits);
+  if (!isSupabaseConfigured()) return { access, limits, limit, used: 0, left: limit, checkable: false, checks: [] };
   const { data } = await createAdminClient().from("logo_checks").select(LIST_COLUMNS).eq("contest_id", contest.id).order("created_at", { ascending: true });
   const checks = (data ?? []).map((r) => toItem(r as Record<string, unknown>));
   const used = checks.filter((c) => c.status !== "failed").length;
-  return { access, limits, used, left: checksLeft(used, limits), checkable: isCheckable(contest.status), checks };
+  return { access, limits, limit, used, left: checksLeft(used, limit), checkable: isCheckable(contest.status), checks };
 }
 
 export type CheckMatch = {
@@ -101,7 +104,7 @@ export type CheckView = CheckListItem & {
 
 const VIEW_COLUMNS =
   "id, number, status, step, verdict, entry_id, scores, error, created_at, finished_at, image_path, reading, advice, sources, paid, amount, certificate_pdf_path, certificate_png_path, locked_until, cost_usd, " +
-  "contest:contests!contest_id(id, slug, brand_name, contest_number, client_id), entry:entries!entry_id(id, number, designer:profiles!designer_id(id, name, username)), requester:profiles!requested_by(id, name), " +
+  "contest:contests!contest_id(id, slug, brand_name, contest_number, client_id, prize_amount, logo_scan), entry:entries!entry_id(id, number, designer:profiles!designer_id(id, name, username)), requester:profiles!requested_by(id, name), " +
   "matches:logo_check_matches(position, found_by, image_path, image_url, page_url, title, site, entry_id, similarity, same, different, is_close)";
 
 /** May this person see checks of a contest owned by `clientId`? */
@@ -113,7 +116,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
   const { data } = await createAdminClient().from("logo_checks").select(VIEW_COLUMNS).eq("id", id).maybeSingle();
   if (!data) return null;
   const r = data as unknown as Record<string, unknown>;
-  const contest = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; client_id: string } | null);
+  const contest = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; client_id: string; prize_amount: number; logo_scan: boolean } | null);
   if (!contest || !canSeeChecks(viewer, contest.client_id)) return null;
   const entry = one(r.entry as { id: string; number: number; designer: unknown } | null);
   const designer = entry ? one(entry.designer as { id: string; name: string; username: string | null } | null) : null;
@@ -154,7 +157,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     finishedAt: (r.finished_at as string | null) ?? null,
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < Date.now(),
     costUsd: Number(r.cost_usd) || 0,
-    left: checksLeft(count ?? 0, limits),
+    left: checksLeft(count ?? 0, limitFor(accessFor(contest.prize_amount, Boolean(contest.logo_scan), limits), limits)),
   };
 }
 
@@ -186,7 +189,7 @@ export type MyCheck = CheckListItem & {
   stale: boolean;
 };
 
-export type ContestCheckCount = { id: string; slug: string; brand: string; number: number | null; used: number; left: number; access: CheckAccess; checkable: boolean; prize: number };
+export type ContestCheckCount = { id: string; slug: string; brand: string; number: number | null; used: number; limit: number; left: number; access: CheckAccess; checkable: boolean; prize: number };
 
 /** My logo checks (owner, 2026-10-10): every check this client asked for, newest first, and the checks left per contest. */
 export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; contests: ContestCheckCount[]; limits: CheckLimits }> {
@@ -226,13 +229,17 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   const byContest = new Map<string, ContestCheckCount>();
   for (const c of own ?? []) {
     const access = accessFor(c.prize_amount as number, Boolean(c.logo_scan), limits);
-    byContest.set(c.id as string, { id: c.id as string, slug: c.slug as string, brand: c.brand_name as string, number: (c.contest_number as number | null) ?? null, used: 0, left: limits.perContest, access, checkable: true, prize: c.prize_amount as number });
+    const limit = limitFor(access, limits);
+    byContest.set(c.id as string, { id: c.id as string, slug: c.slug as string, brand: c.brand_name as string, number: (c.contest_number as number | null) ?? null, used: 0, limit, left: limit, access, checkable: true, prize: c.prize_amount as number });
   }
   for (const k of checks) {
-    if (!byContest.has(k.contest.id)) byContest.set(k.contest.id, { id: k.contest.id, slug: k.contest.slug, brand: k.contest.brand, number: k.contest.number, used: 0, left: limits.perContest, access: k.paid ? "paid" : "free", checkable: false, prize: 0 });
+    if (!byContest.has(k.contest.id)) {
+      const limit = limitFor(k.paid ? "paid" : "free", limits);
+      byContest.set(k.contest.id, { id: k.contest.id, slug: k.contest.slug, brand: k.contest.brand, number: k.contest.number, used: 0, limit, left: limit, access: k.paid ? "paid" : "free", checkable: false, prize: 0 });
+    }
     if (k.status !== "failed") byContest.get(k.contest.id)!.used += 1;
   }
-  const contests = [...byContest.values()].map((c) => ({ ...c, left: checksLeft(c.used, limits) }));
+  const contests = [...byContest.values()].map((c) => ({ ...c, left: checksLeft(c.used, c.limit) }));
   return { checks, contests, limits };
 }
 

@@ -59,7 +59,7 @@ describe("client price (BLUEPRINT §7.1)", () => {
     expect(calculatePrice(order({ upgrades: withUpgrades("blind") }), cfg).total).toBe(7250);
     expect(calculatePrice(order({ upgrades: withUpgrades("private") }), cfg).total).toBe(7250);
     expect(calculatePrice(order({ upgrades: withUpgrades("promoted") }), cfg).total).toBe(7250);
-    expect(calculatePrice(order({ upgrades: withUpgrades("logo_scan") }), cfg).total).toBe(6750);
+    expect(calculatePrice(order({ upgrades: withUpgrades("logo_scan") }), cfg).total).toBe(6500);
     expect(calculatePrice(order({ upgrades: withUpgrades("highlight") }), cfg).total).toBe(6750);
     expect(calculatePrice(order({ upgrades: withUpgrades("urgent") }), cfg).total).toBe(6750);
     expect(calculatePrice(order({ upgrades: withUpgrades("nda") }), cfg).total).toBe(7750);

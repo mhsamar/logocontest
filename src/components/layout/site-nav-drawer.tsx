@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
  * Phone menu for the site nav (owner, 2026-10-10): the design only shows the button, so this
  * opens a drawer with the nav links and whatever the nav passes in (account, language).
  */
-export function SiteNavDrawer({ links, openLabel, closeLabel, children }: { links: { href: string; label: string }[]; openLabel: string; closeLabel: string; children: React.ReactNode }) {
+export function SiteNavDrawer({ links, openLabel, closeLabel, children }: { links: { href: string; label: string; badge?: string }[]; openLabel: string; closeLabel: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -75,6 +75,7 @@ export function SiteNavDrawer({ links, openLabel, closeLabel, children }: { link
                 className="flex min-h-12 items-center rounded-[14px] px-3 text-lg font-semibold hover:bg-chip aria-[current=page]:bg-tint aria-[current=page]:text-primary"
               >
                 {l.label}
+                {l.badge && <span className="lc-new">{l.badge}</span>}
               </Link>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-line-soft pt-4">{children}</div>
