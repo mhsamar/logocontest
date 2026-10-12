@@ -25,7 +25,7 @@ const subscribe = (cb: () => void) => {
   mq.addEventListener("change", cb);
   return () => mq.removeEventListener("change", cb);
 };
-const useMode = (): Mode => useSyncExternalStore(subscribe, () => (window.matchMedia(HOVER_QUERY).matches ? "hover" : "touch"), () => "ssr");
+export const useMode = (): Mode => useSyncExternalStore(subscribe, () => (window.matchMedia(HOVER_QUERY).matches ? "hover" : "touch"), () => "ssr");
 const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** This page's address with the open design and file set (or removed). */
@@ -42,7 +42,17 @@ function href(id: string | null, file: number): string {
   return s ? `${window.location.pathname}?${s}` : window.location.pathname;
 }
 
-type CardProps = { d: StudioDesign; i: number; mode: Mode; now: Date; t: Translate; locale: Locale; onOpen: (d: StudioDesign, file: number) => void };
+type CardProps = {
+  d: StudioDesign;
+  i: number;
+  mode: Mode;
+  now: Date;
+  t: Translate;
+  locale: Locale;
+  onOpen: (d: StudioDesign, file: number) => void;
+  /** The line under the tile; the designer profile shows the contest, status and stars instead of the designer. */
+  renderMeta?: (d: StudioDesign) => React.ReactNode;
+};
 
 /**
  * One design (owner, 2026-10-12; Design/design-studio). With a mouse: the card lifts; after 0.2 s a large preview opens
@@ -50,7 +60,7 @@ type CardProps = { d: StudioDesign; i: number; mode: Mode; now: Date; t: Transla
  * strip per file (state changes only when the strip changes). The files load only once the card is hovered.
  * On touch screens the tile is a swipe carousel. Click or Enter opens the full preview.
  */
-const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale, onOpen }: CardProps) {
+export const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale, onOpen, renderMeta }: CardProps) {
   const n = d.files.length;
   const [hot, setHot] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -162,15 +172,19 @@ const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale, onOpen
         </div>
       )}
 
-      <div className="ds-meta">
-        <StudioAvatar username={d.designer?.username ?? null} url={d.designer?.avatarUrl ?? null} />
-        <div className="min-w-0">
-          <strong>{d.brandName}</strong>
-          <span className="ds-sub">
-            {who} · {ago}
-          </span>
+      {renderMeta ? (
+        renderMeta(d)
+      ) : (
+        <div className="ds-meta">
+          <StudioAvatar username={d.designer?.username ?? null} url={d.designer?.avatarUrl ?? null} />
+          <div className="min-w-0">
+            <strong>{d.brandName}</strong>
+            <span className="ds-sub">
+              {who} · {ago}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {mode === "hover" && side && (
         <div className="ds-pv" data-x={side.x} data-y={side.y} aria-hidden>
