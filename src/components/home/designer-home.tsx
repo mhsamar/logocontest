@@ -34,7 +34,7 @@ export async function DesignerHome({ user }: { user: { id: string; name: string 
       "limits.entry_image_min_px",
       "limits.max_entries_per_designer",
       "timers.designer_file_upload_days",
-      "limits.strikes_for_suspension",
+      "timers.strike_expiry_days",
       "limits.strikes_for_ban",
       "fees.designer_tiers",
       "limits.withdrawal_min",
@@ -149,7 +149,7 @@ export async function DesignerHome({ user }: { user: { id: string; name: string 
                 <span className="text-ink">
                   {t(`designerHome.rules.${k}`, {
                     days: fmt(s["timers.designer_file_upload_days"]),
-                    suspend: fmt(s["limits.strikes_for_suspension"]),
+                    strikeDays: fmt(s["timers.strike_expiry_days"]),
                     ban: fmt(s["limits.strikes_for_ban"]),
                   })}
                 </span>

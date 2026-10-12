@@ -3,7 +3,6 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
-import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
 
@@ -18,7 +17,7 @@ export async function giveStrike(userId: string, f: Fields): Promise<Result> {
   if (!admin || !UUID.test(input.userId) || input.userId === admin.id) return fail("auth.errors.generic");
   const reason = cleanReason(input.reason);
   if (!reason) return fail("admin.errors.reason");
-  const days = await getSetting("timers.strike_suspension_days");
+  const days = 0; // strikes no longer suspend (owner, 2026-10-12)
   const { data, error } = await createAdminClient().rpc("give_strike", {
     p_user_id: input.userId,
     p_reason: reason,
@@ -42,7 +41,7 @@ export async function removeStrike(strikeId: string, f: Fields): Promise<Result>
   if (!admin || !UUID.test(input.strikeId)) return fail("auth.errors.generic");
   const reason = cleanReason(input.reason);
   if (!reason) return fail("admin.errors.reason");
-  const days = await getSetting("timers.strike_suspension_days");
+  const days = 0; // strikes no longer suspend (owner, 2026-10-12)
   const { data, error } = await createAdminClient().rpc("remove_strike", { p_strike_id: input.strikeId, p_admin_id: admin.id, p_suspend_days: days });
   if (error || !data) return fail("admin.errors.generic");
   const p = data as { id: string; strikes: number };

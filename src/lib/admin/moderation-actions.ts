@@ -3,7 +3,6 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
-import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, one, UUID } from "./core";
 
@@ -57,7 +56,7 @@ export async function resolveReport(reportId: string, decision: string, f: Field
   const { data: before } = await db.from("reports").select("entry_id, reporter_id").eq("id", reportId).maybeSingle();
   if (!before) return fail("auth.errors.generic");
   const e = await entryInfo(before.entry_id as string);
-  const days = await getSetting("timers.strike_suspension_days");
+  const days = 0; // strikes no longer suspend (owner, 2026-10-12)
   const { error } = await db.rpc("resolve_report", { p_report_id: reportId, p_admin_id: admin.id, p_decision: decision, p_action: action, p_reason: reason, p_suspend_days: days });
   if (error) return fail("admin.reports.closed");
   await audit(admin.id, "resolve_report", "report", reportId, { decision, action, reason, entry: e?.number, contest: e?.slug });

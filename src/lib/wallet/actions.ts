@@ -3,6 +3,8 @@
 import { audit } from "@/lib/admin/core";
 import { refresh } from "next/cache";
 import { adminUser } from "@/lib/admin/core";
+import { adminIdsWith } from "@/lib/admin/recipients";
+import { normalizeBdMobile } from "@/lib/phone";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
@@ -19,16 +21,36 @@ const UUID = /^[0-9a-f-]{36}$/i;
  * D-11: a designer withdraws. The balance goes down at once; bKash withdrawals are sent
  * automatically when the payout driver can, everything else waits for an admin (BLUEPRINT §7.3).
  */
-export async function requestWithdrawal(input: { amount: number; methodId: string }): Promise<{ ok: true; status: "paid" | "requested"; txnId: string | null } | Fail> {
+export async function requestWithdrawal(input: {
+  amount: number;
+  /** A saved bank account; or `bkash` with the number and Personal / Agent (owner, 2026-10-12). */
+  methodId?: string;
+  bkash?: { number: string; kind: string };
+}): Promise<{ ok: true; status: "paid" | "requested"; txnId: string | null } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
   if (!user || user.role !== "designer" || user.status !== "active") return fail("auth.errors.generic");
   const min = await getSetting("limits.withdrawal_min");
   if (!Number.isInteger(input.amount) || input.amount < min) return fail("wallet.errors.min", { min });
-  if (!UUID.test(input.methodId)) return fail("wallet.errors.method");
 
   const db = createAdminClient();
-  const { data: w, error } = await db.rpc("request_withdrawal", { p_designer_id: user.id, p_amount: input.amount, p_payout_method_id: input.methodId, p_min: min });
+  let methodId = input.methodId ?? "";
+  if (input.bkash) {
+    // The bKash number typed in the form becomes the designer's saved bKash method.
+    const number = normalizeBdMobile(input.bkash.number);
+    if (!number) return fail("wallet.errors.bkashNumber");
+    if (input.bkash.kind !== "personal" && input.bkash.kind !== "agent") return fail("wallet.errors.bkashKind");
+    const { data: saved } = await db.from("designer_payout_methods").select("id").eq("user_id", user.id).eq("type", "bkash").order("is_default", { ascending: false }).limit(1).maybeSingle();
+    const row = { bkash_number: number, bkash_kind: input.bkash.kind };
+    const { data: m, error: mError } = saved
+      ? await db.from("designer_payout_methods").update(row).eq("id", saved.id).select("id").single()
+      : await db.from("designer_payout_methods").insert({ user_id: user.id, type: "bkash", is_default: true, ...row }).select("id").single();
+    if (mError || !m) return fail("auth.errors.generic");
+    methodId = m.id as string;
+  }
+  if (!UUID.test(methodId)) return fail("wallet.errors.method");
+
+  const { data: w, error } = await db.rpc("request_withdrawal", { p_designer_id: user.id, p_amount: input.amount, p_payout_method_id: methodId, p_min: min });
   if (error || !w) return fail(error?.code === "P0002" ? "wallet.errors.method" : "wallet.errors.balance");
   const withdrawal = w as { id: string; method_type: string; destination: { bkash_number?: string } };
 
@@ -38,13 +60,15 @@ export async function requestWithdrawal(input: { amount: number; methodId: strin
       const sent = await gateway.sendBkash({ withdrawalId: withdrawal.id, amount: input.amount, bkashNumber: withdrawal.destination.bkash_number });
       if (sent.ok) {
         await db.rpc("mark_withdrawal_paid", { p_withdrawal_id: withdrawal.id, p_txn_id: sent.txnId, p_gateway: gateway.name, p_by: null });
-        await notify([user.id], "withdrawal_paid", { amount: input.amount }, "/dashboard/wallet");
+        await notify([user.id], "withdrawal_paid", { amount: input.amount }, "/dashboard/wallet#payout-card");
         refresh();
         return { ok: true, status: "paid", txnId: sent.txnId };
       }
       console.error("[payouts] bKash payout failed, sent to the admin queue:", sent.error);
     }
   }
+  // The admins hear about every request waiting to be paid (owner, 2026-10-12).
+  await notify(await adminIdsWith("withdrawals.view"), "withdrawal_requested_admin", { name: user.name, amount: input.amount }, "/admin/withdrawals", user.id);
   refresh();
   return { ok: true, status: "requested", txnId: null };
 }
@@ -64,7 +88,8 @@ export async function markWithdrawalPaid(input: { id: string; txnId: string }): 
   if (error || !data) return fail("auth.errors.generic");
   const w = data as { designer_id: string; amount: number };
   await audit(user.id, "mark_withdrawal_paid", "withdrawal", input.id, { amount: w.amount, txn });
-  await notify([w.designer_id], "withdrawal_paid", { amount: w.amount }, "/dashboard/wallet");
+  // With the "Payment sent" card on the wallet page (owner, 2026-10-12).
+  await notify([w.designer_id], "withdrawal_paid", { amount: w.amount }, "/dashboard/wallet#payout-card");
   refresh();
   return { ok: true };
 }

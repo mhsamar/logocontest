@@ -1,6 +1,7 @@
 import "server-only";
 import { PAGE_VIEW_DAYS } from "@/lib/analytics/rules";
 import { isSupabaseConfigured } from "@/lib/env";
+import { adminIdsWith } from "@/lib/admin/recipients";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,14 +16,14 @@ import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endi
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; errors: string[] };
+export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
 const DAY = 86_400_000;
 
 export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
-  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, monthClosed: null, claimReminders: 0, announced: 0, designerReminders: 0, filesDue: 0, errors: [] };
+  const report: LifecycleReport = { endingSoon: 0, judging: 0, reminders: 0, forfeited: 0, noResult: 0, released: 0, unsuspended: 0, monthClosed: null, claimReminders: 0, announced: 0, designerReminders: 0, filesDue: 0, lateStrikes: 0, errors: [] };
   if (!isSupabaseConfigured()) return report;
   const db = createAdminClient();
   const s = await getSettings([
@@ -32,9 +33,11 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     "timers.repick_window_days",
     "limits.low_entry_prompt_threshold",
     "fees.designer_tiers",
-    "timers.copy_claim_days",
+    "timers.payout_hold_days",
     "timers.designer_ending_notice_hours",
     "timers.files_due_notice_hours",
+    "timers.files_strike_hours",
+    "timers.strike_expiry_days",
   ]);
   const iso = now.toISOString();
   const fail = (step: string, id: string, e: unknown) => report.errors.push(`${step} ${id}: ${e instanceof Error ? e.message : String(e)}`);
@@ -147,7 +150,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const { data } = await db
       .from("handovers")
       .select("id, designer_id, due_at, contest:contests!contest_id(id, slug, brand_name)")
-      .in("status", ["awaiting_files", "revision_requested"])
+      .eq("status", "awaiting_files")
       .gt("due_at", iso)
       .lte("due_at", before);
     for (const h of data ?? []) {
@@ -163,12 +166,47 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     }
   }
 
-  // 5. Missed file deadline → win cancelled, the client picks again (runs before the no-result step on purpose).
+  // The winner's name and mobile for the admins' notice, so they can call (owner, 2026-10-12).
+  const designerContact = async (id: string) => {
+    const { data } = await db.from("profiles").select("name, mobile").eq("id", id).maybeSingle();
+    return { name: ((data?.name as string | null) ?? "").trim() || "—", phone: ((data?.mobile as string | null) ?? "").replace(/^\+88/, "") || "—" };
+  };
+
+  // 4c. No first files 24 hours after the win (Settings): one strike, once per win; the admins hear with the phone
+  //     number so they can call. 3 strikes within the strike days ban the account (migration 0039).
+  {
+    const hours = s["timers.files_strike_hours"];
+    const { data } = await db
+      .from("handovers")
+      .select("id, designer_id, contest:contests!contest_id(id, slug, brand_name)")
+      .eq("status", "awaiting_files")
+      .is("submitted_at", null)
+      .is("late_strike_at", null)
+      .lte("created_at", new Date(now.getTime() - hours * 3_600_000).toISOString());
+    for (const h of data ?? []) {
+      const c = (Array.isArray(h.contest) ? h.contest[0] : h.contest) as { id: string; slug: string; brand_name: string } | null;
+      try {
+        const { data: p, error } = await db.rpc("strike_late_files", { p_handover_id: h.id });
+        if (error) throw new Error(error.message);
+        if (!p || !c) continue;
+        const profile = p as { status: string };
+        await notify([h.designer_id as string], "late_files_strike", { brand: c.brand_name, hours, days: s["timers.strike_expiry_days"] }, `/dashboard/handover/${c.slug}`);
+        if (profile.status === "banned") await notify([h.designer_id as string], "files_missed_banned", { brand: c.brand_name }, null);
+        await notify(await adminIdsWith("users.view"), "late_files_admin", { ...(await designerContact(h.designer_id as string)), brand: c.brand_name, hours }, `/admin/users/${h.designer_id}`);
+        report.lateStrikes++;
+      } catch (e) {
+        fail("late-files", h.id as string, e);
+      }
+    }
+  }
+
+  // 5. No first files by the deadline → win cancelled, the client picks again, and the designer is banned for good
+  //    (owner, 2026-10-12). Only the first delivery has a deadline. Runs before the no-result step on purpose.
   {
     const { data } = await db
       .from("handovers")
       .select("id, designer_id, contest:contests!contest_id(id, slug, brand_name, client_id)")
-      .in("status", ["awaiting_files", "revision_requested"])
+      .eq("status", "awaiting_files")
       .lte("due_at", iso);
     for (const h of data ?? []) {
       const c = (Array.isArray(h.contest) ? h.contest[0] : h.contest) as { id: string; slug: string; brand_name: string; client_id: string } | null;
@@ -176,7 +214,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         const { data: done, error } = await db.rpc("forfeit_handover", { p_handover_id: h.id, p_repick_days: s["timers.repick_window_days"] });
         if (error) throw new Error(error.message);
         if (!done || !(done as { id?: string }).id || !c) continue;
-        await notify([h.designer_id as string], "win_cancelled", { brand: c.brand_name }, `/contest/${c.slug}`);
+        await notify([h.designer_id as string], "files_missed_banned", { brand: c.brand_name }, null);
+        await notify(await adminIdsWith("users.view"), "files_missed_admin", { ...(await designerContact(h.designer_id as string)), brand: c.brand_name }, `/admin/users/${h.designer_id}`);
         await notify([c.client_id], "repick_winner", { brand: c.brand_name, days: s["timers.repick_window_days"] }, `/dashboard/contests/${c.slug}`);
         report.forfeited++;
       } catch (e) {
@@ -217,15 +256,16 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     }
   }
 
-  // 7. Release held prizes: approved, copy-claim days over, no open claim (§7.3). The function re-checks all of it.
+  // 7. Release held prizes: approved at least the hold days ago (owner, 2026-10-12: counted from the approval), no
+  //    open copy claim (§7.3). The function re-checks all of it.
   {
-    const heldBefore = new Date(now.getTime() - s["timers.copy_claim_days"] * DAY).toISOString();
+    const heldBefore = new Date(now.getTime() - s["timers.payout_hold_days"] * DAY).toISOString();
     const { data } = await db
       .from("handovers")
       .select("id, designer_id, contest:contests!contest_id(brand_name)")
       .eq("status", "approved")
       .is("credited_at", null)
-      .lte("created_at", heldBefore);
+      .lte("approved_at", heldBefore);
     for (const h of data ?? []) {
       try {
         const { data: tx, error } = await db.rpc("release_prize_credit", { p_handover_id: h.id });
@@ -241,8 +281,10 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     }
   }
 
-  // 8. Suspensions whose time is up (BLUEPRINT §13, strikes).
+  // 8. Suspensions whose time is up (BLUEPRINT §13, strikes), and strikes older than the strike days stop counting.
   {
+    const { error: recountError } = await db.rpc("recount_strikes");
+    if (recountError) fail("strikes", "-", recountError.message);
     const { data, error } = await db.rpc("lift_expired_suspensions");
     if (error) fail("unsuspend", "-", error.message);
     else report.unsuspended = (data as number) ?? 0;

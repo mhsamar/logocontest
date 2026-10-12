@@ -30,7 +30,7 @@ export type WalletWithdrawal = {
   createdAt: Date;
 };
 
-export type PayoutMethod = { id: string; type: "bkash" | "bank"; label: string; isDefault: boolean };
+export type PayoutMethod = { id: string; type: "bkash" | "bank"; label: string; isDefault: boolean; bkashNumber: string | null; bkashKind: "personal" | "agent" | null };
 
 export type Wallet = {
   balance: number;
@@ -60,7 +60,7 @@ export function maskDestination(type: string, d: Record<string, string | undefin
 }
 
 export async function getWallet(designerId: string): Promise<Wallet> {
-  const s = await getSettings(["fees.designer_tiers", "limits.withdrawal_min", "timers.copy_claim_days"]);
+  const s = await getSettings(["fees.designer_tiers", "limits.withdrawal_min", "timers.payout_hold_days"]);
   const tiers = [...s["fees.designer_tiers"]].sort((a, b) => a.min_wins - b.min_wins);
   const empty: Wallet = { balance: 0, pending: 0, held: [], countedWins: 0, rate: feeRateFor(0, tiers), next: nextTier(0, tiers), tiers, minWithdrawal: s["limits.withdrawal_min"], transactions: [], withdrawals: [], methods: [] };
   if (!isSupabaseConfigured()) return empty;
@@ -76,15 +76,16 @@ export async function getWallet(designerId: string): Promise<Wallet> {
       .limit(50),
     db.from("withdrawals").select("id, amount, method_type, destination, status, paid_txn_id, reject_reason, created_at").eq("designer_id", designerId).order("created_at", { ascending: false }).limit(20),
     db.from("handovers").select("prize, fee_rate").eq("designer_id", designerId).in("status", ["awaiting_files", "submitted", "revision_requested"]),
-    db.from("designer_payout_methods").select("id, type, bkash_number, bank_name, account_number, is_default").eq("user_id", designerId).order("is_default", { ascending: false }),
-    db.from("handovers").select("id, prize, fee_rate, created_at, contest:contests!contest_id(brand_name)").eq("designer_id", designerId).eq("status", "approved").is("credited_at", null),
+    db.from("designer_payout_methods").select("id, type, bkash_number, bkash_kind, bank_name, account_number, is_default").eq("user_id", designerId).order("is_default", { ascending: false }),
+    db.from("handovers").select("id, prize, fee_rate, approved_at, created_at, contest:contests!contest_id(brand_name)").eq("designer_id", designerId).eq("status", "approved").is("credited_at", null),
     openClaimHandoverIds(designerId),
   ]);
 
   const held = (approved.data ?? []).map((h) => ({
     brand: one(h.contest as { brand_name: string } | { brand_name: string }[] | null)?.brand_name ?? "",
     credit: payoutFor(h.prize as number, h.fee_rate as number).credit,
-    availableAt: heldPrizeAvailableAt(new Date(h.created_at as string), s["timers.copy_claim_days"], claimed.has(h.id as string)),
+    // Owner, 2026-10-12: the hold counts from the client's approval (migration 0039).
+    availableAt: heldPrizeAvailableAt(new Date((h.approved_at ?? h.created_at) as string), s["timers.payout_hold_days"], claimed.has(h.id as string)),
   }));
 
   const countedWins = (profile.data?.counted_wins_count as number) ?? 0;
@@ -125,6 +126,9 @@ export async function getWallet(designerId: string): Promise<Wallet> {
       type: m.type as "bkash" | "bank",
       label: maskDestination(m.type as string, m as unknown as Record<string, string>),
       isDefault: Boolean(m.is_default),
+      // For filling in the withdraw form (owner, 2026-10-12): the number as 01XXXXXXXXX and Personal / Agent.
+      bkashNumber: m.type === "bkash" && m.bkash_number ? (m.bkash_number as string).replace(/^\+?880/, "0") : null,
+      bkashKind: ((m as { bkash_kind?: string | null }).bkash_kind as "personal" | "agent" | null) ?? null,
     })),
   };
 }

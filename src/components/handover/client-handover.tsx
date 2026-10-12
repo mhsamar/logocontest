@@ -49,7 +49,9 @@ export function ClientHandover({
   const [busy, start] = useTransition();
   const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" }).format(new Date(iso));
   const words = countWords(feedback);
-  const changesLeft = Math.max(0, maxRevisions - revisionCount);
+  // 0 = no limit (owner, 2026-10-12): changes go on until the client approves.
+  const unlimited = maxRevisions <= 0;
+  const changesLeft = unlimited ? Number.POSITIVE_INFINITY : Math.max(0, maxRevisions - revisionCount);
 
   const approve = () =>
     start(async () => {
@@ -129,7 +131,7 @@ export function ClientHandover({
               {t("handover.review.change")}
             </Button>
           )}
-          <span className="text-sm text-muted">{t("handover.review.changesLeft", { n: changesLeft, max: maxRevisions })}</span>
+          {!unlimited && <span className="text-sm text-muted">{t("handover.review.changesLeft", { n: changesLeft, max: maxRevisions })}</span>}
         </div>
       )}
 
@@ -188,7 +190,7 @@ export function ClientHandover({
         }
       >
         <TextAreaField label={t("handover.review.noteLabel")} rows={4} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
-        <p className="mt-2 text-sm text-muted">{t("handover.review.changesLeft", { n: changesLeft, max: maxRevisions })}</p>
+        {!unlimited && <p className="mt-2 text-sm text-muted">{t("handover.review.changesLeft", { n: changesLeft, max: maxRevisions })}</p>}
       </Modal>
     </div>
   );

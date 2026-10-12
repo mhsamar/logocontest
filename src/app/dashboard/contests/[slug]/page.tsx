@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@/components/contests/contest-bits";
 import { EntryComments } from "@/components/entries/entry-comments";
+import { HandoverChat } from "@/components/handover/handover-chat";
 import { Collage } from "@/components/entries/entry-card";
 import { EntrySort } from "@/components/entries/entry-sort";
 import { EntryViewer } from "@/components/entries/entry-viewer";
@@ -33,7 +34,9 @@ import { getEntryDetail, listEntries } from "@/lib/entries/queries";
 import { isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
-import { getHandoverByContest } from "@/lib/handover/queries";
+import { getHandoverByContest, handoverMessages } from "@/lib/handover/queries";
+import { CHAT_STATUSES } from "@/lib/handover/options";
+import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
@@ -83,7 +86,9 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     // AI copyright checker (owner, 2026-10-10): the client's checks for this contest.
     contestChecks({ id: contest.id, prize: contest.prize, logoScan: contest.logoScan, status: contest.rawStatus }),
   ]);
-  const claim = handover ? await latestClaim(handover.id) : null;
+  const [claim, messages] = handover ? await Promise.all([latestClaim(handover.id), handoverMessages(handover.id, user.id, handover.clientId)]) : [null, []];
+  // Finished: the client can still see everything and download the files, but nothing changes (owner, 2026-10-12).
+  const finished = isFinished(contest.rawStatus);
   const checker = {
     contest: { id: contest.id, slug: contest.slug, brand: contest.brandName },
     designs: entries.filter((e) => e.status !== "rejected").map((e) => ({ id: e.id, number: e.number, coverUrl: e.previews[0] ?? null, designer: e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? null) })),
@@ -239,7 +244,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
 
       {/* C-17 Final files: the handover after a winner is picked (owner, 2026-10-08) */}
       {handover && (
-        <Panel className="max-[720px]:py-6">
+        <Panel id="files" className="scroll-mt-28 max-[720px]:py-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="m-0 text-[clamp(24px,2.8vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("handover.section")}</h2>
             <p className="text-sm text-muted">
@@ -264,6 +269,17 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rating={handover.rating}
             />
           </div>
+          {/* The delivery chat (owner, 2026-10-12): what to change, until the client approves */}
+          {handover.status !== "no_result" && (CHAT_STATUSES.includes(handover.status) || messages.length > 0) && (
+            <div className="mt-5 border-t border-line pt-4">
+              <HandoverChat
+                handoverId={handover.id}
+                viewer="client"
+                open={CHAT_STATUSES.includes(handover.status)}
+                messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
+              />
+            </div>
+          )}
           {/* Copy claim on the winning design (BLUEPRINT §7.6, owner 2026-10-09) */}
           {claimUntil && (claimable || claim) && (
             <div className="mt-5 border-t border-line pt-4">
@@ -354,6 +370,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         rating={e.rating}
                         shortlisted={e.isShortlisted}
                         canAct={reviewing && e.status === "active"}
+                        readOnly={finished}
                         fileDays={fileDays}
                         variant="card"
                         wonHref={withParam(here, `won=${e.number}`)}
@@ -429,13 +446,14 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rating={entry.rating}
               shortlisted={entry.isShortlisted}
               canAct={reviewing && entry.status === "active"}
+              readOnly={finished}
               fileDays={fileDays}
               variant="panel"
               wonHref={withParam(here, `won=${entry.number}`)}
             />
             {/* Like and dislike (owner, 2026-10-11): the client votes on designs in their own contest */}
-            <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote />
-            <EntryComments entryId={entry.id} comments={entry.comments} canComment reason="notAllowed" loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
+            <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!finished} hint={finished ? t("contest.finished") : null} />
+            <EntryComments entryId={entry.id} comments={entry.comments} canComment={!finished} reason={finished ? "finished" : "notAllowed"} loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
           </div>
         </EntryViewer>
       )}

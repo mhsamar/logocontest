@@ -45,6 +45,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   monthly_smartphone_won: "winner",
   monthly_gift_box_won: "winner",
   monthly_claim_reminder: "winner",
+  handover_message: "files",
   contest_closed: "winner",
   monthly_champion: "winner",
   monthly_announced: "winner",
@@ -74,6 +75,8 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   entry_removed: "safety",
   win_cancelled: "safety",
   strike_received: "safety",
+  late_files_strike: "safety",
+  files_missed_banned: "safety",
   account_suspended: "safety",
   account_banned: "safety",
   flag_warning: "safety",
@@ -101,6 +104,9 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   monthly_no_winner: "admin",
   monthly_claimed: "admin",
   gift_address_given: "admin",
+  late_files_admin: "admin",
+  files_missed_admin: "admin",
+  withdrawal_requested_admin: "admin",
 };
 
 const P = {

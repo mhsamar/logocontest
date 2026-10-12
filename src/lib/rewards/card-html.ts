@@ -155,4 +155,45 @@ export function monthlyCardHtml(c: MonthlyCardContent): string {
   });
 }
 
+export type PayoutCardContent = {
+  size: CardSize;
+  origin: string;
+  lang: "en" | "bn";
+  /** "Payment sent" on the pill. */
+  pill: string;
+  kicker: string;
+  name: string;
+  /** "<strong>৳5,000</strong> sent to your bKash", already escaped. */
+  lineHtml: string;
+  /** "৳5,000" on the drawn badge. */
+  amount: string;
+  footer: string;
+  photoUrl: string | null;
+};
+
+/**
+ * The "Payment sent" card (owner, 2026-10-12): when an admin pays a withdrawal, the designer gets this congratulations
+ * card, gold like the gift box card, with a drawn taka badge beside the photo. Private: only the designer sees it.
+ */
+export function payoutCardHtml(c: PayoutCardContent): string {
+  const k = c.size === "story" ? 46 / 34 : 1;
+  const u = (n: number) => `${(n * k).toFixed(2)}cqw`;
+  return cardHtml({
+    size: c.size,
+    origin: c.origin,
+    lang: c.lang,
+    theme: GOLD,
+    pill: c.pill,
+    kicker: c.kicker,
+    name: c.name,
+    lineHtml: c.lineHtml,
+    footer: c.footer,
+    photoUrl: c.photoUrl,
+    art: `<span class="coin"><span class="sym d">৳</span><span class="amt d">${esc(c.amount)}</span></span>`,
+    css: `.coin{position:relative;margin-left:-5cqw;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${u(0.6)};width:${u(30)};height:${u(30)};border-radius:50%;background:linear-gradient(160deg,#A30F0F,#8B0000 60%,#5C0A0C);color:#FFE27A;border:${u(1.4)} solid #D08A1E;box-shadow:0 3cqw 6cqw rgba(92,10,12,.35);transform:rotate(-6deg)}
+.sym{font-size:${u(12)};line-height:1;font-weight:600}
+.amt{max-width:${u(25)};font-size:${u(4)};font-weight:600;letter-spacing:-.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}`,
+  });
+}
+
 export { esc as escapeHtml };

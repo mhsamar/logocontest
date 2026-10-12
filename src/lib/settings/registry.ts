@@ -154,8 +154,9 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 7,
     description: "Pre-selected contest length (days).",
   },
+  // Owner, 2026-10-12: 3 days to pick a winner (was 5).
   "timers.judging_window_days": {
-    group: "timers", type: "int", schema: int(1), default: 5,
+    group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the client has to pick a winner after the contest ends; then it ends with no result and the prize is shared.",
   },
   "timers.repick_window_days": {
@@ -197,9 +198,18 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "New-entry emails to the client are batched over this many hours.",
   },
-  "timers.strike_suspension_days": {
-    group: "timers", type: "int", schema: int(1), default: 14,
-    description: "Suspension length on a second strike (days).",
+  // After a contest (owner, 2026-10-12; migration 0039): no suspensions any more, strikes run out.
+  "timers.strike_expiry_days": {
+    group: "timers", type: "int", schema: int(1, 365), default: 45,
+    description: "Days a strike counts. Strikes older than this no longer count toward a ban.",
+  },
+  "timers.files_strike_hours": {
+    group: "timers", type: "int", schema: int(1, 72), default: 24,
+    description: "Hours the winner has to send the first final files before getting a strike.",
+  },
+  "timers.payout_hold_days": {
+    group: "timers", type: "int", schema: int(0, 30), default: 3,
+    description: "Days after the client approves the files before the prize can be withdrawn.",
   },
 
   // ---- Limits (§6, §7.3, §8.1, §9) ----------------------------------------
@@ -231,9 +241,10 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(1), default: 2,
     description: "Largest stored profile photo in MB, after the browser crops it to 512×512 (users may pick photos of any size).",
   },
+  // Owner, 2026-10-12: changes go on until the client approves.
   "limits.max_revision_requests": {
-    group: "limits", type: "int", schema: int(), default: 2,
-    description: "Change requests a client can make during handover.",
+    group: "limits", type: "int", schema: int(), default: 0,
+    description: "Change requests a client can make during handover. 0 = no limit.",
   },
   // Browse Contests "Big prize" quick filter (owner, 2026-10-11; Design/contest-pages).
   "limits.big_prize_from": {
@@ -284,13 +295,9 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(1), default: 120,
     description: "Most words in the client's feedback when approving the final files.",
   },
-  "limits.strikes_for_suspension": {
-    group: "limits", type: "int", schema: int(1), default: 2,
-    description: "Strikes that trigger a suspension.",
-  },
   "limits.strikes_for_ban": {
     group: "limits", type: "int", schema: int(1), default: 3,
-    description: "Strikes that trigger a permanent ban.",
+    description: "Strikes within the strike days (Timers) that trigger a permanent ban.",
   },
   "limits.false_flag_warnings_for_ban": {
     group: "limits", type: "int", schema: int(1), default: 3,

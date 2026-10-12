@@ -32,7 +32,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 | Copy flags | Any designer can flag an entry as copied, with a reason, a similar-logo image and links. Admin upholds or dismisses |
 | NID verification | Not verified. Owner, 2026-10-09: before their first design, every designer signs the originality agreement with their full name, mobile, address and an ID number (NID, passport or birth certificate), §9.6. The number is stored for legal follow-up, not checked |
 | Funds | Platform holds the client's payment until handover is approved |
-| Payout | Win → deliver files → client approves with a 1–5 star rating and feedback (max 120 words) → wallet credit once the copy-claim days are over and no claim is open (owner, 2026-10-09) → designer withdraws |
+| Payout | Win → deliver files → client approves with a 1–5 star rating and feedback (max 120 words) → wallet credit 3 days after the approval (owner, 2026-10-12; was counted from the winner pick) when no copy claim is open → designer withdraws to bKash (Personal or Agent) or a bank account; an admin pays and the designer gets a "Payment sent" card |
 | AI | AI-generated logos are banned. AI-generated mockups/backgrounds are allowed |
 | Reject | Client can reject any entry to keep the contest clean |
 | Messaging | No direct messaging. Only a comment + reply thread on each entry |
@@ -160,7 +160,7 @@ any state → cancelled (admin only)
 | completed | Wallet credited | — |
 | no_result | Prize shared equally among designers (§2, §7.5) | — |
 
-Timers (all in settings): duration 5/7/10 days (default 7); judging window 5 days; after a missed file deadline the client gets 3 days to pick again; designer must upload files within 3 days; the client must approve or request a change within 5 days of files being submitted, or the contest ends with no result (the 5 days restart each time files are re-submitted); max 2 revision requests.
+Timers (all in settings): duration 5/7/10 days (default 7); judging window 3 days (owner, 2026-10-12; was 5); after a missed file deadline the client gets 3 days to pick again; designer must upload files within 3 days; the client must approve or request a change within 5 days of files being submitted, or the contest ends with no result (the 5 days restart each time files are re-submitted); revision requests have no limit (owner, 2026-10-12: changes go on until the client approves).
 
 Missed file deadline: the winning entry becomes `forfeited`, the handover `cancelled`, and the contest returns to `judging` for 3 days. The client picks another entry (the forfeited one cannot be picked again). If they do not, the contest ends with no result (§2). The designer gets no automatic strike; the client may give one (§10).
 
@@ -219,6 +219,15 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 
 - The wallet is a ledger. Never store a balance without a matching `wallet_transactions` row.
 - Credit happens once, inside a database transaction, when the handover becomes approved (or, for a no-result contest, once per designer share, §7.5).
+- **After a contest (owner, 2026-10-12; migration 0039):**
+  - The client has **3 days** to pick a winner after the contest ends (or picks early while it is open).
+  - The winner must send the first final files within **24 hours** (`timers.files_strike_hours`), or gets **one strike** (once per win); the admins are told with the designer's phone number so they can call or message.
+  - No first files within **3 days** (`timers.designer_file_upload_days`): the win is cancelled, the client picks again, and the designer is **banned for good**, even on a first offence. Only the first delivery has a deadline.
+  - **Strikes** count for **45 days** (`timers.strike_expiry_days`); **3 strikes within that time = permanent ban** (`limits.strikes_for_ban`). There are no suspensions from strikes any more. Removing a strike never lifts a ban.
+  - **Delivery chat**: while the files are being delivered, the client and the winner write to each other on the handover (no phone numbers, emails or links); the client asks for changes as often as needed and the designer sends the files again until the client approves. Read-only afterwards.
+  - The prize is held **3 days from the client's approval** (`timers.payout_hold_days`), and while a copy claim is open; then it reaches the wallet.
+  - **Withdraw**: the amount (or Withdraw all) and the bKash number with **Personal or Agent** (or a saved bank account). The admins are told; they pay by hand and enter the transaction ID until a bKash payout account exists. When paid, the designer gets a notice and a **"Payment sent" picture card** (square and story) on the wallet page, private to them.
+  - A **finished contest** (completed or no result) is read-only for its client too: everything can be seen and the files downloaded, nothing can be rated, liked, commented or changed.
 - **Copy-claim hold (owner, 2026-10-09):** a prize is credited only when the handover is approved **and** `timers.copy_claim_days` (3) days have passed since the winner was picked **and** no copy claim is open. Until then it shows as Pending with the date it becomes available. If the client approves after the hold is over, the credit is immediate; otherwise the lifecycle job credits it when the hold ends (`release_prize_credit`, sets `handovers.credited_at`). No-result shares are not held (no files change hands).
 - Withdrawal: minimum 500; the request deducts the balance immediately. **Payout (owner, 2026-10-08): automatic for bKash** — behind a `PayoutGateway` interface with drivers `fake` (development: pays at once with a FAKE transaction ID, not allowed in production), `manual` (nothing is sent; the request waits for an admin) and `bkash` (bKash disbursement, switched on once the merchant payout credentials are set). Bank withdrawals, and any bKash payout that fails, wait in the admin's withdrawal queue: the admin pays by hand and records the transaction ID, or rejects with a reason. A rejected withdrawal returns the amount (an `adjustment` transaction).
 - Balance = the latest `balance_after`; every change locks the designer's profile row first, so two requests can't spend the same money. Pending = what open handovers will pay (prize − fee) once approved.
@@ -306,7 +315,7 @@ A logged-in client uses **Create Contest** from the dashboard: steps 1–8, then
 - Contest view: entries grid; on each entry: 1–5 stars, comment, shortlist, **Reject**, **Pick winner**
 - **Extend contest** (while open): choose days, see the price, pay; `ends_at` moves only after the payment is confirmed
 - Rejected tab
-- Handover view: download files, Request revision (max 2), or Approve. Approving requires a 1–5 star rating and feedback (max 120 words); only then is the designer paid
+- Handover view: download files, Request revision (no limit, owner 2026-10-12; with the delivery chat), or Approve. Approving requires a 1–5 star rating and feedback (max 120 words); only then is the designer paid
 - Blind contests, after completion: a switch to make the winning logo public
 - Payments list and total spent
 - Profile: name, business name, photo, mobile, email, password, and **Total spent** (sum of paid payments). Total spent is also shown on the client's public profile (§8.4)

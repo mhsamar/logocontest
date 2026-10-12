@@ -34,7 +34,7 @@ export default async function AdminWithdrawalsPage() {
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("admin.withdrawals.to")}</p>
                 <p className="font-mono text-sm text-ink">
                   {w.methodType === "bkash"
-                    ? `bKash ${w.full.bkash_number ?? ""}`
+                    ? `bKash ${w.full.bkash_number ?? ""}${w.full.bkash_kind ? ` · ${t(`wallet.form.${w.full.bkash_kind === "agent" ? "agent" : "personal"}`)}` : ""}`
                     : [w.full.bank_name, w.full.branch, w.full.account_name, w.full.account_number, w.full.routing_number].filter(Boolean).join(" · ")}
                 </p>
                 <p className="mt-1 text-xs text-muted">{t("admin.withdrawals.requested", { date: formatDate(w.createdAt, locale, "short") })}</p>

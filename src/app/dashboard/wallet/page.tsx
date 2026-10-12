@@ -28,6 +28,8 @@ export default async function WalletPage() {
   const taka = (n: number) => formatTaka(n, locale);
   const fmt = (n: number) => formatNumber(n, locale);
   const lastTier = w.tiers.at(-1)?.min_wins ?? 1;
+  // The newest paid withdrawal gets its "Payment sent" card on top (owner, 2026-10-12).
+  const lastPaid = w.withdrawals.find((wd) => wd.status === "paid") ?? null;
   const progress = Math.min(100, Math.round((w.countedWins / Math.max(1, w.next ? w.next.tier.min_wins : lastTier)) * 100));
 
   return (
@@ -120,6 +122,31 @@ export default async function WalletPage() {
 
           {/* Withdrawals */}
           <section>
+            {lastPaid && (
+              <div id="payout-card" className="mb-5 scroll-mt-28 rounded-[24px] bg-[linear-gradient(135deg,#FFF1CF,#FFE2A6)] p-4 sm:p-5">
+                <h2 className="m-0 text-xl font-semibold tracking-[-0.02em] text-ink">{t("payoutCard.title")}</h2>
+                <p className="m-0 mt-1 text-sm text-[#4A3700]">{t("payoutCard.lead")}</p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/cards/payout/${lastPaid.id}/square`}
+                    alt={t("payoutCard.alt", { amount: taka(lastPaid.amount) })}
+                    width={1080}
+                    height={1080}
+                    loading="lazy"
+                    className="aspect-square w-full max-w-[220px] rounded-2xl bg-[#FFDF9C] object-cover shadow-card"
+                  />
+                  <div className="flex flex-col gap-2">
+                    <a href={`/api/cards/payout/${lastPaid.id}/square?download=1`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[image:var(--gradient-red)] px-5 text-[15px] font-bold text-white">
+                      {t("payoutCard.square")}
+                    </a>
+                    <a href={`/api/cards/payout/${lastPaid.id}/story?download=1`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 text-[15px] font-bold text-primary ring-1 ring-line">
+                      {t("payoutCard.story")}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
             <h2 className="m-0 text-[clamp(22px,2.4vw,28px)] font-semibold tracking-[-0.03em] text-ink">{t("wallet.withdrawals")}</h2>
             {w.withdrawals.length === 0 ? (
               <p className="mt-4 text-sm text-muted">—</p>
@@ -135,6 +162,11 @@ export default async function WalletPage() {
                       {wd.destination} · {formatDate(wd.createdAt, locale, "short")}
                     </p>
                     {wd.txnId && <p className="mt-1 font-mono text-xs text-ink">{t("wallet.txn", { id: wd.txnId })}</p>}
+                    {wd.status === "paid" && (
+                      <a href={`/api/cards/payout/${wd.id}/square`} target="_blank" rel="noopener" className="mt-1 inline-block text-sm font-bold text-primary hover:underline">
+                        {t("payoutCard.view")} →
+                      </a>
+                    )}
                     {wd.rejectReason && <p className="mt-1 text-xs text-danger">{t("wallet.reason", { reason: wd.rejectReason })}</p>}
                   </li>
                 ))}

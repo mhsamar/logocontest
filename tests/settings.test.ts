@@ -52,12 +52,16 @@ describe("BLUEPRINT defaults", () => {
   it("timers and limits match §6, §7.3 and §9", () => {
     expect(d("timers.contest_duration_options_days")).toEqual([3, 5, 7, 10, 14, 21, 30]);
     expect(d("timers.contest_duration_default_days")).toBe(7);
-    expect(d("timers.judging_window_days")).toBe(5);
+    expect(d("timers.judging_window_days")).toBe(3); // owner, 2026-10-12
     expect(d("timers.repick_window_days")).toBe(3);
     expect(d("timers.judging_reminder_days")).toEqual([1, 3, 5]);
     expect(d("timers.designer_file_upload_days")).toBe(3);
     expect(d("timers.client_response_days")).toBe(5);
-    expect(d("limits.max_revision_requests")).toBe(2);
+    expect(d("limits.max_revision_requests")).toBe(0); // no limit, owner 2026-10-12
+    expect(d("timers.strike_expiry_days")).toBe(45);
+    expect(d("timers.files_strike_hours")).toBe(24);
+    expect(d("timers.payout_hold_days")).toBe(3);
+    expect(d("limits.strikes_for_ban")).toBe(3);
     expect(d("limits.withdrawal_min")).toBe(500);
     expect([d("limits.entry_min_images"), d("limits.entry_max_images")]).toEqual([1, 8]); // owner, 2026-10-08
     expect(d("limits.entry_image_min_px")).toBe(1000);

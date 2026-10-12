@@ -142,3 +142,27 @@ export async function openHandovers(designerId: string): Promise<{ slug: string;
     return { slug: c?.slug ?? "", brand: c?.brand_name ?? "", status: r.status as HandoverStatus, dueAt: new Date(r.due_at as string), credit: payoutFor(r.prize as number, r.fee_rate as number).credit };
   });
 }
+
+export type HandoverMessage = { id: string; body: string; createdAt: Date; mine: boolean; fromClient: boolean; author: string };
+
+/** The delivery chat, oldest first, for the client or the winner of this handover only. */
+export async function handoverMessages(handoverId: string, viewerId: string, clientId: string): Promise<HandoverMessage[]> {
+  if (!isSupabaseConfigured()) return [];
+  const { data } = await createAdminClient()
+    .from("handover_messages")
+    .select("id, body, created_at, author_id, author:profiles!author_id(name, username)")
+    .eq("handover_id", handoverId)
+    .order("created_at", { ascending: true })
+    .limit(300);
+  return (data ?? []).map((m) => {
+    const a = (Array.isArray(m.author) ? m.author[0] : m.author) as { name: string | null; username: string | null } | null;
+    return {
+      id: m.id as string,
+      body: m.body as string,
+      createdAt: new Date(m.created_at as string),
+      mine: m.author_id === viewerId,
+      fromClient: m.author_id === clientId,
+      author: a?.username ? `@${a.username}` : (a?.name ?? "").trim() || "—",
+    };
+  });
+}

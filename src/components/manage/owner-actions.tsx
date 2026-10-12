@@ -24,6 +24,8 @@ type Props = {
   variant: "card" | "panel";
   /** Where to go after picking this design as the winner: the page with the winner pop-up open. */
   wonHref: string;
+  /** A finished contest (owner, 2026-10-12): the stars only show the rating, and there is no shortlist heart. */
+  readOnly?: boolean;
 };
 
 function StarIcon({ on, className }: { on: boolean; className?: string }) {
@@ -35,7 +37,7 @@ function StarIcon({ on, className }: { on: boolean; className?: string }) {
 }
 
 /** The client's tools on one design (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
-export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant, wonHref }: Props) {
+export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant, wonHref, readOnly = false }: Props) {
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -98,7 +100,14 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
       router.push(wonHref, { scroll: false });
     });
 
-  const starRow = (size: string) => (
+  const starRow = (size: string) =>
+    readOnly ? (
+      <div className="flex items-center gap-1 px-1" role="img" aria-label={t("manage.review.rate", { n: stars })}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <StarIcon key={n} on={stars >= n} className={size} />
+        ))}
+      </div>
+    ) : (
     <div className="flex items-center" onMouseLeave={() => setHover(0)} role="group" aria-label={t("manage.review.rate", { n: stars })}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button
@@ -114,9 +123,9 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
         </button>
       ))}
     </div>
-  );
+    );
 
-  const heartButton = (
+  const heartButton = readOnly ? null : (
     <button
       type="button"
       onClick={toggleHeart}

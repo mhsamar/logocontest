@@ -73,5 +73,12 @@ export const NOTIFICATION_TYPES = [
   "monthly_no_winner",
   "monthly_claimed",
   "monthly_claim_reminder",
+  // After a contest (owner, 2026-10-12): late files, the delivery chat and payouts.
+  "late_files_strike",
+  "files_missed_banned",
+  "late_files_admin",
+  "files_missed_admin",
+  "handover_message",
+  "withdrawal_requested_admin",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

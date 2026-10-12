@@ -14,7 +14,7 @@ import { HANDOVER_FILES_BUCKET } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
 import { driveLinkAccess } from "./drive";
-import { acceptsFile, cleanDriveUrl, countWords, extensionOf, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
+import { acceptsFile, CHAT_STATUSES, cleanDriveUrl, countWords, extensionOf, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -157,9 +157,13 @@ export async function requestHandoverRevision(input: { handoverId: string; note:
   const note = input.note.replace(/\r\n/g, "\n").trim();
   if (note.length < 10 || note.length > 1000) return fail("handover.errors.note");
   if (findContactDetails(note, await blockedTerms())) return fail("contest.comments.contact");
-  const max = await getSetting("limits.max_revision_requests");
-  const { error } = await createAdminClient().rpc("request_handover_revision", { p_handover_id: own.h.id, p_client_id: own.user.id, p_note: note, p_max: max });
+  // 0 = no limit (owner, 2026-10-12: changes go on until the client approves).
+  const max = (await getSetting("limits.max_revision_requests")) || 2_147_483_647;
+  const db = createAdminClient();
+  const { error } = await db.rpc("request_handover_revision", { p_handover_id: own.h.id, p_client_id: own.user.id, p_note: note, p_max: max });
   if (error) return fail("handover.errors.noMoreChanges");
+  // The request also opens the delivery chat, so the designer can answer it there.
+  await db.from("handover_messages").insert({ handover_id: own.h.id, author_id: own.user.id, body: note });
   await notify([own.h.designer_id], "handover_revision", { brand: own.h.contest?.brand_name }, `/dashboard/handover/${own.h.contest?.slug}`, own.user.id);
   refresh();
   return { ok: true };
@@ -170,7 +174,7 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
   const own = await forClient(input.handoverId);
   if (!own) return fail("auth.errors.generic");
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) return fail("handover.errors.rating");
-  const s = await getSettings(["limits.approval_feedback_max_words", "fees.counted_win_min_prize", "fees.counted_win_min_designers", "fees.counted_wins_max_per_client"]);
+  const s = await getSettings(["limits.approval_feedback_max_words", "fees.counted_win_min_prize", "fees.counted_win_min_designers", "fees.counted_wins_max_per_client", "timers.payout_hold_days"]);
   const feedback = input.feedback.replace(/\r\n/g, "\n").trim();
   const words = countWords(feedback);
   if (words === 0 || words > s["limits.approval_feedback_max_words"]) return fail("handover.errors.feedback", { max: s["limits.approval_feedback_max_words"] });
@@ -185,10 +189,38 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
     p_max_per_client: s["fees.counted_wins_max_per_client"],
   });
   if (error) return fail("handover.errors.closed");
-  // Paid now when the copy-claim days are already over; otherwise held until they are (§7.3).
+  // Held for the hold days from now (owner, 2026-10-12), then the nightly job adds it to the wallet.
   const paid = (data as { amount?: number } | null)?.amount;
   const amount = paid ?? payoutFor(own.h.prize, own.h.fee_rate).credit;
-  await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount, stars: input.rating }, "/dashboard/wallet", own.user.id);
+  await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount, stars: input.rating, days: s["timers.payout_hold_days"] }, "/dashboard/wallet", own.user.id);
+  refresh();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// The delivery chat (owner, 2026-10-12): the client says what is needed, the designer answers and sends the files
+// again, until the client approves. Only these two people, only while the files are being delivered.
+// ---------------------------------------------------------------------------
+
+export async function postHandoverMessage(input: { handoverId: string; body: string }): Promise<{ ok: true } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const user = await getCurrentUser();
+  const h = await loadHandover(input.handoverId);
+  if (!user || user.status !== "active" || !h || (user.id !== h.designer_id && user.id !== h.contest?.client_id)) return fail("auth.errors.generic");
+  if (!CHAT_STATUSES.includes(h.status)) return fail("handover.chat.closed");
+  const body = input.body.replace(/\r\n/g, "\n").trim();
+  if (body.length < 1 || body.length > 1000) return fail("handover.chat.length");
+  if (findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
+  const { error } = await createAdminClient().from("handover_messages").insert({ handover_id: h.id, author_id: user.id, body });
+  if (error) return fail("auth.errors.generic");
+  const toClient = user.id === h.designer_id;
+  await notify(
+    [toClient ? h.contest!.client_id : h.designer_id],
+    "handover_message",
+    { brand: h.contest?.brand_name, name: user.name },
+    toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
+    user.id,
+  );
   refresh();
   return { ok: true };
 }

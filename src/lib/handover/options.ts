@@ -60,3 +60,6 @@ export type HandoverStatus = "awaiting_files" | "submitted" | "revision_requeste
 export function trackerStep(status: HandoverStatus): 1 | 2 | 3 | 4 {
   return status === "approved" ? 4 : status === "submitted" ? 3 : status === "revision_requested" ? 2 : 1;
 }
+
+/** The delivery chat is open while the files are being delivered (owner, 2026-10-12); afterwards it is read-only. */
+export const CHAT_STATUSES: readonly string[] = ["awaiting_files", "submitted", "revision_requested"];
