@@ -853,7 +853,7 @@ const en = {
       r2: "No AI-made logos.",
       r3: "Never share contact details or contact clients outside the site.",
       r4: "Winners deliver the source files on time.",
-      r5: "Copying someone else's logo can mean a fine, a permanent ban and legal action.",
+      r5: "Copying someone else's logo means a fine or a permanent ban, and logocontest.bd will take legal action.",
       accept: "I agree to the Designer Rules",
       readAll: "Read the full Designer Rules",
     },

@@ -10,7 +10,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     summary: [
       "logocontest.bd runs logo design contests: a client pays a prize, designers send designs, the client picks a winner and gets the files and the copyright.",
       "Payments are non-refundable (see the Payment & No-Refund Policy).",
-      "Designers must send only their own original work. Copying can lead to a fine, a ban and legal action.",
+      "Designers must send only their own original work. Copying leads to a fine or a ban, and logocontest.bd will take legal action.",
       "No contact details and no dealing outside the site.",
     ],
     sections: [
@@ -94,7 +94,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "law",
         heading: "Law and disputes",
         blocks: [
-          "These terms follow the laws of Bangladesh. If there is a problem, please contact us first so we can try to solve it. If it cannot be solved, the courts of Bangladesh will decide.",
+          "If there is a problem, please contact us first so we can solve it together. If someone breaks these terms, copies designs or commits fraud, logocontest.bd will take legal action.",
         ],
       },
       {
@@ -293,7 +293,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
       "No contact details, no dealing outside the site.",
       "If you win, send the final files within {strikeHours} hours (or get a strike), and never later than {upload} days (or your account is banned).",
       "{ban} strikes within {strikeDays} days mean a permanent ban. There is no suspension.",
-      "Copying can mean a fine, a permanent ban and legal action.",
+      "Copying means a fine or a permanent ban, and logocontest.bd will take legal action.",
     ],
     sections: [
       {
@@ -314,7 +314,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "agreement",
         heading: "The originality agreement",
         blocks: [
-          "Before your first design you sign a one-time originality agreement with your full name, mobile number, address and an ID number (NID, passport or birth certificate). You promise that your designs are your own work and accept that if a copied design is found after you win, legal action may be taken against you under the laws of Bangladesh. See the Privacy Policy for how your ID number is protected.",
+          "Before your first design you sign a one-time originality agreement with your full name, mobile number, address and an ID number (NID, passport or birth certificate). You promise that your designs are your own work and accept that if a copied design is found after you win, logocontest.bd will take legal action. See the Privacy Policy for how your ID number is protected.",
         ],
       },
       {
@@ -343,7 +343,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         heading: "Reports and copied designs",
         blocks: [
           "Clients and designers can report a design as copied, AI-made or breaking the rules. Admins check every report. A design proven to be copied is removed.",
-          "If the winning design is proven to be copied, our admin talks with you and decides one of: a correction (you must send corrected files), a fine (taken from your wallet) or a permanent ban. In every case the win can be cancelled and the prize withheld, and legal action may be taken.",
+          "If the winning design is proven to be copied, our admin talks with you and decides one of: a correction (you must send corrected files), a fine (taken from your wallet) or a permanent ban. In every case the win can be cancelled and the prize withheld, and logocontest.bd will take legal action.",
         ],
       },
       {
@@ -380,8 +380,8 @@ export const AGREEMENT_EN: AgreementText = {
     "I do not use any trademark or famous brand element, or any font or image I am not allowed to use commercially.",
     "If I win, I will deliver the final files on time and transfer the full copyright of the winning design to the client.",
     "If any design I submit is found to be copied or to break someone else's copyright, including after I have won, logocontest.bd may remove the design, cancel my win, withhold my prize, fine me, and ban my account.",
-    "If a copied design is found after I win, I understand that legal action may be taken against me under the laws of Bangladesh, and that I am responsible for any loss caused to the client or to logocontest.bd.",
-    "The name, mobile number, address and ID number I have given are true and my own. logocontest.bd may use them to contact me and, if needed, in legal action about my work.",
+    "If a copied design is found after I win, I understand that logocontest.bd will take legal action.",
+    "The name, mobile number, address and ID number I have given are true and my own. logocontest.bd may use them to contact me and, if needed, when it takes legal action.",
   ],
   closing: "I sign this agreement by typing my full name below. The date, time and my IP address are recorded with my signature.",
 };
