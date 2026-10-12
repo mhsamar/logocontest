@@ -1,5 +1,6 @@
 import "server-only";
 import { getPaymentGateway, type PaymentGateway } from "@/lib/payments";
+import { getService } from "@/lib/services/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPricingConfig } from "./pricing-config";
 import { ContestService } from "./service";
@@ -26,5 +27,6 @@ export function contestService() {
     repo: contestRepository(),
     pricing: getPricingConfig,
     gateway: lazyGateway,
+    serviceDef: getService,
   });
 }

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { PaymentGateway, PaymentMethod } from "@/lib/payments/gateway";
-import { cleanBrief, validateBrief, type Brief, type Order } from "./brief";
+import { cleanAnswers, isLogo, LIMITS as SERVICE_LIMITS, type Answers, type ServiceDef } from "@/lib/services/types";
+import { cleanBrief, emptyBrief, validateBrief, type Brief, type Order } from "./brief";
 import { calculatePrice, validateOrder, type PricingConfig } from "./pricing";
 
 export type ContestStatus =
@@ -24,6 +25,9 @@ export type ContestRecord = {
   brief: Brief;
   order: Order;
   amounts: Amounts;
+  /** Contest service (owner, 2026-10-13): "logo", or another service with its own brief answers. */
+  service: string;
+  serviceBrief: Answers;
   startsAt: Date | null;
   endsAt: Date | null;
   createdAt: Date;
@@ -42,7 +46,10 @@ export type PaymentRecord = {
   paidAt: Date | null;
 };
 
-export type DraftData = { brief: Brief; order: Order; amounts: Amounts };
+export type DraftData = { brief: Brief; order: Order; amounts: Amounts; service?: string; serviceBrief?: Answers; finalTypes?: string[] };
+
+/** A non-logo contest's service and the client's answers to its questions. */
+export type ServiceInput = { slug: string; answers: unknown };
 
 /**
  * Persistence for contests and payments. confirmPayment and failPayment must
@@ -85,10 +92,13 @@ export class ContestService {
       pricing: () => Promise<PricingConfig>;
       gateway: PaymentGateway;
       slug?: (brandName: string) => string;
+      /** Looks up a contest service (Admin → Services); needed for non-logo contests. */
+      serviceDef?: (slug: string) => Promise<ServiceDef | null>;
     },
   ) {}
 
-  private async prepare(brief: Brief, order: Order): Promise<DraftData | "invalid_brief" | "invalid_order"> {
+  private async prepare(brief: Brief, order: Order, svc?: ServiceInput | null): Promise<DraftData | "invalid_brief" | "invalid_order"> {
+    if (svc && !isLogo(svc.slug)) return this.prepareService(brief, order, svc);
     const clean = cleanBrief(brief);
     if (Object.keys(validateBrief(clean)).length > 0) return "invalid_brief";
     const cfg = await this.deps.pricing();
@@ -106,14 +116,46 @@ export class ContestService {
     };
   }
 
+  /**
+   * A non-logo contest (owner, 2026-10-13): a title and a short description (kept in the brand name and description
+   * columns), the answers to the service's own questions, and a custom prize from the service's minimum. The service
+   * must be on.
+   */
+  private async prepareService(brief: Brief, order: Order, svc: ServiceInput): Promise<DraftData | "invalid_brief" | "invalid_order"> {
+    const def = await this.deps.serviceDef?.(svc.slug);
+    if (!def || !def.on || def.builtIn) return "invalid_brief";
+    const title = (brief.brandName ?? "").trim().replace(/\s+/g, " ");
+    const description = (brief.businessDescription ?? "").trim();
+    if (title.length < SERVICE_LIMITS.title.min || title.length > SERVICE_LIMITS.title.max) return "invalid_brief";
+    if (description.length < SERVICE_LIMITS.description.min || description.length > SERVICE_LIMITS.description.max) return "invalid_brief";
+    const { answers, errors } = cleanAnswers(def, svc.answers);
+    if (Object.keys(errors).length > 0) return "invalid_brief";
+    const base = await this.deps.pricing();
+    const cfg: PricingConfig = { ...base, customMin: def.minPrize };
+    // Packages are logo prizes; other services always set their own prize. No AI logo checker for them.
+    const cleanOrder: Order = { ...order, package: "custom", upgrades: { ...order.upgrades, logo_scan: false } };
+    if (validateOrder(cleanOrder, cfg)) return "invalid_order";
+    const price = calculatePrice(cleanOrder, cfg);
+    return {
+      brief: { ...emptyBrief(), brandName: title, businessType: "other", businessDescription: description, noWebsite: true },
+      order: cleanOrder,
+      amounts: { prize: price.prize, serviceFee: price.serviceFee, upgrades: price.upgradesTotal, total: price.total },
+      service: def.slug,
+      serviceBrief: answers,
+      // The final files are fixed when the contest is made, so a later change to the service doesn't move the goalposts.
+      finalTypes: def.finalTypes,
+    };
+  }
+
   /** Creates or updates the client's server-side draft. */
   async saveDraft(
     clientId: string,
     brief: Brief,
     order: Order,
     contestId?: string | null,
+    svc?: ServiceInput | null,
   ): Promise<{ ok: true; contest: ContestRecord } | Fail<"invalid_brief" | "invalid_order" | "not_found" | "not_editable">> {
-    const data = await this.prepare(brief, order);
+    const data = await this.prepare(brief, order, svc);
     if (typeof data === "string") return { ok: false, error: data };
 
     if (!contestId) {
@@ -139,7 +181,7 @@ export class ContestService {
     if (!EDITABLE.includes(contest.status)) return { ok: false, error: "not_editable" };
 
     // Re-price with the current settings before charging.
-    const data = await this.prepare(contest.brief, contest.order);
+    const data = await this.prepare(contest.brief, contest.order, isLogo(contest.service) ? null : { slug: contest.service, answers: contest.serviceBrief });
     if (typeof data === "string") return { ok: false, error: data };
     const fresh = await this.deps.repo.updateDraft(contest.id, data);
 

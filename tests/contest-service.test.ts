@@ -10,6 +10,7 @@ import {
   type PaymentRecord,
 } from "@/lib/contests/service";
 import { FakeGateway } from "@/lib/payments/fake-gateway";
+import { DEFAULT_SERVICES } from "@/lib/services/types";
 import { validBrief } from "./fixtures";
 
 /** Mirrors the rules of confirm_contest_payment / fail_contest_payment (migration 0004). */
@@ -25,7 +26,7 @@ class MemoryRepo implements ContestRepository {
     return structuredClone(this.contests.get(id) ?? null);
   }
   async insertDraft(clientId: string, slug: string, d: DraftData) {
-    const c: ContestRecord = { id: this.id(), clientId, slug, status: "draft", ...d, startsAt: null, endsAt: null, createdAt: this.now() };
+    const c: ContestRecord = { id: this.id(), clientId, slug, status: "draft", ...d, service: d.service ?? "logo", serviceBrief: d.serviceBrief ?? {}, startsAt: null, endsAt: null, createdAt: this.now() };
     this.contests.set(c.id, c);
     return structuredClone(c);
   }
@@ -255,5 +256,45 @@ describe("ContestService", () => {
         error: "not_found",
       });
     });
+  });
+});
+
+describe("ContestService · other contest services (owner, 2026-10-13)", () => {
+  const thumb = DEFAULT_SERVICES.find((x) => x.slug === "youtube_thumbnail")!;
+  const make = (on: boolean) => {
+    const repo = new MemoryRepo(() => new Date("2026-10-13T10:00:00Z"));
+    const svc = new ContestService({ repo, gateway: new FakeGateway("t"), pricing: async () => ({ ...cfg }), slug: () => "my-channel-abc123", serviceDef: async (slug) => (slug === thumb.slug ? { ...thumb, on } : null) });
+    return { repo, svc };
+  };
+  const brief = { ...validBrief(), brandName: "My Channel", businessDescription: "A thumbnail for my cooking video about Bangla food." };
+  const answers = { video_title: "Easy beef curry", audience: "Home cooks" };
+  const o = (prize: number): Order => ({ package: "custom", customPrize: prize, durationDays: 3, upgrades: { ...noUpgrades(), logo_scan: true } });
+
+  it("saves a service draft with its answers, its own minimum prize and final files, and no logo checker", async () => {
+    const { svc } = make(true);
+    const r = await svc.saveDraft(CLIENT, brief, o(1500), null, { slug: thumb.slug, answers });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.contest.service).toBe("youtube_thumbnail");
+    expect(r.contest.serviceBrief).toEqual(answers);
+    expect(r.contest.order.upgrades.logo_scan).toBe(false);
+    expect(r.contest.amounts.prize).toBe(1500);
+    expect(r.contest.brief.styles).toEqual([]);
+  });
+
+  it("refuses a prize under the service's minimum, missing answers, or a service that is off", async () => {
+    const { svc } = make(true);
+    expect(await svc.saveDraft(CLIENT, brief, o(500), null, { slug: thumb.slug, answers })).toEqual({ ok: false, error: "invalid_order" });
+    expect(await svc.saveDraft(CLIENT, brief, o(1500), null, { slug: thumb.slug, answers: { video_title: "x" } })).toEqual({ ok: false, error: "invalid_brief" });
+    const off = make(false);
+    expect(await off.svc.saveDraft(CLIENT, brief, o(1500), null, { slug: thumb.slug, answers })).toEqual({ ok: false, error: "invalid_brief" });
+  });
+
+  it("checks the service brief again at checkout", async () => {
+    const { svc } = make(true);
+    const r = await svc.saveDraft(CLIENT, brief, o(1500), null, { slug: thumb.slug, answers });
+    if (!r.ok) throw new Error(r.error);
+    const pay = await svc.startCheckout({ clientId: CLIENT, contestId: r.contest.id, method: "bkash", customer });
+    expect(pay.ok).toBe(true);
   });
 });

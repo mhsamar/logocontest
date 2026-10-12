@@ -7,6 +7,7 @@ import { cx } from "@/lib/cx";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills, contestTitle } from "./contest-bits";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { SaveButton } from "./save-button";
+import { categoryLabel } from "@/lib/contests/browse-query";
 
 /**
  * P-02 list row (UI-JOURNEY, second reference): big tile, name with package
@@ -16,7 +17,7 @@ import { SaveButton } from "./save-button";
 export async function ContestRow({ contest, now, saved }: { contest: Row; now: Date; saved?: boolean }) {
   const { t, locale } = await getI18n();
   const title = contestTitle(contest, t);
-  const meta = [t(`wizard.businessTypes.${contest.businessType}`), contest.startsAt && t("browse.started", { ago: timeAgo(contest.startsAt, now, locale) })]
+  const meta = [categoryLabel(contest, t, locale), contest.startsAt && t("browse.started", { ago: timeAgo(contest.startsAt, now, locale) })]
     .filter(Boolean)
     .join(" · ");
 

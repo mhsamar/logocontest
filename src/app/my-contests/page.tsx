@@ -13,6 +13,7 @@ import type { Translate } from "@/lib/i18n/translate";
 import type { Locale } from "@/lib/i18n/config";
 import { aiConfigured } from "@/lib/logo-check/ai";
 import { contestChecks } from "@/lib/logo-check/queries";
+import { contestServiceInfo } from "@/lib/services/contest-service";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { offersOn } from "@/lib/rewards/program";
 
@@ -82,11 +83,13 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
     .sort((a, b) => (sort === "action" ? rank(a) - rank(b) || newest(a, b) : sort === "ending" ? ends(a) - ends(b) || newest(a, b) : newest(a, b)));
 
   // The AI logo check line: only while the checker is really running, for contests that can still use a free check.
+  // Logo contests only (owner, 2026-10-13: other contest services have no AI logo check).
+  const services = aiConfigured() ? await contestServiceInfo(list.filter((c) => stateOf(c.status) === "pick").map((c) => c.id)) : new Map();
   const checks = aiConfigured()
     ? new Map(
         await Promise.all(
           list
-            .filter((c) => stateOf(c.status) === "pick")
+            .filter((c) => stateOf(c.status) === "pick" && (services.get(c.id)?.service ?? "logo") === "logo")
             .map(async (c) => [c.id, await contestChecks({ id: c.id, prize: c.prize, logoScan: c.logoScan, status: c.status })] as const),
         ),
       )

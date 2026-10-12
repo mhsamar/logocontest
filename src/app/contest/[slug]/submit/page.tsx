@@ -13,6 +13,9 @@ import { getContestBySlug } from "@/lib/contests/browse";
 import { getI18n } from "@/lib/i18n/server";
 import { suspendedError } from "@/lib/moderation/suspension";
 import { getSetting } from "@/lib/settings";
+import { ServiceBrief } from "@/components/services/service-brief";
+import { getService } from "@/lib/services/store";
+import { isLogo } from "@/lib/services/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -36,12 +39,16 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   const open = contest.status === "open" && (!contest.endsAt || contest.endsAt > new Date());
   const blocked = held ? "suspended" : !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : null;
 
-  const [min, max, px, mb] = await Promise.all([
+  const [min, siteMax, px, siteMb] = await Promise.all([
     getSetting("limits.entry_min_images"),
     getSetting("limits.entry_max_images"),
     getSetting("limits.entry_image_min_px"),
     getSetting("limits.entry_image_max_mb"),
   ]);
+  // A non-logo contest (owner, 2026-10-13): its own upload limits, and what to make, shown above the form.
+  const svc = isLogo(contest.service) ? null : await getService(contest.service);
+  const max = svc ? Math.min(siteMax, svc.maxImages) : siteMax;
+  const mb = svc ? svc.maxMb : siteMb;
 
   return (
     <PageShell>
@@ -58,7 +65,14 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
               action={<ButtonLink href={`/contest/${contest.slug}`}>{t("submit.back")}</ButtonLink>}
             />
           ) : (
-            <SubmitForm contestId={contest.id} slug={contest.slug} limits={{ min, max: Math.min(max, 8), px, mb }} />
+            <>
+              {svc && contest.brief && (
+                <div className="mb-5">
+                  <ServiceBrief service={svc} answers={contest.serviceBrief} full />
+                </div>
+              )}
+              <SubmitForm contestId={contest.id} slug={contest.slug} limits={{ min, max: Math.min(max, 8), px, mb }} />
+            </>
           )}
         </div>
       </Panel>

@@ -9,6 +9,7 @@ import { formatNumber, formatTaka } from "@/lib/money";
 import { BrandTile, ContestNumber, PackagePill } from "./contest-bits";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { SaveButton } from "./save-button";
+import { categoryLabel } from "@/lib/contests/browse-query";
 
 /**
  * Browse Contests cards (owner, 2026-10-11; Design/contest-pages). Paid add-ons show together: Featured = gold
@@ -129,7 +130,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 export function ContestCard({ c, t, locale, now, designer, facts, saved }: Ctx & { c: ContestRow; designer: boolean; facts?: DesignerFacts; saved?: boolean }) {
   const hidden = isHidden(c, facts?.unlocked);
   const title = hidden ? t("home.card.privateTitle") : c.brandName;
-  const meta = [t(`wizard.businessTypes.${c.businessType}`), c.startsAt && t("browse.started", { ago: timeAgo(c.startsAt, now, locale) })].filter(Boolean).join(" · ");
+  const meta = [categoryLabel(c, t, locale), c.startsAt && t("browse.started", { ago: timeAgo(c.startsAt, now, locale) })].filter(Boolean).join(" · ");
   const label = designer && c.status === "open" ? t("browse.x.viewSubmit") : t("browse.x.view");
   const fmt = (n: number) => formatNumber(n, locale);
   return (
@@ -242,7 +243,7 @@ export function FeaturedContestCard({ c, t, locale, now, designer }: Ctx & { c: 
                 {hidden ? t("home.card.privateTitle") : c.brandName}
               </Link>
             </h3>
-            <span className="text-[14.5px] text-muted">{t(`wizard.businessTypes.${c.businessType}`)}</span>
+            <span className="text-[14.5px] text-muted">{categoryLabel(c, t, locale)}</span>
           </div>
           <div className="flex max-w-[56%] flex-wrap justify-end gap-1.5">
             <AddonBadges c={c} t={t} now={now} featured={false} />

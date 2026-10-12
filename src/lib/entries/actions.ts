@@ -20,6 +20,9 @@ import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
 import { isFinished } from "@/lib/contests/public-statuses";
+import { contestServiceInfo } from "@/lib/services/contest-service";
+import { getService } from "@/lib/services/store";
+import { isLogo } from "@/lib/services/types";
 import { ENTRY_FILES_BUCKET } from "./queries";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES } from "./rules";
@@ -34,6 +37,14 @@ async function openContest(contestId: string) {
   const { data } = await createAdminClient().from("contests").select("id, slug, status, ends_at, client_id, brand_name, is_nda").eq("id", contestId).maybeSingle();
   if (!data || data.status !== "open" || (data.ends_at && new Date(data.ends_at) <= new Date())) return null;
   return { id: data.id as string, slug: data.slug as string, ownerId: data.client_id as string, brand: data.brand_name as string, isNda: Boolean(data.is_nda) };
+}
+
+/** A non-logo contest's own upload rules (owner, 2026-10-13: Admin → Services); null for logo contests. */
+async function serviceUploadRules(contestId: string): Promise<{ types: string[]; maxMb: number; maxImages: number } | null> {
+  const info = (await contestServiceInfo([contestId])).get(contestId);
+  if (!info || isLogo(info.service)) return null;
+  const def = await getService(info.service);
+  return def ? { types: def.entryTypes, maxMb: def.maxMb, maxImages: def.maxImages } : null;
 }
 
 const originalPattern = (contestId: string, userId: string) => new RegExp(`^originals/${contestId}/${userId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`);
@@ -51,7 +62,9 @@ export async function prepareEntryImageUpload(input: { contestId: string; type: 
   if (!(await hasSignedAgreement(user!.id))) return fail("agreement.errors.required");
   const ext = ENTRY_IMAGE_TYPES[input.type];
   if (!ext) return fail("submit.errors.type");
-  const mb = await getSetting("limits.entry_image_max_mb");
+  const rules = await serviceUploadRules(contest.id);
+  if (rules && !rules.types.includes(ext)) return fail("submit.errors.type");
+  const mb = rules?.maxMb ?? (await getSetting("limits.entry_image_max_mb"));
   if (input.size <= 0 || input.size > mb * 1024 * 1024) return fail("submit.errors.fileSize", { mb });
   const upload = await getFileStorage().createUploadUrl(ENTRY_FILES_BUCKET, `originals/${contest.id}/${user!.id}/${randomUUID()}.${ext}`);
   return { ok: true, ...upload };
@@ -86,13 +99,15 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
   if (!(await hasSignedAgreement(user!.id))) return fail("agreement.errors.required");
 
-  const [minImages, maxImages, px, previewPx, maxPerDesigner] = await Promise.all([
+  const [minImages, siteMaxImages, px, previewPx, maxPerDesigner, rules] = await Promise.all([
     getSetting("limits.entry_min_images"),
     getSetting("limits.entry_max_images"),
     getSetting("limits.entry_image_min_px"),
     getSetting("limits.entry_preview_max_px"),
     getSetting("limits.max_entries_per_designer"),
+    serviceUploadRules(contest.id),
   ]);
+  const maxImages = rules ? Math.min(siteMaxImages, rules.maxImages) : siteMaxImages;
   const labelOf = new Map(input.paths.map((p, i) => [p, String(input.labels?.[i] ?? "").replace(/\s+/g, " ").trim()]));
   const paths = [...new Set(input.paths)];
   if (paths.length < minImages) return fail("submit.errors.minImages", { min: minImages });

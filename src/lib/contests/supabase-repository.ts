@@ -45,6 +45,9 @@ type ContestRow = {
   is_urgent: boolean;
   is_nda: boolean;
   logo_scan: boolean;
+  /** Migration 0045; missing (undefined) before it ran. */
+  service?: string | null;
+  service_brief?: Record<string, string | string[]> | null;
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;
@@ -109,6 +112,8 @@ export function toContestRecord(r: ContestRow): ContestRecord {
       },
     },
     amounts: { prize: r.prize_amount, serviceFee: r.service_fee_amount, upgrades: r.upgrades_amount, total: r.total_amount },
+    service: r.service || "logo",
+    serviceBrief: r.service_brief ?? {},
     startsAt: date(r.starts_at),
     endsAt: date(r.ends_at),
     createdAt: new Date(r.created_at),
@@ -141,8 +146,10 @@ export function briefDetailColumns(brief: Brief) {
   };
 }
 
-function columns({ brief, order, amounts }: DraftData) {
+function columns({ brief, order, amounts, service, serviceBrief, finalTypes }: DraftData) {
   return {
+    // Only non-logo contests write these (migration 0045), so logo drafts keep working without it.
+    ...(service && service !== "logo" ? { service, service_brief: serviceBrief ?? {}, final_types: finalTypes ?? null } : {}),
     brand_name: brief.brandName,
     logo_text: brief.logoText || null,
     slogan: brief.slogan || null,

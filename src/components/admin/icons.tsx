@@ -1,5 +1,12 @@
 /** Line icons of the admin design (design/admin/*.html), 24×24, stroked with the current colour. */
 const PATHS = {
+  // Contest services (owner, 2026-10-13): stacked cards.
+  services: (
+    <>
+      <rect x="3.5" y="9" width="17" height="11.5" rx="2.5" />
+      <path d="M6 5.8h12M8.5 2.8h7" />
+    </>
+  ),
   dashboard: (
     <>
       <rect x="3.5" y="3.5" width="7" height="8" rx="2" />

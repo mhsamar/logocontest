@@ -5,6 +5,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { cx } from "@/lib/cx";
 import { BrandTile, ContestNumber, HighlightBadge, PackagePill, PRIZE_TEXT, StatusLine, UrgentBadge, contestTitle } from "./contest-bits";
+import { categoryLabel } from "@/lib/contests/browse-query";
 
 /**
  * Contest card (UI-JOURNEY §1.3), used in grids such as the home page. Private
@@ -64,7 +65,7 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
             {contestTitle(contest, t)}
           </Link>
         </h3>
-        <p className="m-0 truncate text-[15px] text-muted">{t(`wizard.businessTypes.${contest.businessType}`)}</p>
+        <p className="m-0 truncate text-[15px] text-muted">{categoryLabel(contest, t, locale)}</p>
 
         <div className="mt-auto border-t border-line-soft pt-3.5">
           <div className="flex items-end justify-between gap-2">

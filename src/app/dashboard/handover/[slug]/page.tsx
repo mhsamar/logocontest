@@ -11,7 +11,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { latestClaim } from "@/lib/claims/queries";
 import { CHAT_STATUSES } from "@/lib/handover/options";
+import { HANDOVER_TYPES, type RequiredFileType } from "@/lib/handover/options";
 import { getDesignerHandover, handoverMessages } from "@/lib/handover/queries";
+import { contestServiceInfo } from "@/lib/services/contest-service";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
 import { getSetting } from "@/lib/settings";
@@ -28,6 +30,9 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/dashboard/handover/${slug}`)}`);
   const h = await getDesignerHandover(slug, user.id);
   if (!h) notFound();
+  // The final files this contest needs (owner, 2026-10-13: other contest services set their own list).
+  const finalTypes = h ? (await contestServiceInfo([h.contestId])).get(h.contestId)?.finalTypes : null;
+  const required = (finalTypes ?? HANDOVER_TYPES).filter((x): x is RequiredFileType => (HANDOVER_TYPES as readonly string[]).includes(x));
   const [{ t, locale }, maxMb, claim, strikeHours, messages, suspendHours] = await Promise.all([
     getI18n(),
     getSetting("limits.handover_file_max_mb"),
@@ -105,6 +110,7 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
               extrasAsked={h.deliverables.map((d) => t(`wizard.deliverables.${d}.title`))}
               fontsNote={h.fontsNote ?? ""}
               maxMb={maxMb}
+              required={required}
             />
           </div>
 

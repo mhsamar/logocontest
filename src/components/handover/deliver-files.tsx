@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, TextAreaField } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { prepareHandoverUpload, recordHandoverFile, removeHandoverFile, saveHandoverLink, submitHandover } from "@/lib/handover/actions";
-import { acceptAttr, HANDOVER_FILES_BUCKET, HANDOVER_TYPES, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "@/lib/handover/options";
+import { acceptAttr, HANDOVER_FILES_BUCKET, HANDOVER_TYPES, isLinkType, MAX_EXTRA_FILES, type HandoverFileType, type RequiredFileType } from "@/lib/handover/options";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -24,7 +24,10 @@ export function DeliverFiles({
   extrasAsked,
   fontsNote,
   maxMb,
+  required = HANDOVER_TYPES,
 }: {
+  /** The final files this contest needs (owner, 2026-10-13: other contest services ask for fewer); logo: all six. */
+  required?: readonly RequiredFileType[];
   handoverId: string;
   editable: boolean;
   files: FileItem[];
@@ -42,7 +45,7 @@ export function DeliverFiles({
   const [sending, start] = useTransition();
   const inputs = useRef<Partial<Record<HandoverFileType, HTMLInputElement | null>>>({});
   const extras = files.filter((f) => f.type === "extra");
-  const ready = HANDOVER_TYPES.every((type) => files.some((f) => f.type === type));
+  const ready = required.every((type) => files.some((f) => f.type === type));
 
   const upload = async (type: HandoverFileType, file: File) => {
     setError(null);
@@ -131,9 +134,9 @@ export function DeliverFiles({
     <div className="space-y-6">
       <section>
         <h2 className="text-lg font-bold text-ink">{t("handover.deliver.title")}</h2>
-        <p className="mt-0.5 text-sm text-muted">{t("handover.deliver.help", { mb: maxMb })}</p>
-        <p className="mt-2 rounded-[14px] bg-[#e8f1ff] px-3.5 py-2.5 text-sm text-[#1d4ed8] ring-1 ring-[#bcd0ff]">{t("handover.deliver.driveHelp")}</p>
-        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">{HANDOVER_TYPES.map((type) => slot(type, files.find((f) => f.type === type)))}</ul>
+        <p className="mt-0.5 text-sm text-muted">{t(required.length === HANDOVER_TYPES.length ? "handover.deliver.help" : "handover.deliver.helpSome", { mb: maxMb })}</p>
+        {required.some((x) => isLinkType(x)) && <p className="mt-2 rounded-[14px] bg-[#e8f1ff] px-3.5 py-2.5 text-sm text-[#1d4ed8] ring-1 ring-[#bcd0ff]">{t("handover.deliver.driveHelp")}</p>}
+        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">{required.map((type) => slot(type, files.find((f) => f.type === type)))}</ul>
       </section>
 
       {extrasAsked.length > 0 && (

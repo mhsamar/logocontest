@@ -295,7 +295,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
       )}
 
       {/* Review designs on the left, add-ons in a sidebar on the right (owner, 2026-10-08) */}
-      <CheckerProvider setup={checker} lens={checker.lens}>
+      {/* The AI logo checker is for logo contests only (owner, 2026-10-13: other contest services). */}
+      <CheckerProvider setup={contest.service === "logo" ? checker : null} lens={checker.lens}>
       <Panel tone="grey" className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] max-[720px]:py-6">
         <section className="min-w-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

@@ -1,4 +1,5 @@
 import { BUSINESS_TYPES, type BusinessType } from "./brief";
+import type { MessageKey, Translate } from "@/lib/i18n/translate";
 
 /** P-02 status tabs (UI-JOURNEY). Each tab covers one or more contest statuses. */
 export const BROWSE_TABS = ["open", "judging", "completed"] as const;
@@ -108,4 +109,10 @@ export function contestTimeline(
     // Handover has no fixed end until a winner is picked.
     phase(2, "handover", 0.5, null),
   ];
+}
+
+/** A contest card's category: the service name for non-logo contests (owner, 2026-10-13), else the business type. */
+export function categoryLabel(c: { kind: { en: string; bn: string } | null; businessType: string }, t: Translate, locale: string): string {
+  if (c.kind) return locale === "bn" ? c.kind.bn || c.kind.en : c.kind.en;
+  return t(`wizard.businessTypes.${c.businessType}` as MessageKey);
 }

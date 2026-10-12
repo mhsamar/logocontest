@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContestBrief } from "@/components/contests/contest-brief";
+import { ServiceBrief } from "@/components/services/service-brief";
 import { NdaGate } from "@/components/contests/nda-gate";
 import { BrandTile, ContestBadges, ContestNumber, LockIcon, contestTitle } from "@/components/contests/contest-bits";
 import { ContestComments } from "@/components/contests/contest-comments";
@@ -37,6 +38,8 @@ import { contestIndexable, openGraphFor } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { suspendedError } from "@/lib/moderation/suspension";
+import { getService } from "@/lib/services/store";
+import { isLogo, type Lang } from "@/lib/services/types";
 import { getSetting } from "@/lib/settings";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 
@@ -77,6 +80,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const contest = await getContestBySlug(slug, user);
   if (!contest) notFound();
+  // A non-logo contest (owner, 2026-10-13) shows its service and the answers to its questions instead of the logo brief.
+  const svc = isLogo(contest.service) ? null : await getService(contest.service);
+  const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
 
   const now = new Date();
   const action = primaryAction(contest, user, t);
@@ -148,7 +154,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{t(`wizard.businessTypes.${contest.businessType}`)}</span>
                 <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">
-                  {t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}
+                  {svc ? l(svc.name) : t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}
                 </span>
                 {contest.client && (
                   <span className="flex items-center gap-1.5 text-muted">
@@ -196,7 +202,12 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           </div>
 
           {/* What the client wants (owner, 2026-10-10: one tidy card with no empty middle; the full brief is in the Brief tab) */}
-          {contest.brief && (
+          {contest.brief && svc && (
+            <div className="mt-3.5">
+              <ServiceBrief service={svc} answers={contest.serviceBrief} />
+            </div>
+          )}
+          {contest.brief && !svc && (
             <div className="lc-card mt-3.5 !rounded-[24px] p-5">
               <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
                 <div className="min-w-0">
@@ -397,7 +408,11 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             </div>
           )
         ) : tab === "brief" ? (
-          contest.brief ? (
+          contest.brief && svc ? (
+            <div className="mx-auto max-w-3xl">
+              <ServiceBrief service={svc} answers={contest.serviceBrief} full />
+            </div>
+          ) : contest.brief ? (
             <ContestBrief brief={contest.brief} />
           ) : (
             <div className="mx-auto max-w-xl">

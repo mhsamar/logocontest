@@ -33,6 +33,7 @@ import {
   type ContactCheckedField,
   type Order,
 } from "./brief";
+import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { blockedTerms } from "./community";
 import { contestRepository, contestService } from "./services";
 import { makeSlug } from "./service";
@@ -95,6 +96,23 @@ async function contactError(brief: Brief) {
   return field ? { ok: false as const, error: { key: "wizard.errors.contact" as const, field } } : null;
 }
 
+/** A non-logo contest's service and answers (owner, 2026-10-13); null for logo contests. */
+const ServiceShape = z.object({ slug: z.string().max(40), answers: z.record(z.string(), z.union([z.string().max(2000), z.array(z.string().max(100)).max(20)])) });
+type ServiceArg = z.infer<typeof ServiceShape> | null | undefined;
+
+/** The same no-contact rule for a service contest: its title, description and every written answer. */
+async function serviceContactError(brief: Brief, answers: Record<string, string | string[]>) {
+  const terms = await blockedTerms();
+  const texts = [brief.brandName, brief.businessDescription, ...Object.values(answers).flatMap((v) => (Array.isArray(v) ? [] : [v]))];
+  return texts.some((x) => x && findContactDetails(x, terms)) ? err("services.wizard.contact") : null;
+}
+
+function parseService(raw: ServiceArg): { slug: string; answers: Record<string, string | string[]> } | null | "bad" {
+  if (!raw) return null;
+  const r = ServiceShape.safeParse(raw);
+  return r.success ? r.data : "bad";
+}
+
 async function currentClient() {
   const user = await getCurrentUser();
   return user && user.role === "client" && user.status !== "banned" ? user : null;
@@ -108,16 +126,17 @@ const SAVE_ERRORS: Record<string, MessageKey> = {
 };
 
 /** Saves the wizard as a server draft for a signed-in client (after C-08, or "Save & exit"). */
-export async function saveDraft(input: { brief: unknown; order: unknown; contestId: string | null }): Promise<WizardResult<{ contestId: string }>> {
+export async function saveDraft(input: { brief: unknown; order: unknown; contestId: string | null; service?: ServiceArg }): Promise<WizardResult<{ contestId: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const user = await currentClient();
   if (!user) return err("wizard.errors.signInAgain");
   const data = parse(input.brief, input.order);
-  if (!data) return err("wizard.errors.incomplete");
-  const contact = await contactError(data.brief);
+  const service = parseService(input.service);
+  if (!data || service === "bad") return err("wizard.errors.incomplete");
+  const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
   if (contact) return contact;
 
-  const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId);
+  const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId, service);
   if (!result.ok) return err(SAVE_ERRORS[result.error]);
   return { ok: true, contestId: result.contest.id };
 }
@@ -152,12 +171,15 @@ export async function createAccountAndDraft(input: {
   order: unknown;
   /** This browser's push subscription, if the user allowed notifications. */
   push?: unknown;
+  /** A non-logo contest (owner, 2026-10-13). */
+  service?: ServiceArg;
 }): Promise<WizardResult<{ contestId: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const data = parse(input.brief, input.order);
-  if (!data) return err("wizard.errors.incomplete");
+  const service = parseService(input.service);
+  if (!data || service === "bad") return err("wizard.errors.incomplete");
   // Before the account is created, so a tripped filter doesn't leave an account without a draft.
-  const contact = await contactError(data.brief);
+  const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
   if (contact) return contact;
 
   const mobile = normalizeBdMobile(input.mobile);
@@ -205,7 +227,7 @@ export async function createAccountAndDraft(input: {
     await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
   }
 
-  const saved = await contestService().saveDraft(created.data.user.id, data.brief, data.order, null);
+  const saved = await contestService().saveDraft(created.data.user.id, data.brief, data.order, null, service);
   if (!saved.ok) return err(SAVE_ERRORS[saved.error]);
   return { ok: true, contestId: saved.contest.id };
 }
@@ -234,7 +256,7 @@ export async function startCheckout(input: {
   // The draft was checked when saved, but the admin may have blocked more terms since.
   const contest = await contestRepository().findContest(input.contestId);
   if (contest && contest.clientId === user.id) {
-    const contact = await contactError(contest.brief);
+    const contact = contest.service !== "logo" ? await serviceContactError(contest.brief, contest.serviceBrief) : await contactError(contest.brief);
     if (contact) return contact;
   }
 

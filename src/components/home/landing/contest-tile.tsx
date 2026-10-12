@@ -8,6 +8,7 @@ import { timeLeft } from "@/lib/home/logo-pick";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { categoryLabel } from "@/lib/contests/browse-query";
 
 const PACKAGE_CHIP: Record<PackageKey, string> = {
   economy: "bg-[var(--lc-chip)] text-[var(--lc-ink)]",
@@ -70,7 +71,7 @@ export function ContestTile({ c, now, t, locale }: { c: ContestRow; now: Date; t
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col">
             <h3 className="m-0 truncate text-[23px] font-semibold tracking-[-0.03em]">{contestTitle(c, t)}</h3>
-            <span className="text-base text-[var(--lc-muted)]">{t(`wizard.businessTypes.${c.businessType}`)}</span>
+            <span className="text-base text-[var(--lc-muted)]">{categoryLabel(c, t, locale)}</span>
           </div>
           <span className={cx("shrink-0 rounded-lg px-2.5 py-1 text-[13px] font-bold", PACKAGE_CHIP[c.package])}>{t(`wizard.packages.${c.package}.name`)}</span>
         </div>

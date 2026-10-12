@@ -12,6 +12,9 @@ import { addonRank } from "./addon-order";
 import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, ENDING_SOON_DAYS, TAB_STATUSES, type BrowseQuery, type BrowseTab } from "./browse-query";
 
 import { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
+import { contestServiceInfo } from "@/lib/services/contest-service";
+import { allServices } from "@/lib/services/store";
+import type { Answers } from "@/lib/services/types";
 
 export { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 
@@ -42,6 +45,8 @@ export type ContestRow = {
   faces: { total: number; list: ContestDesigner[] };
   /** Business description for list rows; never set for private contests. */
   description: string | null;
+  /** A non-logo contest's service name (owner, 2026-10-13), shown in place of the business type; null for logos. */
+  kind: { en: string; bn: string } | null;
 };
 
 const ROW_COLUMNS =
@@ -93,6 +98,7 @@ function toRow(r: DbRow, entries: Map<string, number>, covers: Map<string, Conte
     cover: covers.get(r.id) ?? null,
     faces: faces.get(r.id) ?? { total: 0, list: [] },
     description: r.is_private ? null : r.business_description,
+    kind: null,
   };
 }
 
@@ -104,8 +110,11 @@ export async function countEntries(contestIds: string[]): Promise<Map<string, nu
 /** Rows with their design counts and card covers. */
 async function toRows(rows: DbRow[]): Promise<ContestRow[]> {
   const refs = rows.map((r) => ({ id: r.id, isBlind: r.is_blind, isPrivate: r.is_private }));
-  const [entries, covers, faces] = await Promise.all([countEntries(rows.map((r) => r.id)), leadingDesigns(refs), designerFaces(refs, 3)]);
-  return rows.map((r) => toRow(r, entries, covers, faces));
+  const [entries, covers, faces, info, services] = await Promise.all([countEntries(rows.map((r) => r.id)), leadingDesigns(refs), designerFaces(refs, 3), contestServiceInfo(rows.map((r) => r.id)), allServices()]);
+  return rows.map((r) => {
+    const service = info.get(r.id)?.service ?? "logo";
+    return { ...toRow(r, entries, covers, faces), kind: service === "logo" ? null : (services.find((x) => x.slug === service)?.name ?? null) };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +299,9 @@ export async function liveContests(limit: number): Promise<ContestRow[]> {
 export type ContestFileView = { name: string; mime: string; url: string | null; isImage: boolean };
 
 export type ContestDetail = ContestRow & {
+  /** Contest service (owner, 2026-10-13): "logo", or another service with the client's answers (only with the brief). */
+  service: string;
+  serviceBrief: Answers;
   rawStatus: string;
   ownerId: string;
   isOwner: boolean;
@@ -349,7 +361,8 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
 
   const ndaAccepted = Boolean(data.is_nda) && Boolean(viewer) && (await hasAcceptedNda(data.id, viewer!.id));
   const canSeeBrief = (!data.is_private || Boolean(viewer)) && (!data.is_nda || isOwner || isAdmin || ndaAccepted);
-  const [[row], designers] = await Promise.all([toRows([data as DbRow]), countDesigners(data.id)]);
+  const [[row], designers, info] = await Promise.all([toRows([data as DbRow]), countDesigners(data.id), contestServiceInfo([data.id])]);
+  const svc = info.get(data.id)!;
   const client = (Array.isArray(data.client) ? data.client[0] : data.client) as { name: string; username: string | null } | null;
 
   let files: ContestFileView[] = [];
@@ -373,6 +386,8 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
 
   return {
     ...row,
+    service: svc.service,
+    serviceBrief: canSeeBrief ? svc.serviceBrief : {},
     rawStatus: data.status,
     ownerId: data.client_id,
     isOwner,
