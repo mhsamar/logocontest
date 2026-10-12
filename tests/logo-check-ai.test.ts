@@ -37,7 +37,7 @@ describe("copyright checker AI: Google AI Studio (Gemini) or Claude (owner, 2026
     process.env.GEMINI_API_KEY = "test-key";
     delete process.env.LOGO_CHECK_MODEL;
     const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      expect(String(url)).toContain("/models/gemini-flash-latest:generateContent");
+      expect(String(url)).toContain("/models/gemini-3.5-flash:generateContent");
       expect((init?.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-key");
       const body = JSON.parse(String(init?.body));
       expect(body.generationConfig.responseMimeType).toBe("application/json");
@@ -58,7 +58,23 @@ describe("copyright checker AI: Google AI Studio (Gemini) or Claude (owner, 2026
     process.env.GEMINI_API_KEY = "bad";
     const fetcher = vi.fn(async () => new Response('{"error":{"message":"API key not valid"}}', { status: 400 }));
     await expect(summarize("x", fetcher as unknown as typeof fetch)).rejects.toBeInstanceOf(AiUnavailableError);
+    expect(fetcher).toHaveBeenCalledTimes(1); // a bad key is bad on every model
     const quota = vi.fn(async () => new Response("quota", { status: 429 }));
     await expect(summarize("x", quota as unknown as typeof fetch)).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+
+  it("tries the next model when one is busy or gone", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    delete process.env.LOGO_CHECK_MODEL;
+    const answer = { uniqueness_line: "u", overall_line: "o", advice: "a" };
+    const fetcher = vi.fn(async (url: string | URL | Request) =>
+      String(url).includes("/gemini-3.5-flash:")
+        ? new Response('{"error":{"message":"high demand"}}', { status: 503 })
+        : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(answer) }] } }] }), { status: 200 }),
+    );
+    const r = await summarize("facts", fetcher as unknown as typeof fetch);
+    expect(r.data).toEqual(answer);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[1][0])).toContain("/gemini-flash-lite-latest:");
   });
 });

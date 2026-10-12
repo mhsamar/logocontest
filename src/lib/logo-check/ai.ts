@@ -14,9 +14,17 @@ const provider = (): Provider | null => (process.env.GEMINI_API_KEY ? "gemini" :
 const MODEL = (p: Provider) => {
   const set = process.env.LOGO_CHECK_MODEL ?? "";
   if (set.startsWith(p === "gemini" ? "gemini" : "claude")) return set;
-  // "gemini-flash-latest" always points at Google's current Flash model.
-  return p === "gemini" ? "gemini-flash-latest" : "claude-sonnet-5-5";
+  return p === "gemini" ? GEMINI_MODELS[0] : "claude-sonnet-5-5";
 };
+/**
+ * Gemini models tried in order (tested 2026-10-12): Google's newest Flash models (and "gemini-flash-latest") were
+ * so busy they hung for minutes, while 3.5 Flash answered in seconds. When one is busy, gone or out of quota, the
+ * next is tried; LOGO_CHECK_MODEL, when set, goes first.
+ */
+const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-flash-lite-latest"];
+const geminiModels = () => [...new Set([MODEL("gemini"), ...GEMINI_MODELS])];
+/** Each Gemini try gets this long, so a busy model leaves time for the next within the route's 300 s. */
+const GEMINI_TRY_MS = 40_000;
 /** Rough cost per token, for the admin's cost column (USD). */
 const PRICES: Record<Provider, { in: number; out: number }> = {
   gemini: { in: 0.3 / 1_000_000, out: 2.5 / 1_000_000 },
@@ -82,12 +90,31 @@ export function toGeminiSchema(schema: unknown): unknown {
 }
 
 async function callGemini<T>(system: string, content: Block[], tool: Tool, fetcher: typeof fetch): Promise<AiResult<T>> {
+  let last: unknown;
+  for (const model of geminiModels()) {
+    try {
+      return await callGeminiModel<T>(model, system, content, tool, fetcher);
+    } catch (e) {
+      last = e;
+      // A wrong key fails the same way on every model; a busy, missing or slow model may not.
+      if (e instanceof AiUnavailableError && /API key not valid|API_KEY_INVALID/i.test(e.message)) throw e;
+      const busy = e instanceof GeminiBusyError || (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError"));
+      if (!busy) throw e;
+    }
+  }
+  throw new AiUnavailableError(`Gemini is busy: ${last instanceof Error ? last.message : String(last)}`);
+}
+
+/** This model is busy, gone or out of quota right now; another model may still answer. */
+class GeminiBusyError extends Error {}
+
+async function callGeminiModel<T>(model: string, system: string, content: Block[], tool: Tool, fetcher: typeof fetch): Promise<AiResult<T>> {
   const key = process.env.GEMINI_API_KEY!;
   const parts = [
     ...content.map((b) => (b.type === "text" ? { text: b.text } : { inline_data: { mime_type: b.source.media_type, data: b.source.data } })),
     { text: `Answer only with the JSON for "${tool.name}": ${tool.description}` },
   ];
-  const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL("gemini"))}:generateContent`, {
+  const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
@@ -96,12 +123,14 @@ async function callGemini<T>(system: string, content: Block[], tool: Tool, fetch
       // Room for the model's own thinking as well as the answer.
       generationConfig: { responseMimeType: "application/json", responseSchema: toGeminiSchema(tool.input_schema), maxOutputTokens: 8192, temperature: 0.2 },
     }),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(GEMINI_TRY_MS),
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);
-    // 400 "API key not valid", 401/403: bad key; 429: quota used up; 503: overloaded.
-    if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503 || /API key not valid|API_KEY_INVALID|quota|billing/i.test(body)) throw new AiUnavailableError(`Gemini ${res.status}: ${body}`);
+    // 404: model retired; 429: this model's quota used up; 500/503: overloaded. Another model may answer.
+    if (res.status === 404 || res.status === 429 || res.status === 500 || res.status === 503) throw new GeminiBusyError(`Gemini ${model} ${res.status}: ${body}`);
+    // 400 "API key not valid", 401/403: bad key or billing.
+    if (res.status === 401 || res.status === 403 || /API key not valid|API_KEY_INVALID|quota|billing/i.test(body)) throw new AiUnavailableError(`Gemini ${res.status}: ${body}`);
     throw new Error(`Gemini ${res.status}: ${body}`);
   }
   const json = (await res.json()) as {
