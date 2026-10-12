@@ -7,5 +7,5 @@ export async function EmailBannerSlot() {
   const user = await getCurrentUser();
   // Admins are set up by hand (npm run seed), so they are never asked to confirm by code.
   if (!user?.email || user.emailVerifiedAt || user.role === "admin") return null;
-  return <EmailBanner email={user.email} length={await getSetting("auth.email_code_length")} />;
+  return <EmailBanner email={user.email} length={await getSetting("auth.email_code_length")} ownProfile={user.role === "designer" && user.username ? `/d/${user.username}` : null} />;
 }
