@@ -456,3 +456,132 @@ select:focus-visible {
     transition-duration: 1ms !important;
   }
 }
+
+/* ===================================================================================================
+   Premium motion, site-wide (owner, 2026-10-12: "every tab, button, text, design should feel a premium
+   motion"). One easing family; nothing moves for reduced motion. The JavaScript half (count-up numbers,
+   image fade-in, button ripple) is components/layout/motion-fx.tsx.
+   =================================================================================================== */
+:root {
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Lets height animate to "auto" (smooth <details>) where the browser supports it. */
+  interpolate-size: allow-keywords;
+}
+
+/* Every control changes colour, border and shadow smoothly. Zero specificity, so a component's own
+   transition classes still win. */
+@layer base {
+  :where(button, [role="button"], [role="tab"], a[class*="rounded"], summary, label, select, input, textarea) {
+    transition-property: color, background-color, border-color, box-shadow, opacity, scale, translate, filter;
+    transition-duration: 240ms;
+    transition-timing-function: var(--ease-premium);
+  }
+  /* Fields without their own focus ring get a soft red glow. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus {
+    box-shadow: 0 0 0 4px rgb(139 0 0 / 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A tactile press on everything you can tap. */
+  :is(button, [role="button"], [role="tab"], a[class*="rounded"], summary):not(:disabled, [aria-disabled="true"], [data-no-fx]):active {
+    scale: 0.97;
+    transition-duration: 90ms;
+  }
+
+  /* The tab, chip or toggle that just became active pops in with a small spring. */
+  :is(nav, [role="tablist"], [role="group"], [role="radiogroup"]) :is([aria-current="page"], [aria-current="true"], [aria-selected="true"]),
+  [aria-pressed="true"],
+  [role="tab"][aria-selected="true"] {
+    animation: lc-tab-on 460ms var(--ease-spring);
+  }
+  input:is([type="checkbox"], [type="radio"]):checked {
+    animation: lc-check 320ms var(--ease-spring);
+  }
+
+  /* Cards and list rows on every page: a short stagger when the page opens, and a rise as they scroll into
+     view. A card is a rounded box directly in a list or grid, or a rounded <article> anywhere. The stagger
+     comes from the list position (--lc-d, inherited), so it works whatever wraps the card. Individual
+     translate/scale (not transform), so the mouse tilt still works on top. */
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(2) { --lc-d: 50ms; }
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(3) { --lc-d: 100ms; }
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(4) { --lc-d: 150ms; }
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(5) { --lc-d: 200ms; }
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(6) { --lc-d: 250ms; }
+  .page-in :is(ul, ol, [class*="grid"]) > :nth-child(n + 7) { --lc-d: 300ms; }
+  :is(.page-in :is(ul, ol, [class*="grid"]) > :is(li, article, a, div, section)[class*="rounded"], .page-in article[class*="rounded"]):not(.lc-rv, .lc-rv-soft, .lc-rv *, [class*="animate-"], .prize-glow, [data-no-fx], dialog *, .lc-show *, [class*="sticky"], [class*="fixed"]) {
+    animation: lc-item-rise 620ms var(--ease-premium) var(--lc-d, 0ms) backwards;
+  }
+  @supports (animation-timeline: view()) {
+    :is(.page-in :is(ul, ol, [class*="grid"]) > :is(li, article, a, div, section)[class*="rounded"], .page-in article[class*="rounded"]):not(.lc-rv, .lc-rv-soft, .lc-rv *, [class*="animate-"], .prize-glow, [data-no-fx], dialog *, .lc-show *, [class*="sticky"], [class*="fixed"]) {
+      animation:
+        lc-item-rise 620ms var(--ease-premium) var(--lc-d, 0ms) backwards,
+        lc-item-rise linear backwards;
+      animation-timeline: auto, view();
+      animation-range: normal, entry 0% entry 120px;
+    }
+    /* Smaller headings follow the section headings in. */
+    .page-in h3:not(dialog *, .lc-rv *, [class*="animate-"]) {
+      animation: lc-item-rise linear backwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60px;
+    }
+  }
+
+  /* Images fade in from a light blur once they have loaded (motion-fx.tsx marks the ones still loading). */
+  img[data-lc-img] {
+    transition: opacity 700ms var(--ease-premium), filter 700ms var(--ease-premium), scale 900ms var(--ease-premium);
+  }
+  img[data-lc-img="wait"] {
+    opacity: 0;
+    filter: blur(10px);
+    scale: 1.03;
+  }
+
+  /* The ripple on the main buttons, from where you tapped (motion-fx.tsx sets --rx, --ry, --rd). */
+  .lc-ripple {
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .lc-ripple[data-rp]::before {
+    content: "";
+    position: absolute;
+    left: var(--rx, 50%);
+    top: var(--ry, 50%);
+    width: var(--rd, 200px);
+    height: var(--rd, 200px);
+    border-radius: 50%;
+    background: currentColor;
+    pointer-events: none;
+    z-index: -1;
+    translate: -50% -50%;
+    animation: lc-ripple 650ms var(--ease-premium) forwards;
+  }
+
+  /* <details> boxes (Q&A and others) open and close smoothly. */
+  details::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition: block-size 420ms var(--ease-premium), content-visibility 420ms allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+}
+
+@keyframes lc-tab-on {
+  from { scale: 0.9; opacity: 0.6; }
+  to { scale: 1; opacity: 1; }
+}
+@keyframes lc-check {
+  0% { scale: 0.7; }
+  100% { scale: 1; }
+}
+@keyframes lc-item-rise {
+  from { opacity: 0; translate: 0 22px; scale: 0.985; }
+}
+@keyframes lc-ripple {
+  from { scale: 0; opacity: 0.28; }
+  to { scale: 1; opacity: 0; }
+}

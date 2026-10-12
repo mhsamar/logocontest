@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
 import { AdminBar } from "@/components/layout/admin-bar";
 import { SuspendedBar } from "@/components/layout/suspended-bar";
+import { MotionFx } from "@/components/layout/motion-fx";
 import { PointerFx } from "@/components/layout/pointer-fx";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { EmailBannerSlot } from "@/components/layout/email-banner-slot";
@@ -89,6 +90,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <SupportSlot />
             </SiteChrome>
             <PointerFx />
+            <MotionFx />
             <ScrollReveal />
           </ToastProvider>
         </I18nProvider>
