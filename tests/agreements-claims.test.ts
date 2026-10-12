@@ -123,6 +123,11 @@ describe("legal texts (P-10)", () => {
       "maxDays",
       "perDay",
       "phone",
+      // Strikes and the payout hold (owner, 2026-10-12)
+      "strikeDays",
+      "strikeHours",
+      "holdDays",
+      "ban",
     ]);
     const all = JSON.stringify([LEGAL_EN, LEGAL_BN]);
     const used = new Set([...all.matchAll(/\{(\w+)\}/g)].map((m) => m[1]));

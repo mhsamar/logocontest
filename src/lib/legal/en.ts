@@ -31,7 +31,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "You must be at least 18 years old, or have a parent or guardian's permission, to use the site.",
               "Give true information and keep your mobile number and email up to date. One person, one account.",
               "Keep your password secret. You are responsible for what happens in your account.",
-              "We may suspend or close an account that breaks these terms, the Designer Rules or the law.",
+              "We may close (ban) an account that breaks these terms, the Designer Rules or the law. Designers get strikes for some rule breaks; {ban} strikes within {strikeDays} days mean a permanent ban (see the Designer Rules).",
             ],
           },
         ],
@@ -45,7 +45,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "The client writes a brief, chooses a prize and a length ({minDays} to {maxDays} days), and pays. The contest goes live only after the payment is confirmed.",
               "Designers send designs while the contest is open. The client can rate, comment on and reject designs.",
               "After the contest ends, the client has {judging} days to pick one winner.",
-              "The winner uploads the final files within {upload} days. The client then approves the files or asks for a change within {response} days.",
+              "The winner uploads the final files within {upload} days. The client then approves the files or asks for a change within {response} days; changes go on until the client approves.",
               "If the client does not pick a winner, or does not respond to the final files in time, the contest ends with no result and the prize is shared equally among the designers who took part. In that case no files are delivered and no copyright moves to the client.",
             ],
           },
@@ -203,7 +203,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
       "The client pays the prize plus a service fee before the contest goes live.",
       "Payments are not refunded.",
       "One exception, which is not a money refund: if the winning design is proven to be copied, the client may pick another design.",
-      "The designer is paid after the client approves the files and the {claimDays}-day claim period has passed.",
+      "The designer is paid {holdDays} days after the client approves the files, if no copy claim is open.",
     ],
     sections: [
       {
@@ -269,7 +269,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           {
             list: [
-              "The winner's prize reaches their wallet when the client approves the files and {claimDays} days have passed since the winner was picked, with no copy claim open.",
+              "The winner's prize reaches their wallet {holdDays} days after the client approves the files, with no copy claim open.",
               "Our designer fee is taken from the prize: {tiers}. The rate is fixed when the winner is picked.",
               "No-result shares reach the wallet right away, after the same fee.",
               "Designers can withdraw from {withdrawMin} to bKash or a bank account. A rejected withdrawal goes back to the wallet.",
@@ -291,7 +291,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     summary: [
       "Only your own, original, human-made logos.",
       "No contact details, no dealing outside the site.",
-      "Deliver the final files within {upload} days if you win.",
+      "If you win, send the final files within {strikeHours} hours (or get a strike), and never later than {upload} days (or your account is banned).",
+      "{ban} strikes within {strikeDays} days mean a permanent ban. There is no suspension.",
       "Copying can mean a fine, a permanent ban and legal action.",
     ],
     sections: [
@@ -329,9 +330,10 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           {
             list: [
-              "Upload the AI, EPS, SVG, PDF, transparent PNG and JPG files, the font names, and any extras the client asked for, within {upload} days. If you miss the deadline, the win is cancelled and you get no prize.",
+              "Upload the AI, EPS, SVG, PDF, transparent PNG and JPG files, the font names, and any extras the client asked for. Send them within {strikeHours} hours of winning, or you get a strike. If you send nothing within {upload} days, the win is cancelled, you get no prize and your account is banned permanently.",
               "Accept the copyright transfer: once the client approves, the design belongs to the client.",
-              "Your prize reaches your wallet after the client approves and {claimDays} days have passed since the pick, with no copy claim open.",
+              "If the client asks for changes, answer in the messages on the files page and send the files again, as many times as needed, until the client approves.",
+              "Your prize reaches your wallet {holdDays} days after the client approves the files, with no copy claim open. Then you can withdraw it to bKash or a bank account.",
             ],
           },
         ],
@@ -342,6 +344,21 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           "Clients and designers can report a design as copied, AI-made or breaking the rules. Admins check every report. A design proven to be copied is removed.",
           "If the winning design is proven to be copied, our admin talks with you and decides one of: a correction (you must send corrected files), a fine (taken from your wallet) or a permanent ban. In every case the win can be cancelled and the prize withheld, and legal action may be taken.",
+        ],
+      },
+      {
+        id: "strikes",
+        heading: "Strikes",
+        blocks: [
+          {
+            list: [
+              "Some rule breaks give you a strike, for example not sending the final files within {strikeHours} hours of winning. An admin can also give a strike, and you always see the reason.",
+              "Each strike counts for {strikeDays} days. After that it no longer counts.",
+              "There is no suspension: with one or two strikes you can keep sending designs and winning contests.",
+              "If you get {ban} strikes within {strikeDays} days, your account is banned permanently. A ban is not lifted when a strike runs out.",
+              "Sending no final files at all within {upload} days of winning bans your account at once, even without strikes.",
+            ],
+          },
         ],
       },
       {

@@ -4,6 +4,7 @@ import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { getContact } from "@/lib/content/contact";
+import { formatNumber } from "@/lib/money";
 import { AGREEMENT_BN, LEGAL_BN } from "./bn";
 import { AGREEMENT_EN, LEGAL_EN } from "./en";
 import { textToAgreement, textToDoc } from "./format";
@@ -12,8 +13,25 @@ import { fillLegal, LEGAL_VERSION, type AgreementText, type LegalBlock, type Leg
 
 /** Numbers for the legal texts, all from settings (the same ones the Q&A uses, plus the claim and re-pick days). */
 export async function legalParams(t: Translate, locale: Locale): Promise<Record<string, string | number>> {
-  const [{ params }, s, contact] = await Promise.all([faqParams(t, locale), getSettings(["timers.copy_claim_days", "timers.repick_window_days"]), getContact(locale)]);
-  return { ...params, claimDays: s["timers.copy_claim_days"], repick: s["timers.repick_window_days"], phone: contact.phone };
+  const [{ params }, s, contact] = await Promise.all([
+    faqParams(t, locale),
+    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "limits.strikes_for_ban"]),
+    getContact(locale),
+  ]);
+  const n = (v: number) => formatNumber(v, locale);
+  // Plain numbers in the reader's digits (৩ in Bangla), like the rest of the page.
+  const digits = Object.fromEntries(Object.entries(params).map(([k, v]) => [k, typeof v === "number" ? n(v) : v]));
+  return {
+    ...digits,
+    claimDays: n(s["timers.copy_claim_days"]),
+    repick: n(s["timers.repick_window_days"]),
+    phone: contact.phone,
+    // The strike and payout rules (owner, 2026-10-12).
+    strikeDays: n(s["timers.strike_expiry_days"]),
+    strikeHours: n(s["timers.files_strike_hours"]),
+    holdDays: n(s["timers.payout_hold_days"]),
+    ban: n(s["limits.strikes_for_ban"]),
+  };
 }
 
 const fillBlock = (b: LegalBlock, p: Record<string, string | number>): LegalBlock => (typeof b === "string" ? fillLegal(b, p) : { list: b.list.map((x) => fillLegal(x, p)) });
