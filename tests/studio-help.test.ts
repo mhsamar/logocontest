@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isPublicDesign } from "@/lib/entries/rules";
-import { parseStudioFilter, startOfDhakaDay } from "@/lib/studio/options";
+import { parseStudioQuery, previewSide, startOfDhakaDay, stripIndex, studioHref } from "@/lib/studio/options";
 import { liveChatConfig, messengerLink, whatsappLink } from "@/lib/site";
 
 const contest = { status: "open", isPrivate: false, isBlind: false, winnerIsPublic: false };
@@ -28,10 +28,34 @@ describe("isPublicDesign (Design Studio, designer profiles)", () => {
 });
 
 describe("Design Studio options", () => {
-  it("falls back to all designs", () => {
-    expect(parseStudioFilter("winners")).toBe("winners");
-    expect(parseStudioFilter("x")).toBe("all");
-    expect(parseStudioFilter(undefined)).toBe("all");
+  it("reads the URL and falls back to the defaults", () => {
+    expect(parseStudioQuery({})).toEqual({ tab: "all", q: "", type: null, sort: "newest" });
+    expect(parseStudioQuery({ tab: "new", q: "  Nodi   tea ", sort: "files" })).toEqual({ tab: "new", q: "Nodi tea", type: null, sort: "files" });
+    expect(parseStudioQuery({ tab: "x", sort: "x", type: "not-a-type" })).toEqual({ tab: "all", q: "", type: null, sort: "newest" });
+    // The old ?filter=winners link still works.
+    expect(parseStudioQuery({ filter: "winners" }).tab).toBe("winners");
+  });
+  it("writes short links with only what differs from the defaults", () => {
+    const q = parseStudioQuery({});
+    expect(studioHref(q)).toBe("/design-studio");
+    expect(studioHref(q, { tab: "winners", sort: "oldest" })).toBe("/design-studio?tab=winners&sort=oldest");
+    expect(studioHref({ ...q, q: "rafi" }, { tab: "all" })).toBe("/design-studio?q=rafi");
+  });
+  it("splits a card into one equal strip per file", () => {
+    expect(stripIndex(0, 200, 8)).toBe(0);
+    expect(stripIndex(24, 200, 8)).toBe(0);
+    expect(stripIndex(26, 200, 8)).toBe(1);
+    expect(stripIndex(199, 200, 8)).toBe(7);
+    expect(stripIndex(250, 200, 8)).toBe(7);
+    expect(stripIndex(-5, 200, 3)).toBe(0);
+    expect(stripIndex(150, 200, 1)).toBe(0);
+  });
+  it("opens the preview on the side with more room, and upward near the bottom", () => {
+    const view = { width: 1400, height: 900 };
+    const pv = { width: 520, height: 710 };
+    expect(previewSide({ left: 30, right: 250, top: 100 }, view, pv)).toEqual({ x: "right", y: "down" });
+    expect(previewSide({ left: 1150, right: 1370, top: 100 }, view, pv)).toEqual({ x: "left", y: "down" });
+    expect(previewSide({ left: 30, right: 250, top: 600 }, view, pv)).toEqual({ x: "right", y: "up" });
   });
   it("counts today from midnight in Bangladesh", () => {
     // 2026-10-08 01:00 in Dhaka is 2026-10-07 19:00 UTC; the day started at 2026-10-07 18:00 UTC.
