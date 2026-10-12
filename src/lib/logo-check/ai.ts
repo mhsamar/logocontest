@@ -1,18 +1,31 @@
 import "server-only";
 
 /**
- * The AI part of the copyright checker (owner, 2026-10-10): Claude reads the logo, compares its shape with
- * each found image and writes the scores' sentences and the advice. Strict JSON through a forced tool call.
+ * The AI part of the copyright checker (owner, 2026-10-10): the AI reads the logo, compares its shape with each found
+ * image and writes the scores' sentences and the advice, always as strict JSON.
+ *
+ * Two providers (owner, 2026-10-12: "Google AI Studio instead of Claude"): **Gemini** when GEMINI_API_KEY is set
+ * (a Google AI Studio key), else **Claude** when ANTHROPIC_API_KEY is set. LOGO_CHECK_MODEL picks the model of the
+ * provider in use (a "gemini-…" or "claude-…" name); otherwise each has a sensible default.
  */
 
-const MODEL = () => process.env.LOGO_CHECK_MODEL || "claude-sonnet-5-5";
-/** Claude Sonnet 5.5: $2 per million input tokens, $10 per million output tokens. */
-const PRICE_IN = 2 / 1_000_000;
-const PRICE_OUT = 10 / 1_000_000;
+type Provider = "gemini" | "claude";
+const provider = (): Provider | null => (process.env.GEMINI_API_KEY ? "gemini" : process.env.ANTHROPIC_API_KEY ? "claude" : null);
+const MODEL = (p: Provider) => {
+  const set = process.env.LOGO_CHECK_MODEL ?? "";
+  if (set.startsWith(p === "gemini" ? "gemini" : "claude")) return set;
+  // "gemini-flash-latest" always points at Google's current Flash model.
+  return p === "gemini" ? "gemini-flash-latest" : "claude-sonnet-5-5";
+};
+/** Rough cost per token, for the admin's cost column (USD). */
+const PRICES: Record<Provider, { in: number; out: number }> = {
+  gemini: { in: 0.3 / 1_000_000, out: 2.5 / 1_000_000 },
+  claude: { in: 2 / 1_000_000, out: 10 / 1_000_000 },
+};
 
-export const aiConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
+export const aiConfigured = () => provider() !== null;
 
-/** Claude can't be used right now (no credit, a wrong key, or the service is down): not worth retrying. */
+/** The AI can't be used right now (no credit or quota, a wrong key, or the service is down): not worth retrying. */
 export class AiUnavailableError extends Error {}
 
 type Block = { type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: "image/png"; data: string } };
@@ -20,14 +33,21 @@ export const textBlock = (text: string): Block => ({ type: "text", text });
 export const imageBlock = (png: Uint8Array): Block => ({ type: "image", source: { type: "base64", media_type: "image/png", data: Buffer.from(png).toString("base64") } });
 
 export type AiResult<T> = { data: T; costUsd: number };
+type Tool = { name: string; description: string; input_schema: object };
 
-async function callTool<T>(system: string, content: Block[], tool: { name: string; description: string; input_schema: object }, maxTokens: number, fetcher: typeof fetch = fetch): Promise<AiResult<T>> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
+async function callTool<T>(system: string, content: Block[], tool: Tool, maxTokens: number, fetcher: typeof fetch = fetch): Promise<AiResult<T>> {
+  const p = provider();
+  if (p === "gemini") return callGemini<T>(system, content, tool, fetcher);
+  if (p === "claude") return callClaude<T>(system, content, tool, maxTokens, fetcher);
+  throw new Error("No AI key is set (GEMINI_API_KEY or ANTHROPIC_API_KEY)");
+}
+
+async function callClaude<T>(system: string, content: Block[], tool: Tool, maxTokens: number, fetcher: typeof fetch): Promise<AiResult<T>> {
+  const key = process.env.ANTHROPIC_API_KEY!;
   const res = await fetcher("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: MODEL(), max_tokens: maxTokens, system, tools: [tool], tool_choice: { type: "tool", name: tool.name }, messages: [{ role: "user", content }] }),
+    body: JSON.stringify({ model: MODEL("claude"), max_tokens: maxTokens, system, tools: [tool], tool_choice: { type: "tool", name: tool.name }, messages: [{ role: "user", content }] }),
     signal: AbortSignal.timeout(90_000),
   });
   if (!res.ok) {
@@ -39,8 +59,69 @@ async function callTool<T>(system: string, content: Block[], tool: { name: strin
   const json = (await res.json()) as { content?: { type: string; name?: string; input?: unknown }[]; usage?: { input_tokens?: number; output_tokens?: number } };
   const call = json.content?.find((c) => c.type === "tool_use" && c.name === tool.name);
   if (!call?.input) throw new Error("Claude gave no answer");
-  const costUsd = (json.usage?.input_tokens ?? 0) * PRICE_IN + (json.usage?.output_tokens ?? 0) * PRICE_OUT;
+  const costUsd = (json.usage?.input_tokens ?? 0) * PRICES.claude.in + (json.usage?.output_tokens ?? 0) * PRICES.claude.out;
   return { data: call.input as T, costUsd };
+}
+
+/**
+ * The same JSON schema in the form Gemini's structured output accepts: upper-case types, and only the keywords it
+ * knows (no `pattern`). Exported for tests.
+ */
+export function toGeminiSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const s = schema as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(s)) {
+    if (k === "type" && typeof v === "string") out.type = v.toUpperCase();
+    else if (k === "properties" && v && typeof v === "object") out.properties = Object.fromEntries(Object.entries(v).map(([pk, pv]) => [pk, toGeminiSchema(pv)]));
+    else if (k === "items") out.items = toGeminiSchema(v);
+    else if (["description", "enum", "required", "maxItems", "minItems", "minimum", "maximum", "nullable", "format"].includes(k)) out[k] = v;
+  }
+  return out;
+}
+
+async function callGemini<T>(system: string, content: Block[], tool: Tool, fetcher: typeof fetch): Promise<AiResult<T>> {
+  const key = process.env.GEMINI_API_KEY!;
+  const parts = [
+    ...content.map((b) => (b.type === "text" ? { text: b.text } : { inline_data: { mime_type: b.source.media_type, data: b.source.data } })),
+    { text: `Answer only with the JSON for "${tool.name}": ${tool.description}` },
+  ];
+  const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL("gemini"))}:generateContent`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts }],
+      // Room for the model's own thinking as well as the answer.
+      generationConfig: { responseMimeType: "application/json", responseSchema: toGeminiSchema(tool.input_schema), maxOutputTokens: 8192, temperature: 0.2 },
+    }),
+    signal: AbortSignal.timeout(90_000),
+  });
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    // 400 "API key not valid", 401/403: bad key; 429: quota used up; 503: overloaded.
+    if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503 || /API key not valid|API_KEY_INVALID|quota|billing/i.test(body)) throw new AiUnavailableError(`Gemini ${res.status}: ${body}`);
+    throw new Error(`Gemini ${res.status}: ${body}`);
+  }
+  const json = (await res.json()) as {
+    candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[];
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
+  };
+  const text = (json.candidates?.[0]?.content?.parts ?? [])
+    .filter((p) => !p.thought && typeof p.text === "string")
+    .map((p) => p.text)
+    .join("");
+  if (!text) throw new Error(`Gemini gave no answer (${json.candidates?.[0]?.finishReason ?? "no candidate"})`);
+  let data: T;
+  try {
+    data = JSON.parse(text) as T;
+  } catch {
+    throw new Error("Gemini's answer was not valid JSON");
+  }
+  const u = json.usageMetadata ?? {};
+  const costUsd = (u.promptTokenCount ?? 0) * PRICES.gemini.in + ((u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0)) * PRICES.gemini.out;
+  return { data, costUsd };
 }
 
 const SYSTEM =
