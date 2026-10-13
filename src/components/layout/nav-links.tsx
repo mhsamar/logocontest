@@ -70,8 +70,12 @@ export function NavLinks({ links }: { links: { href: string; label: string; badg
 
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     const onOver = (e: PointerEvent) => {
-      const hit = e.target instanceof Element ? e.target.closest<HTMLElement>(".lc-nv-link") : null;
-      if (hit && nav.contains(hit)) moveTo(hit, "hot");
+      const target = e.target instanceof Element ? e.target : null;
+      const hit = target?.closest<HTMLElement>(".lc-nv-link") ?? null;
+      if (hit && nav.contains(hit)) return moveTo(hit, "hot");
+      // Owner, 2026-10-13: on anything else in the bar (logo, bell, avatar, buttons) the red pill lets go, as when
+      // the pointer leaves the bar. The gaps between links keep it, so it still glides from link to link.
+      if (target?.closest("a, button, form, [role='button']")) moveTo(current(), "rest");
     };
     // The spotlight follows the pointer across the glass.
     const onMove = (e: PointerEvent) => {

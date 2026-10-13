@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { formatBdMobile } from "@/lib/phone";
-import { BackLink } from "@/components/ui/back-link";
+import { SmallPageHeader } from "@/components/ui/section-heading";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { ProfileProgress } from "@/components/settings/profile-progress";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -68,10 +68,7 @@ export default async function ProfileSettingsPage() {
   return (
     <PageShell>
       {/* Owner, 2026-10-13: no big title panel; a small title beside the back button. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <BackLink href="/dashboard">{t("nav.dashboard")}</BackLink>
-        <h1 className="m-0 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-[24px]">{t("settings.title")}</h1>
-      </div>
+      <SmallPageHeader title={t("settings.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
 
       <Panel tone="grey" className="max-[720px]:py-4">
         <div className="mx-auto max-w-3xl space-y-3.5">

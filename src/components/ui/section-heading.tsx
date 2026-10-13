@@ -1,3 +1,5 @@
+import { BackLink } from "./back-link";
+
 /**
  * Section heading from the site design (owner, 2026-10-10; UI-JOURNEY §1): an icon badge or a small
  * pill, the title with its last words in red, and an optional line under it.
@@ -45,3 +47,19 @@ export const Arrow = () => (
     <path d="M5 12h14M13 6l6 6-6 6" />
   </svg>
 );
+
+/**
+ * Small page header for the dashboard's inner pages (owner, 2026-10-13: no big title panel): "← Dashboard" with the
+ * page title beside it, and an optional short line under them.
+ */
+export function SmallPageHeader({ title, sub, back }: { title: string; sub?: string; back?: { href: string; label: string } }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {back && <BackLink href={back.href}>{back.label}</BackLink>}
+        <h1 className="m-0 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-[24px]">{title}</h1>
+      </div>
+      {sub && <p className="m-0 px-1 text-[14.5px] text-muted">{sub}</p>}
+    </div>
+  );
+}

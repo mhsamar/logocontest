@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CountUp } from "@/components/ui/count-up";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
-import { PageTitle } from "@/components/ui/section-heading";
+import { SmallPageHeader } from "@/components/ui/section-heading";
 import { WithdrawButton } from "@/components/wallet/withdraw-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { cx } from "@/lib/cx";
@@ -34,9 +34,8 @@ export default async function WalletPage() {
 
   return (
     <PageShell>
-      <Panel as="header" className="max-[720px]:py-6">
-        <PageTitle lead={t("wallet.title")} />
-      </Panel>
+      {/* Owner, 2026-10-13: a small title on top instead of the big panel. */}
+      <SmallPageHeader title={t("wallet.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
 
       <Panel tone="grey" className="flex-1 max-[720px]:py-4">
         <div className="grid gap-3.5 lg:grid-cols-[1.3fr_1fr]">

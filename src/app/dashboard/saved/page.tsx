@@ -4,7 +4,7 @@ import { ContestRow } from "@/components/contests/contest-row";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
-import { PageTitle } from "@/components/ui/section-heading";
+import { SmallPageHeader } from "@/components/ui/section-heading";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestsByIds } from "@/lib/contests/browse";
@@ -27,9 +27,8 @@ export default async function SavedContestsPage() {
 
   return (
     <PageShell>
-      <Panel as="header" className="max-[720px]:py-6">
-        <PageTitle lead={t("saved.title")} sub={t("saved.subtitle")} />
-      </Panel>
+      {/* Owner, 2026-10-13: a small title on top instead of the big panel. */}
+      <SmallPageHeader title={t("saved.title")} sub={t("saved.subtitle")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
       <Panel tone="grey" className="flex-1 max-[720px]:py-4">
         {contests.length > 0 ? (
           <ul className="m-0 list-none space-y-3 p-0">
