@@ -23,10 +23,13 @@ export type CertificateData = {
   verdict: Verdict;
   headline: string;
   subline: string;
-  matches: { dataUri: string; similarity: number; close: boolean; where: string }[];
+  /** dataUri is null for a designer's contest check (no copies of other people's logos are kept). */
+  matches: { dataUri: string | null; similarity: number; close: boolean; where: string }[];
   closest: { same: string[]; different: string[] } | null;
   scores: { label: string; score: number }[];
   searched: { label: string; found: string }[];
+  /** The designer's originality report on the winning entry (owner, 2026-10-14). */
+  report?: { id: string; url: string } | null;
 };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -47,7 +50,8 @@ export async function certificateHtml(d: CertificateData): Promise<string> {
     `<div class="row"><span class="k">${esc(k)}</span><strong>${esc(v)}</strong></div>`;
   const matches = d.matches
     .map(
-      (m) => `<div class="m"><div class="mi${m.close ? " close" : ""}"><img src="${m.dataUri}" alt=""><span class="pc${m.close ? " pcc" : ""}">${m.similarity}%</span></div><span class="mw">${esc(m.where)}</span></div>`,
+      (m) =>
+        `<div class="m"><div class="mi${m.close ? " close" : ""}">${m.dataUri ? `<img src="${m.dataUri}" alt="">` : `<span class="src">${esc(m.where)}</span>`}<span class="pc${m.close ? " pcc" : ""}">${m.similarity}%</span></div><span class="mw">${esc(m.where)}</span></div>`,
     )
     .join("");
   const closest = d.closest
@@ -93,6 +97,7 @@ h1{margin:0;font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.035
 .mi img{max-width:100%;max-height:100%;object-fit:contain}
 .pc{position:absolute;left:5px;bottom:5px;padding:1px 7px;border-radius:999px;font-size:11.5px;font-weight:700;background:#F0F1F4;color:#3A3C45}
 .pcc{background:#FFEDD5;color:#9A3412}
+.mi .src{padding:0 10px;font-size:12px;font-weight:600;color:#3A3C45;text-align:center;word-break:break-all}
 .mw{font-size:11px;color:#6B6557;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sd{margin-top:8px;font-size:12.5px;line-height:1.45;color:#3A3C45}.sd .dif{margin-left:8px}
 .none{margin-top:6px;font-size:13.5px;color:#3A3C45}
@@ -112,7 +117,7 @@ h1{margin:0;font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.035
 <div class="res"><span class="l">Result</span><strong class="d">${esc(d.headline)}</strong><span class="sub">${esc(d.subline)}</span></div>
 <div><span class="sec">Similar logos found</span>${d.matches.length ? `<div class="ms">${matches}</div>${closest}` : `<p class="none">No similar logo was found in the places we searched.</p>`}</div>
 <div class="sc">${d.scores.map((s) => `<div class="s"><span class="n">${esc(s.label)}</span><span class="v d">${s.score}<small> / 100</small></span><div class="bar"><span style="width:${s.score}%"></span></div></div>`).join("")}</div>
-<div><span class="sec">Where we searched</span><div style="margin-top:6px">${d.searched.map((s) => row(s.label, s.found)).join("")}</div></div>
+<div><span class="sec">Where we searched</span><div style="margin-top:6px">${d.searched.map((s) => row(s.label, s.found)).join("")}${d.report ? row("Designer's originality report", `${d.report.id} · ${d.report.url.replace(/^https?:\/\//, "")}`) : ""}</div></div>
 <div class="foot"><div class="note"><span>${esc(CERT_NOTE)}</span><span>Check this certificate at <strong>${esc(verifyUrl.replace(/^https?:\/\//, ""))}</strong></span></div><img class="qr" src="${qr}" alt=""></div>
 </div></div></body></html>`;
 }

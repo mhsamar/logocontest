@@ -1,8 +1,10 @@
 import type { Messages } from "./en";
+import checkBn from "./check-bn";
 import proBn from "./pro-bn";
 
 const bn: Messages = {
   pro: proBn,
+  entryCheck: checkBn,
   meta: {
     title: "logocontest.bd — বাংলাদেশে লোগো ডিজাইন কনটেস্ট",
     description: "অনেক ডিজাইনার। অনেক আইডিয়া। একটি নিখুঁত লোগো। বাংলাদেশের সেরা ডিজাইনারদের কাছ থেকে আপনার লোগো নিন।",

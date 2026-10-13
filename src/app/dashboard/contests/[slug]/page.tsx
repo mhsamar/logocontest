@@ -5,7 +5,6 @@ import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@
 import { EntryComments } from "@/components/entries/entry-comments";
 import { HandoverChat } from "@/components/handover/handover-chat";
 import { Collage } from "@/components/entries/entry-card";
-import { EntrySort } from "@/components/entries/entry-sort";
 import { EntryViewer } from "@/components/entries/entry-viewer";
 import { VoteButtons } from "@/components/entries/vote-buttons";
 import { CopyClaim } from "@/components/claims/copy-claim";
@@ -31,7 +30,13 @@ import { checkerReady } from "@/lib/logo-check/start";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, listEntries } from "@/lib/entries/queries";
-import { isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
+import { CheckedSummary, CheckLegend, JudgingSortBar, ReportPanel } from "@/components/logo-check/judging";
+import { MatchBadge } from "@/components/logo-check/match";
+import { badgesFor, levelRanges } from "@/lib/logo-check/entry-links";
+import { entryReport } from "@/lib/logo-check/entry-check";
+import { filterCounts, isJudgingSort, JUDGING_FILTERS, matchesFilter, sortForJudging, type JudgingFilter, type JudgingSort } from "@/lib/logo-check/entry-rules";
+import { getProSettings } from "@/lib/pro/settings";
+import { badgeIdsAmong, proIdsAmong } from "@/lib/pro/status";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
 import { getHandoverByContest, handoverMessages } from "@/lib/handover/queries";
@@ -49,8 +54,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("manage.metaTitle"), robots: { index: false } };
 }
 
-const FILTERS = ["all", "shortlisted", "unrated", "rejected"] as const;
-type Filter = (typeof FILTERS)[number];
+// Logo check (owner, 2026-10-14): Checked and Not checked come first; logo contests only.
+type Filter = JudgingFilter;
 
 // C-13b Manage contest (owner, 2026-10-08): add-ons, and reviewing designs with stars, shortlist, reject and pick winner.
 export default async function ManageContestPage({ params, searchParams }: PageProps<"/dashboard/contests/[slug]">) {
@@ -65,6 +70,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
 
   const base = `/dashboard/contests/${contest.slug}`;
+  const checkerOn = contest.service === "logo";
+  const FILTERS = JUDGING_FILTERS.filter((f) => checkerOn || (f !== "checked" && f !== "unchecked"));
   const filter: Filter = FILTERS.find((f) => f === sp.filter) ?? "all";
   const entryContest = {
     ownerId: contest.ownerId,
@@ -74,16 +81,16 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     winnerIsPublic: contest.winnerIsPublic,
   };
   const entryNumber = typeof sp.entry === "string" ? Number(sp.entry) : null;
-  // Order of the designs (owner, 2026-10-11): best rated first unless the client picks another.
-  const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
-  const listHref = (f: Filter, o: EntrySortKey) => {
-    const q = [f !== "all" && `filter=${f}`, o !== "top" && `sort=${o}`].filter(Boolean).join("&");
+  // Order of the designs (owner, 2026-10-14): Pro first by default; the checker result never changes it.
+  const sort: JudgingSort = isJudgingSort(sp.sort) && (checkerOn || sp.sort !== "lowest") ? sp.sort : "pro";
+  const listHref = (f: Filter, o: JudgingSort) => {
+    const q = [f !== "all" && `filter=${f}`, o !== "pro" && `sort=${o}`].filter(Boolean).join("&");
     return q ? `${base}?${q}` : base;
   };
   const here = listHref(filter, sort);
   const withParam = (href: string, param: string) => `${href}${href.includes("?") ? "&" : "?"}${param}`;
-  const [entries, prices, s, entry, handover, checks] = await Promise.all([
-    listEntries(contest.id, entryContest, user, sort),
+  const [listed, prices, s, entry, handover, checks] = await Promise.all([
+    listEntries(contest.id, entryContest, user, "newest"),
     addonPrices(),
     getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days"]),
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
@@ -91,6 +98,14 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
     // AI copyright checker (owner, 2026-10-10): the client's checks for this contest.
     contestChecks({ id: contest.id, prize: contest.prize, logoScan: contest.logoScan, status: contest.rawStatus }),
   ]);
+  // Pro first, the PRO mark (the designer may hide it) and each entry's logo check badge.
+  const designerIds = listed.map((e) => e.designerId);
+  const [proIds, shownPro, badges, ranges, { settings: proSet }] = await Promise.all([proIdsAmong(designerIds), badgeIdsAmong(designerIds), badgesFor(listed), levelRanges(), getProSettings()]);
+  const judged = listed.map((e) => ({ ...e, pro: proIds.has(e.designerId), showPro: proSet.features.highlighted_entries && Boolean(e.designer) && shownPro.has(e.designerId), badge: badges.get(e.id) ?? ({ kind: "none" } as const) }));
+  const entries = sortForJudging(judged, sort);
+  const reportNumber = typeof sp.report === "string" ? Number(sp.report) : null;
+  const reportOf = checkerOn && reportNumber ? (entries.find((e) => e.number === reportNumber) ?? null) : null;
+  const report = reportOf ? await entryReport(reportOf, user) : null;
   const [claim, messages] = handover ? await Promise.all([latestClaim(handover.id), handoverMessages(handover.id, user.id, handover.clientId)]) : [null, []];
   // Finished: the client can still see everything and download the files, but nothing changes (owner, 2026-10-12).
   const finished = isFinished(contest.rawStatus);
@@ -108,21 +123,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const won = typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
   const fmt = (n: number) => formatNumber(n, locale);
 
-  const shown = entries.filter((e) =>
-    filter === "shortlisted"
-      ? e.isShortlisted && e.status !== "rejected"
-      : filter === "unrated"
-        ? !e.rating && e.status === "active"
-        : filter === "rejected"
-          ? e.status === "rejected"
-          : e.status !== "rejected",
-  );
-  const counts: Record<Filter, number> = {
-    all: entries.filter((e) => e.status !== "rejected").length,
-    shortlisted: entries.filter((e) => e.isShortlisted && e.status !== "rejected").length,
-    unrated: entries.filter((e) => !e.rating && e.status === "active").length,
-    rejected: entries.filter((e) => e.status === "rejected").length,
-  };
+  const shown = entries.filter((e) => matchesFilter(e, filter));
+  const counts = filterCounts(entries);
   const stats = [
     { label: t("manage.stats.designs"), value: <CountUp value={counts.all} locale={locale} /> },
     { label: t("manage.stats.designers"), value: <CountUp value={contest.designers} locale={locale} /> },
@@ -306,6 +308,10 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
         <section className="min-w-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <h2 className="m-0 text-[clamp(24px,2.8vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("manage.review.title")}</h2>
+            {checkerOn && counts.all > 0 && <CheckedSummary checked={counts.checked} total={counts.all} t={t} locale={locale} />}
+          </div>
+          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <JudgingSortBar current={sort} href={(o) => listHref(filter, o)} t={t} checker={checkerOn} />
             <nav className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
               <GlideTrack className="w-max">
                 <ul className="m-0 flex w-max list-none gap-1 rounded-[18px] bg-surface p-1 ring-1 ring-line">
@@ -320,7 +326,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                           f === filter ? "bg-ink text-white" : "text-muted hover:text-ink",
                         )}
                       >
-                        {t(`manage.review.filters.${f}`)}
+                        {f === "checked" || f === "unchecked" ? t(`entryCheck.judge.filters.${f}`) : t(`manage.review.filters.${f}`)}
                         <span className={cx("rounded-full px-1.5 text-xs tabular-nums", f === filter ? "bg-white/15" : "bg-chip")}>{fmt(counts[f])}</span>
                       </Link>
                     </li>
@@ -330,11 +336,6 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             </nav>
           </div>
 
-          {shown.length > 1 && (
-            <div className="mt-4">
-              <EntrySort current={sort} href={(o) => listHref(filter, o)} t={t} tone="surface" />
-            </div>
-          )}
           {shown.length > 0 ? (
             <ul className="m-0 mt-5 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5">
               {shown.map((e) => (
@@ -342,7 +343,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                   key={e.id}
                   className={cx(
                     "lc-rv-soft overflow-hidden rounded-[22px] bg-surface ring-1 transition-shadow hover:shadow-card",
-                    e.status === "winner" ? "ring-2 ring-primary" : "ring-line",
+                    e.status === "winner" ? "ring-2 ring-primary" : e.showPro ? "ring-2 ring-[#e2b13c]" : "ring-line",
                   )}
                 >
                   <Link
@@ -363,12 +364,33 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         {t("manage.review.filters.shortlisted")}
                       </span>
                     )}
+                    {e.showPro && (
+                      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#e2b13c] px-2 py-0.5 text-[0.625rem] font-bold text-[#4a3700]">
+                        <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" aria-hidden><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5Z" /></svg>
+                        PRO
+                      </span>
+                    )}
                   </Link>
                   <div className="px-3 pb-2 pt-2.5">
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="font-bold text-ink">#{fmt(e.number)}</span>
-                      <span className="truncate text-xs text-muted">{e.designer?.username ? `@${e.designer.username}` : e.designer?.name}</span>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-xs text-muted">{e.designer?.username ? `@${e.designer.username}` : e.designer?.name}</span>
+                        {e.designer && !e.showPro && <span className="shrink-0 rounded-full bg-chip px-1.5 text-[10.5px] font-semibold text-muted">{t("entryCheck.judge.basic")}</span>}
+                      </span>
                     </div>
+                    {/* Logo check badge (owner, 2026-10-14): automatic, locked; click opens the report */}
+                    {checkerOn && (
+                      <div className="mt-1.5">
+                        {e.badge.kind === "checked" ? (
+                          <Link href={`${withParam(here, `report=${e.number}`)}#report`} aria-label={t("entryCheck.judge.openReport", { n: fmt(e.number) })} className="inline-flex rounded-full hover:brightness-95">
+                            <MatchBadge badge={e.badge} t={t} />
+                          </Link>
+                        ) : (
+                          <MatchBadge badge={e.badge} t={t} />
+                        )}
+                      </div>
+                    )}
                     <div className="mt-1">
                       <OwnerActions
                         entryId={e.id}
@@ -392,9 +414,11 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               <EmptyState title={t("manage.review.empty")} />
             </div>
           )}
+          {checkerOn && counts.all > 0 && <CheckLegend ranges={ranges} t={t} />}
         </section>
 
         <aside id="addons" className="flex scroll-mt-32 flex-col gap-3 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto lg:rounded-[28px] lg:[scrollbar-width:thin]">
+          {report && <ReportPanel report={report} closeHref={here} t={t} locale={locale} />}
           <CheckerBox />
           <div className="lc-card shrink-0 overflow-hidden p-4 sm:p-5">
             <div className="flex items-start gap-3">

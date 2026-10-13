@@ -11,6 +11,9 @@ import { adminChecks, checkView, type AdminCheckRow } from "@/lib/logo-check/que
 import { limitFor, type Verdict } from "@/lib/logo-check/rules";
 import { checkLimits } from "@/lib/logo-check/run";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { FlagButtons } from "@/components/logo-check/flag-buttons";
+import { hasPermission } from "@/lib/admin/permissions";
+import { checkFlags } from "@/lib/logo-check/flags";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -28,7 +31,9 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? "all";
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
   const sel = typeof sp.sel === "string" ? sp.sel : null;
-  const [{ t, locale }, rows, limits, detail] = await Promise.all([getI18n(), adminChecks(), checkLimits(), sel ? checkView(sel, admin) : null]);
+  const [{ t, locale }, rows, limits, detail, flags] = await Promise.all([getI18n(), adminChecks(), checkLimits(), sel ? checkView(sel, admin) : null, checkFlags()]);
+  const canRemove = hasPermission(admin, "designs.manage");
+  const openFlags = flags.filter((f) => f.status === "open").length;
   const num = (n: number) => formatNumber(n, locale);
   const when = (iso: string) => new Date(iso).toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Dhaka" });
   const link = (over: Record<string, string | null>) => {
@@ -66,6 +71,46 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
         <KpiTile label={t("checker.verdicts.similar")} value={num(by("similar"))} hint={t("admin.copyright.kpiWarned")} />
         <KpiTile label={t("checker.verdicts.high_risk")} value={num(by("high_risk"))} hint={t("admin.copyright.kpiLook")} />
       </KpiGrid>
+
+      {/* Logo check inside contests (owner, 2026-10-14): designers' High matches, to keep or remove */}
+      <AdmCard className="p-4 sm:p-5" id="high-match">
+        <CardTitle title={t("entryCheck.admin.title")} sub={t("entryCheck.admin.lead")} action={openFlags > 0 ? <Pill tone="bad">{`${num(openFlags)} · ${t("entryCheck.admin.open")}`}</Pill> : undefined} />
+        {flags.length === 0 ? (
+          <div className="mt-4">
+            <AdmEmpty>{t("entryCheck.admin.none")}</AdmEmpty>
+          </div>
+        ) : (
+          <ul className="m-0 mt-4 list-none divide-y divide-adm-line-soft p-0">
+            {flags.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center gap-3 py-3">
+                <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white ring-1 ring-adm-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {f.entry.coverUrl ? <img src={f.entry.coverUrl} alt="" className="size-full object-contain" /> : null}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Link href={`/admin/contests/${f.contest.slug}`} className="font-bold text-ink hover:text-primary">
+                    {f.contest.brand} · {t("entryCheck.admin.entry", { n: num(f.entry.number) })}
+                  </Link>
+                  <span className="block text-[13.5px] text-muted">
+                    {f.designer.username ? `@${f.designer.username}` : f.designer.name} · {t("entryCheck.admin.line", { pct: num(f.score), id: f.reportId })} · {when(f.createdAt)}
+                  </span>
+                </div>
+                <a href={`/verify/${f.reportId}`} target="_blank" rel="noopener" className="inline-flex min-h-10 items-center text-[14px] font-bold text-primary hover:underline">
+                  {t("entryCheck.admin.report")}
+                </a>
+                {f.status === "open" ? (
+                  canRemove ? <FlagButtons flagId={f.id} /> : <Pill tone="bad">{t("entryCheck.admin.open")}</Pill>
+                ) : (
+                  <span className="flex flex-col items-end gap-0.5">
+                    <Pill tone={f.status === "kept" ? "good" : "neutral"}>{t(`entryCheck.admin.${f.status}`)}</Pill>
+                    {f.reviewer && <span className="text-[12.5px] text-muted">{f.reviewer}</span>}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdmCard>
 
       <AdmCard className="p-4 sm:p-5">
         <CardTitle

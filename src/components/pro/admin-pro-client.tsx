@@ -183,11 +183,16 @@ export function PlanSettings({ initial, canManage }: { initial: Form; canManage:
             <div className="ap-f3">
               {field("proLogoChecks", t("pro.admin.proChecks"), t("pro.admin.perMonth"))}
               {field("basicLogoChecks", t("pro.admin.basicChecks"), t("pro.admin.perMonth"))}
+              {field("checkLowMax", t("pro.admin.lowMax"), "%")}
+              {field("checkMediumMax", t("pro.admin.mediumMax"), "%")}
               {field("proPortfolioLimit", t("pro.admin.proSlots"), t("pro.admin.designs"))}
               {field("proEntriesPerContest", t("pro.admin.proEntries"), undefined, { nullable: true, placeholder: t("pro.admin.unlimited") })}
               {field("basicEntriesPerContest", t("pro.admin.basicEntries"))}
               {field("invitesPerContest", t("pro.admin.invites"), t("pro.admin.designers"))}
             </div>
+            <p className="ap-hint" style={{ margin: "10px 0 0" }}>
+              {t("pro.admin.levelsNote", { low: f.checkLowMax, mid1: f.checkLowMax + 1, mid: f.checkMediumMax, high: f.checkMediumMax + 1 })}
+            </p>
           </div>
         </div>
         <div className="ap-col">

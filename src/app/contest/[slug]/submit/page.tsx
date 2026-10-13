@@ -17,6 +17,8 @@ import { getSetting } from "@/lib/settings";
 import { ServiceBrief } from "@/components/services/service-brief";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
+import { sendCheckSetup } from "@/lib/logo-check/entry-check";
+import { getProSettings } from "@/lib/pro/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -52,6 +54,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   // A non-logo contest (owner, 2026-10-13): its own upload limits, and what to make, shown above the form.
   const svc = isLogo(contest.service) ? null : await getService(contest.service);
   const max = svc ? Math.min(siteMax, svc.maxImages) : siteMax;
+  // Logo check before sending (owner, 2026-10-14): logo contests only, like the client's checker.
+  const check = !blocked && user.role === "designer" && isLogo(contest.service) ? await Promise.all([sendCheckSetup(user), getProSettings()]).then(([s, p]) => ({ ready: s.ready, usage: s.usage, priceBdt: s.priceBdt, proLogoChecks: p.settings.proLogoChecks })) : null;
   const mb = svc ? svc.maxMb : siteMb;
 
   return (
@@ -75,7 +79,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
                   <ServiceBrief service={svc} answers={contest.serviceBrief} full />
                 </div>
               )}
-              <SubmitForm contestId={contest.id} slug={contest.slug} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
+              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
             </>
           )}
         </div>

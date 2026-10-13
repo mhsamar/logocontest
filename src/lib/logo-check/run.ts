@@ -6,6 +6,8 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AiUnavailableError, compareShapes, readLogo, summarize, type Reading, type ShapeMatch } from "./ai";
 import { certificateHtml, renderCertificate, type CertificateData } from "./certificate";
+import { closestResults, levelFor } from "./entry-rules";
+import { flagIfHigh, levelRanges, validReportOf } from "./entry-links";
 import { fetchImage, logoForAi, shrinkCandidate } from "./images";
 import { checkHeadline, sourceRows } from "./present";
 import { certNumber, hostOf, isOnHosts, overallScore, uniquenessScore, verdictFor, type CheckLimits, type MatchSource } from "./rules";
@@ -50,6 +52,8 @@ type CheckRow = {
   /** Null for a designer checking their own logo (owner, 2026-10-13: Designer Pro plan). */
   contest_id: string | null;
   entry_id: string | null;
+  /** 'pre_submit': a designer checks a logo before sending it to a contest (owner, 2026-10-14). */
+  source: string;
   image_path: string;
   requested_by: string;
   attempts: number;
@@ -124,14 +128,16 @@ async function work(check: CheckRow, origin: string) {
   // 3. Designs from other contests on logocontest.bd, closest image fingerprint first.
   await setStep(check.id, 3);
   const hash = await differenceHash(logo);
-  // A designer's own check has no contest: every contest counts, but never the designer's own designs.
-  const { data: near } = await db().rpc("logo_check_similar_entries", { p_hash: hash, p_contest_id: check.contest_id ?? "00000000-0000-0000-0000-000000000000", p_limit: MAX_SITE });
+  // A designer's own check has no contest: every contest counts, but never the designer's own designs. A designer's
+  // contest check also looks at the other designs in the same contest.
+  const designerCheck = !check.contest_id || check.source === "pre_submit";
+  const { data: near } = await db().rpc("logo_check_similar_entries", { p_hash: hash, p_contest_id: designerCheck ? "00000000-0000-0000-0000-000000000000" : check.contest_id, p_limit: MAX_SITE });
   const nearAll = (near ?? []) as { entry_id: string; contest_id: string; preview_path: string }[];
   const { data: nearInfo } = nearAll.length
     ? await db().from("entries").select("id, number, designer_id, contest:contests!contest_id(slug, brand_name)").in("id", nearAll.map((r) => r.entry_id))
     : { data: [] };
   const info = new Map((nearInfo ?? []).map((e) => [e.id as string, e]));
-  const nearRows = check.contest_id ? nearAll : nearAll.filter((r) => info.get(r.entry_id)?.designer_id !== check.requested_by);
+  const nearRows = designerCheck ? nearAll.filter((r) => info.get(r.entry_id)?.designer_id !== check.requested_by) : nearAll;
   const site: (Candidate & { previewPath: string })[] = nearRows.map((r) => {
     const e = info.get(r.entry_id);
     const c = (Array.isArray(e?.contest) ? e?.contest[0] : e?.contest) as { slug: string; brand_name: string } | undefined;
@@ -197,19 +203,21 @@ async function work(check: CheckRow, origin: string) {
   const sum = await summarize(facts);
   cost += sum.costUsd;
 
-  // 6. Save: our own copy of every kept image, then the check, then the certificate.
+  // 6. Save: our own copy of every kept image, then the check, then the certificate. A designer's contest check
+  // keeps no copies of other people's logos (owner, 2026-10-14): only the source, the link and the similarity.
   await setStep(check.id, 6);
+  const contestCheck = check.source === "pre_submit";
   await db().from("logo_check_matches").delete().eq("check_id", check.id);
   const rows = await Promise.all(
     top.map(async (t, i) => {
-      const path = `${check.id}/match-${i}.png`;
-      await store.upload(LOGO_CHECKS_BUCKET, path, t.img, "image/png");
+      const path = contestCheck ? null : `${check.id}/match-${i}.png`;
+      if (path) await store.upload(LOGO_CHECKS_BUCKET, path, t.img, "image/png");
       return {
         check_id: check.id,
         position: i,
         found_by: t.c.foundBy as MatchSource,
         image_path: path,
-        image_url: t.imageUrl && !t.imageUrl.startsWith("data:") ? t.imageUrl.slice(0, 2000) : null,
+        image_url: !contestCheck && t.imageUrl && !t.imageUrl.startsWith("data:") ? t.imageUrl.slice(0, 2000) : null,
         page_url: t.c.pageUrl?.slice(0, 2000) ?? null,
         title: t.c.title?.slice(0, 300) ?? null,
         site: (t.c.site ?? hostOf(t.c.pageUrl ?? t.imageUrl))?.slice(0, 200) ?? null,
@@ -232,6 +240,15 @@ async function work(check: CheckRow, origin: string) {
     shape: { compared: loaded.length, close: closeCount, closest },
     font: { look: reading.font_look, guess: reading.font_guess, hasText: Boolean(reading.text.trim()) },
   };
+  // The match score is the closest similarity found; the level comes from Admin › Pro plan.
+  const report = contestCheck
+    ? {
+        score: closest,
+        level: levelFor(closest, await levelRanges()),
+        results: closestResults(rows.map((r) => ({ title: r.title, site: r.found_by === "site" ? r.title : r.site, pageUrl: r.page_url, similarity: r.similarity }))),
+        sources_count: [lens.run.ran, vision.run.ran, true].filter(Boolean).length,
+      }
+    : {};
   const { error } = await db()
     .from("logo_checks")
     .update({
@@ -246,6 +263,7 @@ async function work(check: CheckRow, origin: string) {
       },
       advice: sum.data.advice,
       sources,
+      ...report,
       cost_usd: Math.round(cost * 10000) / 10000,
       error: null,
       locked_until: null,
@@ -254,6 +272,11 @@ async function work(check: CheckRow, origin: string) {
     .eq("id", check.id);
   if (error) throw new Error(error.message);
 
+  // A High match on an entry already sent goes to Admin › Copyright checker.
+  if (contestCheck) {
+    await flagIfHigh(check.id).catch((e) => console.error("[logo-check] flag:", e instanceof Error ? e.message : e));
+    return;
+  }
   // The certificate is made now; if this fails it is made when it is first downloaded.
   await makeCertificate(check.id, origin).catch((e) => console.error("[logo-check] certificate:", e instanceof Error ? e.message : e));
 }
@@ -291,7 +314,8 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
     verdict: c.verdict as "no_match" | "similar" | "high_risk",
     headline: head.headline,
     subline: head.subline,
-    matches: await Promise.all(matches.slice(0, 4).map(async (m) => ({ dataUri: await toUri(m.image_path), similarity: m.similarity, close: m.is_close, where: m.found_by === "site" ? "logocontest.bd" : (m.site ?? "the web") }))),
+    // A designer's contest check keeps no copies of other people's logos: those tiles show the source only.
+    matches: await Promise.all(matches.slice(0, 4).map(async (m) => ({ dataUri: m.image_path ? await toUri(m.image_path) : null, similarity: m.similarity, close: m.is_close, where: m.found_by === "site" ? "logocontest.bd" : (m.site ?? "the web") }))),
     closest: matches[0] ? { same: matches[0].same, different: matches[0].different } : null,
     scores: [
       { label: "Uniqueness", score: scores.uniqueness.score },
@@ -300,6 +324,8 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
       { label: "Overall", score: scores.overall.score },
     ],
     searched: sourceRows(sources),
+    // The winning entry's own report (owner, 2026-10-14): the designer's check, while the entry still uses that file.
+    report: c.entry_id ? await validReportOf(c.entry_id as string).then((r) => (r ? { id: r.reportId, url: `${origin}/verify/${r.reportId}` } : null)) : null,
   };
   const { pdf, png } = await renderCertificate(await certificateHtml(data));
   const paths = { pdf: `${id}/certificate.pdf`, png: `${id}/certificate.png` };

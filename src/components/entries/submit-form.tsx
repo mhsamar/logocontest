@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { SendCheckModal, type SendCheckSetup } from "@/components/logo-check/send-check";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";
@@ -17,7 +18,7 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-type Item = { key: string; url: string; status: "uploading" | "done" | "failed"; path?: string; label: string };
+type Item = { key: string; url: string; status: "uploading" | "done" | "failed"; path?: string; label: string; /** Size of the uploaded file (KB), shown in the logo check. */ kb?: number };
 
 const LABEL_MAX = 60;
 /** "signboard_mockup-2.png" → "signboard mockup 2": the starting name of a mockup, which the designer can change. */
@@ -70,7 +71,8 @@ async function toSquare(img: HTMLImageElement, px: number, h = px): Promise<Blob
 }
 
 /** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups in one box each (drag and drop works), each made px×px automatically, and eight declarations (one: no nude or sexual content). */
-export function SubmitForm({ contestId, slug, limits }: { contestId: string; slug: string; limits: Limits }) {
+/** `check`: the logo check before sending (owner, 2026-10-14; logo contests only); without it the design is sent straight away. */
+export function SubmitForm({ contestId, slug, limits, contestName, check }: { contestId: string; slug: string; limits: Limits; contestName: string; check?: SendCheckSetup | null }) {
   const { t, locale } = useI18n();
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
@@ -80,6 +82,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
   const [done, setDone] = useState<number | null>(null);
   const [over, setOver] = useState(false);
   const [busy, start] = useTransition();
+  const [sending, setSending] = useState(false);
   const fmt = (n: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(n);
 
   // Let go of object URLs when leaving the page.
@@ -97,7 +100,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
       return toast(t(prepared.error.key, prepared.error.params), "danger");
     }
     const { error: upError } = await createBrowserSupabase().storage.from("entry-files").uploadToSignedUrl(prepared.path, prepared.token, blob, { contentType: blob.type });
-    update(key, upError ? { status: "failed" } : { status: "done", path: prepared.path });
+    update(key, upError ? { status: "failed" } : { status: "done", path: prepared.path, kb: Math.max(1, Math.round(blob.size / 1024)) });
   };
 
   const pick = async (files: File[]) => {
@@ -154,13 +157,24 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const submit = () =>
+  const submit = (checkId: string | null = null) =>
     start(async () => {
       setError(null);
-      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked] });
+      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked], checkId });
+      setSending(false);
       if (!res.ok) return setError(t(res.error.key, res.error.params));
       setDone(res.number);
     });
+
+  // Logo check (owner, 2026-10-14): Send opens Upload → Check → Send for the cover; "Upload a new version" takes the
+  // checked cover away so the designer adds the new file.
+  const cover = items[0]?.status === "done" && items[0].path ? items[0] : null;
+  const [w, h] = limits.size ? [limits.size.w, limits.size.h] : [limits.px, limits.px];
+  const newVersion = () => {
+    setSending(false);
+    if (cover) remove(cover);
+    window.setTimeout(() => input.current?.click(), 50);
+  };
 
   return (
     <div className="space-y-6">
@@ -319,7 +333,7 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
           </div>
         )}
         {error && <Alert tone="danger">{error}</Alert>}
-        <Button size="lg" block onClick={submit} loading={busy} disabled={missing.length > 0 || done !== null}>
+        <Button size="lg" block onClick={() => (check ? setSending(true) : submit())} loading={busy && !sending} disabled={missing.length > 0 || done !== null}>
           {t("submit.button")}
         </Button>
         <p className="text-center text-sm">
@@ -328,6 +342,20 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
           </Link>
         </p>
       </div>
+
+      {check && (
+        <SendCheckModal
+          open={sending}
+          onClose={() => setSending(false)}
+          contest={contestName}
+          contestId={contestId}
+          cover={cover ? { path: cover.path!, url: cover.url, name: cover.label || t("submit.mockups.cover"), kb: cover.kb ?? null, w, h } : null}
+          setup={check}
+          busy={busy}
+          onSend={(checkId) => submit(checkId)}
+          onNewVersion={newVersion}
+        />
+      )}
 
       {/* D-05 (owner, 2026-10-11): a pop-up after submitting, with View design and Submit new design */}
       <Modal

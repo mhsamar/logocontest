@@ -25,6 +25,7 @@ import { contestServiceInfo } from "@/lib/services/contest-service";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
 import { ENTRY_FILES_BUCKET } from "./queries";
+import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES } from "./rules";
 
@@ -82,7 +83,15 @@ export async function discardEntryImage(contestId: string, path: string): Promis
   await getFileStorage().remove(ENTRY_FILES_BUCKET, [path]).catch(() => {});
 }
 
-export type SubmitInput = { contestId: string; paths: string[]; declarations: string[]; /** One name per path (owner, 2026-10-11). */ labels: string[] };
+export type SubmitInput = {
+  contestId: string;
+  paths: string[];
+  declarations: string[];
+  /** One name per path (owner, 2026-10-11). */
+  labels: string[];
+  /** The designer's logo check of the cover (owner, 2026-10-14); kept only when it is about this exact file. */
+  checkId?: string | null;
+};
 
 /** Longest mockup name (migration 0038). */
 const MOCKUP_LABEL_MAX = 60;
@@ -209,6 +218,9 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     await storage.remove(ENTRY_FILES_BUCKET, previews).catch(() => {});
     return fail("auth.errors.generic");
   }
+
+  // Logo check (owner, 2026-10-14): the fingerprint of the cover file, and the designer's check if it is about this file.
+  await linkEntryCheck({ entryId: entry.id, designerId: user!.id, contestId: contest.id, fileSha256: sha256Hex(files[0].bytes), checkId: input.checkId ?? null });
 
   await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, `/dashboard/contests/${contest.slug}?entry=${entry.number}`, user!.id);
   refresh();

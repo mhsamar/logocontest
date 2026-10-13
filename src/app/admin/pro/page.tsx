@@ -120,6 +120,8 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
               promoPriceBdt: s.promoPriceBdt,
               proLogoChecks: s.proLogoChecks,
               basicLogoChecks: s.basicLogoChecks,
+              checkLowMax: s.checkLowMax,
+              checkMediumMax: s.checkMediumMax,
               proPortfolioLimit: s.proPortfolioLimit,
               proEntriesPerContest: s.proEntriesPerContest,
               basicEntriesPerContest: s.basicEntriesPerContest,

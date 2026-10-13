@@ -16,6 +16,9 @@ export type ProSettings = {
   promoPriceBdt: number | null;
   proLogoChecks: number;
   basicLogoChecks: number;
+  /** Logo check inside contests (owner, 2026-10-14): Low match is 0–checkLowMax %, Medium up to checkMediumMax %, High above. */
+  checkLowMax: number;
+  checkMediumMax: number;
   proPortfolioLimit: number;
   /** null = unlimited. */
   proEntriesPerContest: number | null;
@@ -43,6 +46,8 @@ export const DEFAULT_PRO_SETTINGS: ProSettings = {
   promoPriceBdt: null,
   proLogoChecks: 100,
   basicLogoChecks: 2,
+  checkLowMax: 20,
+  checkMediumMax: 60,
   proPortfolioLimit: 50,
   proEntriesPerContest: null,
   basicEntriesPerContest: 5,

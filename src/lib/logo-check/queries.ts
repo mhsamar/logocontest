@@ -59,7 +59,8 @@ export async function contestChecks(contest: { id: string; prize: number; logoSc
   const access = accessFor(contest.prize, contest.logoScan, limits);
   const limit = limitFor(access, limits);
   if (!isSupabaseConfigured()) return { access, limits, limit, used: 0, left: limit, checkable: false, checks: [] };
-  const { data } = await createAdminClient().from("logo_checks").select(LIST_COLUMNS).eq("contest_id", contest.id).order("created_at", { ascending: true });
+  // Designers' contest checks (owner, 2026-10-14) are on their entries, not in the client's checks.
+  const { data } = await createAdminClient().from("logo_checks").select(LIST_COLUMNS).eq("contest_id", contest.id).neq("source", "pre_submit").order("created_at", { ascending: true });
   const checks = (data ?? []).map((r) => toItem(r as Record<string, unknown>));
   const used = checks.filter((c) => c.status !== "failed").length;
   return { access, limits, limit, used, left: checksLeft(used, limit), checkable: isCheckable(contest.status), checks };
@@ -125,7 +126,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
   const urls = await getFileStorage()
     .createReadUrls(LOGO_CHECKS_BUCKET, paths, 3600)
     .catch(() => new Map<string, string>());
-  const { count } = await createAdminClient().from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).neq("status", "failed");
+  const { count } = await createAdminClient().from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).neq("status", "failed").neq("source", "pre_submit");
   const limits = await checkLimits();
   const lockedUntil = r.locked_until ? new Date(r.locked_until as string).getTime() : 0;
   return {
@@ -164,7 +165,11 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
 /** For the public /verify page: only the number, date, checked logo and result. */
 export async function verifyView(number: number): Promise<{ number: number; finishedAt: string; verdict: Verdict; logoUrl: string | null; closest: number } | null> {
   if (!isSupabaseConfigured()) return null;
-  const { data } = await createAdminClient().from("logo_checks").select("number, status, verdict, finished_at, image_path, sources").eq("number", number).maybeSingle();
+  const { data } = await createAdminClient().from("logo_checks").select("number, status, verdict, finished_at, image_path, sources")
+    .eq("number", number)
+    // Only clients' certificates: a designer's own check is private, and a contest check has its own report page.
+    .in("source", ["entry", "upload"])
+    .maybeSingle();
   if (!data || data.status !== "done" || !data.verdict || !data.finished_at) return null;
   const urls = await getFileStorage()
     .createReadUrls(LOGO_CHECKS_BUCKET, [data.image_path as string], 600)
@@ -261,6 +266,7 @@ export async function adminChecks(): Promise<AdminCheckRow[]> {
   const { data } = await createAdminClient()
     .from("logo_checks")
     .select(`${LIST_COLUMNS}, image_path, paid, sources, cost_usd, contest_id, contest:contests!contest_id(id, slug, brand_name, contest_number), requester:profiles!requested_by(id, name)`)
+    .in("source", ["entry", "upload"])
     .order("created_at", { ascending: false })
     .limit(500);
   const list = (data ?? []) as unknown as Record<string, unknown>[];
