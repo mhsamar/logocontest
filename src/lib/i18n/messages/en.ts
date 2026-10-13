@@ -1,7 +1,9 @@
+import checkEn from "./check-en";
 import proEn from "./pro-en";
 
 const en = {
   pro: proEn,
+  entryCheck: checkEn,
   meta: {
     title: "logocontest.bd — Logo design contests in Bangladesh",
     description: "Many designers. Many ideas. One perfect logo. Get your logo from Bangladesh's best designers.",

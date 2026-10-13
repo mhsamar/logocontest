@@ -26,6 +26,8 @@ export type ProSettingsInput = {
   promoPriceBdt: number | null;
   proLogoChecks: number;
   basicLogoChecks: number;
+  checkLowMax: number;
+  checkMediumMax: number;
   proPortfolioLimit: number;
   proEntriesPerContest: number | null;
   basicEntriesPerContest: number;
@@ -60,6 +62,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
   if (promo && !/^[A-Z0-9]{3,20}$/.test(promo)) return fail("pro.admin.errors.promo");
   if (promo && !intIn(i.promoPriceBdt, 0, 100000)) return fail("pro.admin.errors.promoPrice");
   if (!intIn(i.proLogoChecks, 0, 10000) || !intIn(i.basicLogoChecks, 0, 10000)) return fail("pro.admin.errors.limit");
+  // Match levels (owner, 2026-10-14): Low 0–low %, Medium up to medium %, High above.
+  if (!intIn(i.checkLowMax, 0, 98) || !intIn(i.checkMediumMax, i.checkLowMax + 1, 99)) return fail("pro.admin.errors.levels");
   if (!intIn(i.proPortfolioLimit, 0, 1000) || !intIn(i.basicEntriesPerContest, 1, 1000) || !intIn(i.invitesPerContest, 0, 100)) return fail("pro.admin.errors.limit");
   if (i.proEntriesPerContest !== null && !intIn(i.proEntriesPerContest, 1, 1000)) return fail("pro.admin.errors.limit");
   if (!intIn(i.earlyAccessMinutes, 0, 10080)) return fail("pro.admin.errors.early");
@@ -77,6 +81,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
     promo_price_bdt: promo ? i.promoPriceBdt : null,
     pro_logo_checks: i.proLogoChecks,
     basic_logo_checks: i.basicLogoChecks,
+    check_low_max: i.checkLowMax,
+    check_medium_max: i.checkMediumMax,
     pro_portfolio_limit: i.proPortfolioLimit,
     pro_entries_per_contest: i.proEntriesPerContest,
     basic_entries_per_contest: i.basicEntriesPerContest,
@@ -99,6 +105,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
     promo_price_bdt: before.promoPriceBdt,
     pro_logo_checks: before.proLogoChecks,
     basic_logo_checks: before.basicLogoChecks,
+    check_low_max: before.checkLowMax,
+    check_medium_max: before.checkMediumMax,
     pro_portfolio_limit: before.proPortfolioLimit,
     pro_entries_per_contest: before.proEntriesPerContest,
     basic_entries_per_contest: before.basicEntriesPerContest,

@@ -22,6 +22,8 @@ export function rowToSettings(r: Record<string, unknown>): ProSettings {
     promoPriceBdt: typeof r.promo_price_bdt === "number" ? r.promo_price_bdt : null,
     proLogoChecks: num(r.pro_logo_checks, d.proLogoChecks),
     basicLogoChecks: num(r.basic_logo_checks, d.basicLogoChecks),
+    checkLowMax: num(r.check_low_max, d.checkLowMax),
+    checkMediumMax: num(r.check_medium_max, d.checkMediumMax),
     proPortfolioLimit: num(r.pro_portfolio_limit, d.proPortfolioLimit),
     proEntriesPerContest: typeof r.pro_entries_per_contest === "number" ? r.pro_entries_per_contest : null,
     basicEntriesPerContest: num(r.basic_entries_per_contest, d.basicEntriesPerContest),

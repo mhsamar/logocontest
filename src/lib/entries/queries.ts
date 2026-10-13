@@ -31,6 +31,9 @@ export type EntryCard = {
   upVotes: number;
   downVotes: number;
   myVote: -1 | 0 | 1;
+  /** Logo check (owner, 2026-10-14): the designer's check and the fingerprint of the cover file. The badge is worked out from both. */
+  checkId: string | null;
+  fileSha256: string | null;
 };
 
 export type EntryComment = {
@@ -53,6 +56,8 @@ type Row = {
   logo_story: string | null;
   designer: { name: string; username: string | null } | { name: string; username: string | null }[] | null;
   images: { position: number; preview_path: string; label?: string | null }[];
+  check_id: string | null;
+  file_sha256: string | null;
 };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -112,10 +117,12 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     upVotes: votes.get(r.id)?.up ?? 0,
     downVotes: votes.get(r.id)?.down ?? 0,
     myVote: votes.get(r.id)?.mine ?? 0,
+    checkId: r.check_id ?? null,
+    fileSha256: r.file_sha256 ?? null,
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {

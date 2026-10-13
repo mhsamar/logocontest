@@ -5,9 +5,14 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { verifyView } from "@/lib/logo-check/queries";
 import { certNumber, parseCertNumber } from "@/lib/logo-check/rules";
+import { ReportVerify } from "@/components/logo-check/report-verify";
+import { isReportId } from "@/lib/logo-check/entry-rules";
+import { publicReport } from "@/lib/logo-check/entry-check";
 
 export async function generateMetadata({ params }: PageProps<"/verify/[number]">): Promise<Metadata> {
   const { t } = await getI18n();
+  const raw = decodeURIComponent((await params).number).toUpperCase();
+  if (isReportId(raw)) return { title: t("entryCheck.verify.metaTitle", { id: raw }), robots: { index: false, follow: false } };
   const n = parseCertNumber((await params).number);
   return { title: t("verify.title", { no: n ? certNumber(n) : "" }), robots: { index: false, follow: false } };
 }
@@ -20,6 +25,9 @@ const TONE = { no_match: "bg-[#e3f3ea] text-[#14633c]", similar: "bg-[#ffedd5] t
  */
 export default async function VerifyPage({ params }: PageProps<"/verify/[number]">) {
   const { t, locale } = await getI18n();
+  // An entry's originality report (owner, 2026-10-14): /verify/LC-XXXX-XXXX.
+  const raw = decodeURIComponent((await params).number).toUpperCase();
+  if (isReportId(raw)) return <ReportVerify report={await publicReport(raw)} reportId={raw} t={t} locale={locale} />;
   const n = parseCertNumber((await params).number);
   const cert = n ? await verifyView(n) : null;
 

@@ -27,7 +27,8 @@ export async function designerCheckUsage(designerId: string, now: Date = new Dat
     .from("logo_checks")
     .select("id", { count: "exact", head: true })
     .eq("requested_by", designerId)
-    .eq("source", "designer")
+    // Own checks and checks before sending a design to a contest (owner, 2026-10-14) share the monthly number.
+    .in("source", ["designer", "pre_submit"])
     .neq("status", "failed")
     .gte("created_at", m.from.toISOString())
     .lt("created_at", m.to.toISOString());
