@@ -677,3 +677,11 @@ Wherever the onboarding asks the client or designer to write, a **Need ideas?** 
 - **Contest page:** Pro entries get a badge and gold ring and come first; the client sees **Message designer** on Pro entries.
 - **Admin › Pro plan:** for-sale switch, numbers, plan settings with Save / Undo, the upgrade funnel, "Clicked but did not buy" (Remind, auto reminder), members (Manage, Give Pro to a designer), best results, why they cancel, and the activity log with Export.
 
+## Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`)
+
+- **Send a design:** "Submit design" opens a pop-up (a bottom sheet on phones) with Upload ✓ → Check → Send. States: check or skip (checks left this month), Checking (progress, "Skip the check?"), Low / Medium (ring with the %, Send design), High (Upload a new version, Send anyway), no checks left (reset date; Basic sees the Pro offer and See Pro; Send without check), check failed (Try again).
+- **Client judging page:** "n of m entries checked" next to Review designs; the sort bar (Pro first · Default, Newest, Top rated, Lowest match · Checker) with a line saying what each does; filters with counts; every entry shows its badge (green Low, amber Medium, red High, grey Not checked) and Pro entries a gold ring and PRO; the legend under the entries. Clicking a badge opens the originality report next to the entries (below them on phones).
+- **Report panel:** score ring and level, checked date "before submit", sources searched, "Same file as this entry ✓", Report ID, closest results as links, Open verify page, Download report, and the AI research note.
+- **Verify page** `/verify/LC-XXXX-XXXX`: Valid report / File changed, the entry picture (when public), designer, date, fingerprint, status.
+- **Admin › Copyright checker:** "High match entries to review" at the top with Report, Keep entry and Remove entry. **Admin › Pro plan › Limits:** Low match up to % and Medium match up to %.
+

@@ -310,7 +310,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             <h2 className="m-0 text-[clamp(24px,2.8vw,32px)] font-semibold tracking-[-0.03em] text-ink">{t("manage.review.title")}</h2>
             {checkerOn && counts.all > 0 && <CheckedSummary checked={counts.checked} total={counts.all} t={t} locale={locale} />}
           </div>
-          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="mt-4 flex flex-col gap-3">
             <JudgingSortBar current={sort} href={(o) => listHref(filter, o)} t={t} checker={checkerOn} />
             <nav className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
               <GlideTrack className="w-max">

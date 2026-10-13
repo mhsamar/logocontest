@@ -48,7 +48,7 @@ export function ReportVerify({ report, reportId, t, locale }: { report: PublicRe
           </span>
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
-          <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[20px] bg-white ring-1 ring-line">
+          <div className="mx-auto flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-[20px] bg-white ring-1 ring-line lg:max-w-none">
             {report.coverUrl ? (
               <img src={report.coverUrl} alt={t("entryCheck.verify.title", { n: n(report.entryNumber), contest: report.contest ?? "" })} className="size-full object-contain" />
             ) : (

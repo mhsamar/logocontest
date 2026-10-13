@@ -110,7 +110,7 @@ export function ReportPanel({ report, closeHref, t, locale }: { report: EntryRep
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
         </Link>
       </div>
-      {report.entry.coverUrl && <img src={report.entry.coverUrl} alt="" className="mt-4 aspect-[4/3] w-full rounded-[16px] bg-white object-contain ring-1 ring-line" />}
+      {report.entry.coverUrl && <img src={report.entry.coverUrl} alt="" className="mt-4 aspect-[4/3] max-h-56 w-full rounded-[16px] bg-white object-contain ring-1 ring-line" />}
       <div className={cx("mt-3 flex items-center gap-3 rounded-[16px] p-3", tone.soft)}>
         <ScoreRing score={report.score} level={report.level} size={60} />
         <div className="min-w-0">

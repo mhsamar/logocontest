@@ -167,8 +167,9 @@ export async function verifyView(number: number): Promise<{ number: number; fini
   if (!isSupabaseConfigured()) return null;
   const { data } = await createAdminClient().from("logo_checks").select("number, status, verdict, finished_at, image_path, sources")
     .eq("number", number)
-    // Only clients' certificates: a designer's own check is private, and a contest check has its own report page.
-    .in("source", ["entry", "upload"])
+    // Only certificates a client can have: their own checks, or a designer's contest check once it is on a sent entry
+    // (the client got it as a reused report). A designer's own checks and unsent contest checks stay private.
+    .or("source.in.(entry,upload),and(source.eq.pre_submit,entry_id.not.is.null)")
     .maybeSingle();
   if (!data || data.status !== "done" || !data.verdict || !data.finished_at) return null;
   const urls = await getFileStorage()
