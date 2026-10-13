@@ -665,3 +665,9 @@
     padding: 16px;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .ap-sw,
+  .ap-sw::after {
+    transition: none;
+  }
+}

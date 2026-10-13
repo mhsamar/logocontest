@@ -39,7 +39,7 @@ export async function ProSaved({ user }: { user: CurrentUser }) {
               </span>
               <div>
                 <b>{c.brand ?? t("pro.contests.privateContest")}</b>
-                <em>{t("pro.saved.line", { type: contestTypeLabel(c, t, names), prize: formatTaka(c.prize, locale), n: n(c.entries) })}</em>
+                <em>{t(c.entries === 1 ? "pro.saved.lineOne" : "pro.saved.line", { type: contestTypeLabel(c, t, names), prize: formatTaka(c.prize, locale), n: n(c.entries) })}</em>
               </div>
               <div className="when">
                 <span className={open && left! < 24 * 60 ? "hot" : undefined}>{open ? t("pro.saved.endsIn", { time: durationText(left!, t) }) : t("pro.saved.ended")}</span>

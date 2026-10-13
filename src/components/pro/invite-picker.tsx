@@ -194,7 +194,7 @@ export function InvitePicker({
                         <b>{t("pro.invite.winRate", { n: n(d.winRate) })}</b>
                       </span>
                       <span>
-                        <b>{t("pro.invite.wins", { n: n(d.wins) })}</b>
+                        <b>{d.wins === 1 ? t("pro.invite.winsOne") : t("pro.invite.wins", { n: n(d.wins) })}</b>
                       </span>
                     </div>
                     {d.skills.length > 0 && (

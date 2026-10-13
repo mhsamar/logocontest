@@ -749,7 +749,7 @@
   background: rgba(255, 255, 255, 0.18);
   animation: pr-fl 12s ease-in-out infinite alternate-reverse;
 }
-.pr-early > * {
+.pr-early > :not(.pr-blob) {
   position: relative;
 }
 .pr-kick {
@@ -1567,7 +1567,7 @@
   background: linear-gradient(120deg, #8b0000 0%, #b3261e 45%, #d9a52b 100%);
   color: #fff;
 }
-.pr-hero > * {
+.pr-hero > :not(.pr-blob) {
   position: relative;
 }
 .pr-hero .big {

@@ -111,7 +111,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
           <span className="pp-glass tl">{t("pro.profile.coverTag")}</span>
           <div className="pp-float">
             <span>
-              <b>{n(stats.wins)}</b> {t("pro.profile.fWins")}
+              <b>{n(stats.wins)}</b> {t(stats.wins === 1 ? "pro.profile.fWin" : "pro.profile.fWins")}
             </span>
             {stats.rating !== null && (
               <span>
@@ -119,7 +119,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
               </span>
             )}
             <span>
-              <b>{n(stats.contests)}</b> {t("pro.profile.fContests")}
+              <b>{n(stats.contests)}</b> {t(stats.contests === 1 ? "pro.profile.fContest" : "pro.profile.fContests")}
             </span>
           </div>
           {extra.cover.length > 0 && <span className="pp-glass br">{t("pro.profile.coverNote")}</span>}
@@ -186,7 +186,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
             <div>
               <b>{stats.rating === null ? "—" : n(stats.rating)}</b>
               <span>{t("pro.profile.sRating")}</span>
-              <em>{stats.rating === null ? t("pro.profile.sRatingNone") : t("pro.profile.sRatingSub", { n: n(stats.rated) })}</em>
+              <em>{stats.rating === null ? t("pro.profile.sRatingNone") : stats.rated === 1 ? t("pro.profile.sRatingSubOne") : t("pro.profile.sRatingSub", { n: n(stats.rated) })}</em>
             </div>
           </div>
           <div className="pp-sx">
@@ -196,7 +196,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
             <div>
               <b>{n(stats.designs)}</b>
               <span>{t("pro.profile.sDesigns")}</span>
-              <em>{t("pro.profile.sDesignsSub", { n: n(stats.contests) })}</em>
+              <em>{stats.contests === 1 ? t("pro.profile.sDesignsSubOne") : t("pro.profile.sDesignsSub", { n: n(stats.contests) })}</em>
             </div>
           </div>
         </div>
@@ -307,8 +307,8 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
                 {t("pro.profile.start")}
               </Link>
               <div className="s">
-                <span>{t("pro.profile.joined", { n: n(stats.contests) })}</span>
-                <span>{t("pro.profile.winsLine", { n: n(stats.wins) })}</span>
+                <span>{stats.contests === 1 ? t("pro.profile.joinedOne") : t("pro.profile.joined", { n: n(stats.contests) })}</span>
+                <span>{stats.wins === 1 ? t("pro.profile.winsLineOne") : t("pro.profile.winsLine", { n: n(stats.wins) })}</span>
               </div>
             </section>
           </div>
