@@ -5,6 +5,8 @@ import { ClientContestCard } from "@/components/dashboard/client-contest-card";
 import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { DesignerDashboard } from "@/components/dashboard/designer-dashboard";
+import { ProDashboard } from "@/components/pro/pro-dashboard";
+import { isPro } from "@/lib/pro/status";
 import { PrizeBanner } from "@/components/rewards/prize-banner";
 import { ButtonLink } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
@@ -41,6 +43,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   if (!user) redirect("/login?next=/dashboard");
   // Designers have their own dashboard (D-02).
   if (user.role === "designer") {
+    // Designer Pro plan (owner, 2026-10-13): Pro designers get the Pro workspace; Basic keeps this dashboard.
+    if (await isPro(user.id)) return <ProDashboard user={user} />;
     const designer = await designerById(user.id);
     if (!designer) notFound();
     const profileUrl = `${await siteOrigin()}/d/${designer.username}`;

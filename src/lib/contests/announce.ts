@@ -1,7 +1,47 @@
 import "server-only";
+import { translatorFor } from "@/lib/content/texts";
+import { getEmailSender, siteOrigin } from "@/lib/email";
 import { isSupabaseConfigured } from "@/lib/env";
-import { broadcastToDesigners } from "@/lib/notifications/broadcast";
+import { broadcastToDesigners, notifyWithPush } from "@/lib/notifications/broadcast";
+import { notifyInvited } from "@/lib/pro/invites";
+import { opensToAllAt } from "@/lib/pro/rules";
+import { getProSettings } from "@/lib/pro/settings";
+import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// Pro "Instant alerts" (Contests page): app and email on or off, and which design types (empty = all).
+async function proAlertIds(pro: string[], service: string): Promise<{ app: string[]; email: string[] }> {
+  const { data } = await createAdminClient().from("pro_preferences").select("designer_id, alert_app, alert_email, alert_services").in("designer_id", pro);
+  const prefs = new Map((data ?? []).map((r) => [r.designer_id as string, r]));
+  const wants = (id: string) => {
+    const types = (prefs.get(id)?.alert_services as string[] | null) ?? [];
+    return types.length === 0 || types.includes(service);
+  };
+  return {
+    app: pro.filter((id) => wants(id) && prefs.get(id)?.alert_app !== false),
+    email: pro.filter((id) => wants(id) && prefs.get(id)?.alert_email !== false),
+  };
+}
+
+/** The instant alert by email, in each designer's language. Never throws. */
+async function emailAlert(ids: string[], brand: string | null, amount: number, link: string): Promise<void> {
+  if (!ids.length) return;
+  try {
+    const { data: people } = await createAdminClient().from("profiles").select("email, name, locale").in("id", ids);
+    const url = `${await siteOrigin()}${link}`;
+    for (const p of people ?? []) {
+      if (!p.email) continue;
+      const t = await translatorFor(p.locale === "bn" ? "bn" : "en");
+      await getEmailSender().send({
+        to: p.email as string,
+        subject: t("pro.mail.alert.subject", { brand: brand ?? t("pro.contests.privateContest") }),
+        text: t("pro.mail.alert.body", { name: ((p.name as string | null) ?? "").trim(), brand: brand ?? t("pro.contests.privateContest"), amount: `৳${amount}`, link: url }),
+      });
+    }
+  } catch (e) {
+    console.error("[announce] pro email:", e instanceof Error ? e.message : e);
+  }
+}
 
 /**
  * "New logo contest: submit your logo and win" to every designer, once per contest (owner, 2026-10-09).
@@ -10,14 +50,36 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function announceContest(contestId: string): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
   const db = createAdminClient();
-  const { data: c } = await db.from("contests").select("id, slug, brand_name, prize_amount, status, is_private, is_nda").eq("id", contestId).maybeSingle();
+  const { data: c } = await db.from("contests").select("id, slug, brand_name, prize_amount, status, is_private, is_nda, starts_at, service").eq("id", contestId).maybeSingle();
   if (!c || c.status !== "open") return false;
+  // Private and NDA contests still want designers; their names stay hidden from people who can't see the brief.
+  const brand = c.is_private || c.is_nda ? null : (c.brand_name as string);
+  const data = { brand: brand ?? undefined, amount: c.prize_amount as number };
+  const link = `/contest/${c.slug}`;
+
+  // Pro early access (owner, 2026-10-13): Pro designers hear at once ("instant contest alert"), and invited designers
+  // get their invitation; everyone else hears when the contest opens to them (the lifecycle job calls this again).
+  const { settings, ready } = await getProSettings();
+  const pro = ready ? await allProIds() : [];
+  const early = ready && settings.features.early_access && settings.earlyAccessMinutes > 0;
+  if (early) {
+    const { error: sentEarly } = await db.from("lifecycle_events").insert({ contest_id: c.id, kind: "announced_pro" });
+    if (!sentEarly && pro.length) {
+      const alerts = await proAlertIds(pro, (c.service as string | null) ?? "logo");
+      await notifyWithPush(alerts.app, brand ? "contest_new_pro" : "contest_new_pro_private", data, link);
+      await emailAlert(alerts.email, brand, c.prize_amount as number, link);
+    }
+    await notifyInvited(c.id as string);
+    const startsAt = c.starts_at ? new Date(c.starts_at as string) : new Date();
+    if (opensToAllAt(startsAt, settings) > new Date()) return !sentEarly;
+  } else if (ready) {
+    await notifyInvited(c.id as string);
+  }
+
   // Recorded first, so two callers never announce twice.
   const { error } = await db.from("lifecycle_events").insert({ contest_id: c.id, kind: "announced" });
   if (error) return false;
-  // Private and NDA contests still want designers; their names stay hidden from people who can't see the brief.
-  const brand = c.is_private || c.is_nda ? null : (c.brand_name as string);
-  await broadcastToDesigners(brand ? "contest_new" : "contest_new_private", { brand: brand ?? undefined, amount: c.prize_amount as number }, `/contest/${c.slug}`);
+  await broadcastToDesigners(brand ? "contest_new" : "contest_new_private", data, link, early ? pro : []);
   return true;
 }
 

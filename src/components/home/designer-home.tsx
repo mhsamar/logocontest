@@ -8,6 +8,7 @@ import { Arrow, IconBadge, Pill } from "@/components/ui/section-heading";
 import { liveContests } from "@/lib/contests/browse";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
+import { earlyCutoff } from "@/lib/pro/limits";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 
@@ -26,7 +27,7 @@ const H2 = "m-0 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.08] track
 export async function DesignerHome({ user }: { user: { id: string; name: string } }) {
   const { t, locale } = await getI18n();
   const [open, s] = await Promise.all([
-    liveContests(3),
+    earlyCutoff({ id: user.id, role: "designer" }).then((cut) => liveContests(3, cut)),
     getSettings([
       "limits.entry_min_images",
       "limits.entry_max_images",

@@ -19,6 +19,7 @@ import { faqParams } from "@/lib/home/faq-params";
 import { showsLanding } from "@/lib/home/landing";
 import { homeLogos } from "@/lib/home/logos";
 import { getI18n } from "@/lib/i18n/server";
+import { earlyCutoff } from "@/lib/pro/limits";
 import { offersOn } from "@/lib/rewards/program";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
@@ -36,7 +37,7 @@ export default async function HomePage() {
   const { t, locale } = await getI18n();
   const [{ params }, contests, logos, social, prizes, offers, contact, pictures] = await Promise.all([
     faqParams(t, locale),
-    liveContests(3),
+    earlyCutoff(user ?? null).then((cut) => liveContests(3, cut)),
     homeLogos(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
     getSettings(["home.hero_offer_slide"]),

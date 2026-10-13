@@ -10,6 +10,7 @@ import { agreementOk } from "@/lib/agreements/queries";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug } from "@/lib/contests/browse";
+import { contestVisibleTo } from "@/lib/pro/limits";
 import { getI18n } from "@/lib/i18n/server";
 import { suspendedError } from "@/lib/moderation/suspension";
 import { getSetting } from "@/lib/settings";
@@ -29,6 +30,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/contest/${slug}/submit`)}`);
   const contest = await getContestBySlug(slug, user);
   if (!contest) notFound();
+  // Pro early access (owner, 2026-10-13): the contest page says when it opens to everyone.
+  if (contest.status === "open" && !(await contestVisibleTo(contest.startsAt, user))) redirect(`/contest/${slug}`);
   // A suspended designer can't send a new design until the suspension ends (owner, 2026-10-12); they hear it first.
   const held = user.role === "designer" ? suspendedError(user) : null;
   // NDA contests: the confidentiality agreement comes first, on the contest page (owner, 2026-10-08).

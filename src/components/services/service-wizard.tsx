@@ -31,6 +31,10 @@ export type ServiceWizardProps = {
   pricing: PricingConfig;
   passwordMin: number;
   resume: { contestId: string; title: string; description: string; answers: Answers; order: Order } | null;
+  /** Designer Pro plan (owner, 2026-10-13): after saving, the optional "Invite Pro designers" step comes before paying. */
+  inviteFirst?: boolean;
+  /** Back from the invite step: open at "Review and pay". */
+  startAtPay?: boolean;
 };
 
 /**
@@ -38,7 +42,7 @@ export type ServiceWizardProps = {
  * the questions set in Admin → Services), prize and days, an account for new clients, then review and pay. Saved on
  * this device until the draft is on the server. The same actions as the logo wizard save and check out.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume }: ServiceWizardProps) {
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay }: ServiceWizardProps) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
@@ -52,7 +56,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume }: S
       ? { title: resume.title, description: resume.description, answers: resume.answers, prize: resume.order.customPrize ?? service.defaultPrize, days: resume.order.durationDays, upgrades: resume.order.upgrades, contestId: resume.contestId }
       : { title: "", description: "", answers: {}, prize: service.defaultPrize, days: Math.min(cfg.durationMax, Math.max(cfg.durationMin, service.defaultDays)), upgrades: noUpgrades(), contestId: null },
   );
-  const [step, setStep] = useState<Step>("brief");
+  const [step, setStep] = useState<Step>(resume && startAtPay ? "pay" : "brief");
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
@@ -113,6 +117,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume }: S
         const res = await saveDraft({ brief, order, contestId: d.contestId, service: svc });
         if (!res.ok) return setError(t(res.error.key, res.error.params));
         setD((cur) => ({ ...cur, contestId: res.contestId }));
+        if (inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
         go("pay");
       });
     }
@@ -136,6 +141,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume }: S
         setD((cur) => ({ ...cur, contestId: res.contestId }));
         setPassword("");
         router.refresh();
+        if (inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
         go("pay");
       });
     }

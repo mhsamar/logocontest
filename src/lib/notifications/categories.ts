@@ -111,6 +111,24 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   files_missed_admin: "admin",
   withdrawal_requested_admin: "admin",
   agreement_photo_added_admin: "admin",
+  // Designer Pro plan (owner, 2026-10-13)
+  contest_new_pro: "newContest",
+  contest_new_pro_private: "newContest",
+  pro_invited: "newContest",
+  pro_invited_private: "newContest",
+  pro_invite_reminder: "ending",
+  pro_saved_reminder: "ending",
+  pro_message: "reply",
+  pro_activated: "money",
+  pro_cancelled: "money",
+  pro_renew_7d: "money",
+  pro_renew_1d: "money",
+  pro_expired: "money",
+  pro_payment_failed: "money",
+  pro_checkout_reminder: "money",
+  pro_granted: "money",
+  pro_price_change: "money",
+  pro_weekly: "money",
 };
 
 const P = {

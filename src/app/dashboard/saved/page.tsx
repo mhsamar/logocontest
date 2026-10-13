@@ -10,6 +10,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { contestsByIds } from "@/lib/contests/browse";
 import { savedContestIdList } from "@/lib/contests/community";
 import { getI18n } from "@/lib/i18n/server";
+import { ProSaved } from "@/components/pro/pro-saved";
+import { isPro } from "@/lib/pro/status";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -21,6 +23,8 @@ export default async function SavedContestsPage() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect("/login?next=/dashboard/saved");
   if (!can(user, "contest.save")) notFound();
+  // Designer Pro plan (owner, 2026-10-13): Pro designers get reminders before a saved contest ends.
+  if (user.role === "designer" && (await isPro(user.id))) return <ProSaved user={user} />;
 
   const contests = await contestsByIds(await savedContestIdList(user.id, 200));
   const now = new Date();

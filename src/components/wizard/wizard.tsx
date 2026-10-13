@@ -46,6 +46,8 @@ export type WizardProps = {
   prefillName: string;
   /** Admin lists (A-15): business types in order (hidden ones left out) and suggested colours. */
   choices: BriefChoices;
+  /** Designer Pro plan (owner, 2026-10-13): after saving, the optional "Invite Pro designers" step comes before paying. */
+  inviteFirst?: boolean;
 };
 
 /** One id per browser tab visit, so a reload continues the same visit. */
@@ -264,6 +266,7 @@ export function Wizard(props: WizardProps) {
     if (step === 8 && props.user) {
       startBusy(async () => {
         const saved = await persistDraft(state);
+        if (saved.ok && props.inviteFirst) return router.push(`/start/invite?draft=${saved.contestId}`);
         if (saved.ok) go(11);
       });
       return;
@@ -309,6 +312,7 @@ export function Wizard(props: WizardProps) {
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
         setPassword("");
         router.refresh(); // header and server props now see the signed-in client
+        if (props.inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
         go(11);
       });
       return;

@@ -16,6 +16,7 @@ import { notify } from "@/lib/notifications";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { agreementOk } from "@/lib/agreements/queries";
+import { contestVisibleTo, designsAllowed } from "@/lib/pro/limits";
 import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
@@ -34,9 +35,9 @@ const UUID = /^[0-9a-f-]{36}$/i;
 /** An open contest that still accepts designs, or null. */
 async function openContest(contestId: string) {
   if (!UUID.test(contestId)) return null;
-  const { data } = await createAdminClient().from("contests").select("id, slug, status, ends_at, client_id, brand_name, is_nda").eq("id", contestId).maybeSingle();
+  const { data } = await createAdminClient().from("contests").select("id, slug, status, starts_at, ends_at, client_id, brand_name, is_nda").eq("id", contestId).maybeSingle();
   if (!data || data.status !== "open" || (data.ends_at && new Date(data.ends_at) <= new Date())) return null;
-  return { id: data.id as string, slug: data.slug as string, ownerId: data.client_id as string, brand: data.brand_name as string, isNda: Boolean(data.is_nda) };
+  return { id: data.id as string, slug: data.slug as string, ownerId: data.client_id as string, brand: data.brand_name as string, isNda: Boolean(data.is_nda), startsAt: data.starts_at ? new Date(data.starts_at as string) : null };
 }
 
 /** A non-logo contest's own upload rules (owner, 2026-10-13: Admin → Services); null for logo contests. */
@@ -59,6 +60,8 @@ export async function prepareEntryImageUpload(input: { contestId: string; type: 
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
+  // Pro early access (owner, 2026-10-13): not before the contest opens to this designer.
+  if (!(await contestVisibleTo(contest.startsAt, user))) return fail("pro.errors.earlyAccess");
   if (!(await agreementOk(user!.id))) return fail("agreement.errors.required");
   const ext = ENTRY_IMAGE_TYPES[input.type];
   if (!ext) return fail("submit.errors.type");
@@ -97,6 +100,8 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   const contest = await openContest(input.contestId);
   if (!contest) return fail("submit.errors.closed");
   if (!(await passesNda(contest, user))) return fail("contest.nda.required");
+  // Pro early access (owner, 2026-10-13): not before the contest opens to this designer.
+  if (!(await contestVisibleTo(contest.startsAt, user))) return fail("pro.errors.earlyAccess");
   if (!(await agreementOk(user!.id))) return fail("agreement.errors.required");
 
   const [minImages, siteMaxImages, px, previewPx, maxPerDesigner, rules] = await Promise.all([
@@ -124,9 +129,11 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   }
 
   const db = createAdminClient();
-  if (maxPerDesigner > 0) {
+  // Designs per contest (owner, 2026-10-13): Basic 5, Pro unlimited (Admin › Pro plan), never above the site limit.
+  const limit = await designsAllowed(user!.id, maxPerDesigner);
+  if (limit > 0) {
     const { count } = await db.from("entries").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).eq("designer_id", user!.id).not("status", "in", `(${GONE_STATUSES.join(",")})`);
-    if ((count ?? 0) >= maxPerDesigner) return fail("submit.errors.tooMany", { max: maxPerDesigner });
+    if ((count ?? 0) >= limit) return fail(limit < maxPerDesigner || maxPerDesigner === 0 ? "submit.errors.tooManyBasic" : "submit.errors.tooMany", { max: limit });
   }
 
   // Check every file before anything is saved.

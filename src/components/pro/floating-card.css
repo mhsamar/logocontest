@@ -1,0 +1,264 @@
+/* Go Pro floating card (owner, 2026-10-13; Design/pro/go-pro-floating-card.html): Basic designers only. Bottom left,
+   so it never sits on the support chat button (bottom right). On phones: a slim bar. */
+.fc-dock {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 60;
+}
+.fc-card {
+  position: relative;
+  overflow: hidden;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 22px;
+  background: radial-gradient(90% 90% at 0% 0%, #b3201b, #8b0000 50%, #4a0709);
+  color: #fff;
+  box-shadow: 0 24px 50px rgba(74, 7, 9, 0.4), 0 0 0 1px rgba(245, 207, 106, 0.25);
+}
+.fc-card::before {
+  content: "";
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 26px solid rgba(226, 177, 60, 0.12);
+  animation: fc-float 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.fc-card > * {
+  position: relative;
+}
+.fc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fc-k {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.fc-min {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.fc-h {
+  font: 700 20px/1.2 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.fc-s {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.8);
+}
+.fc-l {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.fc-l li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fc-l i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(245, 207, 106, 0.16);
+  color: #f5cf6a;
+  flex: none;
+}
+.fc-p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+.fc-p b {
+  font: 800 30px/1 var(--font-display);
+  color: #ffe7a6;
+}
+.fc-p span {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+}
+.fc-up {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+  font-size: 16.5px;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+  animation: fc-glow 2.6s ease-in-out infinite;
+  transition: transform 0.3s;
+}
+.fc-up:hover {
+  transform: translateY(-2px);
+}
+.fc-more {
+  align-self: center;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffe7a6;
+  border-bottom: 1px solid rgba(255, 231, 166, 0.4);
+}
+.fc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b3201b, #8b0000);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(74, 7, 9, 0.35), 0 0 0 1px rgba(245, 207, 106, 0.3);
+  animation: fc-glow 2.6s ease-in-out infinite;
+}
+.fc-pill b {
+  display: block;
+  font-size: 14.5px;
+}
+.fc-pill em {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+  color: #ffe7a6;
+}
+.fc-id {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+  flex: none;
+}
+.fc-pill .go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+.fc-bar {
+  display: none;
+}
+@keyframes fc-float {
+  50% {
+    translate: 0 -8px;
+  }
+}
+@keyframes fc-glow {
+  50% {
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25), 0 0 0 6px rgba(245, 207, 106, 0.22);
+  }
+}
+@media (max-width: 700px) {
+  .fc-dock {
+    left: 10px;
+    right: 84px;
+    bottom: 12px;
+  }
+  .fc-dock .fc-card {
+    display: none;
+  }
+  .fc-dock.open .fc-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #b3201b, #8b0000);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(74, 7, 9, 0.35);
+  }
+  .fc-bar .fc-id {
+    width: 30px;
+    height: 30px;
+  }
+  .fc-bar b {
+    display: block;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .fc-bar em {
+    display: block;
+    white-space: nowrap;
+    font-style: normal;
+    font-size: 11px;
+    color: #ffe7a6;
+  }
+  .fc-bar .fc-bb {
+    margin-left: auto;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #f0c24f, #d9a52b);
+    color: #3a0a0a;
+    font-size: 12.5px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .fc-bar .fc-min {
+    width: 28px;
+    height: 28px;
+    flex: none;
+  }
+  .fc-pill b,
+  .fc-pill em {
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-card::before,
+  .fc-up,
+  .fc-pill {
+    animation: none !important;
+    transition: none !important;
+  }
+}
