@@ -4,13 +4,13 @@ import { ContestTile } from "./contest-tile";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionHead } from "@/components/ui/section-heading";
 
-/** "Contests live right now" (design file), from the open contests; an empty state until there are any. */
+/** "Contests live right now" (design file), from the open contests; an empty state until there are any. Kept compact (owner, 2026-10-13). */
 export async function LiveContests({ contests }: { contests: ContestRow[] }) {
   const { t, locale } = await getI18n();
   const now = new Date();
   return (
-    <section id="contests" className="rounded-[32px] bg-[var(--lc-panel-alt)] px-6 py-20">
-      <div className="mx-auto flex max-w-[1160px] flex-col items-center gap-11">
+    <section id="contests" className="rounded-[32px] bg-[var(--lc-panel-alt)] px-6 py-12">
+      <div className="mx-auto flex max-w-[1160px] flex-col items-center gap-7">
         <SectionHead
           icon={
             <svg aria-hidden width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

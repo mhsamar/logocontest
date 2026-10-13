@@ -23,8 +23,8 @@ const PACKAGE_CHIP: Record<PackageKey, string> = {
 function Cover({ c }: { c: ContestRow }) {
   if (c.isPrivate || c.isNda) {
     return (
-      <span className="lc-g flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-[image:var(--lc-grad-dark)]">
-        <svg aria-hidden width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <span className="lc-g flex h-[56px] w-[56px] items-center justify-center rounded-[18px] bg-[image:var(--lc-grad-dark)]">
+        <svg aria-hidden width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
           <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
         </svg>
@@ -34,9 +34,9 @@ function Cover({ c }: { c: ContestRow }) {
   if (c.cover) return <img src={c.cover.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full rounded-[20px] object-contain" />;
   const name = c.brandName.trim();
   return name.length <= 8 ? (
-    <span className="lc-d text-[40px] font-semibold uppercase tracking-[0.16em] text-white">{name}</span>
+    <span className="lc-d text-[32px] font-semibold uppercase tracking-[0.16em] text-white">{name}</span>
   ) : (
-    <span className="text-[78px] text-[#7A1E12]" style={{ fontFamily: "Georgia, serif", fontWeight: 500 }}>
+    <span className="text-[60px] text-[#7A1E12]" style={{ fontFamily: "Georgia, serif", fontWeight: 500 }}>
       {name.charAt(0).toUpperCase()}
     </span>
   );
@@ -55,7 +55,7 @@ export function ContestTile({ c, now, t, locale }: { c: ContestRow; now: Date; t
 
   return (
     <Link href={`/contest/${c.slug}`} className="lc-card lc-rv flex flex-col p-2.5">
-      <div className={cx("relative flex aspect-[16/10] items-center justify-center rounded-[20px]", coverBg(c))}>
+      <div className={cx("relative flex aspect-[2/1] items-center justify-center rounded-[20px]", coverBg(c))}>
         <Cover c={c} />
         {badges.length > 0 && (
           <div className="absolute inset-x-3 top-3 flex flex-wrap gap-1.5 text-[13px] font-bold">
@@ -67,16 +67,16 @@ export function ContestTile({ c, now, t, locale }: { c: ContestRow; now: Date; t
           </div>
         )}
       </div>
-      <div className="flex flex-col gap-4 px-3.5 pb-3.5 pt-5">
+      <div className="flex flex-col gap-3 px-3 pb-2.5 pt-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col">
-            <h3 className="m-0 truncate text-[23px] font-semibold tracking-[-0.03em]">{contestTitle(c, t)}</h3>
+            <h3 className="m-0 truncate text-[20px] font-semibold tracking-[-0.03em]">{contestTitle(c, t)}</h3>
             <span className="text-base text-[var(--lc-muted)]">{categoryLabel(c, t, locale)}</span>
           </div>
           <span className={cx("shrink-0 rounded-lg px-2.5 py-1 text-[13px] font-bold", PACKAGE_CHIP[c.package])}>{t(`wizard.packages.${c.package}.name`)}</span>
         </div>
-        <div className="flex items-end justify-between gap-3 border-t border-[var(--lc-line-soft)] pt-4">
-          <span className="lc-d text-[40px] font-semibold leading-none tracking-[-0.04em] text-[var(--lc-red)]">{formatTaka(c.prize, locale)}</span>
+        <div className="flex items-end justify-between gap-3 border-t border-[var(--lc-line-soft)] pt-3">
+          <span className="lc-d text-[32px] font-semibold leading-none tracking-[-0.04em] text-[var(--lc-red)]">{formatTaka(c.prize, locale)}</span>
           <span className="flex flex-col items-end gap-1.5">
             <span className="text-[15px] font-semibold text-[var(--lc-muted)]">{c.entries === 1 ? t("browse.oneDesign") : t("browse.designs", { count: formatNumber(c.entries, locale) })}</span>
             {left && (
