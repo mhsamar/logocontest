@@ -19,6 +19,11 @@ export type ProSettings = {
   /** Logo check inside contests (owner, 2026-10-14): Low match is 0–checkLowMax %, Medium up to checkMediumMax %, High above. */
   checkLowMax: number;
   checkMediumMax: number;
+  /** 3-day free Pro Trial (owner, 2026-10-14): off until the owner turns it on; its two limits are for the whole trial. */
+  freeTrialEnabled: boolean;
+  freeTrialDays: number;
+  trialLogoChecks: number;
+  trialPortfolioLimit: number;
   proPortfolioLimit: number;
   /** null = unlimited. */
   proEntriesPerContest: number | null;
@@ -48,6 +53,10 @@ export const DEFAULT_PRO_SETTINGS: ProSettings = {
   basicLogoChecks: 2,
   checkLowMax: 20,
   checkMediumMax: 60,
+  freeTrialEnabled: false,
+  freeTrialDays: 3,
+  trialLogoChecks: 10,
+  trialPortfolioLimit: 10,
   proPortfolioLimit: 50,
   proEntriesPerContest: null,
   basicEntriesPerContest: 5,

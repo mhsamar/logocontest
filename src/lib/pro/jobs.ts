@@ -8,6 +8,7 @@ import { allProIds } from "./status";
 import { designerStatsBulk } from "./stats";
 import { weekNumbers } from "./workspace";
 import { expireEndedPlans, logFunnel, sendRenewalReminders, tellDesigner } from "./subscription";
+import { expireTrials, sendTrialReminders } from "./trial";
 
 const db = () => createAdminClient();
 const HOUR = 3_600_000;
@@ -118,15 +119,18 @@ async function weeklyReports(now: Date): Promise<number> {
   return n;
 }
 
-export type ProJobReport = { expired: number; renewalReminders: number; inviteReminders: number; savedReminders: number; clickReminders: number; quality: number; weekly: number; errors: string[] };
+export type ProJobReport = { expired: number; trialReminders: number; trialsEnded: number; renewalReminders: number; inviteReminders: number; savedReminders: number; clickReminders: number; quality: number; weekly: number; errors: string[] };
 
 /** Every Pro job, run by the 15-minute lifecycle job. Nothing runs before migration 0046. Never throws. */
 export async function runProJobs(now: Date = new Date()): Promise<ProJobReport> {
-  const report: ProJobReport = { expired: 0, renewalReminders: 0, inviteReminders: 0, savedReminders: 0, clickReminders: 0, quality: 0, weekly: 0, errors: [] };
+  const report: ProJobReport = { expired: 0, trialReminders: 0, trialsEnded: 0, renewalReminders: 0, inviteReminders: 0, savedReminders: 0, clickReminders: 0, quality: 0, weekly: 0, errors: [] };
   const { ready } = await getProSettings();
   if (!ready) return report;
   const steps: [keyof Omit<ProJobReport, "errors">, () => Promise<number>][] = [
     ["expired", () => expireEndedPlans(now)],
+    // 3-day free Pro Trial (owner, 2026-10-14): remind on the last day, then end it.
+    ["trialReminders", () => sendTrialReminders(now)],
+    ["trialsEnded", () => expireTrials(now)],
     ["renewalReminders", () => sendRenewalReminders(now)],
     ["inviteReminders", () => remindInvited(now)],
     ["savedReminders", () => savedReminders(now)],

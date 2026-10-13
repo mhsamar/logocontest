@@ -6,7 +6,10 @@ import { formatNumber, formatTaka } from "@/lib/money";
 import { PRO_FILES_BUCKET } from "@/lib/pro/chat";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription } from "@/lib/pro/status";
+import { getSubscription, getTrial, proKind } from "@/lib/pro/status";
+import { isProActive } from "@/lib/pro/rules";
+import { isTrialActive, portfolioLimit } from "@/lib/pro/trial-rules";
+import { EndTrialButton } from "./trial-buttons";
 import { proPrefs } from "@/lib/pro/workspace";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -21,11 +24,13 @@ import { PrefToggle } from "./pref-toggles";
 export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
   const { t, locale } = await getI18n();
   const db = createAdminClient();
-  const [{ settings }, prefs, usage, sub, { data: entries }, { data: items }] = await Promise.all([
+  const [{ settings }, prefs, usage, sub, trial, kind, { data: entries }, { data: items }] = await Promise.all([
     getProSettings(),
     proPrefs(user.id),
     designerCheckUsage(user.id),
     getSubscription(user.id),
+    getTrial(user.id),
+    proKind(user.id),
     db
       .from("entries")
       .select("id, created_at, contest:contests!contest_id(brand_name, is_private, is_nda), images:entry_images!entry_id(preview_path, position)")
@@ -51,13 +56,16 @@ export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
   const portfolio = (items ?? []).map((i) => ({ id: i.id as string, title: (i.title as string) ?? "", url: itemUrls.get(i.preview_path as string) ?? null }));
   const n = (v: number) => formatNumber(v, locale);
   const until = sub ? formatDate(sub.currentPeriodEnd, locale, "long") : "";
+  // The free Pro Trial (owner, 2026-10-14): its own portfolio limit, and a trial card in place of the plan.
+  const onTrial = kind === "trial" && isTrialActive(trial) && !isProActive(sub);
+  const slotMax = portfolioLimit(onTrial ? "trial" : "pro", settings);
 
   return (
     <>
       <section id="extras" className="pr-card" style={{ scrollMarginTop: 120 }} aria-labelledby="ps-extras">
         <div className="pr-ch">
           <h2 id="ps-extras">{t("pro.settings.extras")}</h2>
-          <ProBadge />
+          <ProBadge label={onTrial ? t("pro.trial.badge") : undefined} />
         </div>
         <div className="pr-xs">
           <TitleForm initial={prefs.title ?? ""} />
@@ -74,13 +82,13 @@ export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
         </div>
         <div className="pr-xs">
           <b>{t("pro.settings.slots")}</b>
-          <em>{t("pro.settings.slotsLine", { used: n(portfolio.length), max: n(settings.proPortfolioLimit) })}</em>
-          <Slot used={portfolio.length} max={settings.proPortfolioLimit} />
-          <PortfolioManager items={portfolio} max={settings.proPortfolioLimit} />
+          <em>{onTrial ? t("pro.trial.slots", { used: n(portfolio.length), limit: n(slotMax) }) : t("pro.settings.slotsLine", { used: n(portfolio.length), max: n(slotMax) })}</em>
+          <Slot used={portfolio.length} max={slotMax} />
+          <PortfolioManager items={portfolio} max={slotMax} />
         </div>
         <div className="pr-xs">
           <b>{t("pro.settings.checker")}</b>
-          <em>{t("pro.settings.checkerLine", { used: n(usage.used), max: n(usage.limit), date: formatDate(usage.resetsOn, locale, "short") })}</em>
+          <em>{usage.trial ? t("pro.trial.checks", { left: n(usage.left), limit: n(usage.limit) }) : t("pro.settings.checkerLine", { used: n(usage.used), max: n(usage.limit), date: formatDate(usage.resetsOn, locale, "short") })}</em>
           <Slot used={usage.used} max={usage.limit} />
         </div>
         {settings.features.client_chat && <PrefToggle pref="client_messages" on={prefs.clientMessages} label={t("pro.settings.messagesToggle")} sub={t("pro.settings.messagesSub")} />}
@@ -88,7 +96,31 @@ export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
         {settings.features.insights && <PrefToggle pref="weekly_report" on={prefs.weeklyReport} label={t("pro.settings.weeklyToggle")} sub={t("pro.settings.weeklySub")} />}
         {settings.features.show_contact_on_profile && <PrefToggle pref="show_contact" on={prefs.showContact} label={t("pro.settings.contactToggle")} sub={t("pro.settings.contactSub")} />}
       </section>
-      {sub && (
+      {onTrial && trial && (
+        <section id="subscription" className="pr-card" style={{ scrollMarginTop: 120 }} aria-labelledby="ps-sub">
+          <div className="pr-ch">
+            <h2 id="ps-sub">{t("pro.settings.subscription")}</h2>
+          </div>
+          <div className="pr-sub">
+            <span className="pr-ic g">
+              <Icon name="crown" />
+            </span>
+            <div>
+              <b>{t("pro.trial.activeTitle")}</b>
+              <em>{settings.isForSale ? t("pro.trial.endsOn", { date: formatDate(trial.endsAt, locale, "long") }) : t("pro.trial.upgradeSoon", { date: formatDate(trial.endsAt, locale, "long") })}</em>
+            </div>
+          </div>
+          <div className="pr-sub-act">
+            {settings.isForSale && (
+              <Link href="/pro/checkout" className="pr-btn sm">
+                {t("pro.trial.upgrade")}
+              </Link>
+            )}
+            <EndTrialButton />
+          </div>
+        </section>
+      )}
+      {!onTrial && sub && (
         <section id="subscription" className="pr-card" style={{ scrollMarginTop: 120 }} aria-labelledby="ps-sub">
           <div className="pr-ch">
             <h2 id="ps-sub">{t("pro.settings.subscription")}</h2>

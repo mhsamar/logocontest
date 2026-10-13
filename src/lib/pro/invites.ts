@@ -4,7 +4,7 @@ import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { matchScore } from "./rules";
 import { getProSettings } from "./settings";
-import { allProIds, proIdsAmong } from "./status";
+import { allProIds, proIdsAmong, trialIdsAmong } from "./status";
 import { designerStatsBulk } from "./stats";
 
 const db = () => createAdminClient();
@@ -23,6 +23,8 @@ export type InviteCandidate = {
   username: string | null;
   avatarUrl: string | null;
   proSince: string;
+  /** On the free Pro Trial (owner, 2026-10-14): the badge reads "PRO TRIAL". */
+  trial: boolean;
   score: number;
   rating: number | null;
   winRate: number;
@@ -46,10 +48,11 @@ export async function inviteCandidates(contestId: string): Promise<{ contest: { 
   const invited = (inv ?? []).map((r) => r.designer_id as string);
   const ids = await allProIds();
   if (!ids.length) return { contest: shape(c), list: [], invited };
-  const [{ data: people }, { data: subs }, stats] = await Promise.all([
+  const [{ data: people }, { data: subs }, stats, trials] = await Promise.all([
     db().from("profiles").select("id, name, username, avatar_path, skills, last_seen_at, status").in("id", ids).eq("role", "designer").eq("status", "active"),
     db().from("pro_subscriptions").select("designer_id, first_started_at").in("designer_id", ids),
     designerStatsBulk(ids),
+    trialIdsAmong(ids),
   ]);
   const since = new Map((subs ?? []).map((s) => [s.designer_id as string, s.first_started_at as string]));
   const type = (c.service as string | null) && c.service !== "logo" ? (c.service as string) : (c.business_type as string);
@@ -68,6 +71,7 @@ export async function inviteCandidates(contestId: string): Promise<{ contest: { 
         username: (p.username as string | null) ?? null,
         avatarUrl: avatarUrl(p.avatar_path as string | null),
         proSince: since.get(p.id as string) ?? new Date().toISOString(),
+        trial: trials.has(p.id as string),
         score: matchScore({ rating: s.rating, winRate: s.winRate, winsInType, skills, replyMinutes: s.replyMinutes, activeThisWeek: active }, want),
         rating: s.rating,
         winRate: s.winRate,

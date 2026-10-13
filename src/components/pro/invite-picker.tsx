@@ -177,7 +177,7 @@ export function InvitePicker({
                       <div className="iv-n">
                         <div>
                           <b>{d.name}</b>
-                          <ProBadge size="sm" />
+                          <ProBadge size="sm" label={d.trial ? t("pro.trial.badge") : undefined} />
                           {sort === "match" && i === 0 && <span className="iv-tag">{t("pro.invite.topMatch")}</span>}
                           {d.replyMinutes !== null && d.replyMinutes <= 60 && <span className="iv-tag">{t("pro.invite.fastReply")}</span>}
                         </div>

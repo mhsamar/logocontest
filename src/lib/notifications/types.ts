@@ -103,5 +103,9 @@ export const NOTIFICATION_TYPES = [
   "pro_granted",
   "pro_price_change",
   "pro_weekly",
+  "pro_trial_started",
+  "pro_trial_ending",
+  "pro_trial_ended",
+  "pro_trial_extended",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

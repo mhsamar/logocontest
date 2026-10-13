@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, PlanSettings, RemindButton } from "@/components/pro/admin-pro-client";
+import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, PlanSettings, RemindButton, GiveTrial, TrialActions } from "@/components/pro/admin-pro-client";
+import { trialOverview } from "@/lib/pro/trial-admin";
 import "@/components/pro/admin-pro.css";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -31,7 +32,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
   const range = sp.range === "7" ? 7 : sp.range === "90" ? 90 : 30;
   const chip = CHIPS.find((c) => c === sp.members) ?? "all";
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase().slice(0, 40) : "";
-  const [{ t, locale }, { settings: s, ready }, o] = await Promise.all([getI18n(), getProSettings(), proOverview(range)]);
+  const [{ t, locale }, { settings: s, ready }, o, trials] = await Promise.all([getI18n(), getProSettings(), proOverview(range), trialOverview()]);
   const n = (v: number) => formatNumber(v, locale);
   const pct = (v: number) => `${n(v)}%`;
   const now = new Date();
@@ -51,7 +52,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
   const describe = (a: (typeof o.activity)[number]) => {
     const vals = { designer: a.designer ?? "—", from: JSON.stringify(a.oldValue ?? "—"), to: JSON.stringify(a.newValue ?? "—"), field: a.action.replace(/^set_/, "") };
     const key = `pro.admin.actions.${a.action}`;
-    const known = ["set_is_for_sale", "set_price_bdt", "gave_free_month", "extended", "changed_end_date", "admin_cancelled", "member_cancelled", "paid", "renewed", "expired", "trial_started", "reminded", "renewal_reminders", "price_notice_sent", "chat_flagged"];
+    const known = ["set_is_for_sale", "set_price_bdt", "gave_free_month", "extended", "changed_end_date", "admin_cancelled", "member_cancelled", "paid", "renewed", "expired", "trial_started", "reminded", "renewal_reminders", "price_notice_sent", "chat_flagged", "admin_started_trial", "trial_cancelled", "admin_cancelled_trial", "admin_extended_trial", "trial_expired"];
     if (a.action === "set_is_for_sale") return t("pro.admin.actions.set_is_for_sale", { to: a.newValue ? t("pro.admin.on") : t("pro.admin.off") });
     if (a.action === "set_price_bdt") return t("pro.admin.actions.set_price_bdt", { from: `৳${a.oldValue}`, to: `৳${a.newValue}` });
     return known.includes(a.action) ? t(key as MessageKey, vals) : t("pro.admin.actions.changed", vals);
@@ -122,6 +123,10 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
               basicLogoChecks: s.basicLogoChecks,
               checkLowMax: s.checkLowMax,
               checkMediumMax: s.checkMediumMax,
+              freeTrialEnabled: s.freeTrialEnabled,
+              freeTrialDays: s.freeTrialDays,
+              trialLogoChecks: s.trialLogoChecks,
+              trialPortfolioLimit: s.trialPortfolioLimit,
               proPortfolioLimit: s.proPortfolioLimit,
               proEntriesPerContest: s.proEntriesPerContest,
               basicEntriesPerContest: s.basicEntriesPerContest,
@@ -332,6 +337,92 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
               </div>
             )}
             <p className="ap-hint">{t("pro.admin.manageHint")}</p>
+          </section>
+
+          {/* 3-day free Pro Trial (owner, 2026-10-14): every trial, what it used, and how it ended */}
+          <section className="ap-c" aria-labelledby="ap-trials" id="trials">
+            <div className="ap-h">
+              <div>
+                <h2 id="ap-trials">{t("pro.trial.admin.title")}</h2>
+                <p>{t("pro.trial.admin.lead")}</p>
+              </div>
+              <i className={`ap-st ${s.freeTrialEnabled ? "ok" : "off"}`}>{`${t("pro.trial.admin.switchTitle")}: ${s.freeTrialEnabled ? t("pro.admin.on") : t("pro.admin.off")}`}</i>
+            </div>
+            <div className="ap-k four" style={{ marginTop: 12 }}>
+              {[
+                [t("pro.trial.admin.kActive"), n(trials.active), ""],
+                [t("pro.trial.admin.kUpgraded"), n(trials.upgraded), ""],
+                [t("pro.trial.admin.kEnded"), n(trials.ended), ""],
+                [t("pro.trial.admin.kRate"), trials.rate === null ? "—" : pct(trials.rate), t("pro.trial.admin.rateHint")],
+              ].map(([label, value, hint]) => (
+                <div key={label} className="ap-kc">
+                  <span>{label}</span>
+                  <b>{value}</b>
+                  {hint && <em>{hint}</em>}
+                </div>
+              ))}
+            </div>
+            <GiveTrial canManage={canManage} />
+            {trials.rows.length === 0 ? (
+              <p className="ap-hint">{t("pro.trial.admin.none")}</p>
+            ) : (
+              <div className="ap-t">
+                <div className="ap-r tr th">
+                  <span>{t("pro.trial.admin.colDesigner")}</span>
+                  <span>{t("pro.trial.admin.colDates")}</span>
+                  <span>{t("pro.trial.admin.colStatus")}</span>
+                  <span>{t("pro.trial.admin.colUse")}</span>
+                  <span>{t("pro.trial.admin.colPayment")}</span>
+                  <span>{t("pro.trial.admin.colReminders")}</span>
+                  <span />
+                </div>
+                {trials.rows.map((r) => {
+                  const live = r.status === "active" && r.endsAt > now;
+                  const reminders = r.events.filter((e) => e.kind === "reminded");
+                  return (
+                    <div key={r.id} className="ap-r tr">
+                      <span className="ap-nm">
+                        <b>{r.designer.username ? <Link href={`/admin/users/${r.designer.id}`}>{r.designer.name}</Link> : r.designer.name}</b>
+                        <em>{r.designer.username ? `@${r.designer.username}` : ""}{r.startedBy === "admin" ? ` · ${t("pro.trial.admin.byAdmin")}` : ""}</em>
+                        <em>{t("pro.trial.admin.lifetime")}</em>
+                      </span>
+                      <span>
+                        {formatDate(r.startedAt, locale, "short")} → {formatDate(r.endedAt && r.endedAt < r.endsAt ? r.endedAt : r.endsAt, locale, "short")}
+                        {r.extendedDays > 0 && <em style={{ display: "block", fontStyle: "normal", fontSize: 12.5, color: "#6a6d76" }}>{t("pro.trial.admin.extended", { n: n(r.extendedDays) })}</em>}
+                      </span>
+                      <span>
+                        <i className={`ap-st ${live ? "ok" : r.status === "upgraded" ? "ok" : r.status === "cancelled" ? "fail" : "off"}`}>{t(`pro.trial.admin.status.${live || r.status !== "active" ? r.status : "expired"}`)}</i>
+                      </span>
+                      <span>
+                        {n(r.checksUsed)} / {n(s.trialLogoChecks)} · {n(r.portfolioUploads)} / {n(s.trialPortfolioLimit)}
+                      </span>
+                      <span>{!r.payment ? t("pro.trial.admin.payNone") : r.payment.status === "paid" ? t("pro.trial.admin.payPaid", { amount: `৳${n(r.payment.amount)}` }) : r.payment.status === "failed" ? t("pro.trial.admin.payFailed") : t("pro.trial.admin.payPending")}</span>
+                      <span>
+                        {reminders.length === 0 ? (
+                          <em style={{ fontStyle: "normal", color: "#6a6d76" }}>{t("pro.trial.admin.notReminded")}</em>
+                        ) : (
+                          reminders.map((e) => (
+                            <em key={e.at} style={{ display: "block", fontStyle: "normal" }}>
+                              {t("pro.trial.admin.reminded", { date: formatDate(new Date(e.at), locale, "short") })}
+                            </em>
+                          ))
+                        )}
+                        <span className="ap-ev" aria-label={t("pro.trial.admin.history")}>
+                          {r.events.map((e) => (
+                            <i key={`${e.kind}-${e.at}`} title={new Date(e.at).toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { timeZone: "Asia/Dhaka" })}>
+                              {t(`pro.trial.admin.events.${e.kind}`)}
+                            </i>
+                          ))}
+                        </span>
+                      </span>
+                      <span>
+                        <TrialActions designerId={r.designerId} status={live ? "active" : r.status} canManage={canManage} />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           <div className="ap-g3">

@@ -129,6 +129,10 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   pro_granted: "money",
   pro_price_change: "money",
   pro_weekly: "money",
+  pro_trial_started: "money",
+  pro_trial_ending: "money",
+  pro_trial_ended: "money",
+  pro_trial_extended: "money",
 };
 
 const P = {

@@ -7,22 +7,36 @@ import type { CheckStatus, Verdict } from "@/lib/logo-check/rules";
 import { LOGO_CHECKS_BUCKET } from "@/lib/logo-check/run";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { dhakaMonth, logoCheckLimit } from "./rules";
+import { dhakaMonth, isProActive } from "./rules";
 import { getProSettings } from "./settings";
-import { isPro } from "./status";
+import { getSubscription, getTrial } from "./status";
+import { checkWindow, type CheckWindow } from "./trial-rules";
 
 const db = () => createAdminClient();
 const UUID = /^[0-9a-f-]{36}$/i;
 
-export type CheckUsage = { ready: boolean; pro: boolean; used: number; limit: number; left: number; resetsOn: Date };
+export type CheckUsage = { ready: boolean; pro: boolean; /** On the free Pro Trial (the limit is for the whole trial). */ trial: boolean; used: number; limit: number; left: number; resetsOn: Date };
 
-/** A designer's own logo checks this month: Basic 2, Pro 100 (Admin › Pro plan); they start again on the 1st. */
-export async function designerCheckUsage(designerId: string, now: Date = new Date()): Promise<CheckUsage> {
-  const { settings, ready } = await getProSettings();
+/**
+ * The checks this designer may use now and the time they count in (owner, 2026-10-14): Pro and Basic per Bangladesh
+ * month, the free Pro Trial for the whole trial. monthKey only names the usage row that is locked while starting.
+ */
+export async function checkWindowFor(designerId: string, now: Date = new Date()): Promise<CheckWindow & { monthKey: string }> {
+  const { settings } = await getProSettings();
+  const [sub, trial] = await Promise.all([getSubscription(designerId), getTrial(designerId)]);
   const m = dhakaMonth(now);
-  const pro = await isPro(designerId);
-  const limit = logoCheckLimit(pro, settings);
-  if (!ready) return { ready, pro, used: 0, limit, left: 0, resetsOn: m.to };
+  const w = checkWindow({ trial, paidPro: isProActive(sub, now), month: m, limits: { pro: settings.proLogoChecks, basic: settings.basicLogoChecks, trial: settings.trialLogoChecks } }, now);
+  return { ...w, monthKey: m.key };
+}
+
+/** A designer's own logo checks: Basic 2 and Pro 100 a month (they start again on the 1st), the trial 10 in all. */
+export async function designerCheckUsage(designerId: string, now: Date = new Date()): Promise<CheckUsage> {
+  const { ready } = await getProSettings();
+  const w = await checkWindowFor(designerId, now);
+  const pro = w.kind !== "basic";
+  const trial = w.kind === "trial";
+  const limit = w.limit;
+  if (!ready) return { ready, pro, trial, used: 0, limit, left: 0, resetsOn: w.to };
   const { count } = await db()
     .from("logo_checks")
     .select("id", { count: "exact", head: true })
@@ -30,17 +44,17 @@ export async function designerCheckUsage(designerId: string, now: Date = new Dat
     // Own checks and checks before sending a design to a contest (owner, 2026-10-14) share the monthly number.
     .in("source", ["designer", "pre_submit"])
     .neq("status", "failed")
-    .gte("created_at", m.from.toISOString())
-    .lt("created_at", m.to.toISOString());
+    .gte("created_at", w.from.toISOString())
+    .lt("created_at", w.to.toISOString());
   const used = count ?? 0;
-  return { ready, pro, used, limit, left: Math.max(0, limit - used), resetsOn: m.to };
+  return { ready, pro, trial, used, limit, left: Math.max(0, limit - used), resetsOn: w.to };
 }
 
 export type DesignerStartError = "not_set_up" | "invalid" | "bad_file" | "too_big" | "limit";
 
 /** A designer checks one of their own logos before sending it. The image is stored, then the check is counted. */
 export async function startDesignerCheck(user: CurrentUser, input: { requestKey: string; file: File | null }): Promise<{ ok: true; id: string } | { ok: false; error: DesignerStartError }> {
-  const { settings, ready } = await getProSettings();
+  const { ready } = await getProSettings();
   if (!ready || !checkerReady()) return { ok: false, error: "not_set_up" };
   if (!UUID.test(input.requestKey) || !input.file) return { ok: false, error: "invalid" };
   const { data: same } = await db().from("logo_checks").select("id, requested_by").eq("request_key", input.requestKey).maybeSingle();
@@ -56,16 +70,16 @@ export async function startDesignerCheck(user: CurrentUser, input: { requestKey:
   const path = `designer/${user.id}/${id}.png`;
   const store = getFileStorage();
   await store.upload(LOGO_CHECKS_BUCKET, path, png, "image/png");
-  const m = dhakaMonth();
+  const w = await checkWindowFor(user.id);
   const { data, error } = await db().rpc("start_designer_logo_check", {
     p_id: id,
     p_request_key: input.requestKey,
     p_user_id: user.id,
     p_image_path: path,
-    p_month: m.key,
-    p_from: m.from.toISOString(),
-    p_to: m.to.toISOString(),
-    p_limit: logoCheckLimit(await isPro(user.id), settings),
+    p_month: w.monthKey,
+    p_from: w.from.toISOString(),
+    p_to: w.to.toISOString(),
+    p_limit: w.limit,
   });
   const started = data as { id: string } | null;
   if (error || !started?.id) {

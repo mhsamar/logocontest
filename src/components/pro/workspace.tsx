@@ -8,7 +8,9 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { unreadChats } from "@/lib/pro/chat";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription } from "@/lib/pro/status";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getSubscription, getTrial, proKind } from "@/lib/pro/status";
+import { portfolioLimit } from "@/lib/pro/trial-rules";
 import { earlyContests, portfolioCount } from "@/lib/pro/workspace";
 import { Icon, ProAvatar, ProBadge, Slot, type ProIconName } from "./parts";
 import "./pro.css";
@@ -20,16 +22,22 @@ export type WsPage = "dashboard" | "contests" | "saved" | "messages" | "insights
  * early-access count, unread chats, the plan's renewal date, portfolio slots and logo checks left.
  */
 export async function ProWorkspace({ user, active, children }: { user: CurrentUser; active: WsPage; children: ReactNode }) {
-  const [{ t, locale }, { settings }, sub, early, unread, usage, slots] = await Promise.all([
+  const [{ t, locale }, { settings }, sub, trial, kind, early, unread, usage, slots] = await Promise.all([
     getI18n(),
     getProSettings(),
     getSubscription(user.id),
+    getTrial(user.id),
+    proKind(user.id),
     earlyContests(),
     unreadChats(user),
     designerCheckUsage(user.id),
     portfolioCount(user.id),
   ]);
   const f = settings.features;
+  // The free Pro Trial (owner, 2026-10-14): "PRO TRIAL", its end date and its own limits, with Upgrade.
+  const onTrial = kind === "trial" && trial;
+  const slotMax = portfolioLimit(onTrial ? "trial" : "pro", settings);
+  const badgeLabel = onTrial ? t("pro.trial.badge") : undefined;
   const items: { key: WsPage; href: string; icon: ProIconName; label: MessageKey; badge?: { text: string; cls: string }; show?: boolean }[] = [
     { key: "dashboard", href: "/dashboard", icon: "grid", label: "pro.ws.dashboard" },
     { key: "contests", href: "/dashboard/contests", icon: "trophy", label: "pro.ws.contests", badge: early.length ? { text: t("pro.ws.early", { n: early.length }), cls: "nb" } : undefined },
@@ -50,7 +58,7 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
             <ProAvatar name={user.name} url={user.avatarUrl} />
             <div>
               <b>{user.name}</b>
-              <ProBadge size="sm" />
+              <ProBadge size="sm" label={badgeLabel} />
             </div>
           </div>
           <nav className="pr-nav" aria-label={t("pro.ws.label")}>
@@ -64,7 +72,23 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
                 </Link>
               ))}
           </nav>
-          {sub && (
+          {onTrial && (
+            <div className="pr-plan">
+              <span className="glow" aria-hidden />
+              <span className="k">
+                <Icon name="crown" size={14} />
+                {t("pro.trial.badge")}
+              </span>
+              <b>{t("pro.ws.ends", { date: formatDate(trial.endsAt, locale, "short") })}</b>
+              <Slot used={slots} max={slotMax} />
+              <em>{t("pro.trial.slots", { used: slots, limit: slotMax })}</em>
+              <span className="l">{t("pro.trial.checks", { left: usage.left, limit: usage.limit })}</span>
+              <Link href="/pro" className="l" style={{ fontWeight: 800 }}>
+                {t("pro.trial.upgrade")}
+              </Link>
+            </div>
+          )}
+          {!onTrial && sub && (
             <div className="pr-plan">
               <span className="glow" aria-hidden />
               <span className="k">
@@ -85,13 +109,15 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
 }
 
 /** The title row of a workspace page. */
-export function WsHead({ title, lead, action }: { title: string; lead?: string; action?: ReactNode }) {
+export async function WsHead({ title, lead, action }: { title: string; lead?: string; action?: ReactNode }) {
+  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const trial = (await proKind(user?.id)) === "trial";
   return (
     <div className="pr-head">
       <div>
         <div className="t">
           <h1>{title}</h1>
-          <ProBadge />
+          <ProBadge label={trial ? t("pro.trial.badge") : undefined} />
         </div>
         {lead && <p>{lead}</p>}
       </div>

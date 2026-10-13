@@ -1,5 +1,6 @@
 import "server-only";
-import { canSeeNewContest, entryLimit, logoCheckLimit } from "./rules";
+import { canSeeNewContest, entryLimit } from "./rules";
+import { checkWindowFor } from "./logo-checks";
 import { getProSettings } from "./settings";
 import { isPro } from "./status";
 
@@ -13,10 +14,9 @@ export async function designsAllowed(designerId: string, siteMax: number): Promi
   return entryLimit(await isPro(designerId), settings, siteMax);
 }
 
-/** Logo checks a month for this designer (Basic 2, Pro 100 by default). */
+/** Logo checks for this designer: Basic 2 and Pro 100 a month, the free trial 10 in all (Admin › Pro plan). */
 export async function logoChecksAllowed(designerId: string): Promise<number> {
-  const { settings } = await getProSettings();
-  return logoCheckLimit(await isPro(designerId), settings);
+  return (await checkWindowFor(designerId)).limit;
 }
 
 /**

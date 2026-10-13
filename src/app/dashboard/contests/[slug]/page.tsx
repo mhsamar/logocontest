@@ -36,7 +36,7 @@ import { badgesFor, levelRanges } from "@/lib/logo-check/entry-links";
 import { entryReport } from "@/lib/logo-check/entry-check";
 import { filterCounts, isJudgingSort, JUDGING_FILTERS, matchesFilter, sortForJudging, type JudgingFilter, type JudgingSort } from "@/lib/logo-check/entry-rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { badgeIdsAmong, proIdsAmong } from "@/lib/pro/status";
+import { badgeIdsAmong, proIdsAmong, trialIdsAmong } from "@/lib/pro/status";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
 import { getHandoverByContest, handoverMessages } from "@/lib/handover/queries";
@@ -100,8 +100,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   ]);
   // Pro first, the PRO mark (the designer may hide it) and each entry's logo check badge.
   const designerIds = listed.map((e) => e.designerId);
-  const [proIds, shownPro, badges, ranges, { settings: proSet }] = await Promise.all([proIdsAmong(designerIds), badgeIdsAmong(designerIds), badgesFor(listed), levelRanges(), getProSettings()]);
-  const judged = listed.map((e) => ({ ...e, pro: proIds.has(e.designerId), showPro: proSet.features.highlighted_entries && Boolean(e.designer) && shownPro.has(e.designerId), badge: badges.get(e.id) ?? ({ kind: "none" } as const) }));
+  const [proIds, shownPro, trialIds, badges, ranges, { settings: proSet }] = await Promise.all([proIdsAmong(designerIds), badgeIdsAmong(designerIds), trialIdsAmong(designerIds), badgesFor(listed), levelRanges(), getProSettings()]);
+  const judged = listed.map((e) => ({ ...e, pro: proIds.has(e.designerId), showPro: proSet.features.highlighted_entries && Boolean(e.designer) && shownPro.has(e.designerId), trial: trialIds.has(e.designerId), badge: badges.get(e.id) ?? ({ kind: "none" } as const) }));
   const entries = sortForJudging(judged, sort);
   const reportNumber = typeof sp.report === "string" ? Number(sp.report) : null;
   const reportOf = checkerOn && reportNumber ? (entries.find((e) => e.number === reportNumber) ?? null) : null;
@@ -367,7 +367,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                     {e.showPro && (
                       <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#e2b13c] px-2 py-0.5 text-[0.625rem] font-bold text-[#4a3700]">
                         <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" aria-hidden><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5Z" /></svg>
-                        PRO
+                        {e.trial ? t("pro.trial.badge") : "PRO"}
                       </span>
                     )}
                   </Link>

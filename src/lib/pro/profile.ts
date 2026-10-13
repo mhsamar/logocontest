@@ -3,12 +3,14 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRO_FILES_BUCKET } from "./chat";
 import { getProSettings } from "./settings";
-import { getSubscription } from "./status";
+import { getSubscription, proKind } from "./status";
 import { proPrefs, type ProPrefs } from "./workspace";
 
 export type ProReview = { stars: number; text: string | null; brand: string | null; client: string; at: string };
 
 export type ProProfileExtras = {
+  /** On the free Pro Trial (owner, 2026-10-14): the badge reads "PRO TRIAL" and there is no "Pro since". */
+  trial: boolean;
   prefs: ProPrefs;
   proSince: Date | null;
   /** Up to 16 picture links for the moving cover (designer's picks first, then their public designs). */
@@ -26,10 +28,11 @@ const db = () => createAdminClient();
  * and the designer's privacy setting allow it. Only designs from public contests are ever used.
  */
 export async function proProfileExtras(designerId: string, publicDesignIds: string[], firstPageUrls: Map<string, string>): Promise<ProProfileExtras> {
-  const [{ settings }, prefs, sub, { data: items }, { data: reviews }] = await Promise.all([
+  const [{ settings }, prefs, sub, kind, { data: items }, { data: reviews }] = await Promise.all([
     getProSettings(),
     proPrefs(designerId),
     getSubscription(designerId),
+    proKind(designerId),
     db().from("portfolio_items").select("id, title, preview_path").eq("designer_id", designerId).order("position").limit(200),
     db()
       .from("handovers")
@@ -63,7 +66,8 @@ export async function proProfileExtras(designerId: string, publicDesignIds: stri
 
   return {
     prefs,
-    proSince: sub?.firstStartedAt ?? null,
+    trial: kind === "trial",
+    proSince: kind === "pro" ? (sub?.firstStartedAt ?? null) : null,
     cover,
     portfolio: (items ?? []).map((i) => ({ id: i.id as string, title: (i.title as string) ?? "", url: itemUrls.get(i.preview_path as string) ?? null })),
     reviews: (reviews ?? []).map((r) => {

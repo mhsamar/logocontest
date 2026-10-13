@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
-import { grantProByUsername, manageProMember, remindProClicker, saveProSettings, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { adminCancelTrial, adminExtendTrial, adminStartTrial, grantProByUsername, manageProMember, remindProClicker, saveProSettings, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
 import type { ProFeature } from "@/lib/pro/rules";
 
 /** "Pro plan for sale" — the master switch, saved at once. */
@@ -170,13 +171,27 @@ export function PlanSettings({ initial, canManage }: { initial: Form; canManage:
               </label>
             </div>
             <div className="ap-f2">
-              {field("trialDays", t("pro.admin.trial"), t("pro.admin.days"))}
               <label className="ap-f">
                 <span>{t("pro.admin.promo")}</span>
                 <input value={f.promoCode ?? ""} disabled={!canManage} placeholder="EID26" onChange={(e) => set("promoCode", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))} />
               </label>
             </div>
             {f.promoCode ? <div className="ap-f2">{field("promoPriceBdt", t("pro.admin.promoPrice"), "৳", { nullable: true })}</div> : null}
+          </div>
+          {/* 3-day free Pro Trial (owner, 2026-10-14): replaces the old checkout trial days. */}
+          <div className="ap-box">
+            <div className="ap-boxh">
+              <div>
+                <b>{t("pro.trial.admin.switchTitle")}</b>
+                <em style={{ display: "block", fontStyle: "normal", fontSize: 12.5 }}>{t("pro.trial.admin.switchSub")}</em>
+              </div>
+              <button type="button" role="switch" aria-checked={f.freeTrialEnabled} aria-label={t("pro.trial.admin.switchTitle")} className="ap-sw" disabled={!canManage} onClick={() => set("freeTrialEnabled", !f.freeTrialEnabled)} />
+            </div>
+            <div className="ap-f3">
+              {field("freeTrialDays", t("pro.trial.admin.days"), t("pro.admin.days"))}
+              {field("trialLogoChecks", t("pro.trial.admin.checks"), t("pro.trial.admin.perTrial"))}
+              {field("trialPortfolioLimit", t("pro.trial.admin.slots"), t("pro.trial.admin.perTrial"))}
+            </div>
           </div>
           <div className="ap-box">
             <span className="ap-l">{t("pro.admin.limits")}</span>
@@ -368,6 +383,68 @@ export function GrantPro({ canManage }: { canManage: boolean }) {
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("pro.admin.mUsername")} aria-label={t("pro.admin.mUsername")} />
       <button type="submit" className="ap-btn sm" disabled={busy || name.trim().length < 3}>
         {t("pro.admin.mGrant")}
+      </button>
+    </form>
+  );
+}
+
+/** Pro Trials (owner, 2026-10-14): add days or end a trial. */
+export function TrialActions({ designerId, status, canManage }: { designerId: string; status: string; canManage: boolean }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  if (!canManage || status === "upgraded") return null;
+  const run = (fn: () => Promise<{ ok: true } | { ok: false; error: MessageKey }>) =>
+    start(async () => {
+      const res = await fn();
+      if (!res.ok) return toast(t(res.error), "danger");
+      toast(t("pro.admin.saved"));
+      router.refresh();
+    });
+  return (
+    <span style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
+      <button type="button" className="ap-btn sm ghost" disabled={busy} onClick={() => run(() => adminExtendTrial(designerId, 1))}>
+        {t("pro.trial.admin.extend1")}
+      </button>
+      <button type="button" className="ap-btn sm ghost" disabled={busy} onClick={() => run(() => adminExtendTrial(designerId, 3))}>
+        {t("pro.trial.admin.extend3")}
+      </button>
+      {status === "active" && (
+        <button type="button" className="ap-btn sm ghost" style={{ color: "#A3121B" }} disabled={busy} onClick={() => run(() => adminCancelTrial(designerId))}>
+          {t("pro.trial.admin.cancel")}
+        </button>
+      )}
+    </span>
+  );
+}
+
+/** Start a trial for a designer by username (even while trials are off). */
+export function GiveTrial({ canManage }: { canManage: boolean }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [busy, start] = useTransition();
+  if (!canManage) return null;
+  return (
+    <form
+      className="ap-search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const res = await adminStartTrial(name);
+          if (!res.ok) return toast(t(res.error), "danger");
+          toast(t("pro.admin.saved"));
+          setName("");
+          router.refresh();
+        });
+      }}
+    >
+      <span className="ap-hint">{t("pro.trial.admin.giveLead")}</span>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("pro.admin.mUsername")} aria-label={t("pro.admin.mUsername")} />
+      <button type="submit" className="ap-btn sm" disabled={busy || name.trim().length < 3}>
+        {t("pro.trial.admin.give")}
       </button>
     </form>
   );

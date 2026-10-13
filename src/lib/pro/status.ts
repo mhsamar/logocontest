@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isProActive, type SubStatus } from "./rules";
+import { isTrialActive, type TrialStatus } from "./trial-rules";
 import { getProSettings } from "./settings";
 
 export type Subscription = {
@@ -55,27 +56,96 @@ export const getSubscription = cache(async (designerId: string): Promise<Subscri
   return data ? toSubscription(data as Record<string, unknown>) : null;
 });
 
-/** isPro(designer): an active subscription whose period has not ended (server rule; every Pro check goes here). */
-export const isPro = cache(async (designerId: string | null | undefined): Promise<boolean> => {
-  if (!designerId) return false;
-  return isProActive(await getSubscription(designerId));
+export type Trial = {
+  id: string;
+  designerId: string;
+  status: TrialStatus;
+  startedAt: Date;
+  endsAt: Date;
+  startedBy: "designer" | "admin";
+  extendedDays: number;
+  remindedAt: Date | null;
+  endedAt: Date | null;
+  upgradedAt: Date | null;
+  upgradePaymentId: string | null;
+};
+
+export const TRIAL_COLUMNS = "id, designer_id, status, started_at, ends_at, started_by, extended_days, reminded_at, ended_at, upgraded_at, upgrade_payment_id";
+
+export function toTrial(r: Record<string, unknown>): Trial {
+  return {
+    id: r.id as string,
+    designerId: r.designer_id as string,
+    status: r.status as TrialStatus,
+    startedAt: new Date(r.started_at as string),
+    endsAt: new Date(r.ends_at as string),
+    startedBy: r.started_by === "admin" ? "admin" : "designer",
+    extendedDays: (r.extended_days as number) ?? 0,
+    remindedAt: d(r.reminded_at),
+    endedAt: d(r.ended_at),
+    upgradedAt: d(r.upgraded_at),
+    upgradePaymentId: (r.upgrade_payment_id as string | null) ?? null,
+  };
+}
+
+/** A designer's 3-day Pro Trial (any status; one per designer for life), or null. Null before migration 0048. */
+export const getTrial = cache(async (designerId: string): Promise<Trial | null> => {
+  const { ready } = await getProSettings();
+  if (!ready || !designerId) return null;
+  const { data, error } = await createAdminClient().from("pro_trials").select(TRIAL_COLUMNS).eq("designer_id", designerId).maybeSingle();
+  return !error && data ? toTrial(data as Record<string, unknown>) : null;
 });
 
-/** Which of these designers are Pro right now (for badges and highlighted entries in lists). */
+/** "pro" (a paid or given plan), "trial" (the free Pro Trial), or null (Basic). */
+export const proKind = cache(async (designerId: string | null | undefined): Promise<"pro" | "trial" | null> => {
+  if (!designerId) return null;
+  if (isProActive(await getSubscription(designerId))) return "pro";
+  return isTrialActive(await getTrial(designerId)) ? "trial" : null;
+});
+
+/**
+ * isPro(designer): Pro features are on, from a plan whose period has not ended or from a running free trial (owner,
+ * 2026-10-14). Every Pro check goes here; the trial's own limits are applied where they differ (checks, portfolio).
+ */
+export const isPro = cache(async (designerId: string | null | undefined): Promise<boolean> => (await proKind(designerId)) !== null);
+
+/** Designers on a running free trial, among these (not the ones who also have a plan). */
+async function trialIds(ids: string[] | null): Promise<string[]> {
+  let q = createAdminClient().from("pro_trials").select("designer_id").eq("status", "active").gt("ends_at", new Date().toISOString());
+  if (ids) q = q.in("designer_id", ids);
+  const { data, error } = await q;
+  return error ? [] : (data ?? []).map((r) => r.designer_id as string);
+}
+
+async function paidIdsAmong(unique: string[]): Promise<Set<string>> {
+  const { data } = await createAdminClient().from("pro_subscriptions").select("designer_id").in("designer_id", unique).neq("status", "expired").gt("current_period_end", new Date().toISOString());
+  return new Set((data ?? []).map((r) => r.designer_id as string));
+}
+
+/** Which of these designers have Pro right now, from a plan or a free trial (badges, highlighted entries, lists). */
 export async function proIdsAmong(ids: string[]): Promise<Set<string>> {
   const unique = [...new Set(ids.filter(Boolean))];
   const { ready } = await getProSettings();
   if (!ready || !unique.length) return new Set();
-  const { data } = await createAdminClient().from("pro_subscriptions").select("designer_id, status, current_period_end").in("designer_id", unique).neq("status", "expired").gt("current_period_end", new Date().toISOString());
-  return new Set((data ?? []).map((r) => r.designer_id as string));
+  const [paid, trial] = await Promise.all([paidIdsAmong(unique), trialIds(unique)]);
+  return new Set([...paid, ...trial]);
 }
 
-/** Every designer who is Pro right now. */
+/** Of these designers, the ones whose Pro is the free trial (their badge reads "PRO TRIAL"). */
+export async function trialIdsAmong(ids: string[]): Promise<Set<string>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const { ready } = await getProSettings();
+  if (!ready || !unique.length) return new Set();
+  const [paid, trial] = await Promise.all([paidIdsAmong(unique), trialIds(unique)]);
+  return new Set(trial.filter((id) => !paid.has(id)));
+}
+
+/** Every designer who has Pro right now (plan or free trial). */
 export async function allProIds(): Promise<string[]> {
   const { ready } = await getProSettings();
   if (!ready) return [];
-  const { data } = await createAdminClient().from("pro_subscriptions").select("designer_id").neq("status", "expired").gt("current_period_end", new Date().toISOString());
-  return (data ?? []).map((r) => r.designer_id as string);
+  const [{ data }, trial] = await Promise.all([createAdminClient().from("pro_subscriptions").select("designer_id").neq("status", "expired").gt("current_period_end", new Date().toISOString()), trialIds(null)]);
+  return [...new Set([...(data ?? []).map((r) => r.designer_id as string), ...trial])];
 }
 
 /** Pro designers who show the Pro badge (the badge can be hidden in Settings › Pro extras). */
