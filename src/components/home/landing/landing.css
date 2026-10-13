@@ -513,3 +513,19 @@
   }
 }
 
+
+/* Owner, 2026-10-13 (Design/home-page): the hero is fully visible on first paint. On the home page nothing in the
+   hero starts at opacity 0: no page fade, no title blur, no menu settle. The menu still firms up as you scroll. */
+.page-in:has([data-lc-landing]) { animation: none !important; }
+.lc-landing h1,
+.lc-landing .lc-nv > * { animation: none !important; }
+.lc-landing .lc-nv { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .lc-landing .lc-nv {
+      animation: lc-nav-scrolled linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 140px;
+    }
+  }
+}

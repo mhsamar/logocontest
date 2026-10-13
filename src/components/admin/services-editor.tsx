@@ -24,9 +24,9 @@ function Switch({ on, label, disabled, onClick }: { on: boolean; label: string; 
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={cx("relative block h-7 w-[46px] flex-none rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60", on ? "bg-[#14633C]" : "bg-[#B9BCC4]")}
+      className={cx("relative block h-[30px] w-[52px] flex-none rounded-full transition-colors focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#E2B13C] disabled:cursor-not-allowed disabled:opacity-60", on ? "bg-[linear-gradient(180deg,#2BB673,#1F7A4D)]" : "bg-[#D5D7DD]")}
     >
-      <span className={cx("absolute top-[3px] size-[22px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.25)] transition-[left]", on ? "left-[21px]" : "left-[3px]")} />
+      <span className={cx("absolute left-[3px] top-[3px] size-6 rounded-full bg-white shadow-[0_2px_6px_rgba(17,18,22,.25)] transition-transform duration-300", on && "translate-x-[22px]")} />
     </button>
   );
 }
@@ -73,6 +73,14 @@ export function ServicesEditor({ services, ready }: { services: ServiceDef[]; re
     winners: 1,
   };
 
+  const live = services.filter((s) => s.on).length;
+  const files = (s: ServiceDef) => sizeText(s) || s.finalTypes.map((x) => x.toUpperCase()).join(", ");
+  const Tick = () => (
+    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+
   return (
     <div className="flex flex-col gap-3">
       {!ready && <p className="m-0 rounded-xl bg-[#FFF7ED] px-4 py-3 text-[14.5px] text-[#7A3A0C]">{t("admin.services.notReady")}</p>}
@@ -81,35 +89,101 @@ export function ServicesEditor({ services, ready }: { services: ServiceDef[]; re
           {t("admin.services.add")}
         </button>
       </div>
-      <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-        {services.map((s, i) => (
-          <li key={s.slug} className="flex flex-wrap items-center gap-3 rounded-[14px] border border-adm-line bg-surface px-4 py-3.5">
-            <div className="flex flex-col">
-              <button type="button" aria-label={t("admin.services.up", { name: l(s.name) })} disabled={readOnly || busy || i === 0 || !ready} onClick={() => run(moveService(s.slug, -1))} className="px-1 text-muted hover:text-ink disabled:opacity-30">
-                ▲
-              </button>
-              <button type="button" aria-label={t("admin.services.down", { name: l(s.name) })} disabled={readOnly || busy || i === services.length - 1 || !ready} onClick={() => run(moveService(s.slug, 1))} className="px-1 text-muted hover:text-ink disabled:opacity-30">
-                ▼
-              </button>
+      {/* Owner, 2026-10-13: laid out like Design/home-page/admin-services.html. */}
+      <div className="grid items-start gap-5 min-[1181px]:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-adm-line bg-surface">
+          <div className="grid grid-cols-[minmax(0,1fr)_128px_112px_150px] gap-3.5 bg-[#FAFAFB] py-3 pl-[78px] pr-5 text-[12.5px] font-extrabold uppercase tracking-[.05em] text-[#6A6D76] max-[700px]:hidden">
+            <span>{t("admin.services.board.service")}</span>
+            <span>{t("admin.services.board.prize")}</span>
+            <span>{t("admin.services.board.status")}</span>
+            <span className="text-right">{t("admin.services.board.onOff")}</span>
+          </div>
+          <ul className="m-0 list-none p-0">
+            {services.map((s, i) => (
+              <li
+                key={s.slug}
+                data-service={s.slug}
+                className="grid grid-cols-[44px_minmax(0,1fr)_128px_112px_150px] items-center gap-3.5 border-t border-[#EEEFF2] px-5 py-3 transition-colors hover:bg-[#FCF8F7] max-[700px]:grid-cols-[44px_minmax(0,1fr)] max-[700px]:gap-y-1.5"
+              >
+                <span aria-hidden className={cx("flex size-11 items-center justify-center rounded-[12px] font-display text-[18px] font-bold transition-colors", s.on ? "bg-[linear-gradient(180deg,#B3201B,#8B0000)] text-white" : "bg-[#F0F1F4] text-[#8A8D96]")}>
+                  {l(s.name).charAt(0).toUpperCase()}
+                </span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <b className="text-[16px]">{l(s.name)}</b>
+                    {s.builtIn && <span className="rounded-full bg-[#F4F5F7] px-2 py-0.5 text-[12px] font-bold text-muted">{t("admin.services.builtIn")}</span>}
+                  </span>
+                  <span className="text-[13px] text-[#6A6D76]">{files(s)}</span>
+                </span>
+                <span className="text-[14px] font-bold text-[#3A3C45] max-[700px]:col-start-2">{t("admin.services.board.prizeFrom", { amount: `৳${s.minPrize.toLocaleString("en-US")}` })}</span>
+                <span className="max-[700px]:col-start-2">
+                  <span className={cx("inline-flex whitespace-nowrap rounded-full px-[11px] py-1 text-[13px] font-bold", s.on ? "bg-[#E4F5EC] text-[#14633C]" : "bg-[#F0F1F4] text-[#6A6D76]")}>{s.on ? t("admin.services.board.live") : t("admin.services.board.soon")}</span>
+                </span>
+                <span className="flex items-center justify-end gap-1.5 max-[700px]:col-start-2 max-[700px]:justify-start">
+                  <span className="flex flex-col">
+                    <button type="button" aria-label={t("admin.services.up", { name: l(s.name) })} disabled={readOnly || busy || i === 0 || !ready} onClick={() => run(moveService(s.slug, -1))} className="flex h-[18px] w-7 items-center justify-center rounded text-[11px] text-muted hover:bg-[#F4F5F7] hover:text-ink disabled:opacity-30">
+                      ▲
+                    </button>
+                    <button type="button" aria-label={t("admin.services.down", { name: l(s.name) })} disabled={readOnly || busy || i === services.length - 1 || !ready} onClick={() => run(moveService(s.slug, 1))} className="flex h-[18px] w-7 items-center justify-center rounded text-[11px] text-muted hover:bg-[#F4F5F7] hover:text-ink disabled:opacity-30">
+                      ▼
+                    </button>
+                  </span>
+                  <button type="button" onClick={() => setEditing({ s, isNew: false })} disabled={!ready} className="inline-flex min-h-9 items-center rounded-[10px] border border-[#DCDEE3] bg-white px-3 text-[14px] font-bold disabled:opacity-50">
+                    {readOnly ? t("admin.services.view") : t("admin.services.edit")}
+                  </button>
+                  <Switch on={s.on} label={t("admin.services.switchLabel", { name: l(s.name) })} disabled={readOnly || busy || !ready} onClick={() => run(setServiceOn(s.slug, !s.on))} />
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[#EEEFF2] bg-[#FAFAFB] px-5 py-3.5 text-[14px] text-[#5F626B]">
+            <span className="font-extrabold text-[#14633C]" data-live-count={live}>
+              {t("admin.services.board.count", { on: String(live), total: String(services.length) })}
+            </span>
+            <span>{t("admin.services.board.rightAway")}</span>
+          </div>
+        </section>
+
+        <aside className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2.5 rounded-[20px] border border-adm-line bg-surface p-[18px]">
+            <h2 className="m-0 text-[18px] font-bold">{t("admin.services.board.previewTitle")}</h2>
+            <p className="m-0 text-[13.5px] text-[#6A6D76]">{t("admin.services.board.previewLead")}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {services.map((s) => (
+                <span key={s.slug} className={cx("flex min-h-[52px] items-center justify-center rounded-[12px] p-1.5 text-center text-[12px] font-bold leading-[1.2] transition-colors", s.on ? "bg-[linear-gradient(180deg,#B3201B,#8B0000)] text-white shadow-[0_6px_14px_rgba(139,0,0,.25)]" : "bg-[#F0F1F4] text-[#8A8D96]")}>
+                  {l(s.name)}
+                </span>
+              ))}
             </div>
-            <div className="min-w-0 flex-[1_1_260px]">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="text-[16.5px]">{l(s.name)}</strong>
-                {s.builtIn && <span className="rounded-full bg-[#F4F5F7] px-2 py-0.5 text-[12px] font-bold text-muted">{t("admin.services.builtIn")}</span>}
-                <span className={cx("rounded-full px-2 py-0.5 text-[12px] font-bold", s.on ? "bg-[#E3F3EA] text-[#14633C]" : "bg-[#F4F5F7] text-muted")}>{s.on ? t("admin.services.on") : t("admin.services.off")}</span>
-              </div>
-              <p className="m-0 mt-0.5 text-[14px] text-muted">{l(s.short)}</p>
-              <p className="m-0 mt-0.5 text-[13px] text-muted">
-                {[sizeText(s), s.builtIn ? t("admin.services.logoQuestions") : t("admin.services.questions", { n: String(s.fields.length) }), t("admin.services.prizeLine", { n: `৳${s.defaultPrize}`, min: `৳${s.minPrize}`, days: String(s.defaultDays) })].filter(Boolean).join(" · ")}
-              </p>
+            <div className="flex gap-3.5 text-[12.5px] text-[#6A6D76]">
+              <span className="inline-flex items-center gap-1.5">
+                <i className="size-3 rounded bg-[#8B0000]" />
+                {t("admin.services.board.keyOpen")}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="size-3 rounded bg-[#D5D7DD]" />
+                {t("admin.services.board.keySoon")}
+              </span>
             </div>
-            <button type="button" onClick={() => setEditing({ s, isNew: false })} disabled={!ready} className="inline-flex min-h-10 items-center rounded-[10px] border border-[#DCDEE3] bg-white px-3.5 text-[14.5px] font-bold disabled:opacity-50">
-              {readOnly ? t("admin.services.view") : t("admin.services.edit")}
-            </button>
-            <Switch on={s.on} label={t("admin.services.switchLabel", { name: l(s.name) })} disabled={readOnly || busy || !ready} onClick={() => run(setServiceOn(s.slug, !s.on))} />
-          </li>
-        ))}
-      </ul>
+          </div>
+          <div className="flex flex-col gap-2.5 rounded-[20px] border border-adm-line bg-surface p-[18px]">
+            <h2 className="m-0 text-[18px] font-bold">{t("admin.services.board.howTitle")}</h2>
+            <ul className="m-0 flex list-none flex-col gap-3 p-0">
+              {(["n1", "n2", "n3", "n4", "n5"] as const).map((k) => (
+                <li key={k} className="flex gap-2.5">
+                  <span className="flex size-6 flex-none items-center justify-center rounded-lg bg-[#E4F5EC] text-[#14633C]">
+                    <Tick />
+                  </span>
+                  <span>
+                    <b className="block text-[14.5px]">{t(`admin.services.board.${k}.title`)}</b>
+                    <span className="text-[13.5px] text-[#5F626B]">{t(`admin.services.board.${k}.text`)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
       {editing && <ServiceForm key={editing.s.slug || "new"} initial={editing.s} isNew={editing.isNew} readOnly={readOnly} busy={busy} onClose={() => setEditing(null)} onSave={(v) => run(saveService(v, editing.isNew), () => setEditing(null))} />}
     </div>
   );

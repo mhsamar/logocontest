@@ -37,7 +37,8 @@ export async function setServiceOn(slug: string, on: boolean): Promise<Result> {
   if (!on && list.filter((x) => x.on && x.slug !== slug).length === 0) return fail("admin.services.errors.lastOn");
   const { error } = await write({ ...s, on }, admin.id);
   if (error) return fail("admin.errors.generic");
-  await audit(admin.id, "update_service", "contest_service", slug, { on });
+  // Activity shows who changed it, when, and old → new (owner, 2026-10-13). Running contests are not touched.
+  await audit(admin.id, "update_service", "contest_service", slug, { field: "is_live", from: s.on ? "on" : "off", to: on ? "on" : "off" });
   refresh();
   return { ok: true };
 }
@@ -57,7 +58,15 @@ export async function saveService(raw: unknown, isNew: boolean): Promise<Result>
   const s = isNew ? { ...parsed.service, on: false, position: Math.max(0, ...list.map((x) => x.position)) + 1 } : parsed.service;
   const { error } = await write(s, admin.id);
   if (error) return fail("admin.errors.generic");
-  await audit(admin.id, isNew ? "add_service" : "update_service", "contest_service", s.slug, {});
+  // Each changed part, old → new (owner, 2026-10-13).
+  const before = (existing ? defOf(existing) : {}) as Record<string, unknown>;
+  const after = defOf(s) as Record<string, unknown>;
+  const changes = Object.fromEntries(
+    Object.keys(after)
+      .filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+      .map((k) => [k, { from: before[k] ?? null, to: after[k] }]),
+  );
+  await audit(admin.id, isNew ? "add_service" : "update_service", "contest_service", s.slug, { changes });
   refresh();
   return { ok: true };
 }

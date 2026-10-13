@@ -16,6 +16,7 @@ import { translatorFor } from "@/lib/content/texts";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
+import { getService } from "@/lib/services/store";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
 import { paymentsAvailable } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -107,6 +108,15 @@ async function serviceContactError(brief: Brief, answers: Record<string, string 
   return texts.some((x) => x && findContactDetails(x, terms)) ? err("services.wizard.contact") : null;
 }
 
+/**
+ * Owner, 2026-10-13: a design type that is off in Admin → Services can't be started, also not by calling this API
+ * directly. Contests that are already running are never affected.
+ */
+async function serviceOff(slug: string | null | undefined) {
+  const def = await getService(slug);
+  return !def || !def.on ? err("services.types.offError") : null;
+}
+
 function parseService(raw: ServiceArg): { slug: string; answers: Record<string, string | string[]> } | null | "bad" {
   if (!raw) return null;
   const r = ServiceShape.safeParse(raw);
@@ -133,6 +143,8 @@ export async function saveDraft(input: { brief: unknown; order: unknown; contest
   const data = parse(input.brief, input.order);
   const service = parseService(input.service);
   if (!data || service === "bad") return err("wizard.errors.incomplete");
+  const off = await serviceOff(service?.slug);
+  if (off) return off;
   const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
   if (contact) return contact;
 
@@ -179,6 +191,8 @@ export async function createAccountAndDraft(input: {
   const service = parseService(input.service);
   if (!data || service === "bad") return err("wizard.errors.incomplete");
   // Before the account is created, so a tripped filter doesn't leave an account without a draft.
+  const off = await serviceOff(service?.slug);
+  if (off) return off;
   const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
   if (contact) return contact;
 
@@ -256,6 +270,8 @@ export async function startCheckout(input: {
   // The draft was checked when saved, but the admin may have blocked more terms since.
   const contest = await contestRepository().findContest(input.contestId);
   if (contest && contest.clientId === user.id) {
+    const off = await serviceOff(contest.service);
+    if (off) return off;
     const contact = contest.service !== "logo" ? await serviceContactError(contest.brief, contest.serviceBrief) : await contactError(contest.brief);
     if (contact) return contact;
   }

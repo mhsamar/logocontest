@@ -1,0 +1,1219 @@
+/*
+ * "What do you need designed?" cards (owner, 2026-10-13; Design/home-page/home.html and start-contest.html). One grid
+ * of contest services: a live service is a coloured card with a Start button; a service that is off in Admin →
+ * Services is grey with "Coming soon" and can't be clicked. The pictures are drawn samples (invented brands).
+ * Scoped to dt- names. All motion stops with prefers-reduced-motion.
+ */
+@property --dt-a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.dt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  color: #111216;
+}
+.dt-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff, #fffbf6);
+  border: 1px solid #f0e3e1;
+  color: #111216;
+  text-decoration: none;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s, border-color 0.3s;
+}
+/* A turning maroon-gold border on hover. */
+.dt-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--dt-a, 0deg), #8b0000, #e2b13c, #fff1c9, #e2b13c, #8b0000);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+  animation: dt-spin 3.2s linear infinite;
+}
+.dt-card:hover::before {
+  opacity: 1;
+}
+.dt-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 24px 48px rgba(139, 0, 0, 0.18), 0 6px 14px rgba(226, 177, 60, 0.18);
+  border-color: transparent;
+}
+/* The home page dims links on hover; these cards stay solid. */
+.lc-landing .dt-card:hover,
+.lc-landing .dt-all:hover {
+  opacity: 1;
+}
+.dt-card:focus-visible {
+  outline: 3px solid #e2b13c;
+  outline-offset: 3px;
+}
+
+/* Picture area */
+.dt-viz {
+  position: relative;
+  display: flex;
+  flex: 1 0 118px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 118px;
+  background: radial-gradient(120% 90% at 0% 0%, #fff3d6 0%, transparent 55%), radial-gradient(120% 100% at 100% 100%, #f6d4d0 0%, transparent 60%), #fff8f3;
+}
+.dt-viz::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(139, 0, 0, 0.13) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+  -webkit-mask: linear-gradient(180deg, #000, transparent 85%);
+  mask: linear-gradient(180deg, #000, transparent 85%);
+  pointer-events: none;
+}
+.dt-viz::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+}
+.dt-card:hover .dt-viz::after {
+  left: 130%;
+  transition: left 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-mk {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-mk > * {
+  animation: dt-float 5.5s ease-in-out infinite;
+}
+.dt-card:nth-child(2n) .dt-mk > * {
+  animation-delay: -1.4s;
+}
+.dt-card:nth-child(3n) .dt-mk > * {
+  animation-delay: -2.8s;
+}
+.dt-card:hover .dt-mk {
+  transform: scale(1.07) rotate(-1deg);
+}
+
+/* Card text */
+.dt-body {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
+}
+.dt-body::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8b0000, #e2b13c);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-card:hover .dt-body::before {
+  transform: scaleX(1);
+}
+.dt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8b0000;
+}
+.dt-tag i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #e2b13c, #8b0000);
+  box-shadow: 0 0 0 3px rgba(226, 177, 60, 0.22);
+  animation: dt-pulse 2.4s ease-in-out infinite;
+}
+.dt-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  transition: color 0.3s;
+}
+.dt-card:hover h3 {
+  color: #8b0000;
+}
+.dt-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #5f626b;
+}
+.dt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.dt-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f7f1ee;
+  color: #4a2a2a;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.dt-chip.dt-prize {
+  background: linear-gradient(180deg, #fff3d1, #fbe3a4);
+  color: #6b1a00;
+  box-shadow: inset 0 0 0 1px rgba(217, 165, 43, 0.45);
+}
+.dt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.dt-files {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: #5f626b;
+}
+.dt-files svg {
+  flex: none;
+  color: #d9a52b;
+}
+
+/* Start button: slim, always gently moving */
+.dt-go {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #a3121b 0%, #8b0000 55%, #6a0a0e 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 14px rgba(139, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  animation: dt-glow 2.6s ease-in-out infinite;
+  transition: transform 0.3s;
+}
+.dt-go::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgba(255, 232, 170, 0.7), transparent);
+  transform: skewX(-20deg);
+  animation: dt-flash 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.dt-go i {
+  display: flex;
+  color: #f5cf6a;
+  animation: dt-nudge 2.6s ease-in-out infinite;
+}
+.dt-card:hover .dt-go {
+  background: linear-gradient(135deg, #c0161f, #8b0000);
+  transform: translateY(-1px);
+}
+.dt-card:nth-child(2n) :is(.dt-go, .dt-go::after, .dt-go i) {
+  animation-delay: -0.7s;
+}
+.dt-card:nth-child(3n) :is(.dt-go, .dt-go::after, .dt-go i) {
+  animation-delay: -1.4s;
+}
+/* The big logo button on the home page */
+.dt-go.dt-go2 {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 68px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.dt-go2t {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+.dt-go2t b {
+  font-size: 18px;
+  font-weight: 800;
+}
+.dt-go2t small {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: rgba(255, 231, 166, 0.9);
+}
+.dt-go2 i svg {
+  width: 22px;
+  height: 22px;
+}
+.dt-soonbtn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #ecedf0;
+  color: #6a6d76;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Featured logo card */
+.dt-card.dt-feat {
+  grid-column: span 2;
+  flex-direction: row;
+  background: linear-gradient(135deg, #fff6f0 0%, #ffffff 55%, #fff7e3 100%);
+  border: 2px solid #ebc7be;
+  box-shadow: 0 0 0 4px rgba(226, 177, 60, 0.25), 0 20px 44px rgba(139, 0, 0, 0.16);
+}
+.dt-feat .dt-viz {
+  flex: 0 0 42%;
+  min-height: 200px;
+  background: radial-gradient(80% 80% at 30% 30%, #b3201b 0%, #8b0000 45%, #5c0a0c 100%);
+}
+.dt-feat .dt-viz::before {
+  background-image: radial-gradient(rgba(255, 226, 140, 0.22) 1px, transparent 1.3px);
+}
+.dt-feat .dt-body {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  padding: 20px 22px;
+}
+.dt-feat h3 {
+  font-size: 24px;
+}
+.dt-feat p {
+  font-size: 14.5px;
+}
+.dt-open {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 4;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2bb673, #1f7a4d);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 6px 14px rgba(31, 122, 77, 0.35);
+  animation: dt-bob 2.6s ease-in-out infinite;
+}
+.dt-feat .dt-foot2 {
+  margin-top: auto;
+  margin-bottom: auto;
+  padding-top: 10px;
+}
+/* The logo wall */
+.dt-wall {
+  position: absolute;
+  inset: -25% -14%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  transform: rotate(-10deg);
+}
+.dt-col {
+  overflow: hidden;
+}
+.dt-track {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: dt-up 22s linear infinite;
+}
+.dt-col:nth-child(1) .dt-track {
+  animation-delay: -4s;
+}
+.dt-col:nth-child(2) .dt-track {
+  animation-direction: reverse;
+  animation-duration: 26s;
+}
+.dt-col:nth-child(3) .dt-track {
+  animation-duration: 30s;
+  animation-delay: -9s;
+}
+.dt-col:nth-child(4) .dt-track {
+  animation-direction: reverse;
+  animation-duration: 24s;
+  animation-delay: -13s;
+}
+.dt-lw {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-lw img,
+.dt-pl img,
+.dt-fbav img,
+.dt-xav img,
+.dt-bcf img,
+.dt-fl1 img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.dt-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(92, 10, 12, 0.75) 0%, transparent 22%, transparent 78%, rgba(74, 7, 9, 0.8) 100%), radial-gradient(70% 60% at 50% 50%, transparent 55%, rgba(74, 7, 9, 0.45) 100%);
+}
+.dt-feat:hover .dt-track {
+  animation-play-state: paused;
+}
+.dt-feat:hover .dt-lw {
+  transform: scale(1.04);
+}
+.dt-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+.dt-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #f0e3e1;
+}
+.dt-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3a1a1a;
+  white-space: nowrap;
+}
+.dt-step b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #b3201b, #8b0000);
+  color: #ffffff;
+  font-size: 11px;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-card:hover .dt-step b {
+  transform: scale(1.12) rotate(-6deg);
+}
+.dt-arrow {
+  flex: 1;
+  min-width: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #e2b13c 50%, #f0e3e1 50%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  transition: background-position 0.6s;
+}
+.dt-card:hover .dt-arrow {
+  background-position: 0 0;
+}
+.dt-good {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.dt-good-l {
+  margin-right: 2px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9a7a2a;
+}
+.dt-good-c {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff8ea;
+  border: 1px solid #f3dfae;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b1a00;
+}
+/* On the home page the logo card skips the three steps (the button gets the room). */
+.dt-home .dt-steps {
+  display: none;
+}
+
+/* Mock-ups (drawn samples) */
+.dt-fr {
+  position: relative;
+  width: 86%;
+  max-height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 14px 30px rgba(17, 18, 22, 0.22);
+}
+.dt-fr.dt-sq {
+  width: auto;
+  height: 100%;
+}
+.dt-tt {
+  position: absolute;
+  left: 8%;
+  top: 18%;
+  color: #ffffff;
+  font: 800 20px/1 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.dt-tt span {
+  font-size: 13px;
+  color: #ffe27a;
+}
+.dt-tface {
+  position: absolute;
+  right: 6%;
+  bottom: 0;
+  width: 34%;
+  height: 80%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, #e7a3a0, #c24a47);
+}
+.dt-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 24px;
+  margin: -12px 0 0 -17px;
+  border-radius: 7px;
+  background: #ff0033;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.dt-card:hover .dt-play {
+  opacity: 0.95;
+}
+.dt-time {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+.dt-pl {
+  position: absolute;
+  left: 10%;
+  top: 10%;
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dt-pt2 {
+  position: absolute;
+  left: 10%;
+  bottom: 10%;
+  color: #5c1a00;
+  font: 800 9px/1.05 var(--font-display);
+}
+.dt-pt2 span {
+  font-size: 13px;
+  color: #8b0000;
+}
+.dt-likes {
+  position: absolute;
+  right: 6%;
+  top: 8%;
+  padding: 1px 5px;
+  border-radius: 99px;
+  background: #ffffff;
+  color: #c0161f;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  transition: transform 0.3s;
+}
+.dt-card:hover .dt-likes {
+  transform: scale(1.2);
+}
+.dt-cv {
+  position: absolute;
+  left: 34%;
+  top: 30%;
+  color: #ffffff;
+  font: 700 17px/1.1 var(--font-display);
+}
+.dt-cv span {
+  display: block;
+  font: 500 11px var(--font-sans);
+  opacity: 0.8;
+}
+.dt-fbav {
+  position: absolute;
+  left: 6%;
+  bottom: 8%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+}
+.dt-safe {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 30%;
+  bottom: 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 7.5px;
+  line-height: 1.2;
+}
+.dt-safe b {
+  font-size: 11px;
+}
+.dt-card:hover .dt-safe {
+  border-color: #ffe27a;
+}
+.dt-xh {
+  position: absolute;
+  right: 7%;
+  top: 50%;
+  translate: 0 -50%;
+  color: #ffffff;
+  font: 700 12px var(--font-display);
+}
+.dt-xav {
+  position: absolute;
+  left: 6%;
+  bottom: -8%;
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+}
+.dt-cards2 {
+  position: relative;
+  width: 80%;
+  height: 80%;
+}
+.dt-bc {
+  position: absolute;
+  width: 56%;
+  aspect-ratio: 1050 / 600;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 26px rgba(17, 18, 22, 0.22);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-bcf {
+  left: 4%;
+  top: 8%;
+  transform: rotate(-8deg);
+}
+.dt-bcb {
+  right: 4%;
+  bottom: 6%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  background: #1f6b3a;
+  color: #ffffff;
+  transform: rotate(6deg);
+}
+.dt-bcb b {
+  font-size: 12px;
+}
+.dt-bcb i {
+  display: block;
+  height: 4px;
+  width: 70%;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.dt-card:hover .dt-bcf {
+  transform: rotate(-14deg) translate(-8px, -6px);
+}
+.dt-card:hover .dt-bcb {
+  transform: rotate(10deg) translate(8px, 6px);
+}
+.dt-fr.dt-fly {
+  width: auto;
+  height: 96%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #8b0000;
+  font: 800 13px/1 var(--font-display);
+  text-align: center;
+}
+.dt-fl1 {
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.dt-fly i {
+  display: block;
+  width: 60%;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(139, 0, 0, 0.3);
+}
+.dt-tee {
+  height: 90%;
+  filter: drop-shadow(0 14px 24px rgba(17, 18, 22, 0.25));
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-card:hover .dt-tee {
+  transform: rotate(-6deg) scale(1.05);
+}
+.dt-generic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: linear-gradient(135deg, #8b0000, #c0262a);
+  color: #ffe7a6;
+  font: 700 14px/1.2 var(--font-display);
+  text-align: center;
+}
+
+/* Coming soon (off in Admin → Services) */
+.dt-card.dt-soon {
+  cursor: not-allowed;
+  background: #fafafb;
+  border-color: #ecedf0;
+}
+.dt-soon::before,
+.dt-soon .dt-viz::after,
+.dt-soon .dt-body::before {
+  display: none;
+}
+.dt-card.dt-soon:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #ecedf0;
+}
+.dt-soon .dt-viz {
+  background: radial-gradient(60% 80% at 50% 50%, #fff1d6 0%, transparent 70%), radial-gradient(120% 100% at 100% 100%, #f6d4d0 0%, transparent 60%), #fff8f3;
+}
+.dt-soon .dt-mk {
+  filter: grayscale(0.9);
+  opacity: 0.6;
+}
+.dt-soon .dt-mk > *,
+.dt-soon .dt-track,
+.dt-soon .dt-open {
+  animation: none;
+}
+.dt-soon:hover .dt-mk {
+  transform: none;
+}
+.dt-soon h3,
+.dt-soon:hover h3 {
+  color: #5f626b;
+}
+.dt-soon p {
+  color: #8a8d96;
+}
+.dt-soon .dt-tag {
+  color: #8a8d96;
+}
+.dt-soon .dt-tag i {
+  background: #c9ccd3;
+  box-shadow: none;
+  animation: none;
+}
+.dt-soon .dt-chip,
+.dt-soon .dt-chip.dt-prize {
+  background: #f0f1f4;
+  color: #6a6d76;
+  box-shadow: none;
+}
+.dt-soon .dt-files,
+.dt-soon .dt-files svg {
+  color: #8a8d96;
+}
+.dt-feat.dt-soon .dt-viz {
+  filter: grayscale(0.85);
+}
+
+/* "Something else?" on the Start a contest page */
+.dt-card.dt-other {
+  grid-column: span 2;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 22px;
+  background: radial-gradient(120% 120% at 100% 0%, #b3201b 0%, #8b0000 45%, #4a0709 100%);
+  border: 0;
+  color: #ffffff;
+}
+.dt-other::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 28px solid rgba(226, 177, 60, 0.16);
+  animation: dt-float 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.dt-other h3 {
+  color: #ffffff;
+}
+.dt-other:hover h3 {
+  color: #ffe7a6;
+}
+.dt-other p {
+  max-width: 520px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.dt-oi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+  font-size: 24px;
+  transition: transform 0.4s;
+}
+.dt-other:hover .dt-oi {
+  transform: rotate(90deg);
+}
+.dt-other .dt-go {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffe7a6;
+  box-shadow: none;
+  animation: none;
+}
+.dt-other:hover .dt-go {
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+}
+
+/* "See all design types" */
+.dt-all {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #b3201b, #8b0000 55%, #6a0a0e);
+  color: #ffffff;
+  font-size: 16.5px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 22px rgba(139, 0, 0, 0.26);
+}
+.dt-all i {
+  display: flex;
+  color: #f5cf6a;
+  transition: transform 0.3s;
+}
+.dt-all:hover i {
+  transform: translateX(4px);
+}
+.dt-all::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 232, 170, 0.6), transparent);
+  transform: skewX(-20deg);
+  animation: dt-flash 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.dt-note {
+  margin: 0;
+  font-size: 13.5px;
+  color: #5f626b;
+  text-align: center;
+}
+
+/* Floating examples on "Something else?" */
+.dt-other p {
+  max-width: 46%;
+}
+.dt-otx {
+  position: absolute;
+  right: 22px;
+  top: 18px;
+  bottom: 18px;
+  width: 46%;
+  pointer-events: none;
+}
+.dt-oc {
+  position: absolute;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 231, 166, 0.35);
+  color: #ffe7a6;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: dt-float 5s ease-in-out infinite;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dt-oc:nth-child(1) { left: 4%; top: 6%; animation-delay: -0.4s; }
+.dt-oc:nth-child(2) { left: 44%; top: 2%; animation-delay: -1.6s; }
+.dt-oc:nth-child(3) { right: 2%; top: 20%; animation-delay: -2.2s; }
+.dt-oc:nth-child(4) { left: 14%; top: 36%; animation-delay: -3s; }
+.dt-oc:nth-child(5) { left: 52%; top: 44%; animation-delay: -0.9s; }
+.dt-oc:nth-child(6) { left: 0; top: 66%; animation-delay: -3.8s; }
+.dt-oc:nth-child(7) { left: 36%; top: 78%; animation-delay: -2.6s; }
+.dt-oc:nth-child(8) { right: 4%; top: 68%; animation-delay: -1.2s; }
+.dt-oc:nth-child(3n + 2) {
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a0a0a;
+  border-color: transparent;
+}
+.dt-other:hover .dt-oc {
+  transform: scale(1.08);
+}
+
+/* How it works strip (Start a contest page) */
+.dt-how {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 240px repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+  padding: 26px 26px 28px;
+  border-radius: 24px;
+  background: linear-gradient(120deg, #4a0709, #8b0000 55%, #5c0a0c);
+  color: rgba(255, 255, 255, 0.75);
+}
+.dt-how::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -120px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 40px solid rgba(226, 177, 60, 0.1);
+  pointer-events: none;
+  animation: dt-float 7s ease-in-out infinite;
+}
+.dt-hwt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+}
+.dt-hwt span {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5cf6a;
+}
+.dt-hwt b {
+  font: 700 22px/1.2 var(--font-display);
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+.dt-hwa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe7a6;
+  text-decoration: none;
+}
+.dt-hwa i {
+  display: flex;
+  transition: transform 0.3s;
+}
+.dt-hwa:hover i {
+  transform: translateX(4px);
+}
+.dt-hw {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  transition: background 0.25s;
+}
+.dt-hw:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dt-hw b {
+  font-size: 16px;
+  color: #ffffff;
+}
+.dt-hw > span:last-child {
+  font-size: 13.5px;
+}
+.dt-hwn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a2a00;
+  font: 700 15px var(--font-display);
+  animation: dt-pls 2.4s ease-in-out infinite;
+}
+.dt-hw:nth-child(3) .dt-hwn { animation-delay: -0.6s; }
+.dt-hw:nth-child(4) .dt-hwn { animation-delay: -1.2s; }
+.dt-hw:nth-child(5) .dt-hwn { animation-delay: -1.8s; }
+.dt-hwl {
+  position: absolute;
+  left: 58px;
+  right: -8px;
+  top: 27px;
+  height: 2px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, rgba(245, 207, 106, 0.7) 0 8px, transparent 8px 14px);
+  background-size: 28px 2px;
+  animation: dt-hwf 1.2s linear infinite;
+}
+.dt-hw:last-child .dt-hwl {
+  display: none;
+}
+@keyframes dt-pls {
+  50% {
+    box-shadow: 0 0 0 6px rgba(240, 194, 79, 0.18);
+  }
+}
+@keyframes dt-hwf {
+  to {
+    background-position: 28px 0;
+  }
+}
+@media (max-width: 1100px) {
+  .dt-how {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dt-hwt {
+    grid-column: 1 / -1;
+    border-right: 0;
+  }
+  .dt-hwl {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .dt-how {
+    grid-template-columns: 1fr;
+  }
+  .dt-otx {
+    display: none;
+  }
+  .dt-other p {
+    max-width: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-how::after,
+  .dt-hwn,
+  .dt-hwl,
+  .dt-hwa i {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes dt-spin {
+  to {
+    --dt-a: 360deg;
+  }
+}
+@keyframes dt-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+@keyframes dt-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(226, 177, 60, 0);
+  }
+}
+@keyframes dt-bob {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes dt-glow {
+  0%,
+  100% {
+    box-shadow: 0 6px 14px rgba(139, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 0 rgba(226, 177, 60, 0.45);
+  }
+  50% {
+    box-shadow: 0 6px 14px rgba(139, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 5px rgba(226, 177, 60, 0);
+  }
+}
+@keyframes dt-flash {
+  0%,
+  55% {
+    left: -50%;
+  }
+  85%,
+  100% {
+    left: 130%;
+  }
+}
+@keyframes dt-nudge {
+  0%,
+  60%,
+  100% {
+    translate: 0 0;
+  }
+  75% {
+    translate: 4px 0;
+  }
+}
+@keyframes dt-up {
+  to {
+    transform: translateY(calc(-50% - 5px));
+  }
+}
+
+@media (max-width: 1100px) {
+  .dt-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .dt-grid {
+    grid-template-columns: 1fr;
+  }
+  .dt-card.dt-feat,
+  .dt-card.dt-other {
+    grid-column: auto;
+    flex-direction: column;
+  }
+  .dt-feat .dt-viz {
+    flex: 0 0 auto;
+    min-height: 220px;
+  }
+  .dt-steps {
+    flex-wrap: wrap;
+  }
+  .dt-arrow {
+    display: none;
+  }
+  .dt-go2t small {
+    white-space: normal;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-card,
+  .dt-card *,
+  .dt-card::before,
+  .dt-card::after,
+  .dt-all,
+  .dt-all::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

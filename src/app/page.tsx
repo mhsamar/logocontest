@@ -4,10 +4,10 @@ import { AiChecker } from "@/components/home/landing/ai-checker";
 import { LandingFaq } from "@/components/home/landing/faq";
 import { LandingHero } from "@/components/home/landing/hero";
 import { SiteNav } from "@/components/layout/site-nav";
+import { DesignTypesSection } from "@/components/services/design-types";
 import { Join } from "@/components/home/landing/join";
 import { HeroOffer } from "@/components/home/landing/hero-offer";
 import { LiveContests } from "@/components/home/landing/live-contests";
-import { Steps } from "@/components/home/landing/steps";
 import { Why } from "@/components/home/landing/why";
 import "@/components/home/landing/landing.css";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -24,7 +24,7 @@ import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 
 // P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
-// Design/logocontest-home-design.html): hero, live contests, three steps, designers you can trust,
+// Design/logocontest-home-design.html; Design/home-page 2026-10-13): hero, live contests, design types, AI checker,
 // why us + comparison, two ways in, Q&A. Every number and contest comes from the database.
 export default async function HomePage() {
   // One home per role after logging in (owner, 2026-10-08): clients and designers each get their own.
@@ -74,7 +74,8 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-      <Steps logos={logos} />
+      {/* Owner, 2026-10-13 (Design/home-page): "What do you need designed?" replaces "Your new logo in three steps". */}
+      <DesignTypesSection />
       {/* Owner, 2026-10-11: the AI copyright checker replaces "Work with designers you can trust". */}
       <AiChecker />
       <Why logos={logos} />

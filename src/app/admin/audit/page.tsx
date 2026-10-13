@@ -18,7 +18,21 @@ const LINKS: Record<string, (id: string) => string> = {
   copy_claim: () => "/admin/claims",
   report: () => "/admin/reports?view=closed",
   settings: () => "/admin/settings",
+  contest_service: () => "/admin/services",
 };
+
+/** Changes that record old → new (settings, services) as one line each; anything else as JSON. */
+function changeText(c: Record<string, unknown>): string {
+  const v = (x: unknown) => (x === null || x === undefined ? "—" : typeof x === "string" ? x : JSON.stringify(x)).slice(0, 160);
+  const line = (key: string, x: unknown) => (x && typeof x === "object" && "to" in x ? `${key}: ${v((x as { from?: unknown }).from)} → ${v((x as { to: unknown }).to)}` : `${key}: ${v(x)}`);
+  if ("from" in c && "to" in c) return line(String(c.field ?? "value"), c);
+  if (typeof c.on === "boolean") return `is_live: ${c.on ? "on" : "off"}`;
+  if (c.changes && typeof c.changes === "object") {
+    const lines = Object.entries(c.changes as Record<string, unknown>).map(([k, x]) => line(k, x));
+    return [...lines, ...(c.reason ? [`reason: ${v(c.reason)}`] : [])].join("\n") || "—";
+  }
+  return Object.keys(c).length ? JSON.stringify(c) : "—";
+}
 
 // A-12 Audit log (BLUEPRINT §13.12): read-only, newest first.
 export default async function AdminAuditPage({ searchParams }: PageProps<"/admin/audit">) {
@@ -71,7 +85,8 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <code className="block max-w-xl whitespace-pre-wrap break-words font-mono text-xs text-muted">{Object.keys(r.changes).length ? JSON.stringify(r.changes) : "—"}</code>
+                      <code className="block max-w-xl whitespace-pre-wrap break-words font-mono text-xs text-muted">{r.subjectType === "contest_service" && r.subjectId ? `${r.subjectId} · ` : ""}
+                        {changeText(r.changes)}</code>
                     </td>
                   </tr>
                 );
