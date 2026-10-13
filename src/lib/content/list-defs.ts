@@ -57,6 +57,8 @@ export const LISTS: Record<ListKey, ListDef> = {
       link("c-how", "/how-it-works", "nav.how", "clients"),
       link("c-help", "/help", "nav.help", "clients"),
       link("d-join", "/designers/signup", "nav.becomeDesigner", "designers"),
+      // Designer Pro plan (owner, 2026-10-13).
+      link("d-pro", "/pro", "footer.goPro", "designers"),
       link("d-how", "/how-it-works?for=designers", "footer.howDesigners", "designers"),
       link("d-leaderboard", "/leaderboard", "footer.leaderboard", "designers"),
       link("d-login", "/login?as=designer", "nav.login", "designers"),

@@ -6,6 +6,7 @@ import { OfferCards, RacePanel } from "@/components/contests/reward-strip";
 import { visibleBusinessTypes } from "@/lib/content/lists";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
+import { earlyCutoff } from "@/lib/pro/limits";
 import { browseContests, designerFacts, featuredContests } from "@/lib/contests/browse";
 import { savedContestIds } from "@/lib/contests/community";
 import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, browseHref, parseBrowseQuery, toggleQuick, type QuickFilter } from "@/lib/contests/browse-query";
@@ -47,9 +48,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
   const now = new Date();
   const filtered = Boolean(query.q || query.type || query.quick.length);
   const showFeatured = query.tab === "open" && !filtered;
+  // Pro early access (owner, 2026-10-13): new contests reach everyone else after the window.
+  const hideNewerThan = await earlyCutoff(user, now);
   const [list, featured, types, offers] = await Promise.all([
-    getSetting("limits.big_prize_from").then((bigPrize) => browseContests(query, { designerId: designer?.id ?? null, bigPrize, now })),
-    showFeatured ? featuredContests(3) : [],
+    getSetting("limits.big_prize_from").then((bigPrize) => browseContests(query, { designerId: designer?.id ?? null, bigPrize, now, hideNewerThan })),
+    showFeatured ? featuredContests(3, hideNewerThan) : [],
     visibleBusinessTypes(query.type),
     offersOn(),
   ]);

@@ -85,5 +85,23 @@ export const NOTIFICATION_TYPES = [
   "agreement_rejected",
   "agreement_photo_added_admin",
   "account_reactivated",
+  // Designer Pro plan (owner, 2026-10-13)
+  "contest_new_pro",
+  "contest_new_pro_private",
+  "pro_invited",
+  "pro_invited_private",
+  "pro_invite_reminder",
+  "pro_saved_reminder",
+  "pro_message",
+  "pro_activated",
+  "pro_cancelled",
+  "pro_renew_7d",
+  "pro_renew_1d",
+  "pro_expired",
+  "pro_payment_failed",
+  "pro_checkout_reminder",
+  "pro_granted",
+  "pro_price_change",
+  "pro_weekly",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

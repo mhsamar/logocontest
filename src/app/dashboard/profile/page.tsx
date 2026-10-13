@@ -11,6 +11,10 @@ import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
 import { profileSteps } from "@/lib/profile/completeness";
 import { getSettings } from "@/lib/settings";
+import Link from "next/link";
+import { ProSettingsExtras } from "@/components/pro/pro-settings";
+import { ProWorkspace, WsHead } from "@/components/pro/workspace";
+import { isPro } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -65,11 +69,7 @@ export default async function ProfileSettingsPage() {
   // The public profile: /d/ for designers, /c/ for clients (P-06, P-12).
   const profileUrl = user.username ? `${await siteOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
 
-  return (
-    <PageShell>
-      {/* Owner, 2026-10-13: no big title panel; a small title beside the back button. */}
-      <SmallPageHeader title={t("settings.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
-
+  const body = (
       <Panel tone="grey" className="max-[720px]:py-4">
         <div className="mx-auto max-w-3xl space-y-3.5">
           {steps && <ProfileProgress steps={steps} onSettings />}
@@ -121,6 +121,31 @@ export default async function ProfileSettingsPage() {
           </Section>
         </div>
       </Panel>
+  );
+  // Designer Pro plan (owner, 2026-10-13): Pro designers get their Pro extras and subscription on top, in the workspace.
+  if (user.role === "designer" && (await isPro(user.id)))
+    return (
+      <ProWorkspace user={user} active="settings">
+        <WsHead
+          title={t("pro.settings.title")}
+          lead={t("pro.settings.lead")}
+          action={
+            user.username ? (
+              <Link href={`/designer/${user.username}`} className="pr-out">
+                {t("pro.settings.viewProfile")}
+              </Link>
+            ) : undefined
+          }
+        />
+        <ProSettingsExtras user={user} />
+        {body}
+      </ProWorkspace>
+    );
+  return (
+    <PageShell>
+      {/* Owner, 2026-10-13: no big title panel; a small title beside the back button. */}
+      <SmallPageHeader title={t("settings.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
+      {body}
     </PageShell>
   );
 }

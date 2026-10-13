@@ -3,6 +3,7 @@ import { isAddonPayment, settleAddonPayment } from "@/lib/contests/addon-payment
 import { announceForPayment } from "@/lib/contests/announce";
 import { contestService } from "@/lib/contests/services";
 import { getFakeGateway } from "@/lib/payments";
+import { isProPayment, settleProPayment } from "@/lib/pro/payments";
 
 /** Callback from the development test checkout. Verified by FakeGateway's signature. */
 export async function POST(request: NextRequest) {
@@ -13,6 +14,12 @@ export async function POST(request: NextRequest) {
 
   // Add-ons and extensions bought after launch return to the contest's manage page (C-13b).
   const verified = await getFakeGateway()!.verifyCallback(params);
+  // Designer Pro plan (owner, 2026-10-13): back to the Pro checkout with the result. The real gateway does the same.
+  if (verified && (await isProPayment(verified.paymentId))) {
+    const settled = await settleProPayment(verified);
+    if (settled.status === "error") return new NextResponse("Payment could not be verified.", { status: 400 });
+    return NextResponse.redirect(new URL(`/pro/checkout?status=${settled.status === "paid" ? "success" : "failed"}&payment=${settled.paymentId}`, request.url), 303);
+  }
   if (verified && (await isAddonPayment(verified.paymentId))) {
     const settled = await settleAddonPayment(verified);
     const to = settled.slug ? `/dashboard/contests/${settled.slug}?payment=${settled.status}` : "/dashboard";

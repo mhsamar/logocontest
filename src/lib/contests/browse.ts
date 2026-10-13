@@ -161,7 +161,7 @@ function typesMatching(words: string): Set<string> {
  * Search matches the business type and the name of contests that aren't private or NDA, so it never reveals a
  * hidden name. "Joined by me" exists only for a signed-in designer.
  */
-export async function browseContests(q: BrowseQuery, opts: { designerId: string | null; bigPrize: number; now: Date }): Promise<BrowseResult> {
+export async function browseContests(q: BrowseQuery, opts: { designerId: string | null; bigPrize: number; now: Date; hideNewerThan?: Date | null }): Promise<BrowseResult> {
   const tabs: readonly BrowseTab[] = opts.designerId ? DESIGNER_TABS : BROWSE_TABS;
   const counts = { open: 0, joined: 0, judging: 0, completed: 0 } as Record<BrowseTab, number>;
   if (!isSupabaseConfigured()) return { rows: [], total: 0, counts, openNow: 0, featuredOpen: 0 };
@@ -175,7 +175,10 @@ export async function browseContests(q: BrowseQuery, opts: { designerId: string 
   const words = q.q.toLowerCase();
   const types = words ? typesMatching(words) : null;
   const soon = opts.now.getTime() + ENDING_SOON_DAYS * 86_400_000;
+  // Pro early access (owner, 2026-10-13): a contest that opened after this time isn't shown to this viewer yet.
+  const early = (r: Light) => Boolean(opts.hideNewerThan && r.status === "open" && r.starts_at && new Date(r.starts_at) > opts.hideNewerThan);
   const keep = (r: Light) => {
+    if (early(r)) return false;
     if (types && !(types.has(r.business_type) || (!r.is_private && !r.is_nda && r.brand_name.toLowerCase().includes(words)))) return false;
     for (const f of q.quick) {
       if (f === "featured" && !r.is_promoted) return false;
@@ -213,7 +216,7 @@ export async function browseContests(q: BrowseQuery, opts: { designerId: string 
     const byId = new Map((await toRows((full ?? []) as DbRow[])).map((r) => [r.id, r]));
     rows = ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
   }
-  const open = all.filter((r) => r.status === "open");
+  const open = all.filter((r) => r.status === "open" && !early(r));
   return { rows, total: list.length, counts, openNow: open.length, featuredOpen: open.filter((r) => r.is_promoted).length };
 }
 
@@ -260,15 +263,11 @@ export async function designerFacts(ids: string[], designerId: string): Promise<
 }
 
 /** P-02 "Featured contests": open contests with the Promoted upgrade, ending soonest first. */
-export async function featuredContests(limit: number): Promise<ContestRow[]> {
+export async function featuredContests(limit: number, hideNewerThan: Date | null = null): Promise<ContestRow[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await createAdminClient()
-    .from("contests")
-    .select(ROW_COLUMNS)
-    .eq("status", "open")
-    .eq("is_promoted", true)
-    .order("ends_at", { ascending: true })
-    .limit(limit);
+  let query = createAdminClient().from("contests").select(ROW_COLUMNS).eq("status", "open").eq("is_promoted", true);
+  if (hideNewerThan) query = query.lte("starts_at", hideNewerThan.toISOString());
+  const { data, error } = await query.order("ends_at", { ascending: true }).limit(limit);
   if (error) throw new Error(error.message);
   return toRows((data ?? []) as DbRow[]);
 }
@@ -283,12 +282,12 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
 }
 
 /** Home page section 2: open contests, Promoted first, then the newest. */
-export async function liveContests(limit: number): Promise<ContestRow[]> {
+export async function liveContests(limit: number, hideNewerThan: Date | null = null): Promise<ContestRow[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await createAdminClient()
-    .from("contests")
-    .select(ROW_COLUMNS)
-    .eq("status", "open")
+  let query = createAdminClient().from("contests").select(ROW_COLUMNS).eq("status", "open");
+  // Pro early access (owner, 2026-10-13): contests newer than this aren't shown to this viewer yet.
+  if (hideNewerThan) query = query.lte("starts_at", hideNewerThan.toISOString());
+  const { data, error } = await query
     .order("is_promoted", { ascending: false })
     .order("starts_at", { ascending: false })
     .limit(limit);

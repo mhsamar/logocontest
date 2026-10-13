@@ -1,5 +1,12 @@
 /** Line icons of the admin design (design/admin/*.html), 24×24, stroked with the current colour. */
 const PATHS = {
+  // Designer Pro plan (owner, 2026-10-13): a crown.
+  pro: (
+    <>
+      <path d="M3.5 8.5 7.5 12l4.5-6.5 4.5 6.5 4-3.5-1.8 9.5H5.3Z" />
+      <path d="M5.5 20.5h13" />
+    </>
+  ),
   // Contest services (owner, 2026-10-13): stacked cards.
   services: (
     <>

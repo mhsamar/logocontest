@@ -14,6 +14,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import type { Lang, ServiceDef } from "@/lib/services/types";
 import { getSettings } from "@/lib/settings";
+import { getProSettings } from "@/lib/pro/settings";
+import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -73,9 +75,15 @@ const profileOf = async (user: CurrentUser | null) => {
 };
 
 /** The wizard of a non-logo service (fresh, or resuming one of the client's drafts). */
-export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null) {
-  const [pricing, s, svcUser] = await Promise.all([getPricingConfig(), getSettings(["auth.password_min_length"]), profileOf(user)]);
-  return <ServiceWizard key={service.slug} service={service} user={svcUser} pricing={pricing} passwordMin={s["auth.password_min_length"]} resume={resume} />;
+export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null, startAtPay = false) {
+  const [pricing, s, svcUser, inviteFirst] = await Promise.all([getPricingConfig(), getSettings(["auth.password_min_length"]), profileOf(user), invitesAvailable()]);
+  return <ServiceWizard key={service.slug} service={service} user={svcUser} pricing={pricing} passwordMin={s["auth.password_min_length"]} resume={resume} inviteFirst={inviteFirst} startAtPay={startAtPay} />;
+}
+
+/** Designer Pro plan (owner, 2026-10-13): the invite step is offered while invitations are on and someone is Pro. */
+async function invitesAvailable(): Promise<boolean> {
+  const { settings, ready } = await getProSettings();
+  return ready && settings.features.invitations && settings.invitesPerContest > 0 && (await allProIds()).length > 0;
 }
 
 /** A non-logo draft of this client that can still be finished, or null. */
@@ -88,12 +96,13 @@ export async function serviceDraftOf(user: CurrentUser | null, draftId: string |
 
 /** The original logo wizard, C-01 … C-11 (UI-JOURNEY §4), with its ?step=, ?draft= and ?name= links. */
 export async function logoWizard(params: StartParams, user: CurrentUser | null) {
-  const [pricing, s, businessTypes, colours, wizardUser] = await Promise.all([
+  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst] = await Promise.all([
     getPricingConfig(),
     getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length"]),
     visibleList("business_types", "en"),
     visibleList("colours", "en"),
     profileOf(user),
+    invitesAvailable(),
   ]);
 
   let previous: WizardProps["previous"] = [];
@@ -137,6 +146,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       initialStep={Number.isInteger(step) && step >= 1 && step <= 11 ? step : null}
       prefillName={typeof params.name === "string" ? params.name : ""}
       choices={{ businessTypes: businessTypes.map((b) => b.id), swatches: colours.map((c) => c.value ?? "").filter(Boolean) }}
+      inviteFirst={inviteFirst}
     />
   );
 }

@@ -19,6 +19,8 @@ export const ADMIN_AREAS = {
   withdrawals: { manage: true },
   agreements: { manage: true },
   monthly: { manage: true },
+  /** Designer Pro plan (owner, 2026-10-13): Admin › Pro plan. */
+  pro: { manage: true },
   support: { manage: true },
   messages: { manage: true },
   content: { manage: true },

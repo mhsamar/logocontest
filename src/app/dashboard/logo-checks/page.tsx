@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { myChecks } from "@/lib/logo-check/queries";
 import { runLogoCheck } from "@/lib/logo-check/run";
+import { DesignerChecks } from "@/components/pro/designer-checks";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -20,6 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MyLogoChecksPage() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect("/login?as=client&next=/dashboard/logo-checks");
+  // Designers check their own logos (owner, 2026-10-13: Basic 2, Pro 100 a month).
+  if (user.role === "designer") return <DesignerChecks user={user} />;
   if (user.role !== "client") notFound();
   const data = await myChecks(user.id);
 

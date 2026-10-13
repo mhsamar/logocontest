@@ -7,6 +7,7 @@ import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
+import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
 import { broadcastToDesigners } from "@/lib/notifications/broadcast";
 import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
@@ -17,7 +18,7 @@ import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endi
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; errors: string[] };
+export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
@@ -330,6 +331,10 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     if (views.error) fail("page_views", "-", views.error.message);
     if (online.error) fail("presence", "-", online.error.message);
   }
+
+  // Designer Pro plan (owner, 2026-10-13): expiry, renewal and invite/saved reminders, quality scores.
+  report.pro = await runProJobs(now);
+  for (const e of report.pro.errors) report.errors.push(`pro ${e}`);
 
   return report;
 }

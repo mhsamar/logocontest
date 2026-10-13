@@ -11,6 +11,7 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { VisitTracker } from "@/components/layout/visit-tracker";
 import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot";
 import { SupportSlot } from "@/components/support/support-slot";
+import { FloatingProCardSlot } from "@/components/pro/floating-card-slot";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -90,6 +91,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <VisitTracker />
               <SupportSlot />
               <VisitorPopupSlot signedIn={Boolean(user)} />
+              <FloatingProCardSlot />
             </SiteChrome>
             <PointerFx />
             <MotionFx />

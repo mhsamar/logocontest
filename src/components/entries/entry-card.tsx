@@ -56,7 +56,7 @@ export function Collage({ previews, total, ratio = 1 }: { previews: string[]; to
 }
 
 /** One card in the Entries tab grid (UI-JOURNEY §1.3 entry card). Opens P-04. */
-export function EntryCard({ entry, href, t, fmt, ratio = 1 }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number }) {
+export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number; /** Designer Pro plan (owner, 2026-10-13): badge, gold border, "Invited". */ pro?: { badge: boolean; highlight: boolean; invited: boolean } }) {
   const winner = entry.status === "winner";
   return (
     <Link
@@ -65,7 +65,7 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1 }: { entry: Entry; hr
       aria-label={t("entry.open", { n: fmt(entry.number) })}
       className={cx(
         "group relative block overflow-hidden rounded-xl bg-surface shadow-card ring-1 transition-shadow hover:shadow-raised",
-        winner ? "ring-2 ring-primary" : "ring-line hover:ring-primary",
+        winner ? "ring-2 ring-primary" : pro?.highlight ? "shadow-[0_0_0_4px_rgba(226,177,60,.18)] ring-2 ring-[#E2B13C]" : "ring-line hover:ring-primary",
       )}
     >
       <div className="relative">
@@ -77,6 +77,7 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1 }: { entry: Entry; hr
           </>
         )}
         {!winner && entry.mine && <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.yours")}</span>}
+        {!winner && !entry.mine && pro?.invited && <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("pro.invite.badge")}</span>}
         {entry.status === "rejected" && <span className="absolute right-2 top-2 rounded-full bg-danger px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.rejected")}</span>}
       </div>
       <div className="px-3 py-2.5">
@@ -87,7 +88,10 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1 }: { entry: Entry; hr
           </span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted">
-          <span className="min-w-0 truncate">{entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate">{entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}</span>
+            {pro?.badge && entry.designer && <span className="shrink-0 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-1.5 py-px text-[0.5625rem] font-extrabold tracking-[0.05em] text-white" title={t("pro.entry.pro")}>PRO</span>}
+          </span>
           <span className="shrink-0">{entry.imageCount === 1 ? t("entry.oneMockup") : t("entry.mockups", { n: fmt(entry.imageCount) })}</span>
         </div>
         <div className="mt-1.5 flex items-center justify-between text-xs text-muted">

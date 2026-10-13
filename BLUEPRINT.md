@@ -377,6 +377,15 @@ Shows only: name, bio, photo, badges, **portfolio details** (owner, 2026-10-08: 
 
 Available balance, pending (won but not yet approved), current fee rate with progress to the next tier, withdraw form, transaction history.
 
+### 9.7 Designer Pro plan (owner, 2026-10-13; `Design/pro/`, migration `0046_pro_plan`)
+
+- **What it is:** a monthly plan for designers (default ৳500), set in **Admin › Pro plan** (`/admin/pro`, permission "Pro plan"). Everything (price, offer, free trial, promo code, limits, each feature) lives in the `pro_settings` row. **For sale** starts **off**: until the owner turns it on, nobody can buy Pro and `/pro` says "Pro opens soon".
+- **Limits:** Basic designers send up to **5 designs per contest** and get **2 Logo Checker checks a month**; Pro is unlimited per contest (or the admin's number) with **100 checks a month**, up to **50 portfolio uploads**. Clients may invite up to **10 Pro designers** per contest (a database trigger refuses the 11th). The month is the Bangladesh month. This replaces "entries per designer unlimited" in section 18.
+- **Pro features:** early access to new contests (a head start in minutes; others see the contest after it), gold-ring Pro entries and Pro-first order, chat with the client **only inside a contest and only about the designer's own entries** (phone numbers, emails, links and payment details are warned about and logged, no hiring), client invitations, performance insights, priority support (Pro chats first in the support inbox), a weekly report and a public Pro page at `/designer/<username>` (Pro only; `/d/<username>` stays for everyone).
+- **Payments and renewal:** through the site's payment gateway (`lib/payments`, SSLCommerz from milestone 9), with the callback signature checked. The gateway can't charge a saved wallet or card, so renewal is a reminder **7 days and 1 day** before the end with a one-tap pay link. A new price applies to new buyers at once and to members at their next renewal; members are told when it changes and again 7 days before.
+- **Cancel / end:** cancel asks one short reason and keeps Pro until the end date; the 15-minute job then ends the plan and the designer goes back to Basic. Admins can give a free month, extend, change the end date or cancel; every change goes into the Pro activity log (CSV export).
+- **Numbers:** every number on the Pro pages and Admin › Pro plan comes from real payments and activity; nothing is made up.
+
 ## 10. Comments and the no-contact filter
 
 - **Design comments (owner, 2026-10-08):** each entry has one comment box. Everyone who can see the entry can read it. Owner, 2026-10-11: only the contest's own client and **that design's own designer** can post. Other designers can't comment on someone else's design, in this contest or any other; they can like, dislike or report it. A client can comment only on designs in their own contest. Same rules as contest comments: 500 characters (setting), the no-contact filter (no mobile numbers, email addresses or social names), authors can delete their own comments, admins can hide any.

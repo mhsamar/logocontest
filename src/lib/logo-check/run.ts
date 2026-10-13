@@ -47,7 +47,8 @@ export class CheckError extends Error {
 type CheckRow = {
   id: string;
   number: number;
-  contest_id: string;
+  /** Null for a designer checking their own logo (owner, 2026-10-13: Designer Pro plan). */
+  contest_id: string | null;
   entry_id: string | null;
   image_path: string;
   requested_by: string;
@@ -94,7 +95,7 @@ async function work(check: CheckRow, origin: string) {
   const logoAi = await logoForAi(logo);
   let cost = Number(check.cost_usd) || 0;
 
-  const { data: contest } = await db().from("contests").select("id, slug, website_url").eq("id", check.contest_id).single();
+  const { data: contest } = check.contest_id ? await db().from("contests").select("id, slug, website_url").eq("id", check.contest_id).single() : { data: null };
 
   // 1. Read the logo (kept, so a second attempt doesn't pay for it again).
   let reading = check.reading;
@@ -123,12 +124,14 @@ async function work(check: CheckRow, origin: string) {
   // 3. Designs from other contests on logocontest.bd, closest image fingerprint first.
   await setStep(check.id, 3);
   const hash = await differenceHash(logo);
-  const { data: near } = await db().rpc("logo_check_similar_entries", { p_hash: hash, p_contest_id: check.contest_id, p_limit: MAX_SITE });
-  const nearRows = (near ?? []) as { entry_id: string; contest_id: string; preview_path: string }[];
-  const { data: nearInfo } = nearRows.length
-    ? await db().from("entries").select("id, number, contest:contests!contest_id(slug, brand_name)").in("id", nearRows.map((r) => r.entry_id))
+  // A designer's own check has no contest: every contest counts, but never the designer's own designs.
+  const { data: near } = await db().rpc("logo_check_similar_entries", { p_hash: hash, p_contest_id: check.contest_id ?? "00000000-0000-0000-0000-000000000000", p_limit: MAX_SITE });
+  const nearAll = (near ?? []) as { entry_id: string; contest_id: string; preview_path: string }[];
+  const { data: nearInfo } = nearAll.length
+    ? await db().from("entries").select("id, number, designer_id, contest:contests!contest_id(slug, brand_name)").in("id", nearAll.map((r) => r.entry_id))
     : { data: [] };
   const info = new Map((nearInfo ?? []).map((e) => [e.id as string, e]));
+  const nearRows = check.contest_id ? nearAll : nearAll.filter((r) => info.get(r.entry_id)?.designer_id !== check.requested_by);
   const site: (Candidate & { previewPath: string })[] = nearRows.map((r) => {
     const e = info.get(r.entry_id);
     const c = (Array.isArray(e?.contest) ? e?.contest[0] : e?.contest) as { slug: string; brand_name: string } | undefined;

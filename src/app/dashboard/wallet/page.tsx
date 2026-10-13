@@ -11,6 +11,9 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { getWallet } from "@/lib/wallet/queries";
+import { ProWalletExtras } from "@/components/pro/pro-wallet-extras";
+import { ProWorkspace, WsHead } from "@/components/pro/workspace";
+import { isPro } from "@/lib/pro/status";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -32,11 +35,7 @@ export default async function WalletPage() {
   const lastPaid = w.withdrawals.find((wd) => wd.status === "paid") ?? null;
   const progress = Math.min(100, Math.round((w.countedWins / Math.max(1, w.next ? w.next.tier.min_wins : lastTier)) * 100));
 
-  return (
-    <PageShell>
-      {/* Owner, 2026-10-13: a small title on top instead of the big panel. */}
-      <SmallPageHeader title={t("wallet.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
-
+  const body = (
       <Panel tone="grey" className="flex-1 max-[720px]:py-4">
         <div className="grid gap-3.5 lg:grid-cols-[1.3fr_1fr]">
           {/* Balance */}
@@ -174,6 +173,21 @@ export default async function WalletPage() {
           </section>
         </div>
       </Panel>
+  );
+  // Designer Pro plan (owner, 2026-10-13): the same wallet inside the Pro workspace, with earnings and Pro receipts.
+  if (await isPro(user.id))
+    return (
+      <ProWorkspace user={user} active="wallet">
+        <WsHead title={t("pro.wallet.title")} lead={t("pro.wallet.lead")} />
+        <ProWalletExtras designerId={user.id} transactions={w.transactions} />
+        {body}
+      </ProWorkspace>
+    );
+  return (
+    <PageShell>
+      {/* Owner, 2026-10-13: a small title on top instead of the big panel. */}
+      <SmallPageHeader title={t("wallet.title")} back={{ href: "/dashboard", label: t("nav.dashboard") }} />
+      {body}
     </PageShell>
   );
 }

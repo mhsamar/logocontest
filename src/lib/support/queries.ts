@@ -1,5 +1,7 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getProSettings } from "@/lib/pro/settings";
+import { proIdsAmong } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type SupportMessage = { id: string; fromAdmin: boolean; body: string; createdAt: string; senderName: string | null; broadcast: boolean };
@@ -50,7 +52,7 @@ export async function myUnread(userId: string): Promise<number> {
 
 // ---- A-24 Support inbox ------------------------------------------------------------------------
 
-export type InboxRow = SupportThread & { user: { id: string; name: string; role: string; username: string | null; mobile: string | null } | null; last: string | null };
+export type InboxRow = SupportThread & { user: { id: string; name: string; role: string; username: string | null; mobile: string | null } | null; last: string | null; pro: boolean };
 
 export async function inbox(status: "open" | "closed", limit = 100): Promise<InboxRow[]> {
   if (!isSupabaseConfigured()) return [];
@@ -69,10 +71,15 @@ export async function inbox(status: "open" | "closed", limit = 100): Promise<Inb
     const { data: msgs } = await db.from("support_messages").select("thread_id, body, created_at").in("thread_id", ids).order("created_at", { ascending: false }).limit(ids.length * 3);
     for (const m of msgs ?? []) if (!last.has(m.thread_id as string)) last.set(m.thread_id as string, m.body as string);
   }
-  return rows.map((r) => {
-    const user = Array.isArray(r.user) ? r.user[0] : r.user;
-    return { ...toThread(r), user: (user as InboxRow["user"]) ?? null, last: last.get(r.id as string) ?? null };
+  // Priority support (owner, 2026-10-13: Designer Pro plan): Pro designers' conversations come first, with a Pro tag.
+  const { settings, ready } = await getProSettings();
+  const userOf = (r: (typeof rows)[number]) => (Array.isArray(r.user) ? r.user[0] : r.user) as InboxRow["user"];
+  const pro = ready && settings.features.priority_support ? await proIdsAmong(rows.map((r) => userOf(r)?.id ?? "").filter(Boolean)) : new Set<string>();
+  const out = rows.map((r) => {
+    const user = userOf(r);
+    return { ...toThread(r), user: user ?? null, last: last.get(r.id as string) ?? null, pro: Boolean(user && pro.has(user.id)) };
   });
+  return [...out.filter((r) => r.pro), ...out.filter((r) => !r.pro)];
 }
 
 export type ThreadDetail = { thread: SupportThread & { userId: string }; user: { id: string; name: string; role: string; username: string | null; mobile: string | null; email: string | null; status: string; createdAt: string }; messages: SupportMessage[] };

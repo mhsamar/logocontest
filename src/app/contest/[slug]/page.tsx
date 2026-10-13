@@ -25,6 +25,13 @@ import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
+import { EarlyAccessGate } from "@/components/pro/early-gate";
+import { contestVisibleTo } from "@/lib/pro/limits";
+import { EntryViewBeacon } from "@/components/pro/entry-view-beacon";
+import { chattableEntries } from "@/lib/pro/chat";
+import { invitedPairs } from "@/lib/pro/invites";
+import { getProSettings } from "@/lib/pro/settings";
+import { badgeIdsAmong } from "@/lib/pro/status";
 import { contestTimeline } from "@/lib/contests/browse-query";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
@@ -80,6 +87,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const contest = await getContestBySlug(slug, user);
   if (!contest) notFound();
+  // Pro early access (owner, 2026-10-13): a brand-new contest reaches everyone else after the window.
+  if (contest.status === "open" && user?.id !== contest.ownerId && !(await contestVisibleTo(contest.startsAt, user))) return <EarlyAccessGate startsAt={contest.startsAt!} />;
   // A non-logo contest (owner, 2026-10-13) shows its service and the answers to its questions instead of the logo brief.
   const svc = isLogo(contest.service) ? null : await getService(contest.service);
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
@@ -116,6 +125,20 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     contestDesigners(contest.id, 5),
     getSetting("timers.designer_file_upload_days"),
   ]);
+  // Designer Pro plan (owner, 2026-10-13): Pro badge and gold border, "Invited" on invited designers' designs, Pro
+  // designs higher in the default order (winners stay first), and "Message designer" for the contest's client.
+  const [{ settings: proSet }, badges, invited, chattable] = await Promise.all([
+    getProSettings(),
+    badgeIdsAmong(entries.map((e) => e.designerId)),
+    invitedPairs([contest.id]),
+    entry ? chattableEntries(contest.id, user) : Promise.resolve(new Set<string>()),
+  ]);
+  const proMark = (e: { designerId: string; designer: unknown }) => ({
+    badge: Boolean(e.designer) && badges.has(e.designerId),
+    highlight: proSet.features.highlighted_entries && Boolean(e.designer) && badges.has(e.designerId),
+    invited: proSet.features.invitations && Boolean(e.designer) && invited.has(`${contest.id}:${e.designerId}`),
+  });
+  const ordered = sort === "top" && proSet.features.highlighted_entries ? [...entries].sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner") || Number(proMark(b).highlight) - Number(proMark(a).highlight)) : entries;
   const fmt = (n: number) => formatNumber(n, locale);
   const contestUrl = `${await siteOrigin()}/contest/${contest.slug}`;
   const sortHref = (s: EntrySortKey) => `/contest/${contest.slug}?tab=entries${s === "top" ? "" : `&sort=${s}`}`;
@@ -445,9 +468,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               </div>
             )}
             <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
-              {entries.map((e) => (
+              {ordered.map((e) => (
                 <li key={e.id} className="lc-rv-soft">
-                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} />
+                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} pro={proMark(e)} />
                 </li>
               ))}
             </ul>
@@ -476,6 +499,18 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           closeHref={entriesHref}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
         >
+          <EntryViewBeacon entryId={entry.id} />
+          {/* Contest chat (owner, 2026-10-13): the client and a Pro designer, about this design only. */}
+          {chattable.has(entry.id) && (
+            <div className="mb-4">
+              <Link href={`/dashboard/messages?entry=${entry.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-5 font-bold text-white">
+                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                  <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.7A8 8 0 1 1 21 12Z" strokeLinejoin="round" />
+                </svg>
+                {t("pro.chat.message")}
+              </Link>
+            </div>
+          )}
           {/* Like and dislike (owner, 2026-10-11) */}
           <div className="mb-5">
             <VoteButtons

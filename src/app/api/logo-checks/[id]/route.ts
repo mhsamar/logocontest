@@ -2,6 +2,7 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { checkView } from "@/lib/logo-check/queries";
 import { runLogoCheck } from "@/lib/logo-check/run";
+import { designerCheckView } from "@/lib/pro/logo-checks";
 
 export const maxDuration = 300;
 
@@ -11,7 +12,18 @@ export const maxDuration = 300;
  */
 export async function GET(req: NextRequest, { params }: RouteContext<"/api/logo-checks/[id]">) {
   const { id } = await params;
-  const view = await checkView(id, await getCurrentUser());
+  const user = await getCurrentUser();
+  // A designer's own check (owner, 2026-10-13).
+  if (user?.role === "designer") {
+    const mine = await designerCheckView(id, user);
+    if (!mine) return NextResponse.json({ ok: false }, { status: 404 });
+    if (mine.stale) {
+      const origin = req.nextUrl.origin;
+      after(() => runLogoCheck(mine.id, origin));
+    }
+    return NextResponse.json({ ok: true, check: mine }, { headers: { "Cache-Control": "no-store" } });
+  }
+  const view = await checkView(id, user);
   if (!view) return NextResponse.json({ ok: false }, { status: 404 });
   if (view.stale) {
     const origin = req.nextUrl.origin;

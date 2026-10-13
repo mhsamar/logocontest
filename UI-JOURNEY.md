@@ -666,3 +666,14 @@ The site starts with **Logo design** only; more kinds of contest are added in **
 
 Wherever the onboarding asks the client or designer to write, a **Need ideas?** box offers ready answers: tapping one fills the box, then it can be edited. Already on "Describe your business" and "Target audience" (open at first); added to the **short name**, **text in the logo** (both built from the brand name: first word, first two words, initials, capitals; no initials from Bangla names), **slogan**, **other requirements**, the service wizard's **"What do you need?"** and every written service question (set per question in Admin → Services, up to 8, English | Bangla), and the designer **bio** (built with their first name). Optional boxes start with just the **Need ideas?** button. Names, emails, phone numbers, passwords and links have no suggestions: only the person knows them.
 
+## Designer Pro plan (owner, 2026-10-13; `Design/pro/`)
+
+- **Go Pro** (`/pro`): hero with the price card (**Upgrade to Pro**, or **Pro opens soon** while the plan isn't for sale), benefits, Basic vs Pro, questions. Footer link **Go Pro**.
+- **Floating Go Pro card:** bottom-left on designer pages for Basic designers (can be minimised; admin switch). Never shown to Pro members or while the plan isn't for sale.
+- **Checkout** (`/pro/checkout`): pay method, terms, promo code → paying → **You are Pro** (receipt, next steps) or **Payment failed** (retry, help). A member with more than 7 days left sees "You are Pro until …".
+- **Pro workspace:** a side menu (mobile: a wrapped chip menu) over Dashboard, Contests, Saved, Messages, Insights, Logo Checker, Wallet, My profile, Settings and Priority support. The dashboard shows the early-access card, notifications, contest invitations and the plan box (renew date, portfolio slots, checks left).
+- **Settings › Subscription:** plan and renew date, **Receipts**, **Cancel plan** (one reason, "You keep Pro until …").
+- **Client invite step** (`/start/invite`): after the brief, the client can pick up to 10 matching Pro designers (best match first), or skip.
+- **Contest page:** Pro entries get a badge and gold ring and come first; the client sees **Message designer** on Pro entries.
+- **Admin › Pro plan:** for-sale switch, numbers, plan settings with Save / Undo, the upgrade funnel, "Clicked but did not buy" (Remind, auto reminder), members (Manage, Give Pro to a designer), best results, why they cancel, and the activity log with Export.
+

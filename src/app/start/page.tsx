@@ -29,7 +29,7 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     // A draft of a service that is now off can't be finished or paid (the server refuses it too).
     if (service && !service.on) return <ComingSoon service={service} />;
     if (service && !isLogo(service.slug))
-      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order });
+      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay");
   }
   if (draft || params.step !== undefined || typeof params.name === "string") {
     const logo = await getService(LOGO);

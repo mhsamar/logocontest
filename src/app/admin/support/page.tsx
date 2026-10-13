@@ -47,6 +47,7 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
                   <Link href={href({ status, thread: r.id })} className={cx("block px-4 py-3 hover:bg-canvas", detail?.thread.id === r.id && "bg-canvas")}>
                     <div className="flex items-center justify-between gap-2">
                       <span className={cx("truncate text-sm", r.unreadByAdmin > 0 ? "font-bold text-ink" : "font-semibold text-ink")}>{r.user?.name ?? "—"}</span>
+                      {r.pro && <span className="shrink-0 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.05em] text-white">PRO</span>}
                       <span className="shrink-0 text-xs text-muted">{when(r.lastMessageAt)}</span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-2">
