@@ -22,9 +22,17 @@ function Stars({ value }: { value: number }) {
  * The mockups of one design in a square, like the reference (owner, 2026-10-08):
  * 1 fills it, 2 side by side, 3 as one large and two small, 4+ as a 2×2 grid with "+N".
  */
-export function Collage({ previews, total }: { previews: string[]; total: number }) {
+export function Collage({ previews, total, ratio = 1 }: { previews: string[]; total: number; /** Width ÷ height of a contest service's design (owner, 2026-10-13: real shape); 1 for logos. */ ratio?: number }) {
   const shown = previews.slice(0, 4);
   const img = (src: string, i: number, className?: string) => <img key={i} src={src} alt="" className={cx("h-full w-full object-cover", className)} loading="lazy" />;
+  // Not square: the first image in its real shape, and "+N" for the rest.
+  if (ratio !== 1)
+    return (
+      <div className="relative bg-canvas" style={{ aspectRatio: String(ratio) }}>
+        {shown[0] && <img src={shown[0]} alt="" className="h-full w-full object-contain" loading="lazy" />}
+        {total > 1 && <span className="absolute bottom-2 right-2 rounded-full bg-ink/75 px-2 py-0.5 text-xs font-bold text-white">+{total - 1}</span>}
+      </div>
+    );
   if (shown.length <= 1) return <div className="aspect-square bg-canvas">{shown[0] && img(shown[0], 0)}</div>;
   if (shown.length === 2) return <div className="grid aspect-square grid-cols-2 gap-0.5 bg-white">{shown.map((s, i) => img(s, i))}</div>;
   if (shown.length === 3)
@@ -48,7 +56,7 @@ export function Collage({ previews, total }: { previews: string[]; total: number
 }
 
 /** One card in the Entries tab grid (UI-JOURNEY §1.3 entry card). Opens P-04. */
-export function EntryCard({ entry, href, t, fmt }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string }) {
+export function EntryCard({ entry, href, t, fmt, ratio = 1 }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number }) {
   const winner = entry.status === "winner";
   return (
     <Link
@@ -61,7 +69,7 @@ export function EntryCard({ entry, href, t, fmt }: { entry: Entry; href: string;
       )}
     >
       <div className="relative">
-        <Collage previews={entry.previews} total={entry.imageCount} />
+        <Collage previews={entry.previews} total={entry.imageCount} ratio={ratio} />
         {winner && (
           <>
             <WinnerBadge label={t("entry.winner")} className="absolute left-2.5 top-2.5" />

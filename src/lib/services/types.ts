@@ -35,7 +35,7 @@ export type ServiceDef = {
   short: Lang;
   clientInstruction: Lang;
   designerInstruction: Lang;
-  /** Design size, e.g. 1280 × 720 px; 0 when it is free. */
+  /** Design size, e.g. 1280 × 720 px; 0 when it is free (then designs are square like logos). Designs keep this real shape (owner, 2026-10-13). */
   width: number;
   height: number;
   entryTypes: EntryFileType[];

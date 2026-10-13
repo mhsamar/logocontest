@@ -31,7 +31,7 @@ function Cover({ c }: { c: ContestRow }) {
       </span>
     );
   }
-  if (c.cover) return <img src={c.cover.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full rounded-[20px] object-cover" />;
+  if (c.cover) return <img src={c.cover.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full rounded-[20px] object-contain" />;
   const name = c.brandName.trim();
   return name.length <= 8 ? (
     <span className="lc-d text-[40px] font-semibold uppercase tracking-[0.16em] text-white">{name}</span>

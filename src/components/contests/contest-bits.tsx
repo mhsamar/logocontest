@@ -41,7 +41,7 @@ export function BrandTile({
       <div className={cx("relative shrink-0 overflow-hidden bg-white", !flat && "rounded-lg ring-1 ring-inset ring-line", className)} aria-hidden>
         {/* Preview from storage */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cover.url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        <img src={cover.url} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
         {cover.isWinner && <WinnerTrophy size="sm" className="absolute right-2 top-2" />}
       </div>
     );

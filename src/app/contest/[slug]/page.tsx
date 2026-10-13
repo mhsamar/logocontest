@@ -83,6 +83,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   // A non-logo contest (owner, 2026-10-13) shows its service and the answers to its questions instead of the logo brief.
   const svc = isLogo(contest.service) ? null : await getService(contest.service);
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
+  // Its designs keep their real shape (owner, 2026-10-13).
+  const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
 
   const now = new Date();
   const action = primaryAction(contest, user, t);
@@ -445,7 +447,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
               {entries.map((e) => (
                 <li key={e.id} className="lc-rv-soft">
-                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} />
+                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} />
                 </li>
               ))}
             </ul>
@@ -466,6 +468,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
       {/* P-04: one design, every mockup and its comments */}
       {entry && (
         <EntryViewer
+          square={ratio === 1}
           number={entry.number}
           images={entry.previews}
           labels={entry.labels}

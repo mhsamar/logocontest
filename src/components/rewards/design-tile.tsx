@@ -13,7 +13,7 @@ export function DesignTile({ d, t, rank, tall = false }: { d: WinningDesign; t: 
         <span className={cx("block overflow-clip bg-canvas", tall ? "aspect-[4/5]" : "aspect-square")}>
           {d.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={d.coverUrl} alt={t("winners.alt", { brand: d.brandName })} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
+            <img src={d.coverUrl} alt={t("winners.alt", { brand: d.brandName })} loading="lazy" className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.05]" />
           ) : (
             <span className="flex h-full items-center justify-center text-sm text-muted">{d.brandName}</span>
           )}

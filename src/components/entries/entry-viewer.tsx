@@ -19,8 +19,11 @@ export function EntryViewer({
   closeHref,
   byline,
   winner = false,
+  square = true,
   children,
 }: {
+  /** False for a contest service's design in its real shape (owner, 2026-10-13). */
+  square?: boolean;
   number: number;
   /** The winning design shows the Winner badge and trophy on the picture (owner, 2026-10-10). */
   winner?: boolean;
@@ -91,7 +94,7 @@ export function EntryViewer({
           >
             {images[i] && (
               <div className="relative">
-                <img src={images[i]} alt={labels[i] ?? t("submit.mockups.image", { n: i + 1 })} className="aspect-square max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]" />
+                <img src={images[i]} alt={labels[i] ?? t("submit.mockups.image", { n: i + 1 })} className={cx(square && "aspect-square", "max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]")} />
                 {winner && (
                   <>
                     <WinnerBadge label={t("entry.winner")} size="lg" className="absolute left-3 top-3" />
@@ -116,7 +119,7 @@ export function EntryViewer({
               {images.map((src, j) => (
                 <li key={src} className="shrink-0">
                   <button type="button" onClick={() => setI(j)} aria-label={labels[j] ?? t("submit.mockups.image", { n: j + 1 })} title={labels[j] ?? undefined} aria-current={i === j} className={cx("block size-14 overflow-hidden rounded-md ring-2 transition sm:size-16", i === j ? "ring-primary" : "ring-transparent opacity-70 hover:opacity-100")}>
-                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img src={src} alt="" loading="lazy" className="h-full w-full bg-canvas object-contain" />
                   </button>
                 </li>
               ))}

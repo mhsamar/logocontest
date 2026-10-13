@@ -28,7 +28,7 @@ const nameFromFile = (file: string) =>
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, LABEL_MAX);
-type Limits = { min: number; max: number; px: number; mb: number };
+type Limits = { min: number; max: number; px: number; mb: number; /** A contest service's own design size (owner, 2026-10-13: real shape); square px×px when absent. */ size?: { w: number; h: number } | null };
 
 function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -44,20 +44,23 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
  * image is kept and centred, and the spare edges take the colour of its top-left
  * corner (white for transparent images). Nothing is cut off.
  */
-async function toSquare(img: HTMLImageElement, px: number): Promise<Blob> {
+async function toSquare(img: HTMLImageElement, px: number, h = px): Promise<Blob> {
+  // A contest service's design keeps its real shape (owner, 2026-10-13): px × h instead of a square.
+  const w = px;
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = px;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d")!;
   const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
   probe.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
   const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
   ctx.fillStyle = a < 20 ? "#ffffff" : `rgb(${r}, ${g}, ${b})`;
-  ctx.fillRect(0, 0, px, px);
-  const scale = Math.min(px / img.naturalWidth, px / img.naturalHeight);
-  const w = Math.round(img.naturalWidth * scale);
-  const h = Math.round(img.naturalHeight * scale);
+  ctx.fillRect(0, 0, w, h);
+  const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const dw = Math.round(img.naturalWidth * scale);
+  const dh = Math.round(img.naturalHeight * scale);
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, Math.round((px - w) / 2), Math.round((px - h) / 2), w, h);
+  ctx.drawImage(img, Math.round((w - dw) / 2), Math.round((h - dh) / 2), dw, dh);
   const as = (type: string) => new Promise<Blob | null>((res) => canvas.toBlob(res, type, 0.92));
   const webp = await as("image/webp");
   if (webp && webp.type === "image/webp") return webp;
@@ -109,14 +112,15 @@ export function SubmitForm({ contestId, slug, limits }: { contestId: string; slu
       }
       const key = crypto.randomUUID();
       // Already the right size and type: upload as it is. Anything else is made square first.
-      if (img.naturalWidth === limits.px && img.naturalHeight === limits.px && TYPES.includes(file.type)) {
+      const [fw, fh] = limits.size ? [limits.size.w, limits.size.h] : [limits.px, limits.px];
+      if (img.naturalWidth === fw && img.naturalHeight === fh && TYPES.includes(file.type)) {
         setItems((list) => [...list, { key, url: original, status: "uploading", label: nameFromFile(file.name) }]);
         void upload(key, file);
         continue;
       }
       let blob: Blob;
       try {
-        blob = await toSquare(img, limits.px);
+        blob = await toSquare(img, fw, fh);
       } catch {
         toast(t("submit.errors.cantOpen"), "danger");
         continue;

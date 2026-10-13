@@ -9,7 +9,7 @@ export function EntryThumb({ entry, size = "md" }: { entry: AdminEntry; size?: "
       <DesignLink entryId={entry.id} className="block overflow-clip rounded-xl bg-canvas ring-1 ring-line">
         {entry.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={entry.coverUrl} alt="" loading="lazy" className={size === "lg" ? "aspect-square w-full object-cover" : "aspect-square w-full object-cover"} />
+          <img src={entry.coverUrl} alt="" loading="lazy" data-size={size} className="aspect-square w-full bg-white object-contain" />
         ) : (
           <span className="flex aspect-square items-center justify-center text-sm text-muted">#{entry.number}</span>
         )}

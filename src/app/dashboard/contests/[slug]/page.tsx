@@ -41,6 +41,8 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
+import { getService } from "@/lib/services/store";
+import { isLogo } from "@/lib/services/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -58,6 +60,9 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const contest = await getContestBySlug(slug, user);
   if (!contest || !contest.isOwner) notFound();
   if (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment") redirect(`/start?draft=${contest.id}`);
+  // A contest service's designs keep their real shape (owner, 2026-10-13).
+  const svc = isLogo(contest.service) ? null : await getService(contest.service);
+  const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
 
   const base = `/dashboard/contests/${contest.slug}`;
   const filter: Filter = FILTERS.find((f) => f === sp.filter) ?? "all";
@@ -346,7 +351,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                     className="relative block"
                     aria-label={t("entry.open", { n: fmt(e.number) })}
                   >
-                    <Collage previews={e.previews} total={e.imageCount} />
+                    <Collage previews={e.previews} total={e.imageCount} ratio={ratio} />
                     {e.status === "winner" && (
                       <>
                         <WinnerBadge label={t("entry.winner")} className="absolute left-2.5 top-2.5" />
@@ -427,6 +432,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
       {/* C-15: one design with the owner tools */}
       {entry && (
         <EntryViewer
+          square={ratio === 1}
           number={entry.number}
           images={entry.previews}
           labels={entry.labels}

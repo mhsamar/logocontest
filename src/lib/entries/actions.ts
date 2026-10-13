@@ -40,11 +40,11 @@ async function openContest(contestId: string) {
 }
 
 /** A non-logo contest's own upload rules (owner, 2026-10-13: Admin → Services); null for logo contests. */
-async function serviceUploadRules(contestId: string): Promise<{ types: string[]; maxMb: number; maxImages: number } | null> {
+async function serviceUploadRules(contestId: string): Promise<{ types: string[]; maxMb: number; maxImages: number; width: number; height: number } | null> {
   const info = (await contestServiceInfo([contestId])).get(contestId);
   if (!info || isLogo(info.service)) return null;
   const def = await getService(info.service);
-  return def ? { types: def.entryTypes, maxMb: def.maxMb, maxImages: def.maxImages } : null;
+  return def ? { types: def.entryTypes, maxMb: def.maxMb, maxImages: def.maxImages, width: def.width, height: def.height } : null;
 }
 
 const originalPattern = (contestId: string, userId: string) => new RegExp(`^originals/${contestId}/${userId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`);
@@ -142,7 +142,9 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     }
     const size = await imageSize(bytes);
     if (!size) return fail("submit.errors.unreadable", { n: i + 1 });
-    if (size.width !== px || size.height !== px) return fail("submit.errors.notSquare", { n: i + 1, px });
+    // A contest service with its own size keeps the real shape (owner, 2026-10-13); others are px×px squares.
+    const [needW, needH] = rules && rules.width > 0 && rules.height > 0 ? [rules.width, rules.height] : [px, px];
+    if (size.width !== needW || size.height !== needH) return needW === needH ? fail("submit.errors.notSquare", { n: i + 1, px: needW }) : fail("submit.errors.wrongSize", { n: i + 1, w: needW, h: needH });
     const mime = Object.entries(ENTRY_IMAGE_TYPES).find(([, ext]) => path.endsWith(`.${ext}`))![0];
     const verdict = await moderator.check(bytes, mime);
     if (!verdict.allowed) {

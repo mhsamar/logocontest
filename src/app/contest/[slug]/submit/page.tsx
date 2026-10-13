@@ -71,7 +71,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
                   <ServiceBrief service={svc} answers={contest.serviceBrief} full />
                 </div>
               )}
-              <SubmitForm contestId={contest.id} slug={contest.slug} limits={{ min, max: Math.min(max, 8), px, mb }} />
+              <SubmitForm contestId={contest.id} slug={contest.slug} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
             </>
           )}
         </div>
