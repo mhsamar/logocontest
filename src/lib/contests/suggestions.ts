@@ -64,3 +64,49 @@ export function audienceSuggestions(brief: Brief, t: Translate): string[] {
     t("wizard.suggest.audience.a5", vars),
   ].map((s) => fit(s, LIMITS.targetAudience.max));
 }
+
+const uniq = (list: string[], max: number, not: string[] = [], caseMatters = false) => {
+  const k = (x: string) => (caseMatters ? x : x.toLowerCase());
+  const seen = new Set(not.map(k));
+  const out: string[] = [];
+  for (const s of list.map((x) => x.replace(/\s+/g, " ").trim())) {
+    if (!s || s.length > max || seen.has(k(s))) continue;
+    seen.add(k(s));
+    out.push(s);
+  }
+  return out;
+};
+// Letters, marks (Bangla vowel signs), numbers, & and '.
+const words = (s: string) => s.replace(/[^\p{L}\p{M}\p{N}&' -]/gu, " ").split(/\s+/).filter(Boolean);
+/** Initials only for Latin names: a Bangla letter on its own can be half a character. */
+const initialsOf = (w: string[]) => (w.length >= 2 && w.every((x) => /^[A-Za-z0-9]/.test(x)) ? w.map((x) => x.charAt(0)).join("").toUpperCase() : "");
+
+/** C-01 short name (owner, 2026-10-13): built from the brand name — the first word, the first two, the initials. */
+export function shortNameSuggestions(brief: Brief): string[] {
+  const w = words(brief.brandName);
+  if (w.length === 0) return [];
+  const initials = initialsOf(w);
+  return uniq([w[0], w.slice(0, 2).join(" "), initials, initials ? initials.split("").join(".") : "", w.length >= 3 ? `${w[0]} ${w[w.length - 1]}` : ""], LIMITS.shortName.max, [brief.brandName]);
+}
+
+/** C-01 the text in the logo: the brand name as it is, in capitals, the short name, the initials. */
+export function logoTextSuggestions(brief: Brief): string[] {
+  const name = brief.brandName.trim();
+  if (!name) return [];
+  const w = words(name);
+  const initials = initialsOf(w);
+  // Capitals count as their own choice here.
+  return uniq([name, name.toLocaleUpperCase(), brief.shortName.trim(), initials, initials ? `${initials} · ${name}` : ""], LIMITS.logoText.max, [], true);
+}
+
+/** C-01 slogan: five short lines, one with the brand name. */
+export function sloganSuggestions(brief: Brief, t: Translate): string[] {
+  const p = common(brief, t);
+  return uniq((["s1", "s2", "s3", "s4", "s5"] as const).map((k) => t(`wizard.suggest.slogan.${k}`, p)), LIMITS.slogan.max);
+}
+
+/** C-06 other requirements: notes clients often add. */
+export function requirementSuggestions(brief: Brief, t: Translate): string[] {
+  const p = common(brief, t);
+  return uniq((["n1", "n2", "n3", "n4", "n5"] as const).map((k) => t(`wizard.suggest.note.${k}`, p)), LIMITS.requirementsNote.max);
+}

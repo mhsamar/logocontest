@@ -19,6 +19,7 @@ import {
 } from "@/lib/designers/actions";
 import { suggestUsername, USERNAME_MAX, type PayoutInput } from "@/lib/designers/signup";
 import { useI18n } from "@/lib/i18n/client";
+import { Suggestions } from "@/components/wizard/suggestions";
 import { subscribeToPush } from "@/lib/push/client";
 
 const TOTAL = 4;
@@ -240,6 +241,13 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
             maxLength={bioMax}
             counterLabel={`${count.format(form.bio.length)} / ${count.format(bioMax)}`}
             error={fieldError("bio")}
+          />
+          {/* Ready bios to tap and edit (owner, 2026-10-13). */}
+          <Suggestions
+            items={(["b1", "b2", "b3", "b4", "b5"] as const).map((k) => t(`designerSignup.bio.suggest.${k}`, { name: form.name.trim().split(/\s+/)[0] || t("designerSignup.bio.suggest.you") })).filter((x) => x.length <= bioMax)}
+            value={form.bio}
+            onPick={(text) => set("bio", text)}
+            defaultOpen={false}
           />
         </div>
       )}

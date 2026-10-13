@@ -23,6 +23,8 @@ export type BriefField = {
   required: boolean;
   /** For choice / multi_choice. */
   options: Lang[];
+  /** Ready answers the client can tap to fill a text box (owner, 2026-10-13). */
+  suggestions?: Lang[];
 };
 
 export type ServiceDef = {
@@ -61,6 +63,7 @@ export const LIMITS = {
   help: 200,
   option: 60,
   options: 12,
+  suggestions: 8,
   fields: 15,
   text: 120,
   longText: 1000,
@@ -72,7 +75,8 @@ export const LIMITS = {
 };
 
 const L = (en: string, bn: string): Lang => ({ en, bn });
-const field = (key: string, type: FieldType, label: Lang, required: boolean, help: Lang = L("", ""), options: Lang[] = []): BriefField => ({ key, type, label, help, required, options });
+const field = (key: string, type: FieldType, label: Lang, required: boolean, help: Lang = L("", ""), options: Lang[] = [], suggestions: Lang[] = []): BriefField => ({ key, type, label, help, required, options, suggestions });
+const ideas = (...pairs: [string, string][]) => pairs.map(([en, bn]) => L(en, bn));
 
 const base = {
   builtIn: false,
@@ -123,8 +127,8 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     height: 720,
     fields: [
       field("video_title", "text", L("Video title", "ভিডিওর টাইটেল"), true),
-      field("audience", "text", L("Who is the video for?", "ভিডিওটি কাদের জন্য?"), true),
-      field("thumb_text", "text", L("Text on the thumbnail", "থাম্বনেইলে লেখা"), false, L("Keep it short: 2 to 5 words.", "ছোট রাখুন: ২ থেকে ৫ শব্দ।")),
+      field("audience", "text", L("Who is the video for?", "ভিডিওটি কাদের জন্য?"), true, L("", ""), [], ideas(["Young people aged 18–30", "১৮–৩০ বছরের তরুণরা"], ["Families who cook at home", "যারা বাসায় রান্না করেন"], ["Students preparing for exams", "পরীক্ষার প্রস্তুতি নেওয়া শিক্ষার্থীরা"], ["Small business owners", "ছোট ব্যবসার মালিকরা"])),
+      field("thumb_text", "text", L("Text on the thumbnail", "থাম্বনেইলে লেখা"), false, L("Keep it short: 2 to 5 words.", "ছোট রাখুন: ২ থেকে ৫ শব্দ।"), [], ideas(["Easy in 5 minutes!", "৫ মিনিটেই সহজ!"], ["Don't miss this", "এটা মিস করবেন না"], ["Watch till the end", "শেষ পর্যন্ত দেখুন"], ["Best tips 2026", "সেরা টিপস ২০২৬"])),
       field("references", "link", L("Reference image link", "রেফারেন্স ছবির লিংক"), false),
     ],
     defaultPrize: 1500,
@@ -143,7 +147,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     height: 1080,
     fields: [
       field("platform", "multi_choice", L("Where will it be posted?", "কোথায় পোস্ট হবে?"), true, L("", ""), [L("Facebook", "ফেসবুক"), L("Instagram", "ইনস্টাগ্রাম")]),
-      field("post_text", "long_text", L("Text on the post", "পোস্টের লেখা"), true),
+      field("post_text", "long_text", L("Text on the post", "পোস্টের লেখা"), true, L("", ""), [], ideas(["Big Eid sale: 30% off everything this week. Order on our page.", "ঈদের বড় সেল: এই সপ্তাহে সবকিছুতে ৩০% ছাড়। আমাদের পেজে অর্ডার করুন।"], ["New arrivals are here. Limited stock, order now.", "নতুন কালেকশন এসে গেছে। স্টক সীমিত, এখনই অর্ডার করুন।"], ["Free home delivery inside Dhaka this month.", "এই মাসে ঢাকার ভেতরে ফ্রি হোম ডেলিভারি।"], ["Grand opening this Friday. Come and get a free gift.", "এই শুক্রবার আমাদের উদ্বোধন। এসে ফ্রি উপহার নিন।"])),
       field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false),
     ],
     defaultPrize: 1500,
@@ -160,7 +164,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     designerInstruction: L("1640 × 624 px. Keep text in the middle so it isn't cut on phones. PNG or JPG.", "১৬৪০ × ৬২৪ পিক্সেল। লেখা মাঝখানে রাখুন যাতে ফোনে কাটা না পড়ে। PNG বা JPG।"),
     width: 1640,
     height: 624,
-    fields: [field("page_name", "text", L("Page name", "পেজের নাম"), true), field("cover_text", "text", L("Text on the cover", "কভারে লেখা"), false), field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false)],
+    fields: [field("page_name", "text", L("Page name", "পেজের নাম"), true), field("cover_text", "text", L("Text on the cover", "কভারে লেখা"), false, L("", ""), [], ideas(["Fresh every day", "প্রতিদিন তাজা"], ["Order on our page, delivered to your door", "পেজে অর্ডার করুন, বাসায় পৌঁছে যাবে"], ["Open every day, 10 am to 10 pm", "প্রতিদিন খোলা, সকাল ১০টা থেকে রাত ১০টা"], ["Quality you can trust", "ভরসার মান"])), field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false)],
     defaultPrize: 1500,
     minPrize: 1000,
     defaultDays: 3,
@@ -175,7 +179,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     designerInstruction: L("2560 × 1440 px; keep the logo and text inside the middle 1546 × 423 px. PNG or JPG.", "২৫৬০ × ১৪৪০ পিক্সেল; লোগো আর লেখা মাঝের ১৫৪৬ × ৪২৩ পিক্সেলের ভেতরে রাখুন। PNG বা JPG।"),
     width: 2560,
     height: 1440,
-    fields: [field("channel_name", "text", L("Channel name", "চ্যানেলের নাম"), true), field("about", "long_text", L("What is the channel about?", "চ্যানেলটি কী নিয়ে?"), true), field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false)],
+    fields: [field("channel_name", "text", L("Channel name", "চ্যানেলের নাম"), true), field("about", "long_text", L("What is the channel about?", "চ্যানেলটি কী নিয়ে?"), true, L("", ""), [], ideas(["Easy home cooking in Bangla, with new recipes every week.", "বাংলায় সহজ ঘরোয়া রান্না, প্রতি সপ্তাহে নতুন রেসিপি।"], ["Tech reviews and phone tips for everyone in Bangladesh.", "বাংলাদেশের সবার জন্য টেক রিভিউ আর ফোনের টিপস।"], ["Travel videos from every corner of Bangladesh.", "বাংলাদেশের প্রতিটি কোণ থেকে ভ্রমণের ভিডিও।"], ["Study tips and lessons for SSC and HSC students.", "এসএসসি আর এইচএসসি শিক্ষার্থীদের জন্য পড়ার টিপস আর পাঠ।"])), field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false)],
     defaultPrize: 2000,
     minPrize: 1000,
     defaultDays: 4,
@@ -190,7 +194,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     designerInstruction: L("1500 × 500 px (3:1). PNG or JPG.", "১৫০০ × ৫০০ পিক্সেল (৩:১)। PNG বা JPG।"),
     width: 1500,
     height: 500,
-    fields: [field("profile_name", "text", L("Profile name", "প্রোফাইলের নাম"), true), field("header_text", "text", L("Text on the header", "হেডারে লেখা"), false)],
+    fields: [field("profile_name", "text", L("Profile name", "প্রোফাইলের নাম"), true), field("header_text", "text", L("Text on the header", "হেডারে লেখা"), false, L("", ""), [], ideas(["Ideas that move Bangladesh forward", "বাংলাদেশকে এগিয়ে নেওয়ার আইডিয়া"], ["News, tips and stories every day", "প্রতিদিন খবর, টিপস আর গল্প"], ["Building the future, one step at a time", "ধাপে ধাপে ভবিষ্যৎ গড়ছি"]))],
     defaultPrize: 1500,
     minPrize: 1000,
     defaultDays: 3,
@@ -223,7 +227,11 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     width: 2480,
     height: 3508,
     finalTypes: ["pdf", "png"],
-    fields: [field("headline", "text", L("Headline", "হেডলাইন"), true), field("details", "long_text", L("Details to show", "কী কী তথ্য থাকবে"), true), field("size", "choice", L("Size", "সাইজ"), true, L("", ""), [L("A4", "A4"), L("A5", "A5"), L("Letter", "লেটার")])],
+    fields: [
+      field("headline", "text", L("Headline", "হেডলাইন"), true, L("", ""), [], ideas(["Grand opening!", "শুভ উদ্বোধন!"], ["Eid special offer", "ঈদ স্পেশাল অফার"], ["Admission going on", "ভর্তি চলছে"], ["Free health camp", "ফ্রি স্বাস্থ্য ক্যাম্প"])),
+      field("details", "long_text", L("Details to show", "কী কী তথ্য থাকবে"), true, L("", ""), [], ideas(["Date and time, place, what is on offer, and how to book.", "তারিখ ও সময়, জায়গা, কী অফার আছে আর কীভাবে বুক করবেন।"], ["Three main offers with prices, and our opening hours.", "দামসহ তিনটি প্রধান অফার, আর আমাদের খোলার সময়।"], ["Courses, start date, fees and the admission deadline.", "কোর্স, শুরুর তারিখ, ফি আর ভর্তির শেষ তারিখ।"])),
+      field("size", "choice", L("Size", "সাইজ"), true, L("", ""), [L("A4", "A4"), L("A5", "A5"), L("Letter", "লেটার")]),
+    ],
     defaultPrize: 2500,
     minPrize: 1500,
     defaultDays: 4,
@@ -239,7 +247,11 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     width: 0,
     height: 0,
     finalTypes: ["svg", "pdf", "png"],
-    fields: [field("idea", "long_text", L("Text or idea", "লেখা বা আইডিয়া"), true), field("shirt_colour", "text", L("Shirt colour", "শার্টের রং"), true), field("print_side", "choice", L("Print side", "কোন দিকে প্রিন্ট"), false, L("", ""), [L("Front", "সামনে"), L("Back", "পেছনে"), L("Both", "দুই দিকে")])],
+    fields: [
+      field("idea", "long_text", L("Text or idea", "লেখা বা আইডিয়া"), true, L("", ""), [], ideas(["Our team name in big letters, with a number on the back.", "বড় অক্ষরে আমাদের টিমের নাম, পেছনে একটি নম্বর।"], ["A simple, modern design with our brand name for our staff.", "স্টাফদের জন্য ব্র্যান্ডের নামসহ সহজ, আধুনিক ডিজাইন।"], ["A fun Bangla line for a family trip, the same on every shirt.", "পারিবারিক ভ্রমণের জন্য মজার একটি বাংলা লাইন, সব শার্টে একই।"])),
+      field("shirt_colour", "text", L("Shirt colour", "শার্টের রং"), true, L("", ""), [], ideas(["White", "সাদা"], ["Black", "কালো"], ["Navy blue", "নেভি ব্লু"], ["Maroon", "মেরুন"])),
+      field("print_side", "choice", L("Print side", "কোন দিকে প্রিন্ট"), false, L("", ""), [L("Front", "সামনে"), L("Back", "পেছনে"), L("Both", "দুই দিকে")]),
+    ],
     defaultPrize: 2000,
     minPrize: 1000,
     defaultDays: 4,
@@ -334,8 +346,12 @@ export function parseService(raw: unknown, existing: ServiceDef | null): { ok: t
       .map((x) => lang(x, LIMITS.option))
       .filter((x) => x.en && x.bn);
     if ((type === "choice" || type === "multi_choice") && options.length < 2) return { ok: false, error: "fieldOptions" };
+    const suggestions = (Array.isArray(o.suggestions) ? o.suggestions : [])
+      .slice(0, LIMITS.suggestions)
+      .map((x) => lang(x, type === "long_text" ? LIMITS.longText : LIMITS.text))
+      .filter((x) => x.en && x.bn);
     seen.add(key);
-    fields.push({ key, type, label, help: lang(o.help, LIMITS.help), required: o.required === true, options: type === "choice" || type === "multi_choice" ? options : [] });
+    fields.push({ key, type, label, help: lang(o.help, LIMITS.help), required: o.required === true, options: type === "choice" || type === "multi_choice" ? options : [], suggestions: type === "text" || type === "long_text" ? suggestions : [] });
   }
   const minPrize = int(r.minPrize, 100, 1_000_000);
   return {

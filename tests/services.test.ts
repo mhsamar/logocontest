@@ -41,3 +41,22 @@ describe("contest services (owner, 2026-10-13)", () => {
     expect(r.ok && r.service.fields).toEqual([]);
   });
 });
+
+describe("ready answers for the onboarding boxes (owner, 2026-10-13)", () => {
+  it("keeps a service question's suggestions, at most 8, only for written answers", () => {
+    const base = { slug: "promo_video_cover", name: { en: "Cover", bn: "কভার" }, entryTypes: ["png"], finalTypes: ["png"], minPrize: 1000, defaultPrize: 1000 };
+    const many = Array.from({ length: 10 }, (_, i) => ({ en: `Idea ${i}`, bn: `আইডিয়া ${i}` }));
+    const r = parseService({ ...base, fields: [{ key: "line", type: "text", label: { en: "Line", bn: "লাইন" }, suggestions: many }, { key: "pick", type: "choice", label: { en: "Pick", bn: "বাছুন" }, options: [{ en: "A", bn: "A" }, { en: "B", bn: "B" }], suggestions: many }] }, null);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.service.fields[0].suggestions).toHaveLength(8);
+      expect(r.service.fields[1].suggestions).toEqual([]);
+    }
+  });
+
+  it("gives the planned services ready answers on their written questions", () => {
+    const thumbText = thumb.fields.find((f) => f.key === "thumb_text")!;
+    expect(thumbText.suggestions?.length).toBeGreaterThan(0);
+    expect(thumbText.suggestions!.every((s) => s.en && s.bn)).toBe(true);
+  });
+});

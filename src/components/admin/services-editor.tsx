@@ -239,6 +239,18 @@ function ServiceForm({ initial, isNew, readOnly, busy, onClose, onSave }: { init
                 </div>
                 <LangPair label={t("admin.services.fieldLabel")} value={f.label} onChange={(v) => setField(i, { label: v })} max={80} disabled={readOnly} />
                 <LangPair label={t("admin.services.fieldHelp")} value={f.help} onChange={(v) => setField(i, { help: v })} max={200} disabled={readOnly} />
+                {(f.type === "text" || f.type === "long_text") && (
+                  <label className={LABEL}>
+                    {t("admin.services.suggestions")}
+                    <textarea
+                      value={(f.suggestions ?? []).map((o) => `${o.en} | ${o.bn}`).join("\n")}
+                      disabled={readOnly}
+                      onChange={(e) => setField(i, { suggestions: e.target.value.split("\n").map((line) => { const [en, bn] = line.split("|"); return { en: (en ?? "").trim(), bn: (bn ?? en ?? "").trim() }; }) })}
+                      className={AREA}
+                    />
+                    <span className="text-[13px] font-medium text-muted">{t("admin.services.suggestionsHint")}</span>
+                  </label>
+                )}
                 {(f.type === "choice" || f.type === "multi_choice") && (
                   <label className={LABEL}>
                     {t("admin.services.options")}

@@ -12,11 +12,13 @@ const BULB = (
 /**
  * Five tappable suggestions under a text box (owner, 2026-10-08). Tapping one fills the box and
  * hides the list; when the box is empty again, a "Need ideas?" button brings the list back.
+ * Owner, 2026-10-13: on every writing box of the onboarding; optional boxes start with just the button.
  */
-export function Suggestions({ items, value, onPick }: { items: string[]; value: string; onPick: (text: string) => void }) {
+export function Suggestions({ items, value, onPick, defaultOpen = true }: { items: string[]; value: string; onPick: (text: string) => void; defaultOpen?: boolean }) {
   const { t } = useI18n();
   // Open at first only when the box is still empty.
-  const [open, setOpen] = useState(() => value.trim() === "");
+  const [open, setOpen] = useState(() => defaultOpen && value.trim() === "");
+  if (items.length === 0) return null;
 
   if (!open) {
     if (value.trim() !== "") return null;

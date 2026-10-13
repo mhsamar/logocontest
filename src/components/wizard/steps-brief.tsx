@@ -22,7 +22,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { StyleExamples } from "./style-art";
 import { Suggestions } from "./suggestions";
-import { audienceSuggestions, descriptionSuggestions } from "@/lib/contests/suggestions";
+import { audienceSuggestions, descriptionSuggestions, logoTextSuggestions, requirementSuggestions, shortNameSuggestions, sloganSuggestions } from "@/lib/contests/suggestions";
 
 export type BriefChoices = { businessTypes: string[]; swatches: string[] };
 
@@ -103,6 +103,7 @@ export function BrandStep(p: BriefStepProps) {
         maxLength={LIMITS.shortName.max}
         error={error("shortName")}
       />
+      <Suggestions key={`short-${p.brief.brandName}`} items={shortNameSuggestions(p.brief)} value={p.brief.shortName} onPick={(text) => p.update({ shortName: text })} defaultOpen={false} />
       {extra ? (
         <>
           <TextField
@@ -115,6 +116,7 @@ export function BrandStep(p: BriefStepProps) {
             maxLength={LIMITS.logoText.max}
             error={error("logoText")}
           />
+          <Suggestions items={logoTextSuggestions(p.brief)} value={p.brief.logoText} onPick={(text) => p.update({ logoText: text })} defaultOpen={false} />
           <TextField
             label={t("wizard.c01.sloganLabel")}
             optionalLabel={t("common.optional")}
@@ -124,6 +126,7 @@ export function BrandStep(p: BriefStepProps) {
             maxLength={LIMITS.slogan.max}
             error={error("slogan")}
           />
+          <Suggestions items={sloganSuggestions(p.brief, t)} value={p.brief.slogan} onPick={(text) => p.update({ slogan: text })} defaultOpen={false} />
         </>
       ) : (
         <Button variant="ghost" className="-ml-3" onClick={() => setExtra(true)}>
@@ -491,6 +494,9 @@ export function RequirementsStep(p: BriefStepProps) {
           counterLabel={counter(p.brief.requirementsNote, LIMITS.requirementsNote.max, locale)}
           error={error("requirementsNote")}
         />
+        <div className="mt-2">
+          <Suggestions items={requirementSuggestions(p.brief, t)} value={p.brief.requirementsNote} onPick={(text) => p.update({ requirementsNote: text })} defaultOpen={false} />
+        </div>
       </fieldset>
     </div>
   );

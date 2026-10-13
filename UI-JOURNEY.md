@@ -656,3 +656,7 @@ The site starts with **Logo design** only; more kinds of contest are added in **
 - **Final files:** the winner sends the service's final files (fixed when the contest is made); no Google Drive step unless AI or EPS is asked for.
 - **Later (phase 2):** more than one winner, a browse filter by service, service-specific pages, emails and legal wording.
 
+## Ready answers on every writing box (owner, 2026-10-13)
+
+Wherever the onboarding asks the client or designer to write, a **Need ideas?** box offers ready answers: tapping one fills the box, then it can be edited. Already on "Describe your business" and "Target audience" (open at first); added to the **short name**, **text in the logo** (both built from the brand name: first word, first two words, initials, capitals; no initials from Bangla names), **slogan**, **other requirements**, the service wizard's **"What do you need?"** and every written service question (set per question in Admin → Services, up to 8, English | Bangla), and the designer **bio** (built with their first name). Optional boxes start with just the **Need ideas?** button. Names, emails, phone numbers, passwords and links have no suggestions: only the person knows them.
+

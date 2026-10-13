@@ -9,6 +9,7 @@ import { Checkbox, TextAreaField, TextField } from "@/components/ui/field";
 import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
+import { Suggestions } from "@/components/wizard/suggestions";
 import { checkAccountDetails, createAccountAndDraft, saveDraft, startCheckout } from "@/lib/contests/actions";
 import { emptyBrief, noUpgrades, type Order, type UpgradeKey } from "@/lib/contests/brief";
 import { calculatePrice, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
@@ -179,6 +180,12 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume }: S
                 {sizeText(service) && <p className="m-0 rounded-[14px] bg-frame px-4 py-3 text-[14.5px] text-ink">{t("services.wizard.size", { size: sizeText(service) })}</p>}
                 <TextField label={t("services.wizard.title")} hint={t("services.wizard.titleHint")} value={d.title} maxLength={LIMITS.title.max} onChange={(e) => setD({ ...d, title: e.target.value })} error={touched && titleError ? t("services.wizard.errors.title") : undefined} />
                 <TextAreaField label={t("services.wizard.description")} hint={t("services.wizard.descriptionHint")} value={d.description} maxLength={LIMITS.description.max} onChange={(e) => setD({ ...d, description: e.target.value })} error={touched && descError ? t("services.wizard.errors.description", { min: LIMITS.description.min }) : undefined} />
+                <Suggestions
+                  key={`desc-${d.title}`}
+                  items={(["d1", "d2", "d3", "d4", "d5"] as const).map((k) => t(`services.wizard.suggest.${k}`, { service: l(service.name).toLocaleLowerCase(locale === "bn" ? "bn" : "en"), title: d.title.trim() || t("services.wizard.suggest.yourName") })).filter((x) => x.length <= LIMITS.description.max)}
+                  value={d.description}
+                  onPick={(text) => setD({ ...d, description: text })}
+                />
                 {service.fields.map((f) => (
                   <FieldInput key={f.key} f={f} value={d.answers[f.key]} onChange={(v) => setAnswer(f.key, v)} error={fieldError(f)} l={l} />
                 ))}
@@ -350,9 +357,25 @@ function FieldInput({ f, value, onChange, error, l }: { f: BriefField; value: st
   const hint = l(f.help) || undefined;
   const str = typeof value === "string" ? value : "";
   const list = Array.isArray(value) ? value : [];
-  if (f.type === "text" || f.type === "link")
-    return <TextField label={label} hint={hint} optionalLabel={optional} value={str} type={f.type === "link" ? "url" : "text"} inputMode={f.type === "link" ? "url" : undefined} maxLength={f.type === "link" ? LIMITS.link : LIMITS.text} onChange={(e) => onChange(e.target.value)} error={error} />;
-  if (f.type === "long_text") return <TextAreaField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.longText} onChange={(e) => onChange(e.target.value)} error={error} />;
+  // Ready answers to tap (owner, 2026-10-13), set per question in Admin → Services.
+  const ideas = (f.suggestions ?? []).map(l).filter(Boolean);
+  const tips = ideas.length > 0 && <Suggestions items={ideas} value={str} onPick={(text) => onChange(text)} defaultOpen={f.required} />;
+  if (f.type === "link")
+    return <TextField label={label} hint={hint} optionalLabel={optional} value={str} type="url" inputMode="url" maxLength={LIMITS.link} onChange={(e) => onChange(e.target.value)} error={error} />;
+  if (f.type === "text")
+    return (
+      <div className="space-y-2.5">
+        <TextField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.text} onChange={(e) => onChange(e.target.value)} error={error} />
+        {tips}
+      </div>
+    );
+  if (f.type === "long_text")
+    return (
+      <div className="space-y-2.5">
+        <TextAreaField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.longText} onChange={(e) => onChange(e.target.value)} error={error} />
+        {tips}
+      </div>
+    );
   if (f.type === "colours")
     return (
       <fieldset className="m-0 border-0 p-0">
