@@ -24,9 +24,9 @@ import { cropToBlob, PhotoCropper } from "./photo-cropper";
 
 const IDLE: SettingsState = { status: "idle" };
 
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Section({ id, title, subtitle, children }: { id?: string; title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="lc-card p-5 sm:p-7">
+    <section id={id} className="lc-card scroll-mt-28 p-5 sm:p-7">
       <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
       {subtitle && <p className="m-0 mt-1 text-[15px] text-muted">{subtitle}</p>}
       <div className="mt-5">{children}</div>

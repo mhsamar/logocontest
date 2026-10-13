@@ -479,7 +479,7 @@ Owner, 2026-10-08. At `/contest/[slug]/submit`, for designers while the contest 
 
 A designer can submit any number of designs to the same contest; each design holds up to 8 mockups.
 
-Owner, 2026-10-09: a designer who has not signed the originality agreement is sent to `D-12` first and comes back here after signing.
+Owner, 2026-10-09: a designer who has not signed the originality agreement is sent to `D-12` first and comes back here after signing (owner, 2026-10-13: only while **Agreement before the first design** is on in Admin → Agreements; off by default).
 
 ### D-12 Originality agreement (owner, 2026-10-09)
 
@@ -531,6 +531,8 @@ Amount input with a "Max" shortcut, payout method selector, summary, and **Reque
 ### D-12 My profile (edit)
 
 Edit photo, name, bio; preview of the public profile; **Share profile** with QR; payout methods; change password.
+
+Owner, 2026-10-13: no big title panel; a small **Profile settings** title sits beside the **← Dashboard** button. Designers see **Complete your profile** on top (and on their dashboard): a progress bar ("17% done") and a link for each missing part (profile photo, bio, skills, tools, years of experience, languages, email confirmed), because sign-up only asks four steps. It disappears at 100%.
 
 Owner, 2026-10-08: the settings page (`/dashboard/profile`, used by clients for `C-20` too) has sections **Profile** (photo, name, bio for designers, business name for clients; username shown read-only with the profile link), **Portfolio** (designers, owner 2026-10-08: years of experience 0–60, skills as tappable chips — Logo design, Brand identity, Bangla lettering, Calligraphy, Mascot / character, Social media design, Packaging, Print design, Motion logo — plus one "Other skill"; tools as chips — Adobe Illustrator, Photoshop, CorelDRAW, Figma, Affinity Designer, Procreate, InDesign, After Effects — plus one "Other tool"; the no-contact filter checks the "other" fields), **Payout method** (designers: bKash or bank, edited like `D-01` step 4), **Mobile number** (Bangladesh format, must be unused), **Email** (changing it asks for the 6-digit code again) and **Password** (current password, then the new one).
 

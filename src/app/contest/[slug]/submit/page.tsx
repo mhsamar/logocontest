@@ -6,7 +6,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { PageTitle } from "@/components/ui/section-heading";
-import { hasSignedAgreement } from "@/lib/agreements/queries";
+import { agreementOk } from "@/lib/agreements/queries";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug } from "@/lib/contests/browse";
@@ -33,8 +33,9 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   const held = user.role === "designer" ? suspendedError(user) : null;
   // NDA contests: the confidentiality agreement comes first, on the contest page (owner, 2026-10-08).
   if (!held && contest.isNda && !contest.canSeeBrief) redirect(`/contest/${slug}?tab=brief`);
-  // The originality agreement comes before the first design (BLUEPRINT §9.6, owner 2026-10-09).
-  if (!held && user.role === "designer" && !(await hasSignedAgreement(user.id))) redirect(`/dashboard/agreement?next=${encodeURIComponent(`/contest/${slug}/submit`)}`);
+  // The originality agreement comes before the first design (BLUEPRINT §9.6, owner 2026-10-09), while it is switched on
+  // in Admin → Agreements (owner, 2026-10-13: off by default).
+  if (!held && user.role === "designer" && !(await agreementOk(user.id))) redirect(`/dashboard/agreement?next=${encodeURIComponent(`/contest/${slug}/submit`)}`);
 
   const open = contest.status === "open" && (!contest.endsAt || contest.endsAt > new Date());
   const blocked = held ? "suspended" : !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : null;

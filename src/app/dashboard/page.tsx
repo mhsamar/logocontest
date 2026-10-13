@@ -27,6 +27,8 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
+import { profileSteps } from "@/lib/profile/completeness";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -42,9 +44,29 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     const designer = await designerById(user.id);
     if (!designer) notFound();
     const profileUrl = `${await siteOrigin()}/d/${designer.username}`;
-    const [contests, savedCount, qr, handovers, wallet, cards, prizes] = await Promise.all([designerContests(user.id), countSaved(user.id), qrSvg(profileUrl), openHandovers(user.id), getWallet(user.id), designerWinCards(user.id), myUnclaimedRewards(user.id)]);
+    const [contests, savedCount, qr, handovers, wallet, cards, prizes, langs] = await Promise.all([
+      designerContests(user.id),
+      countSaved(user.id),
+      qrSvg(profileUrl),
+      openHandovers(user.id),
+      getWallet(user.id),
+      designerWinCards(user.id),
+      myUnclaimedRewards(user.id),
+      // Languages (migration 0042); null when that column can't be read, then it isn't asked for.
+      createAdminClient().from("profiles").select("languages").eq("id", user.id).maybeSingle(),
+    ]);
+    // "Complete your profile" (owner, 2026-10-13): sign-up has only four steps.
+    const profileStepsList = profileSteps({
+      avatarUrl: designer.avatarUrl,
+      bio: designer.bio,
+      skills: designer.skills,
+      tools: designer.tools,
+      experienceYears: designer.experienceYears,
+      languages: langs.error || !langs.data ? null : ((langs.data.languages as string[] | null) ?? []),
+      emailVerified: Boolean(user.emailVerifiedAt),
+    });
     const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardImage(c.slug, "square", c.squarePath) }));
-    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} winCards={winCards} prizes={prizes} />;
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} />;
   }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();

@@ -6,6 +6,8 @@ import { translatorFor } from "@/lib/content/texts";
 import { getEmailSender, siteOrigin } from "@/lib/email";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
+import { getSetting } from "@/lib/settings";
+import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -117,5 +119,22 @@ export async function saveAgreementNote(designerId: string, noteText: string): P
   const { error } = await setReview(designerId, { admin_note: note || null });
   if (error) return fail("admin.errors.generic");
   await audit(r.user.id, "agreement_note", "designer_agreement", designerId, { from: r.row.admin_note ?? null, to: note || null });
+  return { ok: true };
+}
+
+/**
+ * Admin → Agreements (owner, 2026-10-13): ask designers for the agreement and ID photo before their first design, or
+ * not. Agreements already signed stay as they are. Written to the Audit log, old → new.
+ */
+export async function setAgreementRequired(on: boolean): Promise<Result> {
+  const admin = await adminUser("agreements.manage");
+  if (!admin || typeof on !== "boolean") return { ok: false, error: "auth.errors.generic" };
+  const key = "legal.agreement_required";
+  const before = await getSetting(key);
+  const def = SETTINGS[key];
+  const { error } = await createAdminClient().from("settings").upsert({ key, value: on, type: def.type, group: def.group, description: def.description, updated_by: admin.id });
+  if (error) return { ok: false, error: "admin.errors.generic" };
+  await audit(admin.id, "update_settings", "settings", "legal", { changes: { [key]: { from: before, to: on } } });
+  refresh();
   return { ok: true };
 }

@@ -5,10 +5,11 @@ import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { formatBdMobile } from "@/lib/phone";
 import { BackLink } from "@/components/ui/back-link";
 import { PageShell, Panel } from "@/components/ui/panel";
-import { PageTitle } from "@/components/ui/section-heading";
+import { ProfileProgress } from "@/components/settings/profile-progress";
 import { getCurrentUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
+import { profileSteps } from "@/lib/profile/completeness";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -47,20 +48,35 @@ export default async function ProfileSettingsPage() {
       routingNumber: p?.routing_number ?? "",
     };
   }
+  // "Complete your profile" for designers (owner, 2026-10-13).
+  const steps =
+    user.role === "designer"
+      ? profileSteps({
+          avatarUrl: user.avatarUrl,
+          bio: profile?.bio ?? null,
+          skills: (profile?.skills ?? []) as string[],
+          tools: (profile?.tools ?? []) as string[],
+          experienceYears: (profile?.experience_years as number | null) ?? null,
+          languages: extrasRes.error || !extrasRes.data ? null : ((extrasRes.data.languages as string[] | null) ?? []),
+          emailVerified: Boolean(user.emailVerifiedAt),
+        })
+      : null;
   // Designers have a public profile page (P-06); the client one (P-12) comes later.
   // The public profile: /d/ for designers, /c/ for clients (P-06, P-12).
   const profileUrl = user.username ? `${await siteOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
 
   return (
     <PageShell>
-      <BackLink href="/dashboard">{t("nav.dashboard")}</BackLink>
-      <Panel as="header" className="max-[720px]:py-6">
-        <PageTitle lead={t("settings.title")} sub={t("settings.subtitle")} />
-      </Panel>
+      {/* Owner, 2026-10-13: no big title panel; a small title beside the back button. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <BackLink href="/dashboard">{t("nav.dashboard")}</BackLink>
+        <h1 className="m-0 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-[24px]">{t("settings.title")}</h1>
+      </div>
 
       <Panel tone="grey" className="max-[720px]:py-4">
         <div className="mx-auto max-w-3xl space-y-3.5">
-          <Section title={t("settings.profileTitle")}>
+          {steps && <ProfileProgress steps={steps} onSettings />}
+          <Section id="profile" title={t("settings.profileTitle")}>
             <PhotoSection name={user.name} avatarUrl={user.avatarUrl} />
             <div className="mt-6 border-t border-line pt-6">
               <ProfileForm
@@ -75,7 +91,7 @@ export default async function ProfileSettingsPage() {
             </div>
           </Section>
           {user.role === "designer" && (
-            <Section title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
+            <Section id="portfolio" title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
               <PortfolioForm
                 skills={(profile?.skills ?? []) as string[]}
                 tools={(profile?.tools ?? []) as string[]}
@@ -100,7 +116,7 @@ export default async function ProfileSettingsPage() {
           <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
             <MobileForm mobile={user.mobile} />
           </Section>
-          <Section title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
+          <Section id="email" title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
             <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} />
           </Section>
           <Section title={t("settings.password.title")}>

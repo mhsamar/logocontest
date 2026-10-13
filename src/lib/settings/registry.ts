@@ -606,6 +606,12 @@ export const SETTINGS = {
     group: "live", type: "int", schema: int(0, 1000000), default: 20,
     description: "Show the live designers tag on the home page only from this many designers joined.",
   },
+  // Owner, 2026-10-13: the originality agreement + ID photo before a designer's first design can be switched off
+  // (Admin → Agreements). Off: designers send designs without it; agreements already signed stay as they are.
+  "legal.agreement_required": {
+    group: "legal", type: "bool", schema: z.boolean(), default: false,
+    description: "Ask designers to sign the originality agreement (with an ID photo) before their first design.",
+  },
   "legal.agreement_resign_since": {
     group: "legal", type: "string", schema: z.union([z.literal(""), z.string().datetime({ offset: true })]), default: "",
     description: "Set by Legal pages → Publish with \"Ask every designer to sign again\": agreements signed before this time must be signed again.",

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ShareProfile } from "@/components/designers/share-profile";
+import { ProfileProgress } from "@/components/settings/profile-progress";
+import type { ProfileStep } from "@/lib/profile/completeness";
 import { PrizeBanner } from "@/components/rewards/prize-banner";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
@@ -46,6 +48,7 @@ export async function DesignerDashboard({
   balance,
   winCards = [],
   prizes = [],
+  profileSteps = [],
 }: {
   designer: DesignerProfile;
   contests: DesignerContest[];
@@ -59,6 +62,8 @@ export async function DesignerDashboard({
   winCards?: { slug: string; brand: string | null; image: string }[];
   /** Monthly prizes waiting for a claim (2026-10-11). */
   prizes?: MyReward[];
+  /** "Complete your profile" (owner, 2026-10-13). */
+  profileSteps?: { key: ProfileStep; done: boolean }[];
 }) {
   const { t, locale } = await getI18n();
   const wins = contests.filter((c) => c.won);
@@ -110,6 +115,7 @@ export async function DesignerDashboard({
 
       <Panel tone="grey" className="space-y-3.5 max-[720px]:py-4">
         <PrizeBanner rewards={prizes} />
+        <ProfileProgress steps={profileSteps} />
         {/* Win cards to download and share (owner, 2026-10-11; D-12) */}
         {winCards.length > 0 && (
           <section aria-labelledby="dd-cards" className="lc-card rounded-[22px] p-4 sm:p-5">

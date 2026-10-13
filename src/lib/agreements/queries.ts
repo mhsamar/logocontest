@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { maskIdNumber, type IdType } from "@/lib/legal/agreement-rules";
 import { resignSince } from "@/lib/legal/store";
 import { avatarUrl } from "@/lib/profile/avatar";
+import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** A signed originality agreement as shown to its designer or an admin: the ID number is always masked (§9.6). */
@@ -46,6 +47,15 @@ function toAgreement(r: Record<string, unknown>): SignedAgreement {
     rejectReason: (r.reject_reason as string | null) ?? null,
     photoRequestedAt: r.photo_requested_at ? new Date(r.photo_requested_at as string) : null,
   };
+}
+
+/**
+ * May this designer send a design (owner, 2026-10-13)? Only asks for the signed agreement while "Agreement before the
+ * first design" is on in Admin → Agreements; off by default.
+ */
+export async function agreementOk(designerId: string): Promise<boolean> {
+  if (!(await getSetting("legal.agreement_required"))) return true;
+  return hasSignedAgreement(designerId);
 }
 
 export async function hasSignedAgreement(designerId: string): Promise<boolean> {

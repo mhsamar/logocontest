@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgreementPhotos } from "@/components/admin/agreement-photos";
 import { AgreementReview, AskPhotoButton } from "@/components/admin/agreement-review";
+import { AgreementSwitch } from "@/components/admin/agreement-switch";
 import { RevealId } from "@/components/admin/reveal-id";
 import { describeDevice } from "@/lib/agreements/device";
 import { adminAgreements, type AdminAgreement, type ReviewStatus } from "@/lib/agreements/queries";
@@ -15,6 +16,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { formatBdMobile } from "@/lib/phone";
+import { getSetting } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -45,7 +47,7 @@ export default async function AdminAgreementsPage({ searchParams }: PageProps<"/
   const sp = await searchParams;
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? "all";
   const q = (typeof sp.q === "string" ? sp.q : "").replace(/\s+/g, " ").trim().slice(0, 60);
-  const [{ t, locale }, all] = await Promise.all([getI18n(), adminAgreements()]);
+  const [{ t, locale }, all, required] = await Promise.all([getI18n(), adminAgreements(), getSetting("legal.agreement_required")]);
   const fmt = (n: number) => formatNumber(n, locale);
 
   const count = (s: ReviewStatus) => all.filter((a) => a.reviewStatus === s).length;
@@ -77,6 +79,7 @@ export default async function AdminAgreementsPage({ searchParams }: PageProps<"/
         <h1 className="lc-d m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-ink max-[640px]:text-[26px]">{t("admin.agreements.title")}</h1>
         <p className="m-0 max-w-[820px] text-[15.5px] text-muted">{t("admin.agreements.leadNew")}</p>
       </div>
+      <AgreementSwitch on={required} canManage={canManage} />
 
       <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         {tiles.map((x) => (

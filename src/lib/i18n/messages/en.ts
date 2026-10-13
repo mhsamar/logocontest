@@ -1228,6 +1228,21 @@ const en = {
       },
     },
   },
+  profileProgress: {
+    title: "Complete your profile",
+    lead: "Clients trust designers with a full profile. Add what is still missing:",
+    done: "{n}% done",
+    cta: "Complete my profile",
+    steps: {
+      photo: "Add a profile photo",
+      bio: "Write a short bio",
+      skills: "Add your skills",
+      tools: "Add the tools you use",
+      experience: "Add your years of experience",
+      languages: "Add the languages you speak",
+      email: "Confirm your email",
+    },
+  },
   settings: {
     meta: { title: "Profile settings" },
     title: "Profile settings",
@@ -3062,6 +3077,11 @@ const en = {
       },
     },
     agreements: {
+      required: {
+        title: "Agreement before the first design",
+        on: "On: a designer signs the originality agreement and adds an ID photo before sending their first design.",
+        off: "Off: designers send designs without signing or adding an ID. Agreements already signed stay here.",
+      },
       photo: { front: "ID photo (front)", back: "ID photo (back)", hidden: "ID photo uploaded (Agreements manage can open it).", none: "No ID photo (signed before photos were asked for)." },
       title: "Designer agreements",
       link: "Designer agreements",
