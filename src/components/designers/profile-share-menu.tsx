@@ -76,7 +76,7 @@ export function ProfileShareMenu({ url, name, pdfHref, publicHref }: { url: stri
                   <small className="text-xs font-semibold text-[#5F626B]">{t("designerProfile.x.viewPublicSub")}</small>
                 </span>
               </a>
-              <i className="dp-shd" aria-hidden />
+              <i className="dp-shdiv" aria-hidden />
             </>
           )}
           <button type="button" role="menuitem" onClick={copy}>
