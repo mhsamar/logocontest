@@ -276,7 +276,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
             lead={t("leaderboard.designers.lead")}
             prize={t("leaderboard.designers.prize")}
             tone="gold"
-            rows={race.designers.map((d) => ({ ...d, score: d.wins, unit: t("leaderboard.designers.unit"), sub: t("leaderboard.designers.joined", { n: fmt(d.joined) }) }))}
+            rows={race.designers.map((d) => ({ ...d, score: d.wins, unit: t("leaderboard.designers.unit"), sub: `${t("leaderboard.designers.earned", { amount: formatTaka(d.earned, locale) })} · ${t(d.joined === 1 ? "leaderboard.designers.joinedOne" : "leaderboard.designers.joined", { n: fmt(d.joined) })}` }))}
             totalText={t("leaderboard.designers.total", { n: fmt(race.designers.length) })}
             more={more("designers", race.designers.length)}
             showAll={full === "designers"}

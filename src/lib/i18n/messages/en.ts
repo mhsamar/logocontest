@@ -4728,6 +4728,8 @@ const en = {
       prize: "Prize: gift box",
       unit: "wins",
       joined: "{n} contests joined",
+      joinedOne: "{n} contest joined",
+      earned: "{amount} earned",
       total: "Designers who won a contest this month: {n}",
       empty: "No winners picked yet this month.",
     },

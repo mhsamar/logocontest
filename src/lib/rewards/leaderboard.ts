@@ -15,7 +15,8 @@ import { monthKey, recentMonths } from "./rules";
 export type PublicPerson = { name: string; avatarUrl: string | null };
 export type PublicRace = {
   clients: (PublicPerson & { contests: number; prizeTotal: number })[];
-  designers: (PublicPerson & { wins: number; joined: number })[];
+  /** earned: what their wins this month paid them, after the site fee (owner, 2026-10-13: shown like the clients' prize money). */
+  designers: (PublicPerson & { wins: number; joined: number; earned: number })[];
   counts: { contestsPosted: number; clientsInRace: number; contestsWon: number; designersWithWin: number };
 };
 
@@ -27,11 +28,11 @@ export const publicRace = unstable_cache(
     const r = await monthRace(month);
     return {
       clients: r.clients.slice(0, 50).map((c) => ({ name: shownName(c.profile), avatarUrl: c.profile.avatarUrl, contests: c.contests, prizeTotal: c.prizeTotal })),
-      designers: r.designers.slice(0, 50).map((d) => ({ name: shownName(d.profile), avatarUrl: d.profile.avatarUrl, wins: d.wins, joined: d.joined })),
+      designers: r.designers.slice(0, 50).map((d) => ({ name: shownName(d.profile), avatarUrl: d.profile.avatarUrl, wins: d.wins, joined: d.joined, earned: d.earned })),
       counts: r.counts,
     };
   },
-  ["leaderboard-race-v1"],
+  ["leaderboard-race-v2"],
   { revalidate: 300, tags: ["leaderboard"] },
 );
 
