@@ -4,15 +4,15 @@ import { homeHero } from "@/lib/home/hero";
 import { liveDesigners } from "@/lib/home/live-designers";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
-import { HeroForm } from "../hero-form";
+import Link from "next/link";
 import { ShowcaseArt, SlideText } from "./hero-showcase";
 import { HeroSlider } from "./hero-slider";
 import { LiveDesignersTag } from "./live-designers";
 
 /**
  * P-01 hero: the showcase slider (owner, 2026-10-11; Design/home-hero/HERO-HANDOFF.md). The slides come from
- * Admin → Home hero, or the built-in samples while none is switched on. Left, a showcase picture per slide with the dots; right, the live designers tag, the slide's headline and text, the business-name form (same checks and
- * /start redirect as before) and the "Good to know" chips. The form and chips never change or move.
+ * Admin → Home hero, or the built-in samples while none is switched on. Left, a showcase picture per slide with the dots; right, the live designers tag, the slide's headline and text, the "Select your contest type"
+ * button (owner, 2026-10-13: in place of the business-name form; it opens the category picker) and the "Good to know" chips. The button and chips never change or move.
  */
 export async function LandingHero({ nav, picture }: { nav: React.ReactNode; picture: string | null }) {
   const { t, locale } = await getI18n();
@@ -38,8 +38,24 @@ export async function LandingHero({ nav, picture }: { nav: React.ReactNode; pict
           top: <LiveDesignersTag initial={live} />,
           bottom: (
             <>
+              {/* Owner, 2026-10-13: with contest categories, one button to choose the type (the business-name box is gone). */}
               <div className="mt-7 w-full max-w-[540px]">
-                <HeroForm />
+                <Link href="/start" className="lc-type-cta group">
+                  <span className="lc-type-ico" aria-hidden>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                      <rect x="4" y="4" width="6.5" height="6.5" rx="1.6" />
+                      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" />
+                      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" />
+                      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" />
+                    </svg>
+                  </span>
+                  <span className="lc-type-label">{t("home.hero.chooseType")}</span>
+                  <span className="lc-type-go" aria-hidden>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </span>
+                </Link>
               </div>
               <div className="lc-hero-row mt-[22px] flex flex-wrap items-center gap-2 text-[15.5px]">
                 <strong className="mr-1">{t("home.hero.goodToKnow")}</strong>

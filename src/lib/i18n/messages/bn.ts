@@ -202,6 +202,7 @@ const bn: Messages = {
       brandLabel: "উদাহরণ ব্র্যান্ড: {brand}",
       dot: "স্লাইড {n} দেখুন",
       sample: "নমুনা ডিজাইন",
+      chooseType: "কনটেস্টের ধরন বেছে নিন",
       goodToKnow: "জেনে রাখুন:",
       pay: "বিকাশ বা কার্ড",
       held: "টাকা নিরাপদে থাকে",

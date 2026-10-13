@@ -201,6 +201,7 @@ const en = {
       brandLabel: "Example brand: {brand}",
       dot: "Show slide {n}",
       sample: "Sample artwork",
+      chooseType: "Select your contest type",
       goodToKnow: "Good to know:",
       pay: "bKash or card",
       held: "Money held safe",

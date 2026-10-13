@@ -431,3 +431,85 @@
     animation: none;
   }
 }
+
+/* "Select your contest type" (owner, 2026-10-13): one red pill with a grid tile and a gold arrow, a soft glow. */
+.lc-type-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 20px;
+  background: linear-gradient(110deg, #b3201b 0%, #8b0000 55%, #6e0a0c 100%);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 0 0 7px rgba(226, 140, 110, 0.18), 0 18px 34px -14px rgba(139, 0, 0, 0.6);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
+}
+.lc-landing .lc-type-cta:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 9px rgba(226, 140, 110, 0.22), 0 24px 40px -14px rgba(139, 0, 0, 0.7);
+}
+.lc-type-cta:focus-visible {
+  outline: 3px solid #e2b13c;
+  outline-offset: 4px;
+}
+.lc-type-ico {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffd2c2;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lc-type-cta:hover .lc-type-ico {
+  transform: rotate(-8deg) scale(1.06);
+}
+.lc-type-label {
+  flex: 1;
+  padding-right: 6px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.lc-type-go {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f0c24f, #d9a52b);
+  color: #3a2a00;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lc-type-cta:hover .lc-type-go {
+  transform: translateX(4px);
+}
+@media (max-width: 480px) {
+  .lc-type-cta {
+    display: flex;
+    width: 100%;
+  }
+  .lc-type-label {
+    font-size: 17px;
+    white-space: normal;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-type-cta,
+  .lc-type-ico,
+  .lc-type-go {
+    transition: none;
+  }
+}
+
