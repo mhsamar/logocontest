@@ -23,7 +23,8 @@ export async function LiveContests({ contests }: { contests: ContestRow[] }) {
           sub={t("home.showcase.subtitle")}
         />
         {contests.length ? (
-          <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-3.5">
+          // Owner, 2026-10-13: each card at most 372px wide and centred, so one or two live contests don't stretch into a huge card.
+          <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,300px),372px))] justify-center gap-3.5">
             {contests.map((c) => (
               <ContestTile key={c.id} c={c} now={now} t={t} locale={locale} />
             ))}
