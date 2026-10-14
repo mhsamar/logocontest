@@ -22,6 +22,7 @@ import { CountUp } from "@/components/ui/count-up";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
+import { hasPermission } from "@/lib/admin/permissions";
 import { CheckerBox, CheckCardAction } from "@/components/logo-check/checker-box";
 import { CheckerProvider } from "@/components/logo-check/checker-context";
 import { addonPrices } from "@/lib/contests/addon-payments";
@@ -65,7 +66,11 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const [{ t, locale, currency }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/dashboard/contests/${slug}`)}`);
   const contest = await getContestBySlug(slug, user);
-  if (!contest || !contest.isOwner) notFound();
+  // Admin › Contests › Client's view (owner, 2026-10-14): staff see the client's page, read-only.
+  const adminView = Boolean(contest && !contest.isOwner && hasPermission(user, "contests.view"));
+  if (!contest || !(contest.isOwner || adminView)) notFound();
+  // An unpaid contest has no page yet; staff go back to it in the admin.
+  if (adminView && (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment")) redirect(`/admin/contests/${contest.slug}`);
   if (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment") {
     // Its bKash payment is waiting for approval (owner, 2026-10-14).
     const waiting = (await awaitingApproval([contest.id])).get(contest.id);
@@ -115,6 +120,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const [claim, messages] = handover ? await Promise.all([latestClaim(handover.id), handoverMessages(handover.id, user.id, handover.clientId)]) : [null, []];
   // Finished: the client can still see everything and download the files, but nothing changes (owner, 2026-10-12).
   const finished = isFinished(contest.rawStatus);
+  const readOnly = finished || adminView;
   const checker = {
     contest: { id: contest.id, slug: contest.slug, brand: contest.brandName },
     designs: entries.filter((e) => e.status !== "rejected").map((e) => ({ id: e.id, number: e.number, coverUrl: e.previews[0] ?? null, designer: e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? null) })),
@@ -125,8 +131,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const fileDays = s["timers.designer_file_upload_days"];
-  const reviewing = contest.status === "open" || contest.status === "judging";
-  const won = typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
+  const reviewing = !adminView && (contest.status === "open" || contest.status === "judging");
+  const won = !adminView && typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
   const fmt = (n: number) => formatNumber(n, locale);
 
   const shown = entries.filter((e) => matchesFilter(e, filter));
@@ -143,7 +149,12 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
 
   return (
     <PageShell>
-      <BackLink href="/dashboard">{t("manage.back")}</BackLink>
+      {adminView ? <BackLink href={`/admin/contests/${contest.slug}`}>{t("manage.adminView.back")}</BackLink> : <BackLink href="/dashboard">{t("manage.back")}</BackLink>}
+      {adminView && (
+        <div>
+          <Alert tone="info">{t("manage.adminView.note")}</Alert>
+        </div>
+      )}
 
       {sp.payment === "paid" && (
         <div>
@@ -181,7 +192,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               <p className="m-0 text-xs font-bold text-gold-ink">{t("contest.stats.prize")}</p>
               <p className={cx("m-0 text-3xl font-semibold tabular-nums", PRIZE_TEXT)}><CountUp value={contest.prize} locale={locale} money /></p>
             </div>
-            {contest.status === "open" && (
+            {contest.status === "open" && !adminView && (
               <Link
                 href={`${base}/edit`}
                 className="lc-g group relative flex min-h-[5.5rem] flex-col justify-between overflow-clip rounded-[20px] bg-[image:var(--gradient-red-dark)] px-4 py-3 text-white transition-[filter] duration-300 hover:brightness-110 sm:min-w-44"
@@ -207,7 +218,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rel="noopener"
               className={cx(
                 "group relative flex min-h-[5.5rem] flex-col justify-between overflow-clip rounded-[20px] bg-chip px-4 py-3 text-ink transition-colors duration-300 hover:bg-line sm:min-w-44",
-                contest.status !== "open" && "col-span-2",
+                (contest.status !== "open" || adminView) && "col-span-2",
               )}
             >
               <span className="flex items-center justify-between">
@@ -267,6 +278,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           <div className="mt-4">
             <HandoverTracker status={handover.status} t={t} />
           </div>
+          {!adminView && (
           <div className="mt-5">
             <ClientHandover
               handoverId={handover.id}
@@ -282,19 +294,20 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rating={handover.rating}
             />
           </div>
+          )}
           {/* The delivery chat (owner, 2026-10-12): what to change, until the client approves */}
           {handover.status !== "no_result" && (CHAT_STATUSES.includes(handover.status) || messages.length > 0) && (
             <div className="mt-5 border-t border-line pt-4">
               <HandoverChat
                 handoverId={handover.id}
                 viewer="client"
-                open={CHAT_STATUSES.includes(handover.status)}
+                open={!adminView && CHAT_STATUSES.includes(handover.status)}
                 messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
               />
             </div>
           )}
           {/* Copy claim on the winning design (BLUEPRINT §7.6, owner 2026-10-09) */}
-          {claimUntil && (claimable || claim) && (
+          {!adminView && claimUntil && (claimable || claim) && (
             <div className="mt-5 border-t border-line pt-4">
               <CopyClaim
                 handoverId={handover.id}
@@ -309,7 +322,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
 
       {/* Review designs on the left, add-ons in a sidebar on the right (owner, 2026-10-08) */}
       {/* The AI logo checker is for logo contests only (owner, 2026-10-13: other contest services). */}
-      <CheckerProvider setup={contest.service === "logo" ? checker : null} lens={checker.lens}>
+      <CheckerProvider setup={contest.service === "logo" && !adminView ? checker : null} lens={checker.lens}>
       <Panel tone="grey" className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] max-[720px]:py-6">
         <section className="min-w-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -404,7 +417,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         rating={e.rating}
                         shortlisted={e.isShortlisted}
                         canAct={reviewing && e.status === "active"}
-                        readOnly={finished}
+                        readOnly={readOnly}
                         fileDays={fileDays}
                         variant="card"
                         wonHref={withParam(here, `won=${e.number}`)}
@@ -441,7 +454,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             <div className="mt-4">
               <AddonsPanel
                 contestId={contest.id}
-                open={contest.status === "open"}
+                open={!adminView && contest.status === "open"}
+                closedNote={adminView ? t("manage.adminView.addons") : undefined}
                 active={{
                   promote: contest.isPromoted,
                   private: contest.isPrivate,
@@ -484,14 +498,14 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               rating={entry.rating}
               shortlisted={entry.isShortlisted}
               canAct={reviewing && entry.status === "active"}
-              readOnly={finished}
+              readOnly={readOnly}
               fileDays={fileDays}
               variant="panel"
               wonHref={withParam(here, `won=${entry.number}`)}
             />
             {/* Like and dislike (owner, 2026-10-11): the client votes on designs in their own contest */}
-            <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!finished} hint={finished ? t("contest.finished") : null} />
-            <EntryComments entryId={entry.id} comments={entry.comments} canComment={!finished} reason={finished ? "finished" : "notAllowed"} loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
+            <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!readOnly} hint={finished ? t("contest.finished") : null} />
+            <EntryComments entryId={entry.id} comments={entry.comments} canComment={!readOnly} reason={finished ? "finished" : "notAllowed"} loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
           </div>
         </EntryViewer>
       )}

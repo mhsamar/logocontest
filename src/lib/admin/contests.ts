@@ -183,3 +183,63 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
       : null,
   };
 }
+
+/** The client panel on the contest page (owner, 2026-10-14): who the client is, how to reach them, what they ran. */
+export type ContestClient = {
+  id: string;
+  name: string;
+  username: string | null;
+  businessName: string | null;
+  status: "active" | "suspended" | "banned";
+  suspendedUntil: Date | null;
+  isTest: boolean;
+  strikes: number;
+  joinedAt: Date;
+  lastSeenAt: Date | null;
+  emailVerified: boolean;
+  /** The country of their latest visit (two letters), if one was recorded. */
+  country: string | null;
+  spent: number;
+  picked: number;
+  contests: { slug: string; brand: string; number: number | null; status: string; createdAt: Date }[];
+  /** Only for Users · manage. */
+  contact: { mobile: string; email: string | null; bkash: string[] } | null;
+};
+
+const PICKED_STATUSES = ["winner_selected", "handover", "completed"];
+
+export async function getContestClient(clientId: string, opts: { canSeeContact: boolean }): Promise<ContestClient | null> {
+  if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(clientId)) return null;
+  const db = createAdminClient();
+  const [{ data: p }, contests, pays, visit, senders] = await Promise.all([
+    db.from("profiles").select("id, name, username, business_name, status, suspended_until, is_test, strikes, created_at, last_seen_at, email_verified_at, mobile, email").eq("id", clientId).maybeSingle(),
+    db.from("contests").select("slug, brand_name, contest_number, status, created_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(50),
+    db.from("payments").select("amount").eq("client_id", clientId).eq("status", "paid").limit(5000),
+    db.from("page_views").select("country").eq("user_id", clientId).not("country", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    opts.canSeeContact ? db.from("manual_payments").select("sender_number").eq("user_id", clientId).not("sender_number", "is", null).order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
+  ]);
+  if (!p) return null;
+  const list = (contests.data ?? []) as { slug: string; brand_name: string; contest_number: number | null; status: string; created_at: string }[];
+  const suspendedUntil = p.suspended_until ? new Date(p.suspended_until as string) : null;
+  // A suspension whose time is up counts as active at once (owner, 2026-10-12).
+  const status = p.status === "suspended" && suspendedUntil && suspendedUntil.getTime() <= Date.now() ? "active" : (p.status as ContestClient["status"]);
+  const bkash = [...new Set(((senders.data ?? []) as { sender_number: string }[]).map((s) => s.sender_number))].slice(0, 3);
+  return {
+    id: p.id as string,
+    name: p.name as string,
+    username: (p.username as string | null) ?? null,
+    businessName: (p.business_name as string | null) ?? null,
+    status,
+    suspendedUntil: status === "suspended" ? suspendedUntil : null,
+    isTest: Boolean(p.is_test),
+    strikes: (p.strikes as number) ?? 0,
+    joinedAt: new Date(p.created_at as string),
+    lastSeenAt: p.last_seen_at ? new Date(p.last_seen_at as string) : null,
+    emailVerified: Boolean(p.email_verified_at),
+    country: ((visit.data as { country: string } | null)?.country as string | undefined) ?? null,
+    spent: ((pays.data ?? []) as { amount: number }[]).reduce((a, r) => a + (r.amount ?? 0), 0),
+    picked: list.filter((c) => PICKED_STATUSES.includes(c.status)).length,
+    contests: list.map((c) => ({ slug: c.slug, brand: c.brand_name, number: c.contest_number ?? null, status: c.status, createdAt: new Date(c.created_at) })),
+    contact: opts.canSeeContact ? { mobile: p.mobile as string, email: (p.email as string | null) ?? null, bkash } : null,
+  };
+}
