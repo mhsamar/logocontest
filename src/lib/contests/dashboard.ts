@@ -83,6 +83,8 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
         "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, contest_number, logo_scan, created_at, starts_at, ends_at, judging_ends_at, completed_at",
       )
       .eq("client_id", userId)
+      // In the Trash (owner, 2026-10-14): gone from the client's lists.
+      .neq("status", "deleted")
       .order("created_at", { ascending: false }),
     db.from("payments").select("contest_id, purpose, amount").eq("client_id", userId).eq("status", "paid"),
   ]);

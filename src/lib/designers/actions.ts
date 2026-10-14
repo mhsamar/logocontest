@@ -13,7 +13,7 @@ import { translatorFor } from "@/lib/content/texts";
 import { getI18n } from "@/lib/i18n/server";
 import { type MessageKey, type MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,14 +33,15 @@ const NAME_MIN = 2;
 const NAME_MAX = 60;
 
 /** Step 1: full name and mobile. */
-export async function checkDesignerBasics(input: { name: string; mobile: string }): Promise<StepResult> {
+export async function checkDesignerBasics(input: { name: string; mobile: string; country?: string }): Promise<StepResult> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const name = input.name.trim().replace(/\s+/g, " ");
   if (name.length < NAME_MIN || name.length > NAME_MAX) return fail("designerSignup.errors.name", "name");
   // Letters only (owner, 2026-10-14): no digits or signs like . / ,
   if (!isPersonName(name)) return fail("designerSignup.errors.nameLetters", "name");
-  const mobile = normalizeBdMobile(input.mobile);
-  if (!mobile) return fail("auth.errors.invalidPhone", "mobile");
+  // Any country, Bangladesh by default (owner, 2026-10-14).
+  const mobile = toE164(input.mobile, input.country);
+  if (!mobile) return fail(input.country && input.country !== "BD" ? "auth.errors.invalidPhoneIntl" : "auth.errors.invalidPhone", "mobile");
   if (await findProfileByPhone(mobile)) return fail("auth.errors.phoneTaken", "mobile");
   return { ok: true };
 }
@@ -89,6 +90,9 @@ export async function checkDesignerProfile(input: { username: string; bio: strin
 export async function createDesignerAccount(input: {
   name: string;
   mobile: string;
+  country?: string;
+  /** "This number is on WhatsApp" (owner, 2026-10-14). */
+  whatsapp?: boolean;
   email: string;
   password: string;
   username: string;
@@ -112,7 +116,7 @@ export async function createDesignerAccount(input: {
   if (!input.acceptedRules) return fail("designerSignup.errors.rules", "rules");
 
   const name = input.name.trim().replace(/\s+/g, " ");
-  const mobile = normalizeBdMobile(input.mobile)!;
+  const mobile = toE164(input.mobile, input.country)!;
   const email = normalizeEmail(input.email)!;
   const username = checkUsernameFormat(input.username);
   if (!username.ok) return fail("designerSignup.username.format", "username");
@@ -133,7 +137,7 @@ export async function createDesignerAccount(input: {
   // The sign-up trigger makes every new profile a client; this one is a designer.
   const { error: profileError } = await admin
     .from("profiles")
-    .update({ role: "designer", username: username.username, bio: input.bio.trim() || null, rules_accepted_at: new Date().toISOString() })
+    .update({ role: "designer", username: username.username, bio: input.bio.trim() || null, rules_accepted_at: new Date().toISOString(), whatsapp: input.whatsapp === true })
     .eq("id", userId);
   const { error: payoutError } = profileError ? { error: null } : await admin.from("designer_payout_methods").insert({ user_id: userId, ...payout.payout });
   if (profileError || payoutError) {

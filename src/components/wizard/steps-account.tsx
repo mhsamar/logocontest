@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
-import { PasswordField, PhoneField, TextField } from "@/components/ui/field";
+import { Checkbox, PasswordField, PhoneField, TextField } from "@/components/ui/field";
 import { useI18n } from "@/lib/i18n/client";
 
 // C-09: mobile number and email, both required. No OTP (owner, 2026-10-07).
@@ -14,9 +14,18 @@ export function AccountStep({
   mobileError,
   emailError,
   taken,
+  country = "BD",
+  onCountry,
+  whatsapp = false,
+  onWhatsapp,
 }: {
   mobile: string;
   email: string;
+  /** Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14). */
+  country?: string;
+  onCountry?: (iso: string) => void;
+  whatsapp?: boolean;
+  onWhatsapp?: (on: boolean) => void;
   onMobile: (v: string) => void;
   onEmail: (v: string) => void;
   mobileError?: string;
@@ -29,13 +38,17 @@ export function AccountStep({
       <PhoneField
         mark
         label={t("auth.phone.label")}
-        hint={t("auth.phone.hint")}
-        placeholder={t("auth.phone.placeholder")}
+        hint={country === "BD" ? t("auth.phone.hint") : t("auth.phone.hintAny")}
+        placeholder={country === "BD" ? t("auth.phone.placeholder") : undefined}
+        country={country}
+        onCountryChange={onCountry}
+        countryLabel={t("auth.phone.country")}
         value={mobile}
         onChange={(e) => onMobile(e.target.value)}
         error={mobileError}
         autoFocus
       />
+      {onWhatsapp && <Checkbox label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={whatsapp} onChange={(e) => onWhatsapp(e.target.checked)} />}
       <TextField
         mark
         label={t("wizard.c09.emailLabel")}

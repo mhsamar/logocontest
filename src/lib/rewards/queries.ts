@@ -118,7 +118,7 @@ export async function clientByUsername(username: string): Promise<ClientProfile 
   if (!isSupabaseConfigured() || !/^[a-z0-9_-]{3,40}$/i.test(username)) return null;
   const db = createAdminClient();
   const { data: p } = await db.from("profiles").select("id, name, business_name, avatar_path, created_at, status").eq("username", username.toLowerCase()).eq("role", "client").maybeSingle();
-  if (!p || p.status === "banned") return null;
+  if (!p || p.status === "banned" || p.status === "deleted") return null;
   const [payments, contests] = await Promise.all([
     db.from("payments").select("amount").eq("client_id", p.id).eq("status", "paid"),
     db.from("contests").select("id, is_private, is_nda").eq("client_id", p.id).in("status", PAID_STATUSES).order("starts_at", { ascending: false }),

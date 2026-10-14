@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
 import { cancelContest, extendContest, forceAward } from "@/lib/admin/contest-actions";
+import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
+import { getSettings } from "@/lib/settings";
 import { getAdminContest, getContestClient } from "@/lib/admin/contests";
 import { hasPermission } from "@/lib/admin/permissions";
 import { ONLINE_MS } from "@/lib/admin/users-query";
@@ -15,6 +17,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { requirePermission } from "@/lib/admin/core";
 import { showMobile } from "@/lib/payments/manual-rules";
+import { formatMobile } from "@/lib/phone";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -32,11 +35,13 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   // Contact details only for Users · manage, as in the Users list (owner, 2026-10-14: the client panel).
   const client = c.client.id ? await getContestClient(c.client.id, { canSeeContact: hasPermission(me, "users.manage") }) : null;
   const unpaid = UNPAID.includes(c.status);
+  const keepDays = (await getSettings(["trash.keep_days"]))["trash.keep_days"];
+  const inTrash = c.trash;
   const taka = (n: number) => formatTaka(n, locale);
   const when = (d: Date | null) => (d ? d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "—");
   const active = c.entriesList.filter((e) => e.status === "active");
   const canAward = (c.status === "open" || c.status === "judging") && active.length > 0;
-  const canCancel = !["completed", "no_result", "cancelled"].includes(c.status);
+  const canCancel = !["completed", "no_result", "cancelled", "deleted"].includes(c.status);
 
   return (
     <div className="space-y-6">
@@ -60,7 +65,7 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
             <AdminIcon name="external" size={14} />
           </a>
           {/* An unpaid contest has no client page yet: the client sees the wizard or the pay page (owner, 2026-10-14). */}
-          {!unpaid ? (
+          {inTrash ? null : !unpaid ? (
             <>
               {" · "}
               <a href={`/dashboard/contests/${c.slug}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-primary hover:underline">
@@ -80,6 +85,19 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
           )}
         </p>
         {c.cancelReason && <p className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{t("admin.contests.cancelledBecause", { reason: c.cancelReason })}</p>}
+        {/* In the Trash (owner, 2026-10-14): Restore, or Erase now (Super admin). */}
+        {inTrash && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+            <span>
+              <b>{t("admin.trash.inTrash", { date: formatDate(inTrash.at, locale, "long"), erase: formatDate(new Date(inTrash.at.getTime() + keepDays * 86_400_000), locale, "long") })}</b>
+              {inTrash.reason && inTrash.reason !== "unpaid" && <span className="block">{t("admin.trash.reason", { reason: inTrash.reason })}</span>}
+            </span>
+            <span className="flex flex-wrap gap-2">
+              <AdminAction label={t("admin.trash.restore")} body={t("admin.trash.restoreBody")} tone="primary" fields={[]} run={restoreContestFromTrash.bind(null, c.id)} done={t("admin.trash.restored")} />
+              {me.isSuperAdmin && <AdminAction label={t("admin.trash.eraseNow")} body={t("admin.trash.eraseBody")} tone="danger" fields={[]} run={eraseContestNow.bind(null, c.id)} done={t("admin.trash.erased")} />}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -115,6 +133,7 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
             run={forceAward.bind(null, c.id)}
           />
         )}
+        {!inTrash && <AdminAction label={t("admin.trash.deleteContest")} body={t("admin.trash.deleteContestBody", { days: String(keepDays) })} tone="danger" run={deleteContest.bind(null, c.id)} />}
         {canCancel && <AdminAction label={t("admin.contests.cancel")} body={t("admin.contests.cancelBody")} tone="danger" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.contests.adult.label"), options: [{ value: "0", label: t("admin.contests.adult.no") }, { value: "1", label: t("admin.contests.adult.yes") }] }]} run={cancelContest.bind(null, c.id)} />}
       </div>
 
@@ -240,7 +259,7 @@ function ClientPanel({ client, slug, me, t, locale }: { client: Client; slug: st
                 <Link href={`/admin/users/${client.id}`} className="truncate text-lg font-semibold text-ink hover:text-primary">
                   {client.name}
                 </Link>
-                <StatusPill tone={client.status === "active" ? "ok" : client.status === "banned" ? "bad" : "warn"}>{t(`admin.users.statuses.${client.status}`)}</StatusPill>
+                <StatusPill tone={client.status === "active" ? "ok" : client.status === "banned" || client.status === "deleted" ? "bad" : "warn"}>{t(`admin.users.statuses.${client.status}`)}</StatusPill>
                 {client.isTest && <StatusPill tone="muted">{t("admin.users.testAccount")}</StatusPill>}
               </div>
               <p className="m-0 text-sm text-muted">
@@ -255,9 +274,12 @@ function ClientPanel({ client, slug, me, t, locale }: { client: Client; slug: st
             {contact &&
               fact(
                 t("admin.contests.clientCard.mobile"),
-                <a href={`tel:${contact.mobile}`} className="font-mono hover:text-primary">
-                  {showMobile(contact.mobile)}
-                </a>,
+                <span>
+                  <a href={`tel:${contact.mobile}`} className="font-mono hover:text-primary">
+                    {formatMobile(contact.mobile)}
+                  </a>
+                  {contact.whatsapp && <span className="ml-1.5 text-xs font-semibold text-success">{t("admin.users.onWhatsapp")}</span>}
+                </span>,
               )}
             {contact &&
               fact(

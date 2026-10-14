@@ -1,4 +1,4 @@
-import { normalizeBdMobile } from "@/lib/phone";
+import { normalizeBdMobile, toE164 } from "@/lib/phone";
 
 /**
  * Accounts created before sign-up asked for an email used an internal address
@@ -25,6 +25,7 @@ export function parseLoginIdentifier(input: string): LoginIdentifier | null {
     const email = normalizeEmail(value);
     return email ? { kind: "email", email } : null;
   }
-  const mobile = normalizeBdMobile(value);
+  // A number from another country is typed with its code, +44… or 0044… (owner, 2026-10-14).
+  const mobile = /^\s*(\+|00)/.test(value) ? toE164(value) : normalizeBdMobile(value);
   return mobile ? { kind: "mobile", mobile } : null;
 }

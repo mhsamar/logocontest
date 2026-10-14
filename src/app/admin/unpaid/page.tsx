@@ -15,7 +15,7 @@ import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
-import { formatBdMobile } from "@/lib/phone";
+import { formatMobile } from "@/lib/phone";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -109,7 +109,7 @@ export default async function AdminUnpaidPage() {
                         )}
                         {r.client?.created_at && ` · ${t("admin.unpaid.signedUp", { when: when(new Date(r.client.created_at)) })}`}
                       </span>
-                      {r.client?.mobile && <span className="font-mono text-[14.5px] text-adm-strong">{formatBdMobile(r.client.mobile)}</span>}
+                      {r.client?.mobile && <span className="font-mono text-[14.5px] text-adm-strong">{formatMobile(r.client.mobile)}</span>}
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="text-[13.5px] text-muted">{t("admin.unpaid.amountToPay")}</span>
@@ -205,7 +205,7 @@ export default async function AdminUnpaidPage() {
                   <span className="flex min-w-0 flex-col">
                     <strong className="truncate text-[15px]">{l.brand || "—"}</strong>
                     <span className="text-[13.5px] text-muted">
-                      {formatBdMobile(l.mobile)} · {t("admin.unpaid.leads.stopped", { step: stepName(Math.min(l.step, STEPS)) })} · {when(l.updatedAt)}
+                      {formatMobile(l.mobile)} · {t("admin.unpaid.leads.stopped", { step: stepName(Math.min(l.step, STEPS)) })} · {when(l.updatedAt)}
                     </span>
                   </span>
                   <a href={`tel:${l.mobile}`} className="inline-flex min-h-10 shrink-0 items-center rounded-[10px] border border-adm-line px-3 text-[14px] font-bold text-primary hover:border-primary">

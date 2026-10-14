@@ -32,7 +32,7 @@ export function safeNext(value: FormDataEntryValue | null): string {
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
-type ProfileStatus = { id: string; email: string | null; role: "client" | "designer" | "admin"; status: "active" | "suspended" | "banned" };
+type ProfileStatus = { id: string; email: string | null; role: "client" | "designer" | "admin"; status: "active" | "suspended" | "banned" | "deleted" };
 
 
 export async function findProfileByPhone(phone: string) {
@@ -85,9 +85,9 @@ export async function signIn(key: string, authEmail: string, password: string, i
     .maybeSingle<{ status: ProfileStatus["status"] }>();
   // Owner, 2026-10-12: a suspended user can log in and use the site, but can't send designs, comment or like until
   // the 48 hours are over (src/lib/auth/policies.ts). A banned user can't log in.
-  if (!profile || profile.status === "banned") {
+  if (!profile || profile.status === "banned" || profile.status === "deleted") {
     await supabase.auth.signOut();
-    return fail("auth.errors.banned");
+    return fail(profile?.status === "deleted" ? "auth.errors.deleted" : "auth.errors.banned");
   }
 
   await guard.record(key, ip, true);

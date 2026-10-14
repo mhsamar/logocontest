@@ -228,7 +228,7 @@ export class SupabaseContestRepository implements ContestRepository {
         .from("contests")
         .select("*")
         .eq("client_id", clientId)
-        .neq("status", "cancelled")
+        .not("status", "in", "(cancelled,deleted)")
         .order("created_at", { ascending: false })
         .limit(20)
         .returns<ContestRow[]>(),

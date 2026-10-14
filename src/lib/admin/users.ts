@@ -12,17 +12,19 @@ export type AdminUserRow = {
   name: string;
   username: string | null;
   role: "client" | "designer" | "admin";
-  status: "active" | "suspended" | "banned";
+  status: "active" | "suspended" | "banned" | "deleted";
   mobile: string;
   email: string | null;
   strikes: number;
   flagWarnings: number;
+  /** "This number is on WhatsApp" (owner, 2026-10-14). */
+  whatsapp: boolean;
   /** A test account (owner, 2026-10-11): never counted in the monthly race. */
   isTest: boolean;
   createdAt: Date;
 };
 
-const COLUMNS = "id, name, username, role, status, mobile, email, strikes, flag_warnings, is_test, created_at, suspended_until";
+const COLUMNS = "id, name, username, role, status, mobile, email, strikes, flag_warnings, is_test, created_at, suspended_until, whatsapp";
 const PAGE = 30;
 
 const toRow = (r: Record<string, unknown>): AdminUserRow => ({
@@ -36,13 +38,14 @@ const toRow = (r: Record<string, unknown>): AdminUserRow => ({
   email: (r.email as string | null) ?? null,
   strikes: (r.strikes as number) ?? 0,
   flagWarnings: (r.flag_warnings as number) ?? 0,
+  whatsapp: r.whatsapp === true,
   isTest: Boolean(r.is_test),
   createdAt: new Date(r.created_at as string),
 });
 
 export async function listUsers(q: { search: string; role: string; status: string; page: number }): Promise<{ rows: AdminUserRow[]; total: number; pages: number }> {
   if (!isSupabaseConfigured()) return { rows: [], total: 0, pages: 0 };
-  let query = createAdminClient().from("profiles").select(COLUMNS, { count: "exact" });
+  let query = createAdminClient().from("profiles").select(COLUMNS, { count: "exact" }).neq("status", "deleted");
   if (["client", "designer", "admin"].includes(q.role)) query = query.eq("role", q.role);
   if (["active", "suspended", "banned"].includes(q.status)) query = query.eq("status", q.status);
   const term = toAsciiDigits(q.search).trim().replace(/[%,()]/g, "");
@@ -60,6 +63,8 @@ export async function listUsers(q: { search: string; role: string; status: strin
 
 export type AdminUserDetail = AdminUserRow & {
   suspendedUntil: Date | null;
+  /** In the Trash (owner, 2026-10-14). */
+  trash: { at: Date; reason: string | null } | null;
   businessName: string | null;
   balance: number | null;
   strikeHistory: { id: string; reason: string; issuerRole: string; issuer: string | null; contest: { slug: string; brand: string } | null; createdAt: Date; removedAt: Date | null }[];
@@ -82,7 +87,7 @@ export type AdminUserDetail = AdminUserRow & {
 export async function getUser(id: string): Promise<AdminUserDetail | null> {
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = createAdminClient();
-  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio`).eq("id", id).maybeSingle();
+  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio, deleted_at, delete_reason`).eq("id", id).maybeSingle();
   if (!p) return null;
   const isDesigner = p.role === "designer";
   const head = { count: "exact" as const, head: true };
@@ -107,6 +112,7 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
   return {
     ...toRow(p),
     suspendedUntil: p.suspended_until ? new Date(p.suspended_until as string) : null,
+    trash: p.status === "deleted" && p.deleted_at ? { at: new Date(p.deleted_at as string), reason: (p.delete_reason as string | null) ?? null } : null,
     businessName: (p.business_name as string | null) ?? null,
     bio: (p.bio as string | null) ?? null,
     designer: isDesigner
@@ -222,7 +228,7 @@ const PICKED = ["winner_selected", "handover", "completed"];
 export async function adminUsersAll(q: UsersQuery, now = new Date()): Promise<{ list: Light[]; spent: Map<string, number>; noPhoto: Set<string>; counts: UsersPage["counts"] }> {
   const db = createAdminClient();
   const [{ data: people }, { data: pays }, { data: noPhotoRows }, { data: ran }] = await Promise.all([
-    db.from("profiles").select(LIGHT).limit(20000),
+    db.from("profiles").select(LIGHT).neq("status", "deleted").limit(20000),
     db.from("payments").select("client_id, amount").eq("status", "paid").limit(50000),
     db.from("designer_agreements").select("designer_id").is("id_front_path", null),
     db.from("contests").select("client_id").in("status", SHOWN_CONTEST).limit(50000),

@@ -27,7 +27,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
         admin_title: string | null;
       }
     >();
-  if (!profile) return null;
+  // A deleted account (Admin › Trash, owner 2026-10-14) is signed out everywhere.
+  if (!profile || (profile.status as string) === "deleted") return null;
   const { suspended_until, email_verified_at, avatar_path, is_super_admin, admin_active, admin_permissions, admin_title, ...rest } = profile;
   // A suspension ends on its own (owner, 2026-10-12): once its time is up the account is active again, even before
   // the lifecycle job writes it back.
