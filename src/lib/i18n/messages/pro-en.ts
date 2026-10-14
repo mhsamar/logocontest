@@ -48,6 +48,8 @@ const proEn = {
     offerAllLine: "{amount} this month, then {price} a month",
     trialLine: "Free for {days} days, then {price} a month",
     youArePro: "You are Pro",
+    pending: "Your Pro payment is being checked. Pro starts as soon as it is approved.",
+    pendingLink: "See payment",
     manage: "Manage plan",
     proUntil: "Pro until {date}",
     soonTitle: "Pro opens soon",

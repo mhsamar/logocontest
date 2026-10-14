@@ -14,7 +14,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { isProActive, priceQuote, receiptCode } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription, getTrial } from "@/lib/pro/status";
+import { getSubscription, getTrial, pendingProPayment } from "@/lib/pro/status";
 import { logFunnel } from "@/lib/pro/subscription";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -35,6 +35,9 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
   const sub = await getSubscription(user.id);
   const pro = isProActive(sub);
   const status = sp.status === "success" || sp.status === "failed" ? sp.status : null;
+  // Already paid by bKash and waiting for approval (owner, 2026-10-14): show that payment, never a second checkout.
+  const pending = !pro && !status ? await pendingProPayment(user.id) : null;
+  if (pending) redirect(`/pay/pro/${pending}`);
   const paymentId = typeof sp.payment === "string" && UUID.test(sp.payment) ? sp.payment : null;
   // Someone who had the free Pro Trial is not a first-time buyer (owner, 2026-10-14).
   const quote = priceQuote(s, { firstTime: !sub && !(await getTrial(user.id)) });

@@ -32,13 +32,13 @@
   width: 100%;
   background: var(--lc-canvas);
   color: var(--lc-ink);
-  font-family: var(--font-lc-body), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-lc-body), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 .lc-landing :is(h1, h2, h3) {
-  font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-lc-heading), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
 }
 .lc-landing a:hover {
   opacity: 0.72;
@@ -62,7 +62,7 @@
 .lc-hero-copy[data-was] { transform: translateY(-10px); }
 .lc-hero-copy[data-on] { opacity: 1; transform: none; }
 .lc-hero-title {
-  font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-lc-heading), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(38px, 5vw, 70px);
   line-height: 1.03;
   letter-spacing: -0.045em;
@@ -86,7 +86,7 @@
 .lc-prizes-grid.lc-prizes-one { grid-template-columns: minmax(0, 1fr); }
 .lc-offer { position: relative; display: flex; align-items: center; gap: 20px; min-width: 0; overflow: hidden; padding: 30px 36px; border-radius: 28px; }
 .lc-offer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.lc-offer-title { font-family: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif; font-size: clamp(26px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
+.lc-offer-title { font-family: var(--font-lc-heading), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif; font-size: clamp(26px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
 .lc-offer-art { flex: none; padding: 0 14px; }
 
 /* Floating hero tiles */

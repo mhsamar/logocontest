@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
+import { emailRejection } from "@/lib/auth/email-check";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
@@ -173,6 +174,9 @@ export async function checkAccountDetails(input: { mobile: string; email: string
   if (!mobile) return err("auth.errors.invalidPhone");
   const email = normalizeEmail(input.email);
   if (!email) return err("wizard.errors.email");
+  // Real emails only, no temporary inboxes (owner, 2026-10-14).
+  const rejected = await emailRejection(email);
+  if (rejected) return err(rejected.key, rejected.params);
   const taken = await accountTaken(mobile, email);
   if (taken) return err(taken === "mobile" ? "auth.errors.phoneTaken" : "wizard.errors.emailTaken");
   return { ok: true, mobile, email };
@@ -206,6 +210,8 @@ export async function createAccountAndDraft(input: {
   const mobile = normalizeBdMobile(input.mobile);
   const email = normalizeEmail(input.email);
   if (!mobile || !email) return err("wizard.errors.incomplete");
+  const rejected = await emailRejection(email);
+  if (rejected) return err(rejected.key, rejected.params);
 
   const tooShort = await passwordError(input.password);
   if (tooShort?.error) return { ok: false, error: tooShort.error };

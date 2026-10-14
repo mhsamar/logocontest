@@ -206,9 +206,9 @@ export function MobileForm({ mobile }: { mobile: string }) {
   const err = useFieldError(state);
   return (
     <form action={action} className="space-y-4">
-      <PhoneField name="mobile" label={t("designerSignup.mobile")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
+      <PhoneField mark name="mobile" label={t("designerSignup.mobile")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
       <div className="flex justify-end">
-        <Button type="submit" variant="secondary" loading={pending}>
+        <Button type="submit" variant="success" loading={pending}>
           {t("settings.mobile.save")}
         </Button>
       </div>
@@ -225,6 +225,7 @@ export function EmailForm({ email, verified }: { email: string; verified: boolea
   return (
     <form action={action} className="space-y-4">
       <TextField
+        mark
         name="email"
         type="email"
         inputMode="email"
@@ -236,7 +237,7 @@ export function EmailForm({ email, verified }: { email: string; verified: boolea
         hint={verified ? `✓ ${t("settings.email.verified")}` : t("settings.email.unverified")}
       />
       <div className="flex justify-end">
-        <Button type="submit" variant="secondary" loading={pending}>
+        <Button type="submit" variant="success" loading={pending}>
           {t("settings.email.save")}
         </Button>
       </div>
@@ -273,7 +274,7 @@ export function PasswordForm({ min }: { min: number }) {
         error={err("password")}
       />
       <div className="flex justify-end">
-        <Button type="submit" variant="secondary" loading={pending}>
+        <Button type="submit" variant="success" loading={pending}>
           {t("settings.password.save")}
         </Button>
       </div>
@@ -363,7 +364,7 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
       )}
       {state.status === "error" && !state.field && state.error && <p className="text-sm text-danger">{t(state.error.key, state.error.params)}</p>}
       <div className="flex justify-end">
-        <Button type="submit" variant="secondary" loading={pending}>
+        <Button type="submit" variant="success" loading={pending}>
           {t("settings.payout.save")}
         </Button>
       </div>

@@ -475,6 +475,15 @@ export const SETTINGS = {
     default: 15,
     description: "Window (minutes) used to count failed logins.",
   },
+  // Owner, 2026-10-14: real emails only. Built-in lists catch the common temporary-inbox sites and made-up addresses.
+  "auth.blocked_email_domains": {
+    group: "auth", type: "string", schema: z.string().max(20000), default: "",
+    description: "Extra email domains nobody can sign up with (temporary-inbox sites), e.g. backyr.com. One per line or separated by commas.",
+  },
+  "auth.allowed_email_domains": {
+    group: "auth", type: "string", schema: z.string().max(5000), default: "",
+    description: "Email domains that are always accepted, even when the automatic check thinks they are temporary. One per line or separated by commas.",
+  },
 
   // ---- Site: social links in the footer (owner, 2026-10-08) --------------
   // Empty = the icon is hidden. Only links on the platform's own domain are accepted.

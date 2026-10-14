@@ -9,6 +9,8 @@ type FieldProps = {
   error?: string;
   optionalLabel?: string;
   className?: string;
+  /** A red * after the label for a must-fill field (owner, 2026-10-14: email and mobile). */
+  mark?: boolean;
 };
 
 // Inputs from the site design (owner, 2026-10-10; UI-JOURNEY §1): white, thin line, 14px corners, 52px tall.
@@ -25,12 +27,20 @@ function FieldShell({
   error,
   optionalLabel,
   className,
+  mark,
   children,
 }: FieldProps & { id: string; children: React.ReactNode }) {
   return (
     <div className={cx("space-y-1.5", className)}>
       <label htmlFor={id} className="flex items-baseline justify-between gap-2 text-sm font-semibold text-ink">
-        {label}
+        <span>
+          {label}
+          {mark && (
+            <span className="ml-0.5 text-danger" aria-hidden>
+              *
+            </span>
+          )}
+        </span>
         {optionalLabel && <span className="text-xs font-normal text-muted">{optionalLabel}</span>}
       </label>
       {children}
@@ -53,11 +63,12 @@ export function TextField({
   error,
   optionalLabel,
   className,
+  mark,
   ...input
 }: FieldProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">) {
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <input
         id={id}
         aria-invalid={error ? true : undefined}
@@ -70,10 +81,10 @@ export function TextField({
 }
 
 export function PhoneField(props: FieldProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type">) {
-  const { label, hint, error, optionalLabel, className, ...input } = props;
+  const { label, hint, error, optionalLabel, className, mark, ...input } = props;
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <div className={cx("flex rounded-[14px] ring-1 ring-inset ring-line focus-within:ring-2 focus-within:ring-primary bg-surface", error && "ring-2 ring-danger focus-within:ring-danger")}>
         <span className="flex items-center border-r border-line pl-3.5 pr-3 text-lg leading-none" aria-hidden>
           🇧🇩
@@ -98,11 +109,11 @@ export function PasswordField({
   hideLabel,
   ...props
 }: FieldProps & { showLabel: string; hideLabel: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type">) {
-  const { label, hint, error, optionalLabel, className, ...input } = props;
+  const { label, hint, error, optionalLabel, className, mark, ...input } = props;
   const id = useId();
   const [visible, setVisible] = useState(false);
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <div className="relative">
         <input
           id={id}
@@ -131,10 +142,10 @@ export function PasswordField({
 }
 
 export function OtpField(props: FieldProps & { length: number } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type" | "maxLength">) {
-  const { label, hint, error, optionalLabel, className, length, ...input } = props;
+  const { label, hint, error, optionalLabel, className, mark, length, ...input } = props;
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <input
         id={id}
         type="text"
@@ -158,6 +169,7 @@ export function TextAreaField({
   error,
   optionalLabel,
   className,
+  mark,
   value,
   maxLength,
   counterLabel,
@@ -165,7 +177,7 @@ export function TextAreaField({
 }: FieldProps & { value: string; counterLabel?: string } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "value">) {
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <textarea
         id={id}
         value={value}
@@ -191,13 +203,14 @@ export function SelectField({
   error,
   optionalLabel,
   className,
+  mark,
   options,
   placeholder,
   ...select
 }: FieldProps & { options: { value: string; label: string }[]; placeholder: string } & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className">) {
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <select
         id={id}
         aria-invalid={error ? true : undefined}

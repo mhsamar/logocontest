@@ -31,7 +31,15 @@ function changeText(c: Record<string, unknown>): string {
     const lines = Object.entries(c.changes as Record<string, unknown>).map(([k, x]) => line(k, x));
     return [...lines, ...(c.reason ? [`reason: ${v(c.reason)}`] : [])].join("\n") || "—";
   }
-  return Object.keys(c).length ? JSON.stringify(c) : "—";
+  // Anything else one "key: value" per line (owner, 2026-10-14: no raw JSON).
+  return Object.keys(c).length ? Object.entries(c).map(([k, x]) => line(k, x)).join("\n") : "—";
+}
+
+/** "payment.approve" → the label under admin.audit.actions.payment_approve; an action without one reads as words. */
+function actionLabel(t: (key: MessageKey) => string, action: string): string {
+  const key = `admin.audit.actions.${action.replace(/\./g, "_")}` as MessageKey;
+  const label = t(key);
+  return label === key ? action.replace(/[._]/g, " ").replace(/^./, (c) => c.toUpperCase()) : label;
 }
 
 // A-12 Audit log (BLUEPRINT §13.12): read-only, newest first.
@@ -49,7 +57,7 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
           <option value="">{t("admin.audit.allActions")}</option>
           {list.actions.map((a) => (
             <option key={a} value={a}>
-              {t(`admin.audit.actions.${a}` as MessageKey)}
+              {actionLabel(t, a)}
             </option>
           ))}
         </select>
@@ -78,10 +86,10 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
                     <td className="px-4 py-3">
                       {link ? (
                         <Link href={link} className="font-semibold text-ink hover:text-primary">
-                          {t(`admin.audit.actions.${r.action}` as MessageKey)}
+                          {actionLabel(t, r.action)}
                         </Link>
                       ) : (
-                        <span className="font-semibold text-ink">{t(`admin.audit.actions.${r.action}` as MessageKey)}</span>
+                        <span className="font-semibold text-ink">{actionLabel(t, r.action)}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

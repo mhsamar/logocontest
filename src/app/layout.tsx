@@ -24,7 +24,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
 import { openGraphFor, searchIndexingOn, siteUrl } from "@/lib/seo";
-import { landingBody, landingHeading } from "./fonts";
+import { banglaDigits, landingBody, landingHeading } from "./fonts";
 import "./globals.css";
 
 // Bengali characters only (BLUEPRINT §15.1); Latin text uses Urbanist and Instrument Sans (./fonts.ts).
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Suspended for 48 hours (owner, 2026-10-12): a bar on every page says until when and what is on hold.
   const held = suspendedError(user);
   return (
-    <html lang={locale} data-scroll-behavior="smooth" className={`${landingBody.variable} ${landingHeading.variable} ${bangla.variable} h-full antialiased`}>
+    <html lang={locale} data-scroll-behavior="smooth" className={`${landingBody.variable} ${landingHeading.variable} ${banglaDigits.variable} ${bangla.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} messages={messages} currency={currency}>
           <ToastProvider>

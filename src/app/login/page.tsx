@@ -104,7 +104,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
       }
     >
-      <LoginForm next={nextPath} />
+      <LoginForm next={nextPath} as={as} />
     </AuthCard>
   );
 }

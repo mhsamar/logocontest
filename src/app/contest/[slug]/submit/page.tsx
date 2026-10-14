@@ -44,7 +44,9 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   if (!held && user.role === "designer" && !(await agreementOk(user.id))) redirect(`/dashboard/agreement?next=${encodeURIComponent(`/contest/${slug}/submit`)}`);
 
   const open = contest.status === "open" && (!contest.endsAt || contest.endsAt > new Date());
-  const blocked = held ? "suspended" : !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : null;
+  // A designer confirms their email before sending designs (owner, 2026-10-14).
+  const unverified = user.role === "designer" && Boolean(user.email) && !user.emailVerifiedAt;
+  const blocked = held ? "suspended" : !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : unverified ? "emailUnverified" : null;
 
   const [min, siteMax, px, siteMb] = await Promise.all([
     getSetting("limits.entry_min_images"),
@@ -72,8 +74,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
           {blocked ? (
             <EmptyState
               title={blocked === "suspended" ? t("suspension.title") : t(`submit.${blocked}.title`)}
-              body={held ? t(held.key, held.params) : t(`submit.${blocked as "designersOnly" | "closed"}.body`)}
-              action={<ButtonLink href={`/contest/${contest.slug}`}>{t("submit.back")}</ButtonLink>}
+              body={held ? t(held.key, held.params) : blocked === "emailUnverified" ? t("submit.emailUnverified.body", { email: user.email ?? "" }) : t(`submit.${blocked as "designersOnly" | "closed"}.body`)}
+              action={blocked === "emailUnverified" ? <ButtonLink href="/verify-email">{t("submit.emailUnverified.action")}</ButtonLink> : <ButtonLink href={`/contest/${contest.slug}`}>{t("submit.back")}</ButtonLink>}
             />
           ) : (
             <>

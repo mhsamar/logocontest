@@ -171,6 +171,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
             autoFocus
           />
           <PhoneField
+            mark
             label={t("designerSignup.mobile")}
             placeholder="01XXX-XXXXXX"
             value={form.mobile}
@@ -183,6 +184,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
       {step === 2 && (
         <div className="space-y-4">
           <TextField
+            mark
             label={t("designerSignup.email")}
             type="email"
             inputMode="email"

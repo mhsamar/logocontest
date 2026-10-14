@@ -107,6 +107,16 @@ export const proKind = cache(async (designerId: string | null | undefined): Prom
  * isPro(designer): Pro features are on, from a plan whose period has not ended or from a running free trial (owner,
  * 2026-10-14). Every Pro check goes here; the trial's own limits are applied where they differ (checks, portfolio).
  */
+/**
+ * The designer's Pro payment that waits for an admin to approve it (manual bKash), or null (owner, 2026-10-14): they
+ * already bought Pro, so nothing asks them to go Pro again meanwhile.
+ */
+export const pendingProPayment = cache(async (designerId: string | null | undefined): Promise<string | null> => {
+  if (!designerId) return null;
+  const { data } = await createAdminClient().from("manual_payments").select("payment_id").eq("kind", "pro").eq("user_id", designerId).eq("status", "pending").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return (data?.payment_id as string | undefined) ?? null;
+});
+
 export const isPro = cache(async (designerId: string | null | undefined): Promise<boolean> => (await proKind(designerId)) !== null);
 
 /** Designers on a running free trial, among these (not the ones who also have a plan). */

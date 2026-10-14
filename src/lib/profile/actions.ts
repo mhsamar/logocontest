@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { refresh } from "next/cache";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
+import { emailRejection } from "@/lib/auth/email-check";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { clientIp } from "@/lib/auth/services";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -20,7 +21,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { checkPayout, type PayoutInput } from "@/lib/designers/signup";
-import { EXPERIENCE_MAX, OTHER_MAX, isLanguageKey, isSkillKey, isSkillLevel, isToolKey } from "@/lib/designers/portfolio-options";
+import { EXPERIENCE_MAX, OTHER_MAX, SKILLS_MAX, isLanguageKey, isSkillKey, isSkillLevel, isToolKey } from "@/lib/designers/portfolio-options";
 import { AVATAR_TYPES, AVATARS_BUCKET } from "./avatar";
 
 /** D-12 / C-20 profile settings (UI-JOURNEY, owner 2026-10-08). */
@@ -87,6 +88,7 @@ export async function savePortfolio(_prev: SettingsState, formData: FormData): P
   const tools: string[] = [...new Set(formData.getAll("tools").map(String).filter(isToolKey))];
   if (otherSkill.value) skills.push(otherSkill.value);
   if (otherTool.value) tools.push(otherTool.value);
+  if (skills.length > SKILLS_MAX) return fail("portfolio.errors.skillsMax", "skills", { max: SKILLS_MAX });
 
   const { error } = await createAdminClient().from("profiles").update({ skills, tools, experience_years: years }).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
@@ -191,6 +193,9 @@ export async function changeEmail(_prev: SettingsState, formData: FormData): Pro
   const email = normalizeEmail(String(formData.get("email") ?? ""));
   if (!email) return fail("wizard.errors.email", "email");
   if (email === user.email) return { status: "ok" };
+  // Real emails only, no temporary inboxes (owner, 2026-10-14).
+  const rejected = await emailRejection(email);
+  if (rejected) return fail(rejected.key, "email", rejected.params);
   if (await findProfileByEmail(email)) return fail("settings.email.taken", "email");
 
   const admin = createAdminClient();
