@@ -79,6 +79,7 @@ const payEn = {
     closedLead: "Start again from your dashboard.",
     toDashboard: "Go to dashboard",
     toContest: "Open contest",
+    toMyContests: "My contests",
     toPro: "Open Pro",
     help: "Need help? Contact support.",
     notYours: "This payment belongs to another account.",

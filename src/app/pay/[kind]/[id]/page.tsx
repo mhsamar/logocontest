@@ -214,6 +214,9 @@ function forWhat(p: PayTarget, t: T): string {
 
 function backLink(p: PayTarget, t: T): { href: string; label: string } {
   if (p.kind === "pro") return { href: "/pro", label: t("pay.page.toPro") };
+  // A contest isn't open until its payment is approved, so its page would only send them back here (owner,
+  // 2026-10-14): until then, My contests shows it with "Waiting for approval".
+  if (p.kind === "contest" && p.state !== "paid") return { href: "/my-contests", label: t("pay.page.toMyContests") };
   if (p.contest) return { href: `/dashboard/contests/${p.contest.slug}`, label: t("pay.page.toContest") };
   return { href: "/dashboard", label: t("pay.page.toDashboard") };
 }

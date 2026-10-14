@@ -78,6 +78,7 @@ const payBn: Messages["pay"] = {
     closedLead: "ড্যাশবোর্ড থেকে আবার শুরু করুন।",
     toDashboard: "ড্যাশবোর্ডে যান",
     toContest: "কনটেস্ট খুলুন",
+    toMyContests: "আমার কনটেস্ট",
     toPro: "Pro খুলুন",
     help: "সাহায্য লাগবে? সাপোর্টে যোগাযোগ করুন।",
     notYours: "এই পেমেন্টটি অন্য অ্যাকাউন্টের।",
