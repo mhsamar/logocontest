@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPricingConfig } from "./pricing-config";
 import { ContestService } from "./service";
 import { SupabaseContestRepository } from "./supabase-repository";
+import { getOnboarding } from "@/lib/onboarding/store";
 
 export function contestRepository() {
   return new SupabaseContestRepository(createAdminClient());
@@ -28,5 +29,6 @@ export function contestService() {
     pricing: getPricingConfig,
     gateway: lazyGateway,
     serviceDef: getService,
+    onboarding: () => getOnboarding("client"),
   });
 }

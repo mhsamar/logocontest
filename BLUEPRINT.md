@@ -468,6 +468,14 @@ Admin › Settings › Ads: **on/off** and the **Google AdSense publisher ID** (
 - **Admin › Sign-ins & devices** (Audit · view): every login with device, place and status. **Admin › Staff activity** (Super admin only): each staff member's logins, the time they really worked and everything they did (the audit log). Both are tabs beside the Audit log.
 - **User page:** Devices (sign out one or all), Password (send a reset email, or set a new one; never readable, never logged), and **Log in as this user** (Super admin only): the admin's own login ends, a bar says whose account it is with "Back to admin", it never counts toward the person's devices, ends after `security.impersonate_minutes` (60) and is in the audit log.
 
+### Onboarding the owner controls (owner, 2026-10-14; migration `0056_onboarding_answers`)
+
+**Admin › Onboarding** (Site content · view / manage), one tab for clients (the logo contest wizard) and one for designers (sign-up):
+- Every question in step order. The ones the site needs (logo name, business type and description, mobile, email, password, package; name, username, payout, rules) are **Always**; the others can be **hidden** (client: short name, logo text, slogan, target audience, website, styles, colours, where it's used, what they need, requirements, the note, files, WhatsApp; designer: WhatsApp, bio). A wizard step whose questions are all hidden is skipped. Hidden questions are not checked anywhere (wizard, server, Edit brief).
+- **Edit wording** of any question in English and Bangla: the same texts as Admin › Texts.
+- **Your own questions** (up to 15 per flow; short or long text, one or several choices, link, colours; required or not; ready answers; up or down), each on the step the owner picks (client: the brief steps 1–7; designer: steps 1 and 3). Answers can't carry contact details. A client's answers are kept with the contest (`contests.extra_answers`): designers see them in the brief as "More from the client", admins on the contest page. A designer's answers are kept with the profile (`profiles.onboarding_answers`), shown on their admin user page. Kept as the settings rows `onboarding.client` / `onboarding.designer`; every save is in the audit log.
+- Contest services other than logo keep their own questions in Admin › Services.
+
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 
 - **Before sending:** Send opens Upload → Check → Send for the cover image. "Check originality" runs the existing Logo Checker on the exact uploaded file and uses one of the designer's monthly checks (Basic 2, Pro 100, shared with their own Logo Checker checks; they start again on the 1st, Bangladesh time). The designer can skip ("Not checked"). High → "Upload a new version" or "Send anyway". Logo contests only.

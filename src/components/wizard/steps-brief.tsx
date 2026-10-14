@@ -27,6 +27,8 @@ import { audienceSuggestions, descriptionSuggestions, logoTextSuggestions, requi
 export type BriefChoices = { businessTypes: string[]; swatches: string[] };
 
 export type BriefStepProps = {
+  /** Questions the owner switched off in Admin › Onboarding (owner, 2026-10-14). */
+  hidden?: ReadonlySet<string>;
   choices: BriefChoices;
   brief: Brief;
   update: (patch: Partial<Brief>) => void;
@@ -80,6 +82,7 @@ function AlwaysList({ title, items }: { title: string; items: string[] }) {
 export function BrandStep(p: BriefStepProps) {
   const { t } = useI18n();
   const error = useError(p);
+  const h = (k: string) => p.hidden?.has(k) ?? false;
   const [extra, setExtra] = useState(Boolean(p.brief.logoText || p.brief.slogan));
   return (
     <div className="space-y-5">
@@ -93,6 +96,8 @@ export function BrandStep(p: BriefStepProps) {
         autoComplete="organization"
         autoFocus
       />
+      {!h("shortName") && (
+        <>
       <TextField
         label={t("wizard.c01.shortNameLabel")}
         hint={t("wizard.c01.shortNameHint")}
@@ -104,8 +109,12 @@ export function BrandStep(p: BriefStepProps) {
         error={error("shortName")}
       />
       <Suggestions key={`short-${p.brief.brandName}`} items={shortNameSuggestions(p.brief)} value={p.brief.shortName} onPick={(text) => p.update({ shortName: text })} defaultOpen={false} />
-      {extra ? (
+        </>
+      )}
+      {h("logoText") && h("slogan") ? null : extra ? (
         <>
+          {!h("logoText") && (
+            <>
           <TextField
             label={t("wizard.c01.logoTextLabel")}
             hint={t("wizard.c01.logoTextHint")}
@@ -117,6 +126,10 @@ export function BrandStep(p: BriefStepProps) {
             error={error("logoText")}
           />
           <Suggestions items={logoTextSuggestions(p.brief)} value={p.brief.logoText} onPick={(text) => p.update({ logoText: text })} defaultOpen={false} />
+            </>
+          )}
+          {!h("slogan") && (
+            <>
           <TextField
             label={t("wizard.c01.sloganLabel")}
             optionalLabel={t("common.optional")}
@@ -127,10 +140,12 @@ export function BrandStep(p: BriefStepProps) {
             error={error("slogan")}
           />
           <Suggestions items={sloganSuggestions(p.brief, t)} value={p.brief.slogan} onPick={(text) => p.update({ slogan: text })} defaultOpen={false} />
+            </>
+          )}
         </>
       ) : (
         <Button variant="ghost" className="-ml-3" onClick={() => setExtra(true)}>
-          {t("wizard.c01.add")}
+          {t(h("slogan") ? "wizard.c01.addText" : h("logoText") ? "wizard.c01.addSlogan" : "wizard.c01.add")}
         </Button>
       )}
     </div>
@@ -141,6 +156,7 @@ export function BrandStep(p: BriefStepProps) {
 export function BusinessStep(p: BriefStepProps) {
   const { t, locale } = useI18n();
   const error = useError(p);
+  const h = (k: string) => p.hidden?.has(k) ?? false;
   return (
     <div className="space-y-5">
       <SelectField
@@ -172,6 +188,8 @@ export function BusinessStep(p: BriefStepProps) {
           p.touch("businessDescription");
         }}
       />
+      {!h("targetAudience") && (
+        <>
       <TextAreaField
         label={t("wizard.c02.audienceLabel")}
         hint={t("wizard.c02.audienceHint")}
@@ -191,6 +209,8 @@ export function BusinessStep(p: BriefStepProps) {
           p.touch("targetAudience");
         }}
       />
+        </>
+      )}
     </div>
   );
 }
@@ -293,6 +313,7 @@ const SUGGESTED = ["#0f766e", "#1d4ed8", "#dc2626", "#f59e0b", "#16a34a", "#7c3a
 export function ColorsStep(p: BriefStepProps) {
   const { t } = useI18n();
   const error = useError(p);
+  const h = (k: string) => p.hidden?.has(k) ?? false;
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState("#0f766e");
   const valid = /^#[0-9a-f]{6}$/i.test(draft);
@@ -317,6 +338,8 @@ export function ColorsStep(p: BriefStepProps) {
 
   return (
     <div className="space-y-8">
+      {!h("colors") && (
+        <>
       <div>
         <div className={cx("flex flex-wrap gap-3", p.brief.letDesignersChoose && "pointer-events-none opacity-40")}>
           {Array.from({ length: MAX_COLORS }, (_, i) => {
@@ -358,7 +381,11 @@ export function ColorsStep(p: BriefStepProps) {
           </p>
         )}
       </div>
+        </>
+      )}
 
+      {!h("usedOn") && (
+        <>
       <fieldset>
         <legend className="mb-1 text-base font-semibold text-ink">{t("wizard.c05.usedOnTitle")}</legend>
         <div className="grid sm:grid-cols-2 sm:gap-x-6">
@@ -374,7 +401,11 @@ export function ColorsStep(p: BriefStepProps) {
           ))}
         </div>
       </fieldset>
+        </>
+      )}
 
+      {!h("deliverables") && (
+        <>
       {/* What you need (owner, 2026-10-08): always-included items, then extras to tick */}
       <fieldset>
         <legend className="text-base font-semibold text-ink">{t("wizard.c05.needTitle")}</legend>
@@ -406,6 +437,8 @@ export function ColorsStep(p: BriefStepProps) {
           })}
         </div>
       </fieldset>
+        </>
+      )}
 
       <Modal
         open={editing !== null}
@@ -466,11 +499,14 @@ export function ColorsStep(p: BriefStepProps) {
 export function RequirementsStep(p: BriefStepProps) {
   const { t, locale } = useI18n();
   const error = useError(p);
+  const h = (k: string) => p.hidden?.has(k) ?? false;
   return (
     <div className="space-y-5">
       {/* Requirements (owner, 2026-10-08): always-on rules, then ones the client can add */}
       <fieldset>
         <legend className="sr-only">{t("wizard.c06.requirementsTitle")}</legend>
+        {!h("requirements") && (
+          <>
         <AlwaysList title={t("wizard.c06.alwaysTitle")} items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi")]} />
         <div className="mt-2">
           {REQUIREMENTS.map((r) => (
@@ -482,6 +518,10 @@ export function RequirementsStep(p: BriefStepProps) {
             />
           ))}
         </div>
+          </>
+        )}
+        {!h("requirementsNote") && (
+          <>
         <TextAreaField
           className="mt-2"
           label={t("wizard.c06.noteLabel")}
@@ -497,6 +537,8 @@ export function RequirementsStep(p: BriefStepProps) {
         <div className="mt-2">
           <Suggestions items={requirementSuggestions(p.brief, t)} value={p.brief.requirementsNote} onPick={(text) => p.update({ requirementsNote: text })} defaultOpen={false} />
         </div>
+          </>
+        )}
       </fieldset>
     </div>
   );

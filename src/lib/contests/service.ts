@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { PaymentGateway, PaymentMethod } from "@/lib/payments/gateway";
 import { cleanAnswers, isLogo, LIMITS as SERVICE_LIMITS, type Answers, type ServiceDef } from "@/lib/services/types";
 import { cleanBrief, emptyBrief, validateBrief, type Brief, type Order } from "./brief";
+import { checkExtraAnswers, EMPTY_ONBOARDING, type OnboardingConfig } from "@/lib/onboarding/config";
 import { calculatePrice, validateOrder, type PricingConfig } from "./pricing";
 
 export type ContestStatus =
@@ -46,7 +47,7 @@ export type PaymentRecord = {
   paidAt: Date | null;
 };
 
-export type DraftData = { brief: Brief; order: Order; amounts: Amounts; service?: string; serviceBrief?: Answers; finalTypes?: string[] };
+export type DraftData = { brief: Brief; order: Order; amounts: Amounts; service?: string; serviceBrief?: Answers; finalTypes?: string[]; /** Answers to the owner's own questions (Admin › Onboarding). */ extraAnswers?: Answers };
 
 /** A non-logo contest's service and the client's answers to its questions. */
 export type ServiceInput = { slug: string; answers: unknown };
@@ -94,13 +95,18 @@ export class ContestService {
       slug?: (brandName: string) => string;
       /** Looks up a contest service (Admin → Services); needed for non-logo contests. */
       serviceDef?: (slug: string) => Promise<ServiceDef | null>;
+      /** The client questions the owner hid or added (Admin › Onboarding, owner 2026-10-14). */
+      onboarding?: () => Promise<OnboardingConfig>;
     },
   ) {}
 
   private async prepare(brief: Brief, order: Order, svc?: ServiceInput | null): Promise<DraftData | "invalid_brief" | "invalid_order"> {
     if (svc && !isLogo(svc.slug)) return this.prepareService(brief, order, svc);
     const clean = cleanBrief(brief);
-    if (Object.keys(validateBrief(clean)).length > 0) return "invalid_brief";
+    const onboarding = (await this.deps.onboarding?.()) ?? EMPTY_ONBOARDING;
+    if (Object.keys(validateBrief(clean, new Set(onboarding.hidden))).length > 0) return "invalid_brief";
+    const extra = checkExtraAnswers(onboarding, brief.extra);
+    if (Object.keys(extra.errors).length > 0) return "invalid_brief";
     const cfg = await this.deps.pricing();
     if (validateOrder(order, cfg)) return "invalid_order";
     // Prices are always recomputed here from settings; nothing the browser sends is trusted.
@@ -110,9 +116,11 @@ export class ContestService {
       customPrize: order.package === "custom" ? order.customPrize : null,
     };
     return {
-      brief: clean,
+      brief: { ...clean, extra: extra.answers },
       order: cleanOrder,
       amounts: { prize: price.prize, serviceFee: price.serviceFee, upgrades: price.upgradesTotal, total: price.total },
+      // Only once the owner has questions, so drafts keep saving before migration 0056.
+      ...(onboarding.extra.length ? { extraAnswers: extra.answers } : {}),
     };
   }
 

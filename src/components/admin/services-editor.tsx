@@ -7,11 +7,11 @@ import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { moveService, saveService, setServiceOn } from "@/lib/services/admin-actions";
-import { ENTRY_FILE_TYPES, FIELD_TYPES, FINAL_FILE_TYPES, sizeText, type BriefField, type Lang, type ServiceDef } from "@/lib/services/types";
+import { ENTRY_FILE_TYPES, FINAL_FILE_TYPES, sizeText, type Lang, type ServiceDef } from "@/lib/services/types";
 import { ADM_INPUT } from "./ui";
+import { LangPair, QuestionFields } from "./question-fields";
 import { useReadOnly } from "./read-only";
 
-const AREA = "min-h-[88px] w-full rounded-[12px] border border-[#dcdee3] bg-surface px-3.5 py-2.5 text-[15px] text-ink focus:outline-2 focus:outline-offset-1 focus:outline-primary";
 const LABEL = "flex flex-col gap-1 text-[14px] font-bold text-ink";
 const empty = (): Lang => ({ en: "", bn: "" });
 
@@ -189,28 +189,12 @@ export function ServicesEditor({ services, ready }: { services: ServiceDef[]; re
   );
 }
 
-function LangPair({ label, value, onChange, long, max, disabled }: { label: string; value: Lang; onChange: (v: Lang) => void; long?: boolean; max: number; disabled: boolean }) {
-  const { t } = useI18n();
-  const Input = long ? "textarea" : "input";
-  return (
-    <fieldset className="m-0 grid gap-2 border-0 p-0 sm:grid-cols-2">
-      <legend className="mb-1 text-[14px] font-bold text-ink">{label}</legend>
-      {(["en", "bn"] as const).map((k) => (
-        <label key={k} className="flex flex-col gap-1 text-[13px] font-semibold text-muted">
-          {k === "en" ? t("admin.services.english") : t("admin.services.bangla")}
-          <Input value={value[k]} maxLength={max} disabled={disabled} lang={k} onChange={(e) => onChange({ ...value, [k]: e.target.value })} className={long ? AREA : ADM_INPUT} />
-        </label>
-      ))}
-    </fieldset>
-  );
-}
 
 function ServiceForm({ initial, isNew, readOnly, busy, onClose, onSave }: { initial: ServiceDef; isNew: boolean; readOnly: boolean; busy: boolean; onClose: () => void; onSave: (v: ServiceDef) => void }) {
   const { t } = useI18n();
   const [s, setS] = useState<ServiceDef>(initial);
   const set = <K extends keyof ServiceDef>(k: K, v: ServiceDef[K]) => setS((x) => ({ ...x, [k]: v }));
   const toggle = <T extends string>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const setField = (i: number, f: Partial<BriefField>) => set("fields", s.fields.map((x, j) => (j === i ? { ...x, ...f } : x)));
   const num = (k: "width" | "height" | "maxImages" | "maxMb" | "defaultPrize" | "minPrize" | "defaultDays", label: string) => (
     <label className={LABEL}>
       {label}
@@ -286,62 +270,7 @@ function ServiceForm({ initial, isNew, readOnly, busy, onClose, onSave }: { init
           <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
             <legend className="mb-1 text-[14px] font-bold text-ink">{t("admin.services.fields")}</legend>
             <p className="m-0 text-[13px] text-muted">{t("admin.services.fieldsHint")}</p>
-            {s.fields.map((f, i) => (
-              <div key={i} className="flex flex-col gap-2.5 rounded-[14px] bg-[#F7F8FA] p-3.5">
-                <div className="grid gap-2.5 sm:grid-cols-[1fr_1fr_auto_auto]">
-                  <label className={LABEL}>
-                    {t("admin.services.fieldKey")}
-                    <input value={f.key} maxLength={30} disabled={readOnly} onChange={(e) => setField(i, { key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} className={ADM_INPUT} />
-                  </label>
-                  <label className={LABEL}>
-                    {t("admin.services.fieldType")}
-                    <select value={f.type} disabled={readOnly} onChange={(e) => setField(i, { type: e.target.value as BriefField["type"] })} className={ADM_INPUT}>
-                      {FIELD_TYPES.map((ft) => (
-                        <option key={ft} value={ft}>
-                          {t(`admin.services.types.${ft}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-2 self-end pb-3 text-[14px] font-bold">
-                    <input type="checkbox" checked={f.required} disabled={readOnly} onChange={(e) => setField(i, { required: e.target.checked })} className="size-[18px] accent-[#8B0000]" />
-                    {t("admin.services.required")}
-                  </label>
-                  <button type="button" disabled={readOnly} onClick={() => set("fields", s.fields.filter((_, j) => j !== i))} className="self-end pb-3 text-[14px] font-bold text-[#A3121B] disabled:opacity-40">
-                    {t("admin.services.removeField")}
-                  </button>
-                </div>
-                <LangPair label={t("admin.services.fieldLabel")} value={f.label} onChange={(v) => setField(i, { label: v })} max={80} disabled={readOnly} />
-                <LangPair label={t("admin.services.fieldHelp")} value={f.help} onChange={(v) => setField(i, { help: v })} max={200} disabled={readOnly} />
-                {(f.type === "text" || f.type === "long_text") && (
-                  <label className={LABEL}>
-                    {t("admin.services.suggestions")}
-                    <textarea
-                      value={(f.suggestions ?? []).map((o) => `${o.en} | ${o.bn}`).join("\n")}
-                      disabled={readOnly}
-                      onChange={(e) => setField(i, { suggestions: e.target.value.split("\n").map((line) => { const [en, bn] = line.split("|"); return { en: (en ?? "").trim(), bn: (bn ?? en ?? "").trim() }; }) })}
-                      className={AREA}
-                    />
-                    <span className="text-[13px] font-medium text-muted">{t("admin.services.suggestionsHint")}</span>
-                  </label>
-                )}
-                {(f.type === "choice" || f.type === "multi_choice") && (
-                  <label className={LABEL}>
-                    {t("admin.services.options")}
-                    <textarea
-                      value={f.options.map((o) => `${o.en} | ${o.bn}`).join("\n")}
-                      disabled={readOnly}
-                      onChange={(e) => setField(i, { options: e.target.value.split("\n").map((line) => { const [en, bn] = line.split("|"); return { en: (en ?? "").trim(), bn: (bn ?? en ?? "").trim() }; }) })}
-                      className={AREA}
-                    />
-                    <span className="text-[13px] font-medium text-muted">{t("admin.services.optionsHint")}</span>
-                  </label>
-                )}
-              </div>
-            ))}
-            <button type="button" disabled={readOnly || s.fields.length >= 15} onClick={() => set("fields", [...s.fields, { key: `field_${s.fields.length + 1}`, type: "text", label: empty(), help: empty(), required: false, options: [] }])} className="self-start rounded-[10px] border border-dashed border-[#B9BCC4] px-4 py-2.5 text-[14.5px] font-bold disabled:opacity-40">
-              {t("admin.services.addField")}
-            </button>
+            <QuestionFields fields={s.fields} onChange={(fields) => set("fields", fields)} readOnly={readOnly} />
           </fieldset>
         )}
 

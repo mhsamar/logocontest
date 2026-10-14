@@ -18,6 +18,7 @@ import { formatNumber, formatTaka } from "@/lib/money";
 import { requirePermission } from "@/lib/admin/core";
 import { showMobile } from "@/lib/payments/manual-rules";
 import { formatMobile } from "@/lib/phone";
+import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -37,6 +38,8 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const unpaid = UNPAID.includes(c.status);
   const keepDays = (await getSettings(["trash.keep_days"]))["trash.keep_days"];
   const inTrash = c.trash;
+  // The client's answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14).
+  const answers = answerLines(await getOnboarding("client"), await contestExtraAnswers(c.id), locale);
   const taka = (n: number) => formatTaka(n, locale);
   const when = (d: Date | null) => (d ? d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "—");
   const active = c.entriesList.filter((e) => e.status === "active");
@@ -205,6 +208,20 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
           )}
         </section>
       </div>
+
+      {answers.length > 0 && (
+        <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
+          <h2 className="font-semibold text-ink">{t("admin.onboarding.answers")}</h2>
+          <dl className="m-0 mt-3 space-y-2.5 text-sm">
+            {answers.map((x) => (
+              <div key={x.label}>
+                <dt className="text-muted">{x.label}</dt>
+                <dd className="m-0 whitespace-pre-line font-semibold text-ink">{x.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {client && <ClientPanel client={client} slug={c.slug} me={me} t={t} locale={locale} />}
     </div>

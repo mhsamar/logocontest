@@ -10,6 +10,8 @@ import {
 } from "./service";
 
 type ContestRow = {
+  /** Migration 0056. */
+  extra_answers?: Record<string, string | string[]> | null;
   id: string;
   client_id: string;
   slug: string;
@@ -95,6 +97,7 @@ export function toContestRecord(r: ContestRow): ContestRecord {
       dislikes: r.dislikes_text ?? "",
       requirements: r.requirements ?? [],
       requirementsNote: r.requirements_note ?? "",
+      ...(r.extra_answers && Object.keys(r.extra_answers).length ? { extra: r.extra_answers } : {}),
     },
     order: {
       package: r.package,
@@ -146,8 +149,10 @@ export function briefDetailColumns(brief: Brief) {
   };
 }
 
-function columns({ brief, order, amounts, service, serviceBrief, finalTypes }: DraftData) {
+function columns({ brief, order, amounts, service, serviceBrief, finalTypes, extraAnswers }: DraftData) {
   return {
+    // Answers to the owner's own questions (migration 0056), only once there are any.
+    ...(extraAnswers ? { extra_answers: extraAnswers } : {}),
     // Only non-logo contests write these (migration 0045), so logo drafts keep working without it.
     ...(service && service !== "logo" ? { service, service_brief: serviceBrief ?? {}, final_types: finalTypes ?? null } : {}),
     brand_name: brief.brandName,

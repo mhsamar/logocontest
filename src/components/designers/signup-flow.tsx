@@ -21,6 +21,10 @@ import { suggestUsername, USERNAME_MAX, type PayoutInput } from "@/lib/designers
 import { useI18n } from "@/lib/i18n/client";
 import { Suggestions } from "@/components/wizard/suggestions";
 import { subscribeToPush } from "@/lib/push/client";
+import { FieldInput } from "@/components/services/field-input";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { checkExtraAnswers, EMPTY_ONBOARDING, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
+import type { Answers, Lang } from "@/lib/services/types";
 
 const TOTAL = 4;
 
@@ -29,6 +33,8 @@ type Form = {
   mobile: string;
   country: string;
   whatsapp: boolean;
+  /** Answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14). */
+  answers: Answers;
   email: string;
   password: string;
   username: string;
@@ -48,6 +54,7 @@ const EMPTY: Form = {
   mobile: "",
   country: "BD",
   whatsapp: false,
+  answers: {},
   email: "",
   password: "",
   username: "",
@@ -65,8 +72,33 @@ const EMPTY: Form = {
 type UsernameState = { status: "idle" | "checking" | "ok" | "error"; message?: string };
 
 /** D-01 designer sign-up: four short steps (UI-JOURNEY). */
-export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: number; bioMax: number }) {
+export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONBOARDING }: { passwordMin: number; bioMax: number; onboarding?: OnboardingConfig }) {
   const { t, locale } = useI18n();
+  const [extraErrors, setExtraErrors] = useState<Record<string, string>>({});
+  const hidden = (k: string) => onboarding.hidden.includes(k);
+  const lang = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en || x.bn);
+  // The owner's own questions on a step, under the step's own fields.
+  const extraFields = (n: number) => {
+    const qs = extraOn(onboarding, n);
+    if (!qs.length) return null;
+    return (
+      <div className="space-y-4">
+        {qs.map((q) => (
+          <FieldInput
+            key={q.key}
+            f={q}
+            l={lang}
+            value={form.answers[q.key]}
+            onChange={(v) => {
+              set("answers", { ...form.answers, [q.key]: v });
+              setExtraErrors((e) => ({ ...e, [q.key]: "" }));
+            }}
+            error={extraErrors[q.key] ? t(`services.wizard.errors.${extraErrors[q.key]}` as MessageKey) : undefined}
+          />
+        ))}
+      </div>
+    );
+  };
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(EMPTY);
@@ -131,13 +163,17 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
       });
       return;
     }
+    // The owner's own questions on this step are checked here first.
+    const missing = checkExtraAnswers(onboarding, form.answers, [step]).errors;
+    setExtraErrors(missing);
+    if (Object.keys(missing).length) return;
     start(async () => {
       const r =
         step === 1
-          ? await checkDesignerBasics({ name: form.name, mobile: form.mobile, country: form.country })
+          ? await checkDesignerBasics({ name: form.name, mobile: form.mobile, country: form.country, answers: form.answers })
           : step === 2
             ? await checkDesignerLogin({ email: form.email, password: form.password })
-            : await checkDesignerProfile({ username: form.username, bio: form.bio });
+            : await checkDesignerProfile({ username: form.username, bio: form.bio, answers: form.answers });
       setResult(r);
       if (r.ok) setStep((s) => s + 1);
     });
@@ -185,7 +221,8 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
             onChange={(e) => set("mobile", e.target.value)}
             error={fieldError("mobile")}
           />
-          <Checkbox label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={form.whatsapp} onChange={(e) => set("whatsapp", e.target.checked)} />
+          {!hidden("whatsapp") && <Checkbox label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={form.whatsapp} onChange={(e) => set("whatsapp", e.target.checked)} />}
+          {extraFields(1)}
         </div>
       )}
 
@@ -242,6 +279,8 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
               </p>
             )}
           </div>
+          {!hidden("bio") && (
+            <>
           <TextAreaField
             label={t("designerSignup.bio.label")}
             hint={t("designerSignup.bio.hint")}
@@ -259,6 +298,9 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
             onPick={(text) => set("bio", text)}
             defaultOpen={false}
           />
+            </>
+          )}
+          {extraFields(3)}
         </div>
       )}
 

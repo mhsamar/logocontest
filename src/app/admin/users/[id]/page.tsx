@@ -20,6 +20,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { formatMobile } from "@/lib/phone";
+import { answerLines, designerOnboardingAnswers, getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -42,6 +43,8 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
   const { "trash.keep_days": keepDays, "security.impersonate_minutes": impersonateMinutes } = await getSettings(["trash.keep_days", "security.impersonate_minutes"]);
   const now = new Date();
   const openSessions = sessions.filter((x) => !x.endedAt);
+  // A designer's answers at sign-up to the owner's own questions (Admin › Onboarding, owner 2026-10-14).
+  const signupAnswers = u.role === "designer" ? answerLines(await getOnboarding("designer"), await designerOnboardingAnswers(u.id), locale) : [];
   // Logins, password and "Log in as" (owner, 2026-10-14): clients and designers only.
   const person = u.role !== "admin" && !u.trash;
   const canManage = Boolean(me && hasPermission(me, "users.manage"));
@@ -221,6 +224,20 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               </div>
             )}
           </AdmCard>
+
+          {signupAnswers.length > 0 && (
+            <AdmCard className="flex flex-col gap-2.5 p-[22px] text-[15px]">
+              <h2 className="m-0 text-[17px] font-semibold">{t("admin.onboarding.answers")}</h2>
+              <dl className="m-0 flex flex-col gap-2.5">
+                {signupAnswers.map((x) => (
+                  <div key={x.label}>
+                    <dt className="text-[14px] text-muted">{x.label}</dt>
+                    <dd className="m-0 whitespace-pre-line font-semibold">{x.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </AdmCard>
+          )}
 
           {/* Devices, password and "Log in as" (owner, 2026-10-14) */}
           {person && (

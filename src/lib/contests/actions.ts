@@ -75,6 +75,8 @@ const BriefShape = z.object({
   deliverables: z.array(z.enum(DELIVERABLES)).max(DELIVERABLES.length).default([]),
   requirements: z.array(z.enum(REQUIREMENTS)).max(REQUIREMENTS.length).default([]),
   requirementsNote: z.string().max(1500).default(""),
+  // Answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14).
+  extra: z.record(z.string().max(30), z.union([z.string().max(2000), z.array(z.string().max(100)).max(20)])).optional(),
 });
 
 const OrderShape = z.object({
@@ -101,8 +103,12 @@ function parse(brief: unknown, order: unknown): { brief: Brief; order: Order } |
 
 /** C-06: brief text can't carry contact details (BLUEPRINT §10). Names the field so the wizard shows it inline. */
 async function contactError(brief: Brief) {
-  const field = findBriefContact(brief, await blockedTerms());
-  return field ? { ok: false as const, error: { key: "wizard.errors.contact" as const, field } } : null;
+  const terms = await blockedTerms();
+  const field = findBriefContact(brief, terms);
+  if (field) return { ok: false as const, error: { key: "wizard.errors.contact" as const, field } };
+  // The owner's own questions (Admin › Onboarding): no contact details in written answers either.
+  const written = Object.values(brief.extra ?? {}).flatMap((v) => (Array.isArray(v) ? [] : [v]));
+  return written.some((x) => x && findContactDetails(x, terms)) ? err("services.wizard.contact") : null;
 }
 
 /** A non-logo contest's service and answers (owner, 2026-10-13); null for logo contests. */
