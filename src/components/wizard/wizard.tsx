@@ -1,9 +1,10 @@
 "use client";
 
-import { recordWizardStep } from "@/lib/wizard-tracking";
+import { recordWizardStep, saveWizardLead } from "@/lib/wizard-tracking";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
+import { PhoneField } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Stepper } from "@/components/ui/stepper";
@@ -31,6 +32,7 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadState, saveState, type ServerFile, type WizardState } from "./state";
+import { wizardVisitId } from "./visit-id";
 import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
@@ -53,16 +55,6 @@ export type WizardProps = {
   methods: PublicMethod[];
 };
 
-/** One id per browser tab visit, so a reload continues the same visit. */
-function wizardVisitId(): string {
-  try {
-    let id = sessionStorage.getItem("lc-wizard-visit");
-    if (!id) sessionStorage.setItem("lc-wizard-visit", (id = crypto.randomUUID()));
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
 
 const HEADINGS = ["c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09", "c10", "c11"] as const;
 const BUCKET = "contest-files";
@@ -80,7 +72,6 @@ export function Wizard(props: WizardProps) {
   const [accountError, setAccountError] = useState<{ field: "mobile" | "email"; message: string; taken: boolean } | null>(null);
   const [touchedAccount, setTouchedAccount] = useState(false);
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(props.user?.name ?? "");
   const [method, setMethod] = useState<string | null>(props.methods.length === 1 ? props.methods[0].key : null);
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
@@ -99,7 +90,9 @@ export function Wizard(props: WizardProps) {
     if (props.resume) {
       next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId };
     } else {
-      next = saved ?? initialState(defaultOrder(props.pricing));
+      // A new contest starts blank (owner, 2026-10-14). What this device kept is only reused while that contest isn't
+      // saved yet; a saved one is a draft on the server, opened from the dashboard instead.
+      next = saved && !saved.contestId ? saved : initialState(defaultOrder(props.pricing));
     }
     // A name typed on the home page always wins, so the client never types it twice.
     const heroName = props.prefillName.trim().slice(0, LIMITS.brandName.max);
@@ -109,7 +102,7 @@ export function Wizard(props: WizardProps) {
     setState(next);
     // Coming from the home page with a name: C-01 is already answered, start at C-02.
     const wanted = props.initialStep ?? (fromHero ? 2 : 1);
-    const first = firstReachable(wanted, next, steps, props.pricing);
+    const first = firstReachable(wanted, next, steps, props.pricing, !props.user);
     setStep(first);
     // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry.
     window.history.replaceState({ step: first }, "", `?step=${first}`);
@@ -247,11 +240,12 @@ export function Wizard(props: WizardProps) {
   const serverErrorShown =
     serverError && CONTACT_CHECKED_FIELDS[serverError.field] === step && state.brief[serverError.field] === serverError.value;
   const briefErrors = serverErrorShown ? { [serverError.field]: serverError.key, ...stepErrors } : stepErrors;
-  const nameValid = name.trim().length >= 2;
   const uploading = uploads.some((u) => u.status === "uploading" || u.status === "waiting");
+  // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
+  const leadMobileOk = Boolean(props.user) || normalizeBdMobile(state.mobile) !== null;
   const valid =
     step <= 6
-      ? Object.keys(briefErrors).length === 0
+      ? Object.keys(briefErrors).length === 0 && (step !== 1 || leadMobileOk)
       : step === 7
         ? true
         : step === 8
@@ -260,13 +254,14 @@ export function Wizard(props: WizardProps) {
             ? normalizeBdMobile(state.mobile) !== null && normalizeEmail(state.email) !== null
             : step === 10
               ? password.length >= props.passwordMin
-              : nameValid && method !== null && terms && !uploading && !busy && price !== null && Boolean(state.contestId);
+              : method !== null && terms && !uploading && !busy && price !== null && Boolean(state.contestId);
 
   const index = steps.indexOf(step);
   const nextStep = fromReview && step < 11 ? 11 : steps[index + 1];
 
   const onNext = () => {
     if (!valid) return;
+    if (step === 1 && !props.user) void saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, brandName: state.brief.brandName, service: "logo" });
     if (step === 8 && props.user) {
       startBusy(async () => {
         const saved = await persistDraft(state);
@@ -324,7 +319,7 @@ export function Wizard(props: WizardProps) {
     if (step === 11) {
       startBusy(async () => {
         void recordWizardStep(wizardVisitId(), 12, state.contestId);
-        const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, name, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
+        const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
         // On success the action redirects to the gateway, so we only get here on failure.
         if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
       });
@@ -431,6 +426,18 @@ export function Wizard(props: WizardProps) {
               )}
 
               {step === 1 && <BrandStep {...briefProps} />}
+              {step === 1 && !props.user && (
+                <div className="mt-6" data-lead-mobile>
+                  <PhoneField
+                    label={t("wizard.lead.label")}
+                    hint={t("wizard.lead.hint")}
+                    placeholder={t("auth.phone.placeholder")}
+                    value={state.mobile}
+                    onChange={(e) => setState((cur) => (cur ? { ...cur, mobile: e.target.value } : cur))}
+                    error={state.mobile.replace(/\D/g, "").length >= 11 && normalizeBdMobile(state.mobile) === null ? t("wizard.lead.error") : undefined}
+                  />
+                </div>
+              )}
               {step === 2 && <BusinessStep {...briefProps} />}
               {step === 3 && <WebsiteStep {...briefProps} />}
               {step === 4 && <StylesStep {...briefProps} />}
@@ -488,8 +495,6 @@ export function Wizard(props: WizardProps) {
                   order={state.order}
                   price={price}
                   feePercent={price?.feePercent ?? props.pricing.serviceFeePercent}
-                  name={name}
-                  onName={setName}
                   methods={props.methods}
                   method={method}
                   onMethod={setMethod}
@@ -540,10 +545,15 @@ function inlineField(e: { field?: ContactCheckedField }): ContactCheckedField | 
 }
 
 /** Never land past the first unfinished step (e.g. a stale ?step=11 link). */
-function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig): number {
+function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig, needMobile = false): number {
   for (const st of steps) {
     if (st >= wanted) return steps.includes(wanted) ? wanted : st;
-    const incomplete = st <= 6 ? Object.keys(validateBriefStep(st, s.brief)).length > 0 : st === 8 ? validateOrder(s.order, cfg) !== null : st === 9 || st === 10;
+    const incomplete =
+      st <= 6
+        ? Object.keys(validateBriefStep(st, s.brief)).length > 0 || (st === 1 && needMobile && normalizeBdMobile(s.mobile) === null)
+        : st === 8
+          ? validateOrder(s.order, cfg) !== null
+          : st === 9 || st === 10;
     if (incomplete) return st;
   }
   return steps[steps.length - 1];

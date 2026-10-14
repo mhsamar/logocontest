@@ -334,6 +334,14 @@ The form: title "Log in as a client" / "Log in as a designer", one field "Mobile
 - **Success** → `C-12`.
 - **Failed or cancelled:** "Payment didn't go through. Your contest is saved as a draft." Buttons **Try again** and **Go to dashboard**.
 
+### Wizard fixes (owner, 2026-10-14)
+
+- **Mobile number first:** a new client (not logged in) gives their mobile number on step 1, under the logo name ("So we can help you if you get stuck"). It is saved at once with the brand name and how far they got; Admin › Unpaid contests lists those who didn't sign up, with **Call**. The account step later shows the same number. Kept 90 days.
+- **A new contest starts blank:** what the browser kept is only reused while that contest isn't saved yet.
+- **Saved drafts open at Review and pay:** **Finish payment** (dashboard) and the My contests buttons open C-11; a logo brief that isn't complete opens at its first unfinished step.
+- **No "Your name" on Review and pay:** receipts use the profile name; paying never changes it.
+- **"N need your action"** (My contests) opens the one contest that needs action, or filters to them. A bKash payment waiting for approval doesn't count.
+
 ### C-11c Pay with bKash (owner, 2026-10-14)
 
 Chosen bKash Personal or Merchant at C-11 (or for an add-on or Pro): the amount and the bKash number with **Copy** buttons, three steps (open bKash, send exactly the amount with "Send Money" or "Payment", copy the TrxID), the admin's note, then the form: **Transaction ID** (required), **Your bKash number** and **Screenshot** (optional), **Send for approval**. After sending: "Your payment is successful. Your contest will be live soon. We will notify you." with "Waiting for approval" and the TrxID. Rejected: the reason, and the form again. Approved: "Payment approved" and a link to the contest. The contest card in the dashboard and My contests shows **Waiting for approval** and **View payment**.

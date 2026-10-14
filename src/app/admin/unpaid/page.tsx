@@ -8,6 +8,7 @@ import { AdmCard, AdmEmpty, KpiGrid, KpiTile, Pill } from "@/components/admin/ui
 import { dhakaStart, unpaidContests, type UnpaidContest } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
 import { dashboardStats } from "@/lib/admin/dashboard";
+import { wizardLeads } from "@/lib/admin/leads";
 import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
 import { siteOrigin } from "@/lib/email";
@@ -32,7 +33,7 @@ const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia
 export default async function AdminUnpaidPage() {
   const me = await requirePermission("unpaid.view");
   const canMessage = hasPermission(me, "messages.manage");
-  const [{ t, locale }, rows, stats, origin] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), siteOrigin()]);
+  const [{ t, locale }, rows, stats, origin, leads] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), siteOrigin(), wizardLeads()]);
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const now = new Date();
@@ -188,7 +189,34 @@ export default async function AdminUnpaidPage() {
           )}
         </div>
 
-        <AdmCard as="aside" className="flex min-w-0 flex-[1_1_300px] flex-col gap-3.5 p-5 sm:p-6 xl:sticky xl:top-[92px]">
+        <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4 xl:sticky xl:top-[92px]">
+        {/* New clients who left their mobile number on the first step (owner, 2026-10-14). */}
+        <AdmCard as="section" className="flex min-w-0 flex-col gap-3 p-5 sm:p-6" data-wizard-leads>
+          <div>
+            <h2 className="m-0 text-[19px] font-semibold tracking-[-0.02em]">{t("admin.unpaid.leads.title")}</h2>
+            <p className="m-0 mt-1 text-[14.5px] text-muted">{t("admin.unpaid.leads.lead")}</p>
+          </div>
+          {leads.length === 0 ? (
+            <p className="m-0 text-[15px] text-muted">{t("admin.unpaid.leads.empty")}</p>
+          ) : (
+            <ul className="m-0 flex list-none flex-col divide-y divide-adm-line p-0">
+              {leads.map((l) => (
+                <li key={l.mobile} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="flex min-w-0 flex-col">
+                    <strong className="truncate text-[15px]">{l.brand || "—"}</strong>
+                    <span className="text-[13.5px] text-muted">
+                      {formatBdMobile(l.mobile)} · {t("admin.unpaid.leads.stopped", { step: stepName(Math.min(l.step, STEPS)) })} · {when(l.updatedAt)}
+                    </span>
+                  </span>
+                  <a href={`tel:${l.mobile}`} className="inline-flex min-h-10 shrink-0 items-center rounded-[10px] border border-adm-line px-3 text-[14px] font-bold text-primary hover:border-primary">
+                    {t("admin.unpaid.leads.call")}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdmCard>
+        <AdmCard as="aside" className="flex min-w-0 flex-col gap-3.5 p-5 sm:p-6">
           <div>
             <h2 className="m-0 text-[19px] font-semibold tracking-[-0.02em]">{t("admin.unpaid.whereStop")}</h2>
             <p className="m-0 mt-1 text-[14.5px] text-muted">{t("admin.unpaid.whereStopLead")}</p>
@@ -208,6 +236,7 @@ export default async function AdminUnpaidPage() {
             </Link>
           )}
         </AdmCard>
+        </div>
       </div>
     </div>
   );

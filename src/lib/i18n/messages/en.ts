@@ -2060,6 +2060,13 @@ const en = {
       },
     },
     unpaid: {
+      leads: {
+        title: "Started without signing up",
+        lead: "New clients who gave their mobile number on the first step but didn't create an account. Call them to help.",
+        empty: "No one yet.",
+        stopped: "Stopped at: {step}",
+        call: "Call",
+      },
       title: "Unpaid contests",
       lead: "Clients who started a contest but have not paid. Call or message them to help them finish.",
       client: "Client",
@@ -3774,6 +3781,11 @@ const en = {
       added: "Added ✓",
       included: "Included with NDA",
       freeWithPrize: "Free with this prize",
+    },
+    lead: {
+      label: "Your mobile number",
+      hint: "So we can help you if you get stuck. We never share it.",
+      error: "Use a Bangladesh mobile number: 01XXXXXXXXX.",
     },
     c09: {
       heading: "Where should we send updates?",

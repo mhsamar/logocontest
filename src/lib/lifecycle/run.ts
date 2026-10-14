@@ -330,6 +330,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
       db.from("presence").delete().lt("updated_at", new Date(now.getTime() - day).toISOString()),
     ]);
     if (views.error) fail("page_views", "-", views.error.message);
+    // Wizard mobile numbers (owner, 2026-10-14) are kept 90 days. Before migration 0052 there is no table: ignored.
+    await db.from("wizard_leads").delete().lt("created_at", new Date(now.getTime() - 90 * day).toISOString());
     if (online.error) fail("presence", "-", online.error.message);
   }
 

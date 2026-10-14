@@ -32,13 +32,15 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     const service = await getService(draft.service);
     // A draft of a service that is now off can't be finished or paid (the server refuses it too).
     if (service && !service.on) return <ComingSoon service={service} />;
+    // A saved draft opens at "Review and pay" (owner, 2026-10-14: "Finish payment" went back to step 1). A service
+    // draft is only saved with a complete brief; a logo draft that isn't complete opens at its first unfinished step.
     if (service && !isLogo(service.slug))
-      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay");
+      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined);
   }
   if (draft || params.step !== undefined || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
-    return logoWizard(params, user);
+    return logoWizard(draft && params.step === undefined ? { ...params, step: "11" } : params, user);
   }
 
   return (
