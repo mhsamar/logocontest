@@ -12,7 +12,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { isProActive, priceQuote, type ProSettings } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription, getTrial } from "@/lib/pro/status";
+import { getSubscription, getTrial, pendingProPayment } from "@/lib/pro/status";
 import { StartTrialButton } from "@/components/pro/trial-buttons";
 import { trialEligibilityFor } from "@/lib/pro/trial";
 import { isTrialActive } from "@/lib/pro/trial-rules";
@@ -119,6 +119,7 @@ export default async function GoProPage() {
   const sub = designer ? await getSubscription(designer.id) : null;
   const pro = isProActive(sub);
   const forSale = ready && s.isForSale;
+  const pending = designer && !pro ? await pendingProPayment(designer.id) : null;
   // The 3-day free Pro Trial (owner, 2026-10-14): start it, see its end date, or see that it ended.
   const [trial, eligible] = designer ? await Promise.all([getTrial(designer.id), trialEligibilityFor(designer.id, designer.role)]) : [null, null];
   const onTrial = !pro && isTrialActive(trial);
@@ -140,6 +141,16 @@ export default async function GoProPage() {
           </span>
           <Link href="/dashboard/profile#subscription" className="pr-link">
             {t("pro.go.manage")}
+          </Link>
+        </div>
+      );
+    // Paid by bKash, waiting for approval (owner, 2026-10-14): no second Upgrade.
+    if (pending)
+      return (
+        <div className="gp-pro-on">
+          <span>{t("pro.go.pending")}</span>
+          <Link href={`/pay/pro/${pending}`} className="pr-link">
+            {t("pro.go.pendingLink")}
           </Link>
         </div>
       );

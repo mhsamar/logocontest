@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { priceQuote } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription, getTrial, isPro } from "@/lib/pro/status";
+import { getSubscription, getTrial, isPro, pendingProPayment } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trialEligibilityFor } from "@/lib/pro/trial";
 import { FloatingProCard } from "./floating-card";
@@ -16,7 +16,7 @@ export async function FloatingProCardSlot() {
   if (!user || user.role !== "designer" || user.status !== "active") return null;
   const { settings, ready } = await getProSettings();
   if (!ready || !settings.features.floating_card || (!settings.isForSale && !settings.freeTrialEnabled)) return null;
-  if (await isPro(user.id)) return null;
+  if ((await isPro(user.id)) || (await pendingProPayment(user.id))) return null;
   const [sub, eligible] = await Promise.all([getSubscription(user.id), trialEligibilityFor(user.id, user.role)]);
   if (!settings.isForSale && eligible !== "ok") return null;
   const [{ price }, { data: pref }] = await Promise.all([getI18n(), createAdminClient().from("pro_preferences").select("card_minimised").eq("designer_id", user.id).maybeSingle()]);

@@ -66,6 +66,8 @@ export async function prepareEntryImageUpload(input: { contestId: string; type: 
   // Pro early access (owner, 2026-10-13): not before the contest opens to this designer.
   if (!(await contestVisibleTo(contest.startsAt, user))) return fail("pro.errors.earlyAccess");
   if (!(await agreementOk(user!.id))) return fail("agreement.errors.required");
+  // A designer confirms their email before sending designs (owner, 2026-10-14).
+  if (user!.email && !user!.emailVerifiedAt) return fail("submit.errors.emailUnverified");
   const ext = ENTRY_IMAGE_TYPES[input.type];
   if (!ext) return fail("submit.errors.type");
   const rules = await serviceUploadRules(contest.id);
@@ -116,6 +118,8 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   // Pro early access (owner, 2026-10-13): not before the contest opens to this designer.
   if (!(await contestVisibleTo(contest.startsAt, user))) return fail("pro.errors.earlyAccess");
   if (!(await agreementOk(user!.id))) return fail("agreement.errors.required");
+  // A designer confirms their email before sending designs (owner, 2026-10-14).
+  if (user!.email && !user!.emailVerifiedAt) return fail("submit.errors.emailUnverified");
 
   const [minImages, siteMaxImages, px, previewPx, maxPerDesigner, rules] = await Promise.all([
     getSetting("limits.entry_min_images"),

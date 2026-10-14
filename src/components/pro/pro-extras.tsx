@@ -78,7 +78,7 @@ export function TitleForm({ initial }: { initial: string }) {
         <span>{t("pro.settings.title2")}</span>
         <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 60))} placeholder={t("pro.settings.titleHint")} />
       </label>
-      <button type="submit" className="pr-out sm" disabled={busy || title === initial}>
+      <button type="submit" className="pr-out pr-save sm" disabled={busy || title === initial}>
         {t("pro.settings.saveTitle")}
       </button>
     </form>

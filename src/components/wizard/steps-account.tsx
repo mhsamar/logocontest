@@ -27,6 +27,7 @@ export function AccountStep({
   return (
     <div className="space-y-5">
       <PhoneField
+        mark
         label={t("auth.phone.label")}
         hint={t("auth.phone.hint")}
         placeholder={t("auth.phone.placeholder")}
@@ -36,6 +37,7 @@ export function AccountStep({
         autoFocus
       />
       <TextField
+        mark
         label={t("wizard.c09.emailLabel")}
         hint={t("wizard.c09.emailHint")}
         type="email"

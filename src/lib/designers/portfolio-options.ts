@@ -6,7 +6,9 @@ export type ToolKey = (typeof TOOLS)[number];
 
 /** Free "other" entries are stored as-is; known ones as keys. */
 export const OTHER_MAX = 30;
-export const EXPERIENCE_MAX = 60;
+// Owner, 2026-10-14: at most 20 years of experience and 5 skills (the "other" skill counts as one).
+export const EXPERIENCE_MAX = 20;
+export const SKILLS_MAX = 5;
 
 export const isSkillKey = (v: string): v is SkillKey => (SKILLS as readonly string[]).includes(v);
 export const isToolKey = (v: string): v is ToolKey => (TOOLS as readonly string[]).includes(v);

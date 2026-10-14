@@ -5,20 +5,20 @@ import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
-import { EXPERIENCE_MAX, isLanguageKey, isSkillKey, isToolKey, LANGUAGES, OTHER_MAX, SKILL_LEVELS, SKILLS, TOOLS } from "@/lib/designers/portfolio-options";
+import { EXPERIENCE_MAX, isLanguageKey, isSkillKey, isToolKey, LANGUAGES, OTHER_MAX, SKILL_LEVELS, SKILLS, SKILLS_MAX, TOOLS } from "@/lib/designers/portfolio-options";
 import { useI18n } from "@/lib/i18n/client";
 import { savePortfolio, type SettingsState } from "@/lib/profile/actions";
 
 /** A tappable chip that is really a checkbox, so it works without JavaScript. */
-function Chip({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: (on: boolean) => void }) {
+function Chip({ name, value, label, checked, onChange, disabled = false }: { name: string; value: string; label: string; checked: boolean; onChange: (on: boolean) => void; disabled?: boolean }) {
   return (
     <label
       className={cx(
-        "inline-flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-full px-3.5 text-sm font-medium ring-1 transition-colors",
-        checked ? "bg-primary text-white ring-primary" : "bg-surface text-ink ring-line hover:ring-primary",
+        "inline-flex min-h-10 select-none items-center gap-1.5 rounded-full px-3.5 text-sm font-medium ring-1 transition-colors",
+        checked ? "cursor-pointer bg-primary text-white ring-primary" : disabled ? "cursor-not-allowed bg-surface text-muted opacity-50 ring-line" : "cursor-pointer bg-surface text-ink ring-line hover:ring-primary",
       )}
     >
-      <input type="checkbox" name={name} value={value} checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+      <input type="checkbox" name={name} value={value} checked={checked} disabled={disabled && !checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
       {checked && (
         <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
           <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -53,6 +53,9 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
   const [otherSkill, setOtherSkill] = useState(otherSkillStart);
   const [otherTool, setOtherTool] = useState(otherToolStart);
   const otherLanguage = (extras?.languages ?? []).find((l) => !isLanguageKey(l)) ?? "";
+  // At most SKILLS_MAX skills, the "other" one included (owner, 2026-10-14).
+  const skillCount = pickedSkills.size + (otherSkill.trim() ? 1 : 0);
+  const skillsFull = skillCount >= SKILLS_MAX;
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, k: string, on: boolean) => {
     const next = new Set(set);
     if (on) next.add(k);
@@ -89,11 +92,17 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
 
       <fieldset>
         <legend className="text-sm font-medium text-ink">{t("portfolio.skillsTitle")}</legend>
+        <p className={cx("m-0 mt-0.5 text-sm", skillsFull ? "font-semibold text-primary" : "text-muted")}>{t("portfolio.skillsHint", { max: SKILLS_MAX, n: skillCount })}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {SKILLS.map((k) => (
-            <Chip key={k} name="skills" value={k} label={t(`portfolio.skills.${k}`)} checked={pickedSkills.has(k)} onChange={(on) => toggle(pickedSkills, setPickedSkills, k, on)} />
+            <Chip key={k} name="skills" value={k} label={t(`portfolio.skills.${k}`)} checked={pickedSkills.has(k)} disabled={skillsFull} onChange={(on) => toggle(pickedSkills, setPickedSkills, k, on)} />
           ))}
         </div>
+        {err("skills") && (
+          <p role="alert" className="m-0 mt-2 text-sm text-danger">
+            {err("skills")}
+          </p>
+        )}
         <div className="mt-3 max-w-sm">
           <TextField
             name="otherSkill"

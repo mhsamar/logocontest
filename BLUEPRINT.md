@@ -427,6 +427,15 @@ Available balance, pending (won but not yet approved), current fee rate with pro
 
 Client and designer names: letters only (English or Bangla, with their marks) and single spaces; no digits or signs like . / , (sign-up and Profile). A new client's name comes from the brand name without its digits and signs ("Client" when nothing is left).
 
+### Accounts: real emails, confirmed email, right login page (owner, 2026-10-14)
+
+- **Real emails only** (sign-up and Change email): made-up addresses are refused (too short for Gmail/Yahoo/Outlook, e.g. `de@gmail.com`; placeholders like `xyz@`, `test@`, `example.com`), common misspellings get "Did you mean …?", and **temporary inboxes** are refused: a built-in list of temp-mail sites, the domains in Admin › Settings › `auth.blocked_email_domains`, and any unknown domain that takes mail but has no website (how temp-mail domains like backyr.com look). `auth.allowed_email_domains` always lets a domain through. A DNS look-up that fails never blocks anyone.
+- **Designers confirm their email before sending a design** (the submit page says so and links to Confirm my email; the server refuses too).
+- **Logging in on the wrong page:** a client account on "Log in as a designer" (or the other way round) is told "This is a client account" and is not signed in, with a link to the right login page. Only after the password was right, so it never reveals which accounts exist.
+- **Portfolio:** experience 0–20 years; up to 5 skills (the "other" skill counts).
+- **Pro bought, waiting for approval:** no Go Pro card or Upgrade button; the Pro page says the payment is being checked and links to it, and Pro checkout opens that payment instead of a second one.
+- Plain Save buttons in Settings are green; email and mobile fields show a red *.
+
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 
 - **Before sending:** Send opens Upload → Check → Send for the cover image. "Check originality" runs the existing Logo Checker on the exact uploaded file and uses one of the designer's monthly checks (Basic 2, Pro 100, shared with their own Logo Checker checks; they start again on the 1st, Bangladesh time). The designer can skip ("Not checked"). High → "Upload a new version" or "Send anyway". Logo contests only.

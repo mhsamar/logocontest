@@ -46,6 +46,8 @@ const proBn: Messages["pro"] = {
     offerLine: "প্রথম মাস {amount}, তারপর মাসে {price}",
     offerAllLine: "এই মাসে {amount}, তারপর মাসে {price}",
     trialLine: "{days} দিন ফ্রি, তারপর মাসে {price}",
+    pending: "আপনার প্রো পেমেন্ট যাচাই করা হচ্ছে। অনুমোদন হলেই প্রো চালু হবে।",
+    pendingLink: "পেমেন্ট দেখুন",
     youArePro: "আপনি Pro",
     manage: "প্ল্যান দেখুন",
     proUntil: "{date} পর্যন্ত Pro",

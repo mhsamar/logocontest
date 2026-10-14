@@ -17,6 +17,8 @@ export type AuthFormState = {
   resendAfter?: number;
   /** Changes on every successful code request, so the client can restart its timer. */
   sentAt?: number;
+  /** Logged in on the other role's page (owner, 2026-10-14): the account's real role, for the "Log in as" link. */
+  wrongRole?: "client" | "designer";
 };
 
 export const fail = (key: MessageKey, field?: AuthFormState["field"], params?: MessageParams): AuthFormState => ({

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
+import { emailRejection } from "@/lib/auth/email-check";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { clientIp } from "@/lib/auth/services";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -49,6 +50,9 @@ export async function checkDesignerLogin(input: { email: string; password: strin
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const email = normalizeEmail(input.email);
   if (!email) return fail("wizard.errors.email", "email");
+  // Real emails only, no temporary inboxes (owner, 2026-10-14).
+  const rejected = await emailRejection(email);
+  if (rejected) return fail(rejected.key, "email", rejected.params);
   if (await findProfileByEmail(email)) return fail("wizard.errors.emailTaken", "email");
   const tooShort = await passwordError(input.password);
   if (tooShort?.error) return { ok: false, field: "password", error: tooShort.error };

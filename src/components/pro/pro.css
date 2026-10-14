@@ -121,6 +121,19 @@
 .pr-out:hover {
   border-color: #0f1014;
 }
+/* Save buttons in Settings are green (owner, 2026-10-14). */
+.pr-out.pr-save {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: #fff;
+}
+.pr-out.pr-save:hover {
+  filter: brightness(1.1);
+}
+.pr-out.pr-save:disabled {
+  opacity: 0.5;
+  filter: none;
+}
 .pr-btn.sm,
 .pr-out.sm {
   min-height: 42px;

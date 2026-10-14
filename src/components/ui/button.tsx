@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cx } from "@/lib/cx";
 import { Spinner } from "./spinner";
 
-type Variant = "primary" | "secondary" | "outline" | "dark" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "outline" | "dark" | "ghost" | "danger" | "success";
 type Size = "md" | "lg" | "xl";
 
 // Buttons from the site design (owner, 2026-10-10; UI-JOURNEY §1): red gradient with a glossy press
@@ -14,6 +14,8 @@ const VARIANTS: Record<Variant, string> = {
   dark: "bg-ink text-white hover:bg-ink/85 disabled:opacity-50",
   ghost: "text-primary hover:bg-tint disabled:text-muted",
   danger: "border border-danger bg-surface text-danger hover:bg-danger/10 disabled:opacity-50",
+  // Save buttons in Settings (owner, 2026-10-14): green instead of plain white.
+  success: "bg-success text-white hover:brightness-110 disabled:opacity-50",
 };
 
 // Every size keeps a 44px+ touch target.
