@@ -6,8 +6,7 @@ import { passesNda } from "@/lib/contests/nda";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { suspendedError } from "@/lib/moderation/suspension";
 import { contestVisibleTo } from "@/lib/pro/limits";
-import { designerCheckUsage, type CheckUsage } from "@/lib/pro/logo-checks";
-import { dhakaMonth, logoCheckLimit } from "@/lib/pro/rules";
+import { checkWindowFor, designerCheckUsage, type CheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
 import { isPro } from "@/lib/pro/status";
 import { getFileStorage } from "@/lib/storage";
@@ -40,7 +39,7 @@ async function sendableContest(contestId: string, user: CurrentUser) {
 }
 
 export async function startEntryCheck(user: CurrentUser, input: { contestId: string; requestKey: string; path: string }): Promise<{ ok: true; id: string; reportId: string } | { ok: false; error: EntryCheckError }> {
-  const { settings, ready } = await getProSettings();
+  const { ready } = await getProSettings();
   if (!ready || !checkerReady()) return { ok: false, error: "not_set_up" };
   if (suspendedError(user)) return { ok: false, error: "suspended" };
   if (!can(user, "entry.submit")) return { ok: false, error: "invalid" };
@@ -66,8 +65,8 @@ export async function startEntryCheck(user: CurrentUser, input: { contestId: str
   const id = randomUUID();
   const imagePath = `${id}/logo.png`;
   await store.upload(LOGO_CHECKS_BUCKET, imagePath, png, "image/png");
-  const m = dhakaMonth();
-  const limit = logoCheckLimit(await isPro(user.id), settings);
+  // The month (Pro, Basic) or the whole free trial (owner, 2026-10-14).
+  const w = await checkWindowFor(user.id);
   // A report ID clash is very unlikely (32^8); try again once with a new one.
   for (let attempt = 0; attempt < 2; attempt++) {
     const { data, error } = await db().rpc("start_entry_logo_check", {
@@ -78,10 +77,10 @@ export async function startEntryCheck(user: CurrentUser, input: { contestId: str
       p_image_path: imagePath,
       p_report_id: reportIdFrom(randomBytes(8)),
       p_sha256: sha,
-      p_month: m.key,
-      p_from: m.from.toISOString(),
-      p_to: m.to.toISOString(),
-      p_limit: limit,
+      p_month: w.monthKey,
+      p_from: w.from.toISOString(),
+      p_to: w.to.toISOString(),
+      p_limit: w.limit,
     });
     const started = data as { id: string; report_id: string } | null;
     if (!error && started?.id) {
@@ -108,7 +107,7 @@ export type EntryCheckState = {
   error: string | null;
   /** No runner holds an unfinished check (a poll starts it again). */
   stale: boolean;
-  usage: Pick<CheckUsage, "pro" | "used" | "limit" | "left"> & { resetsOn: string };
+  usage: Pick<CheckUsage, "pro" | "trial" | "used" | "limit" | "left"> & { resetsOn: string };
 };
 
 /** The send pop-up follows its check every 2 seconds: only the designer who started it sees it. */
@@ -129,7 +128,7 @@ export async function entryCheckState(id: string, user: CurrentUser): Promise<En
     results: (r.results as ClosestResult[] | null) ?? [],
     error: (r.error as string | null) ?? null,
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < now && now - new Date(r.created_at as string).getTime() > 15_000,
-    usage: { pro: usage.pro, used: usage.used, limit: usage.limit, left: usage.left, resetsOn: usage.resetsOn.toISOString() },
+    usage: { pro: usage.pro, trial: usage.trial, used: usage.used, limit: usage.limit, left: usage.left, resetsOn: usage.resetsOn.toISOString() },
   };
 }
 
@@ -265,7 +264,7 @@ export async function sendCheckSetup(user: CurrentUser): Promise<{ ready: boolea
   const [{ settings, ready }, usage] = await Promise.all([getProSettings(), designerCheckUsage(user.id)]);
   return {
     ready: ready && checkerReady(),
-    usage: { pro: usage.pro, used: usage.used, limit: usage.limit, left: usage.left, resetsOn: usage.resetsOn.toISOString() },
+    usage: { pro: usage.pro, trial: usage.trial, used: usage.used, limit: usage.limit, left: usage.left, resetsOn: usage.resetsOn.toISOString() },
     priceBdt: settings.priceBdt,
     proForSale: ready && settings.isForSale,
   };

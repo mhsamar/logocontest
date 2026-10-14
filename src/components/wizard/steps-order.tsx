@@ -340,7 +340,8 @@ export function PackageStep({
       <fieldset>
         <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c08.upgradesTitle")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {UPGRADES.map((u) => {
+          {/* The AI logo checker is free on every logo contest (owner, 2026-10-14): not an add-on any more. */}
+          {UPGRADES.filter((u) => u !== "logo_scan").map((u) => {
             const on = active[u];
             const included = includedByNda(order, u);
             // The AI copyright checker comes with bigger prizes: shown as included, nothing to switch (owner, 2026-10-10).

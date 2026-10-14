@@ -88,20 +88,61 @@ export async function portfolioCount(designerId: string): Promise<number> {
   return count ?? 0;
 }
 
-export type Invitation = { contest: MiniContest; joined: boolean; createdAt: string };
+export type InviteStatus = "pending" | "accepted" | "declined";
+/** The brief the invited designer may read (owner, 2026-10-14); null for an NDA contest (sign it on the contest page). */
+export type InviteBrief = { description: string; logoText: string | null; slogan: string | null; likes: string | null; dislikes: string | null } | null;
+export type Invitation = { contest: MiniContest; joined: boolean; createdAt: string; status: InviteStatus; respondedAt: string | null; isNda: boolean; brief: InviteBrief };
 
-/** Contests a client invited this designer to that are still open. */
+/**
+ * Contests a client invited this designer to that are still open (owner, 2026-10-14): with the brief, the prize, the
+ * deadline and the client's requirements, and whether the designer accepted or declined. Removed ones are left out.
+ */
 export async function myInvitations(designerId: string): Promise<Invitation[]> {
   const { ready } = await getProSettings();
   if (!ready) return [];
-  const { data } = await db().from("contest_invites").select("contest_id, created_at, notified_at").eq("designer_id", designerId).not("notified_at", "is", null).order("created_at", { ascending: false }).limit(30);
+  const { data } = await db()
+    .from("contest_invites")
+    .select("contest_id, created_at, notified_at, status, responded_at")
+    .eq("designer_id", designerId)
+    .not("notified_at", "is", null)
+    .neq("status", "removed")
+    .order("created_at", { ascending: false })
+    .limit(30);
   const ids = (data ?? []).map((r) => r.contest_id as string);
   const contests = (await contestsByIdsMini(ids)).filter((c) => c.status === "open");
   if (!contests.length) return [];
-  const { data: mine } = await db().from("entries").select("contest_id").eq("designer_id", designerId).in("contest_id", contests.map((c) => c.id));
+  const [{ data: mine }, { data: briefs }] = await Promise.all([
+    db().from("entries").select("contest_id").eq("designer_id", designerId).in("contest_id", contests.map((c) => c.id)),
+    db().from("contests").select("id, is_nda, business_description, logo_text, slogan, likes_text, dislikes_text").in("id", contests.map((c) => c.id)),
+  ]);
   const joined = new Set((mine ?? []).map((r) => r.contest_id as string));
-  const at = new Map((data ?? []).map((r) => [r.contest_id as string, r.created_at as string]));
-  return contests.map((c) => ({ contest: c, joined: joined.has(c.id), createdAt: at.get(c.id) ?? "" })).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const row = new Map((data ?? []).map((r) => [r.contest_id as string, r]));
+  const brief = new Map((briefs ?? []).map((b) => [b.id as string, b]));
+  return contests
+    .map((c) => {
+      const r = row.get(c.id);
+      const b = brief.get(c.id);
+      const nda = Boolean(b?.is_nda);
+      return {
+        contest: c,
+        joined: joined.has(c.id),
+        createdAt: (r?.created_at as string) ?? "",
+        status: (r?.status as InviteStatus) ?? "pending",
+        respondedAt: (r?.responded_at as string | null) ?? null,
+        isNda: nda,
+        brief:
+          b && !nda
+            ? {
+                description: (b.business_description as string) ?? "",
+                logoText: (b.logo_text as string | null) ?? null,
+                slogan: (b.slogan as string | null) ?? null,
+                likes: (b.likes_text as string | null) ?? null,
+                dislikes: (b.dislikes_text as string | null) ?? null,
+              }
+            : null,
+      };
+    })
+    .sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending") || (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 /** This week's numbers: profile views, design views, shortlisted designs sent this week, wins this week. */

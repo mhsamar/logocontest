@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
 import { setProCardMinimised } from "@/lib/pro/actions";
 import { Icon } from "./parts";
+import { StartTrialButton } from "./trial-buttons";
 import { proEvent, UpgradeLink } from "./upgrade-link";
 import "./floating-card.css";
 
@@ -13,7 +14,7 @@ import "./floating-card.css";
  * The Go Pro card (owner, 2026-10-13; Design/pro/go-pro-floating-card.html) on every page a Basic designer opens.
  * "–" folds it into a pill; the choice is saved for this designer (every device). Not on the Pro pages themselves.
  */
-export function FloatingProCard({ price, checks, minimised: initial }: { price: string; checks: number; minimised: boolean }) {
+export function FloatingProCard({ price, checks, minimised: initial, trialDays = null, forSale = true }: { price: string; checks: number; minimised: boolean; /** The free Pro Trial this designer can start (owner, 2026-10-14). */ trialDays?: number | null; forSale?: boolean }) {
   const { t, locale } = useI18n();
   const path = usePathname();
   const [min, setMin] = useState(initial);
@@ -40,10 +41,8 @@ export function FloatingProCard({ price, checks, minimised: initial }: { price: 
             <Icon name="crown" size={18} />
           </span>
           <span>
-            <b>{t("pro.card.pill")}</b>
-            <em>
-              {price} {t("pro.go.perMonth")}
-            </em>
+            <b>{trialDays ? t("pro.trial.cardTitle", { days: trialDays }) : t("pro.card.pill")}</b>
+            <em>{trialDays ? t("pro.trial.cardLead") : `${price} ${t("pro.go.perMonth")}`}</em>
           </span>
           <span className="go">
             <Icon name="arrow" size={16} />
@@ -80,10 +79,13 @@ export function FloatingProCard({ price, checks, minimised: initial }: { price: 
           <b>{price}</b>
           <span>{t("pro.go.perMonth")}</span>
         </div>
-        <UpgradeLink href="/pro/checkout" step="card" className="fc-up">
-          {t("pro.card.upgrade")}
-          <Icon name="arrow" />
-        </UpgradeLink>
+        {trialDays && <StartTrialButton days={trialDays} className="fc-up" />}
+        {forSale && (
+          <UpgradeLink href="/pro/checkout" step="card" className={trialDays ? "fc-more" : "fc-up"}>
+            {t("pro.card.upgrade")}
+            {!trialDays && <Icon name="arrow" />}
+          </UpgradeLink>
+        )}
         <Link href="/pro" className="fc-more">
           {t("pro.card.all")}
         </Link>
@@ -98,9 +100,13 @@ export function FloatingProCard({ price, checks, minimised: initial }: { price: 
             {price} {t("pro.go.perMonth")}
           </em>
         </Link>
-        <UpgradeLink href="/pro/checkout" step="bar" className="fc-bb">
-          {t("pro.card.phoneUpgrade")}
-        </UpgradeLink>
+        {trialDays ? (
+          <StartTrialButton days={trialDays} className="fc-bb" />
+        ) : (
+          <UpgradeLink href="/pro/checkout" step="bar" className="fc-bb">
+            {t("pro.card.phoneUpgrade")}
+          </UpgradeLink>
+        )}
         <button type="button" className="fc-min" onClick={() => fold(true)} aria-label={t("pro.card.minimise")}>
           <Icon name="x" size={14} />
         </button>

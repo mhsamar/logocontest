@@ -7,7 +7,9 @@ import { getPaymentGateway, paymentsAvailable } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isProActive, priceQuote } from "./rules";
 import { getProSettings } from "./settings";
-import { getSubscription } from "./status";
+import { getSubscription, getTrial, isPro, proKind } from "./status";
+import { cancelTrial, startTrial } from "./trial";
+import { portfolioLimit } from "./trial-rules";
 import { cancelPro, grantPro, logFunnel, logProActivity } from "./subscription";
 
 type Fail = { ok: false; error: MessageKey };
@@ -32,7 +34,8 @@ export async function startProCheckout(input: { method: "bkash" | "card"; promo?
   if (input.method !== "bkash" && input.method !== "card") return fail("pro.errors.generic");
 
   const sub = await getSubscription(user.id);
-  const quote = priceQuote(settings, { firstTime: !sub, promo: input.promo ?? null });
+  // Someone who had the free Pro Trial (owner, 2026-10-14) is not a first-time buyer.
+  const quote = priceQuote(settings, { firstTime: !sub && !(await getTrial(user.id)), promo: input.promo ?? null });
   if (input.promo && input.promo.trim() && quote.reason !== "promo") return fail("pro.errors.promo");
 
   if (quote.reason === "trial") {
@@ -105,7 +108,7 @@ export async function setProPreference(key: PrefKey, on: boolean): Promise<{ ok:
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
   if (!(PREF_KEYS as readonly string[]).includes(key) || typeof on !== "boolean") return fail("pro.errors.generic");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   const { error } = await createAdminClient().from("pro_preferences").upsert({ designer_id: user.id, [key]: on, updated_at: new Date().toISOString() }, { onConflict: "designer_id" });
   if (error) return fail("pro.errors.generic");
   refresh();
@@ -118,7 +121,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export async function setProPicks(input: { cover?: string[]; featured?: string[]; title?: string }): Promise<{ ok: true } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   const cover = input.cover ? [...new Set(input.cover.filter((x) => UUID.test(x)))].slice(0, 12) : undefined;
   const featured = input.featured ? [...new Set(input.featured.filter((x) => UUID.test(x)))].slice(0, 6) : undefined;
   const ids = [...(cover ?? []), ...(featured ?? [])];
@@ -142,7 +145,7 @@ export async function setProPicks(input: { cover?: string[]; featured?: string[]
 export async function setSavedReminder(contestId: string, on: boolean): Promise<{ ok: true } | Fail> {
   const user = await designer();
   if (!user || !UUID.test(contestId)) return fail("pro.errors.generic");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   const { error } = await createAdminClient().from("contest_favorites").update({ remind: on === true }).eq("user_id", user.id).eq("contest_id", contestId);
   if (error) return fail("pro.errors.generic");
   refresh();
@@ -153,7 +156,7 @@ export async function setSavedReminder(contestId: string, on: boolean): Promise<
 export async function setProAlertServices(services: string[]): Promise<{ ok: true } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   const list = [...new Set((Array.isArray(services) ? services : []).filter((x) => typeof x === "string" && /^[a-z][a-z0-9_]{1,39}$/.test(x)))].slice(0, 40);
   const { error } = await createAdminClient().from("pro_preferences").upsert({ designer_id: user.id, alert_services: list, updated_at: new Date().toISOString() }, { onConflict: "designer_id" });
   if (error) return fail("pro.errors.generic");
@@ -168,12 +171,12 @@ const PORTFOLIO_MAX = 10 * 1024 * 1024;
 export async function preparePortfolioUpload(input: { type: string; size: number }): Promise<{ ok: true; path: string; token: string } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   const ext = PORTFOLIO_TYPES[input.type];
   if (!ext || !(input.size > 0 && input.size <= PORTFOLIO_MAX)) return fail("pro.errors.generic");
   const { settings } = await getProSettings();
   const { count } = await createAdminClient().from("portfolio_items").select("id", { count: "exact", head: true }).eq("designer_id", user.id);
-  if ((count ?? 0) >= settings.proPortfolioLimit) return fail("pro.errors.slotsFull");
+  if ((count ?? 0) >= portfolioLimit((await proKind(user.id)) === "trial" ? "trial" : "pro", settings)) return fail("pro.errors.slotsFull");
   const { randomUUID } = await import("node:crypto");
   const path = `portfolio/${user.id}/${randomUUID()}.${ext}`;
   const { getFileStorage } = await import("@/lib/storage");
@@ -185,14 +188,14 @@ export async function preparePortfolioUpload(input: { type: string; size: number
 export async function addPortfolioItem(input: { path: string; title: string }): Promise<{ ok: true } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
-  if (!isProActive(await getSubscription(user.id))) return fail("pro.errors.proOnly");
+  if (!(await isPro(user.id))) return fail("pro.errors.proOnly");
   if (!new RegExp(`^portfolio/${user.id}/[0-9a-f-]{36}\\.(png|jpg|webp)$`).test(input.path)) return fail("pro.errors.generic");
   const { settings } = await getProSettings();
   const db = createAdminClient();
   const { count } = await db.from("portfolio_items").select("id", { count: "exact", head: true }).eq("designer_id", user.id);
   const { getFileStorage } = await import("@/lib/storage");
   const store = getFileStorage();
-  if ((count ?? 0) >= settings.proPortfolioLimit) {
+  if ((count ?? 0) >= portfolioLimit((await proKind(user.id)) === "trial" ? "trial" : "pro", settings)) {
     await store.remove("pro-files", [input.path]).catch(() => undefined);
     return fail("pro.errors.slotsFull");
   }
@@ -224,6 +227,25 @@ export async function removePortfolioItem(id: string): Promise<{ ok: true } | Fa
     const { getFileStorage } = await import("@/lib/storage");
     await getFileStorage().remove("pro-files", [row.image_path as string, row.preview_path as string]).catch(() => undefined);
   }
+  refresh();
+  return { ok: true };
+}
+
+/** 3-day free Pro Trial (owner, 2026-10-14): the designer starts it once (when trials are on and they never had Pro). */
+export async function startMyTrial(): Promise<{ ok: true } | Fail> {
+  const user = await designer();
+  if (!user) return fail("pro.errors.designersOnly");
+  const res = await startTrial(user.id, { kind: "designer" });
+  if (!res.ok) return fail(res.error === "used" || res.error === "had_pro" ? "pro.trial.errors.used" : res.error === "off" ? "pro.trial.errors.off" : "pro.errors.generic");
+  refresh();
+  return { ok: true };
+}
+
+/** The designer ends their trial now and is Basic again (no new trial later). */
+export async function cancelMyTrial(): Promise<{ ok: true } | Fail> {
+  const user = await designer();
+  if (!user) return fail("pro.errors.designersOnly");
+  if (!(await cancelTrial(user.id, { kind: "designer" }))) return fail("pro.errors.generic");
   refresh();
   return { ok: true };
 }

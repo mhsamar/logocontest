@@ -14,7 +14,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
 import { isProActive, priceQuote, receiptCode } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription } from "@/lib/pro/status";
+import { getSubscription, getTrial } from "@/lib/pro/status";
 import { logFunnel } from "@/lib/pro/subscription";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -36,7 +36,8 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
   const pro = isProActive(sub);
   const status = sp.status === "success" || sp.status === "failed" ? sp.status : null;
   const paymentId = typeof sp.payment === "string" && UUID.test(sp.payment) ? sp.payment : null;
-  const quote = priceQuote(s, { firstTime: !sub });
+  // Someone who had the free Pro Trial is not a first-time buyer (owner, 2026-10-14).
+  const quote = priceQuote(s, { firstTime: !sub && !(await getTrial(user.id)) });
   const price = formatTaka(s.priceBdt, locale);
   const n = (v: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(v);
   const features: { key: MessageKey; on: boolean }[] = [

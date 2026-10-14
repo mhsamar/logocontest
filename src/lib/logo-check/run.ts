@@ -6,6 +6,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AiUnavailableError, compareShapes, readLogo, summarize, type Reading, type ShapeMatch } from "./ai";
 import { certificateHtml, renderCertificate, type CertificateData } from "./certificate";
+import { aiCost, checkerRates, searchCost, toBdt } from "./costs";
 import { closestResults, levelFor } from "./entry-rules";
 import { flagIfHigh, levelRanges, validReportOf } from "./entry-links";
 import { fetchImage, logoForAi, shrinkCandidate } from "./images";
@@ -28,8 +29,9 @@ const MAX_SITE = 6;
 const KEEP = 8;
 
 export async function checkLimits(): Promise<CheckLimits> {
-  const s = await getSettings(["limits.logo_checks_per_contest", "limits.logo_checks_paid", "upgrades.logo_check_free_from", "upgrades.logo_scan_price", "limits.logo_check_close_from", "limits.logo_check_high_risk_from"]);
+  const s = await getSettings(["limits.logo_checks_per_1000", "limits.logo_checks_per_contest", "limits.logo_checks_paid", "upgrades.logo_check_free_from", "upgrades.logo_scan_price", "limits.logo_check_close_from", "limits.logo_check_high_risk_from"]);
   return {
+    perThousand: s["limits.logo_checks_per_1000"],
     freeChecks: s["limits.logo_checks_per_contest"],
     paidChecks: s["limits.logo_checks_paid"],
     freeFrom: s["upgrades.logo_check_free_from"],
@@ -94,7 +96,8 @@ export async function runLogoCheck(id: string, origin: string): Promise<void> {
 
 async function work(check: CheckRow, origin: string) {
   const store = getFileStorage();
-  const limits = await checkLimits();
+  // API prices from Settings › Logo checker costs (owner, 2026-10-14); the check keeps its cost in USD and taka.
+  const [limits, rates] = await Promise.all([checkLimits(), checkerRates()]);
   const logo = await store.download(LOGO_CHECKS_BUCKET, check.image_path);
   const logoAi = await logoForAi(logo);
   let cost = Number(check.cost_usd) || 0;
@@ -107,7 +110,7 @@ async function work(check: CheckRow, origin: string) {
     await setStep(check.id, 1);
     const r = await readLogo(logoAi);
     reading = r.data;
-    cost += r.costUsd;
+    cost += aiCost(r, rates);
     await db().from("logo_checks").update({ reading, cost_usd: cost }).eq("id", check.id);
   }
   if (!reading.is_logo) throw new CheckError("not_logo");
@@ -117,7 +120,7 @@ async function work(check: CheckRow, origin: string) {
   const signed = (await store.createReadUrls(LOGO_CHECKS_BUCKET, [check.image_path], 900)).get(check.image_path);
   const [lens, vision] = await Promise.all([signed ? lensSearch(signed) : Promise.resolve({ run: { ran: false, found: 0, costUsd: 0 }, candidates: [] }), visionSearch(logo)]);
   if (!lens.run.ran && !vision.run.ran) throw new CheckError("search_unavailable");
-  cost += lens.run.costUsd + vision.run.costUsd;
+  cost += searchCost(lens.run, vision.run, rates);
   const hosts = [hostOf(origin), "logocontest.bd", "logocontest.vercel.app", hostOf(contest?.website_url as string | null)];
   const seen = new Set<string>();
   const web = [...lens.candidates, ...vision.candidates]
@@ -178,7 +181,7 @@ async function work(check: CheckRow, origin: string) {
   for (let i = 0; i < loaded.length; i += 5) batches.push(loaded.slice(i, i + 5));
   const results = await Promise.all(batches.map((b) => compareShapes(logoAi, b.map((x) => x.img))));
   results.forEach((r, bi) => {
-    cost += r.costUsd;
+    cost += aiCost(r, rates);
     for (const m of r.data) {
       const x = batches[bi][m.n - 1];
       if (x) scored.push({ ...x, m: { ...m, similarity: Math.max(0, Math.min(100, Math.round(m.similarity))) } });
@@ -201,7 +204,7 @@ async function work(check: CheckRow, origin: string) {
     `Scores: uniqueness ${uniqueness}, legibility ${reading.legibility.score}, colour ${reading.colour.score}, overall ${overall}.`,
   ].join("\n");
   const sum = await summarize(facts);
-  cost += sum.costUsd;
+  cost += aiCost(sum, rates);
 
   // 6. Save: our own copy of every kept image, then the check, then the certificate. A designer's contest check
   // keeps no copies of other people's logos (owner, 2026-10-14): only the source, the link and the similarity.
@@ -265,6 +268,7 @@ async function work(check: CheckRow, origin: string) {
       sources,
       ...report,
       cost_usd: Math.round(cost * 10000) / 10000,
+      cost_bdt: toBdt(cost, rates),
       error: null,
       locked_until: null,
       finished_at: new Date().toISOString(),

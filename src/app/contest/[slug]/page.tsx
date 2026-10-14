@@ -31,7 +31,7 @@ import { EntryViewBeacon } from "@/components/pro/entry-view-beacon";
 import { chattableEntries } from "@/lib/pro/chat";
 import { invitedPairs } from "@/lib/pro/invites";
 import { getProSettings } from "@/lib/pro/settings";
-import { badgeIdsAmong } from "@/lib/pro/status";
+import { badgeIdsAmong, trialIdsAmong } from "@/lib/pro/status";
 import { contestTimeline } from "@/lib/contests/browse-query";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
@@ -127,9 +127,10 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   ]);
   // Designer Pro plan (owner, 2026-10-13): Pro badge and gold border, "Invited" on invited designers' designs, Pro
   // designs higher in the default order (winners stay first), and "Message designer" for the contest's client.
-  const [{ settings: proSet }, badges, invited, chattable] = await Promise.all([
+  const [{ settings: proSet }, badges, trials, invited, chattable] = await Promise.all([
     getProSettings(),
     badgeIdsAmong(entries.map((e) => e.designerId)),
+    trialIdsAmong(entries.map((e) => e.designerId)),
     invitedPairs([contest.id]),
     entry ? chattableEntries(contest.id, user) : Promise.resolve(new Set<string>()),
   ]);
@@ -137,6 +138,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     badge: Boolean(e.designer) && badges.has(e.designerId),
     highlight: proSet.features.highlighted_entries && Boolean(e.designer) && badges.has(e.designerId),
     invited: proSet.features.invitations && Boolean(e.designer) && invited.has(`${contest.id}:${e.designerId}`),
+    trial: trials.has(e.designerId),
   });
   const ordered = sort === "top" && proSet.features.highlighted_entries ? [...entries].sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner") || Number(proMark(b).highlight) - Number(proMark(a).highlight)) : entries;
   const fmt = (n: number) => formatNumber(n, locale);

@@ -82,14 +82,15 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
     .filter((c) => (tab === "all" || tabOf(stateOf(c.status)) === tab) && (!words || c.brandName.toLowerCase().includes(words)))
     .sort((a, b) => (sort === "action" ? rank(a) - rank(b) || newest(a, b) : sort === "ending" ? ends(a) - ends(b) || newest(a, b) : newest(a, b)));
 
-  // The AI logo check line: only while the checker is really running, for contests that can still use a free check.
-  // Logo contests only (owner, 2026-10-13: other contest services have no AI logo check).
-  const services = aiConfigured() ? await contestServiceInfo(list.filter((c) => stateOf(c.status) === "pick").map((c) => c.id)) : new Map();
+  // The AI logo check line (owner, 2026-10-14): used and left on every logo contest that can still be checked (open,
+  // judging, final files). Logo contests only (owner, 2026-10-13: other contest services have no AI logo check).
+  const checkable = (s: string) => ["open", "pick", "files"].includes(stateOf(s));
+  const services = aiConfigured() ? await contestServiceInfo(list.filter((c) => checkable(c.status)).map((c) => c.id)) : new Map();
   const checks = aiConfigured()
     ? new Map(
         await Promise.all(
           list
-            .filter((c) => stateOf(c.status) === "pick" && (services.get(c.id)?.service ?? "logo") === "logo")
+            .filter((c) => checkable(c.status) && (services.get(c.id)?.service ?? "logo") === "logo")
             .map(async (c) => [c.id, await contestChecks({ id: c.id, prize: c.prize, logoScan: c.logoScan, status: c.status })] as const),
         ),
       )
@@ -219,7 +220,7 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
           <ul className="m-0 grid list-none items-stretch gap-4 p-0 min-[641px]:grid-cols-2 min-[1101px]:grid-cols-3">
             {list.map((c) => (
               <li key={c.id} className="flex">
-                <MyCard c={c} t={t} locale={locale} now={now} phone={contact.phone} phoneHref={contact.phoneHref} checksLeft={checks.get(c.id)?.access !== "locked" && checks.get(c.id)?.checkable ? (checks.get(c.id)?.left ?? 0) : 0} />
+                <MyCard c={c} t={t} locale={locale} now={now} phone={contact.phone} phoneHref={contact.phoneHref} checks={checks.get(c.id)?.checkable ? { used: checks.get(c.id)!.used, left: checks.get(c.id)!.left, limit: checks.get(c.id)!.limit } : null} />
               </li>
             ))}
             <li className={cx("flex", span)}>
@@ -245,7 +246,7 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
 }
 
 /** One of the client's contests: badge, grey note, dashed helper line and button change with its state. */
-function MyCard({ c, t, locale, now, phone, phoneHref, checksLeft }: { c: MyContest; t: Translate; locale: Locale; now: Date; phone: string; phoneHref: string; checksLeft: number }) {
+function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest; t: Translate; locale: Locale; now: Date; phone: string; phoneHref: string; checks: { used: number; left: number; limit: number } | null }) {
   const fmt = (n: number) => formatNumber(n, locale);
   const state = stateOf(c.status);
   const manage = `/dashboard/contests/${c.slug}`;
@@ -348,10 +349,10 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checksLeft }: { c: MyCont
           </span>
         </Link>
       )}
-      {state === "pick" && checksLeft > 0 && (
+      {checks && checks.limit > 0 && (
         <Link href={manage} className="flex flex-wrap items-center gap-1.5 rounded-xl border border-dashed border-[#DCDEE3] px-3 py-2 text-[13.5px]">
           <strong className="text-ink">{t("myContests.x.aiCheck")}</strong>
-          <span className="text-muted">{t("myContests.x.checksLeft", { n: fmt(checksLeft) })}</span>
+          <span className="text-muted">{t("entryCheck.policy.used", { used: fmt(checks.used), left: fmt(checks.left), limit: fmt(checks.limit) })}</span>
           <span className="ml-auto inline-flex items-center gap-1 font-bold text-primary">
             {t("myContests.x.checkLink")}
             <Arrow className="size-3.5" />

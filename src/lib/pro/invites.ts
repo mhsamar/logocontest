@@ -4,7 +4,7 @@ import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { matchScore } from "./rules";
 import { getProSettings } from "./settings";
-import { allProIds, proIdsAmong } from "./status";
+import { allProIds, proIdsAmong, trialIdsAmong } from "./status";
 import { designerStatsBulk } from "./stats";
 
 const db = () => createAdminClient();
@@ -23,6 +23,8 @@ export type InviteCandidate = {
   username: string | null;
   avatarUrl: string | null;
   proSince: string;
+  /** On the free Pro Trial (owner, 2026-10-14): the badge reads "PRO TRIAL". */
+  trial: boolean;
   score: number;
   rating: number | null;
   winRate: number;
@@ -42,14 +44,15 @@ export type InviteCandidate = {
 export async function inviteCandidates(contestId: string): Promise<{ contest: { id: string; slug: string; brand: string; prize: number; days: number; service: string; type: string; status: string; clientId: string }; list: InviteCandidate[]; invited: string[] } | null> {
   const { data: c } = await db().from("contests").select("id, slug, brand_name, prize_amount, duration_days, service, business_type, styles, status, client_id").eq("id", contestId).maybeSingle();
   if (!c) return null;
-  const { data: inv } = await db().from("contest_invites").select("designer_id").eq("contest_id", contestId);
+  const { data: inv } = await db().from("contest_invites").select("designer_id").eq("contest_id", contestId).neq("status", "removed");
   const invited = (inv ?? []).map((r) => r.designer_id as string);
   const ids = await allProIds();
   if (!ids.length) return { contest: shape(c), list: [], invited };
-  const [{ data: people }, { data: subs }, stats] = await Promise.all([
+  const [{ data: people }, { data: subs }, stats, trials] = await Promise.all([
     db().from("profiles").select("id, name, username, avatar_path, skills, last_seen_at, status").in("id", ids).eq("role", "designer").eq("status", "active"),
     db().from("pro_subscriptions").select("designer_id, first_started_at").in("designer_id", ids),
     designerStatsBulk(ids),
+    trialIdsAmong(ids),
   ]);
   const since = new Map((subs ?? []).map((s) => [s.designer_id as string, s.first_started_at as string]));
   const type = (c.service as string | null) && c.service !== "logo" ? (c.service as string) : (c.business_type as string);
@@ -68,6 +71,7 @@ export async function inviteCandidates(contestId: string): Promise<{ contest: { 
         username: (p.username as string | null) ?? null,
         avatarUrl: avatarUrl(p.avatar_path as string | null),
         proSince: since.get(p.id as string) ?? new Date().toISOString(),
+        trial: trials.has(p.id as string),
         score: matchScore({ rating: s.rating, winRate: s.winRate, winsInType, skills, replyMinutes: s.replyMinutes, activeThisWeek: active }, want),
         rating: s.rating,
         winRate: s.winRate,
@@ -107,7 +111,7 @@ export async function notifyInvited(contestId: string): Promise<number> {
   if (!ready || !settings.features.invitations) return 0;
   const { data: c } = await db().from("contests").select("slug, brand_name, prize_amount, status, is_private, is_nda").eq("id", contestId).maybeSingle();
   if (!c || c.status !== "open") return 0;
-  const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", contestId).is("notified_at", null);
+  const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", contestId).is("notified_at", null).neq("status", "removed");
   const ids = [...(await proIdsAmong((rows ?? []).map((r) => r.designer_id as string)))];
   if (!ids.length) return 0;
   const { data: claimed } = await db().from("contest_invites").update({ notified_at: new Date().toISOString() }).eq("contest_id", contestId).in("designer_id", ids).is("notified_at", null).select("designer_id");
@@ -122,7 +126,7 @@ export async function notifyInvited(contestId: string): Promise<number> {
 export async function invitedPairs(contestIds: string[]): Promise<Set<string>> {
   const { ready } = await getProSettings();
   if (!ready || !contestIds.length) return new Set();
-  const { data } = await db().from("contest_invites").select("contest_id, designer_id").in("contest_id", contestIds);
+  const { data } = await db().from("contest_invites").select("contest_id, designer_id").in("contest_id", contestIds).in("status", ["pending", "accepted"]);
   return new Set((data ?? []).map((r) => `${r.contest_id}:${r.designer_id}`));
 }
 
@@ -134,7 +138,7 @@ export async function remindInvited(now: Date = new Date()): Promise<number> {
   const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", until);
   let n = 0;
   for (const c of contests ?? []) {
-    const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", c.id).is("reminded_at", null);
+    const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", c.id).is("reminded_at", null).in("status", ["pending", "accepted"]);
     const ids = (rows ?? []).map((r) => r.designer_id as string);
     if (!ids.length) continue;
     const { data: sent } = await db().from("entries").select("designer_id").eq("contest_id", c.id).in("designer_id", ids);

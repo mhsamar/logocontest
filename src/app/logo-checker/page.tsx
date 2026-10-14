@@ -22,7 +22,7 @@ export default async function LogoCheckerRoute() {
   return (
     <PageShell>
       <div className="mx-auto flex w-full max-w-[1384px] flex-col gap-5">
-        <LogoCheckerPage numbers={{ freeFrom: limits.freeFrom, price: limits.price, freeChecks: limits.freeChecks, paidChecks: limits.paidChecks, closeFrom: limits.closeFrom }} />
+        <LogoCheckerPage numbers={{ perThousand: limits.perThousand, freeFrom: limits.freeFrom, price: limits.price, freeChecks: limits.freeChecks, paidChecks: limits.paidChecks, closeFrom: limits.closeFrom }} />
       </div>
     </PageShell>
   );

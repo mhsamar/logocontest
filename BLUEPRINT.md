@@ -287,6 +287,13 @@ Full spec: `Design/copyright-checker/COPYRIGHT-CHECKER-HANDOFF.md` and the five 
 5. Every check ends in a **Logo Research Certificate** (PDF and PNG from one HTML template, rendered with headless Chrome), number `CC-0001`, with a public `/verify/CC-…` page (number, date, checked logo, result only). Never "copyright certificate", "copyright free" or "guaranteed".
 6. Client page **My logo checks**; admin page **Copyright checker** with a view-only permission area in Admins & roles. The admin "Make a ticket" button stays hidden until Tickets exist.
 
+### 7.8 Logo Image Checker policy and cost report (owner, 2026-10-14; migration `0049_checker_free_and_invites`)
+
+- **Free on every logo contest:** the ৳500 add-on is gone (no longer in the wizard, the add-ons panel or the server; an older draft that had it ticked is not charged). Each logo contest gets **15 checks for each full ৳1,000 of prize** (৳1,000 → 15, ৳3,000 → 45, ৳5,000 → 75; ৳2,500 → 30), for that contest only; a contest that bought the old add-on keeps at least the checks it paid for. The number is in Settings › Limits. When all checks are used, no new check can start.
+- **Logo contests only:** thumbnails, social posts, Facebook covers, YouTube banners, Twitter headers, business cards, flyers and T-shirts can't use it (refused on the server too).
+- **Used and left** show on My contests (every logo contest that can still be checked) and in the checker box on the contest's manage page.
+- **Cost report** (Admin › Copyright checker › Cost report): every check with who asked (name and ID, client or designer), contest (name and ID), time, result and API cost in taka; totals per contest and per month; CSV download. The API prices (Google Lens per 1,000 searches, Cloud Vision per 1,000 images, AI per million input / output tokens, in US cents) and the taka rate are in Settings › Logo checker costs; each check keeps its cost in USD and taka at the rate of the day it ran (older checks are shown at today's rate, marked).
+
 ## 8. Client flow
 
 ### 8.1 Wizard (`/start`)
@@ -385,6 +392,21 @@ Available balance, pending (won but not yet approved), current fee rate with pro
 - **Payments and renewal:** through the site's payment gateway (`lib/payments`, SSLCommerz from milestone 9), with the callback signature checked. The gateway can't charge a saved wallet or card, so renewal is a reminder **7 days and 1 day** before the end with a one-tap pay link. A new price applies to new buyers at once and to members at their next renewal; members are told when it changes and again 7 days before.
 - **Cancel / end:** cancel asks one short reason and keeps Pro until the end date; the 15-minute job then ends the plan and the designer goes back to Basic. Admins can give a free month, extend, change the end date or cancel; every change goes into the Pro activity log (CSV export).
 - **Numbers:** every number on the Pro pages and Admin › Pro plan comes from real payments and activity; nothing is made up.
+
+### 9.7.1 3-day free Pro Trial (owner, 2026-10-14; migration `0048_pro_trial`)
+
+- **Who and how:** a designer who never had Pro or a trial taps **Start free trial** (Go Pro page or the floating card). One trial per account for life (one row per designer); existing designers can try it too. Admin › Pro plan has a **Free Pro Trial** switch, **off** until designers can pay ৳500 online; an admin can start, extend (+1 / +3 days) or end a trial for one designer at any time, even while the switch is off.
+- **What it gives:** everything Pro gives (Pro dashboard, public Pro profile, highlighted entries and Pro-first order, client invitations, contest chat, insights, early access and instant alerts, priority support), with a **PRO TRIAL** badge instead of PRO. Two limits for the whole trial: **10 logo checks** and **10 portfolio images** (Admin › Pro plan; trial length 3 days).
+- **End:** on the last day the designer is told "Your Pro Trial is ending. Upgrade now to keep your Pro benefits active." (app and email). When the time is up, or when they end it themselves (Settings › Subscription › End trial), they are Basic again. Portfolio images are never deleted: they are hidden (the Pro profile is Pro-only) and show again after an upgrade. After a trial, Basic counts its 2 monthly checks from the end of the trial.
+- **Upgrade:** paying ৳500 during or after the trial turns Pro on as usual and marks the trial **Upgraded**. Someone who had the trial is not a first-time buyer, so the older checkout "free trial days" (Offer section, set to 0) can't give a second free period; that field is no longer shown in Admin.
+- **Admin › Pro plan › Pro Trials:** start and end dates, status (Active, Expired, Upgraded, Cancelled), logo checks and portfolio images used, the upgrade payment, the reminder history and every step (started, reminded, extended, cancelled, ended, upgraded), "Trial used · no new trial", and the numbers: on trial now, upgraded, ended without paying, trial → paid.
+
+### 9.7.2 Pro invitations: Designer ID, accept / decline (owner, 2026-10-14)
+
+- **Invite by Designer ID:** in the "Invite Pro designers" step the client can type a Pro designer's ID (their username) besides picking from the recommended list. The server checks that the ID belongs to an active designer whose Pro (plan or free trial) is active, before anything is sent; sending checks again.
+- **Accept / decline:** the invited designer sees the brief (unless it is an NDA contest: then they sign it on the contest page), the prize, the deadline and the client's requirements on Pro › Contest invitations and on the dashboard, and accepts or declines (they can change their mind while the contest is open). Declined and removed invitations don't count toward the 10 per contest.
+- **Not a hire:** an invitation is only to take part in the contest. It doesn't open a chat; the client can message the designer only after they send a design (as before).
+- **Admin › Pro plan › Invitations:** every invitation with the contest, client, designer, the answer and its date, whether they took part (designs sent), filters and search, and **Remove** (the designer no longer sees it; kept in the Pro activity log).
 
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 

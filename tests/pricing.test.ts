@@ -59,7 +59,8 @@ describe("client price (BLUEPRINT §7.1)", () => {
     expect(calculatePrice(order({ upgrades: withUpgrades("blind") }), cfg).total).toBe(7250);
     expect(calculatePrice(order({ upgrades: withUpgrades("private") }), cfg).total).toBe(7250);
     expect(calculatePrice(order({ upgrades: withUpgrades("promoted") }), cfg).total).toBe(7250);
-    expect(calculatePrice(order({ upgrades: withUpgrades("logo_scan") }), cfg).total).toBe(6500);
+    // The AI logo checker is free on every logo contest (owner, 2026-10-14): never charged.
+    expect(calculatePrice(order({ upgrades: withUpgrades("logo_scan") }), cfg).total).toBe(6250);
     expect(calculatePrice(order({ upgrades: withUpgrades("highlight") }), cfg).total).toBe(6750);
     expect(calculatePrice(order({ upgrades: withUpgrades("urgent") }), cfg).total).toBe(6750);
     expect(calculatePrice(order({ upgrades: withUpgrades("nda") }), cfg).total).toBe(7750);
@@ -134,14 +135,13 @@ describe("custom amount and duration validation", () => {
   });
 });
 
-describe("AI copyright checker in the order (owner, 2026-10-10)", () => {
+describe("AI logo checker in the order (owner, 2026-10-14: free on every logo contest)", () => {
   const free = { ...cfg, checkerFreeFrom: 8000 };
-  it("is not charged when the prize is at or over the free limit", () => {
+  it("is never charged, whatever the prize", () => {
     const big = calculatePrice(order({ package: "custom", customPrize: 8000, upgrades: withUpgrades("logo_scan") }), free);
     expect(big.upgrades.map((u) => u.key)).not.toContain("logo_scan");
-  });
-  it("is charged below the free limit", () => {
     const small = calculatePrice(order({ package: "custom", customPrize: 7000, upgrades: withUpgrades("logo_scan") }), free);
-    expect(small.upgrades).toEqual([{ key: "logo_scan", price: cfg.upgradePrices.logo_scan }]);
+    expect(small.upgrades).toEqual([]);
+    expect(small.total).toBe(8750);
   });
 });

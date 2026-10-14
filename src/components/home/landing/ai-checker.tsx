@@ -37,7 +37,9 @@ function Match({ art, place, score, color, bar, width }: { art: React.ReactNode;
  */
 export async function AiChecker() {
   const { t, locale } = await getI18n();
-  const s = await getSettings(["upgrades.logo_check_free_from", "upgrades.logo_scan_price", "limits.logo_checks_per_contest", "limits.logo_checks_paid"]);
+  // Owner, 2026-10-14: free on every logo contest, 15 checks for each ৳1,000 of prize (Settings).
+  const s = await getSettings(["limits.logo_checks_per_1000"]);
+  const per = s["limits.logo_checks_per_1000"];
   const fmt = (n: number) => formatNumber(n, locale);
   const scores = [
     { n: 14, label: t("home.aiCheck.scores.unique"), color: "#A3121B" },
@@ -60,9 +62,9 @@ export async function AiChecker() {
           </h2>
           <p className="m-0 max-w-[500px] text-[18px] text-[#F6DAD8]">{t("home.aiCheck.lead")}</p>
           <div className="flex flex-wrap gap-2 text-[15px] font-bold">
-            <span className="rounded-full bg-[#FFE27A] px-3.5 py-[7px] text-[#3A2A00]">{t("home.aiCheck.free", { amount: formatTaka(s["upgrades.logo_check_free_from"], locale) })}</span>
-            <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.checks", { n: fmt(s["limits.logo_checks_per_contest"]) })}</span>
-            <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.price", { amount: formatTaka(s["upgrades.logo_scan_price"], locale), n: fmt(s["limits.logo_checks_paid"]), limit: formatTaka(s["upgrades.logo_check_free_from"], locale) })}</span>
+            <span className="rounded-full bg-[#FFE27A] px-3.5 py-[7px] text-[#3A2A00]">{t("home.aiCheck.free")}</span>
+            <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.checks", { n: fmt(per) })}</span>
+            <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.price", { amount: formatTaka(3000, locale), n: fmt(per * 3) })}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-3">
             <Link href="/start" className="inline-flex min-h-[52px] items-center rounded-2xl bg-white px-7 font-bold text-[#8B0000]">

@@ -92,7 +92,8 @@ export function includedByPrize(order: Order, key: UpgradeKey, cfg?: Pick<Pricin
 
 /** The add-ons the client pays for, in display order. */
 export function chargedUpgrades(order: Order, cfg?: Pick<PricingConfig, "checkerFreeFrom" | "packagePrizes">): UpgradeKey[] {
-  return UPGRADES.filter((k) => order.upgrades[k] && !includedByNda(order, k) && !includedByPrize(order, k, cfg));
+  // The AI logo checker is never charged (owner, 2026-10-14), even on an older draft that has it ticked.
+  return UPGRADES.filter((k) => k !== "logo_scan" && order.upgrades[k] && !includedByNda(order, k) && !includedByPrize(order, k, cfg));
 }
 
 /** The add-ons that will be on: the chosen ones plus Private when NDA is chosen. */

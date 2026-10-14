@@ -57,7 +57,7 @@ const toItem = (r: Record<string, unknown>): CheckListItem => ({
 export async function contestChecks(contest: { id: string; prize: number; logoScan: boolean; status: string }): Promise<ContestChecks> {
   const limits = await checkLimits();
   const access = accessFor(contest.prize, contest.logoScan, limits);
-  const limit = limitFor(access, limits);
+  const limit = limitFor(contest.prize, contest.logoScan, limits);
   if (!isSupabaseConfigured()) return { access, limits, limit, used: 0, left: limit, checkable: false, checks: [] };
   // Designers' contest checks (owner, 2026-10-14) are on their entries, not in the client's checks.
   const { data } = await createAdminClient().from("logo_checks").select(LIST_COLUMNS).eq("contest_id", contest.id).neq("source", "pre_submit").order("created_at", { ascending: true });
@@ -158,7 +158,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     finishedAt: (r.finished_at as string | null) ?? null,
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < Date.now(),
     costUsd: Number(r.cost_usd) || 0,
-    left: checksLeft(count ?? 0, limitFor(accessFor(contest.prize_amount, Boolean(contest.logo_scan), limits), limits)),
+    left: checksLeft(count ?? 0, limitFor(contest.prize_amount, Boolean(contest.logo_scan), limits)),
   };
 }
 
@@ -187,7 +187,7 @@ export async function verifyView(number: number): Promise<{ number: number; fini
 
 export type MyCheck = CheckListItem & {
   logoUrl: string | null;
-  contest: { id: string; slug: string; brand: string; number: number | null };
+  contest: { id: string; slug: string; brand: string; number: number | null; prize: number; logoScan: boolean };
   paid: boolean;
   closest: number;
   close: number;
@@ -205,8 +205,9 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   const [{ data: rows }, { data: own }] = await Promise.all([
     db
       .from("logo_checks")
-      .select(`${LIST_COLUMNS}, image_path, paid, sources, certificate_pdf_path, locked_until, contest:contests!contest_id(id, slug, brand_name, contest_number)`)
+      .select(`${LIST_COLUMNS}, image_path, paid, sources, certificate_pdf_path, locked_until, contest:contests!contest_id(id, slug, brand_name, contest_number, prize_amount, logo_scan)`)
       .eq("requested_by", userId)
+      .in("source", ["entry", "upload"])
       .order("created_at", { ascending: false })
       .limit(200),
     db.from("contests").select("id, slug, brand_name, contest_number, status, prize_amount, logo_scan").eq("client_id", userId).in("status", [...CHECKABLE_STATUSES]),
@@ -216,13 +217,13 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
     .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600)
     .catch(() => new Map<string, string>());
   const checks: MyCheck[] = list.map((r) => {
-    const c = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null } | null);
+    const c = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; prize_amount: number; logo_scan: boolean } | null);
     const src = r.sources as Sources | null;
     const lockedUntil = r.locked_until ? new Date(r.locked_until as string).getTime() : 0;
     return {
       ...toItem(r),
       logoUrl: urls.get(r.image_path as string) ?? null,
-      contest: { id: c?.id ?? "", slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null },
+      contest: { id: c?.id ?? "", slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null, prize: c?.prize_amount ?? 0, logoScan: Boolean(c?.logo_scan) },
       paid: Boolean(r.paid),
       closest: src?.shape.closest ?? 0,
       close: src?.shape.close ?? 0,
@@ -235,13 +236,13 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   const byContest = new Map<string, ContestCheckCount>();
   for (const c of own ?? []) {
     const access = accessFor(c.prize_amount as number, Boolean(c.logo_scan), limits);
-    const limit = limitFor(access, limits);
+    const limit = limitFor(c.prize_amount as number, Boolean(c.logo_scan), limits);
     byContest.set(c.id as string, { id: c.id as string, slug: c.slug as string, brand: c.brand_name as string, number: (c.contest_number as number | null) ?? null, used: 0, limit, left: limit, access, checkable: true, prize: c.prize_amount as number });
   }
   for (const k of checks) {
     if (!byContest.has(k.contest.id)) {
-      const limit = limitFor(k.paid ? "paid" : "free", limits);
-      byContest.set(k.contest.id, { id: k.contest.id, slug: k.contest.slug, brand: k.contest.brand, number: k.contest.number, used: 0, limit, left: limit, access: k.paid ? "paid" : "free", checkable: false, prize: 0 });
+      const limit = limitFor(k.contest.prize, k.contest.logoScan, limits);
+      byContest.set(k.contest.id, { id: k.contest.id, slug: k.contest.slug, brand: k.contest.brand, number: k.contest.number, used: 0, limit, left: limit, access: "free", checkable: false, prize: k.contest.prize });
     }
     if (k.status !== "failed") byContest.get(k.contest.id)!.used += 1;
   }
@@ -251,7 +252,7 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
 
 export type AdminCheckRow = CheckListItem & {
   logoUrl: string | null;
-  contest: { id: string; slug: string; brand: string; number: number | null };
+  contest: { id: string; slug: string; brand: string; number: number | null; prize: number; logoScan: boolean };
   requester: { id: string; name: string };
   paid: boolean;
   close: number;
@@ -266,7 +267,7 @@ export async function adminChecks(): Promise<AdminCheckRow[]> {
   if (!isSupabaseConfigured()) return [];
   const { data } = await createAdminClient()
     .from("logo_checks")
-    .select(`${LIST_COLUMNS}, image_path, paid, sources, cost_usd, contest_id, contest:contests!contest_id(id, slug, brand_name, contest_number), requester:profiles!requested_by(id, name)`)
+    .select(`${LIST_COLUMNS}, image_path, paid, sources, cost_usd, contest_id, contest:contests!contest_id(id, slug, brand_name, contest_number, prize_amount, logo_scan), requester:profiles!requested_by(id, name)`)
     .in("source", ["entry", "upload"])
     .order("created_at", { ascending: false })
     .limit(500);
@@ -278,13 +279,13 @@ export async function adminChecks(): Promise<AdminCheckRow[]> {
   const order = new Map<string, string[]>();
   for (const r of [...list].reverse()) if (r.status !== "failed") order.set(r.contest_id as string, [...(order.get(r.contest_id as string) ?? []), r.id as string]);
   return list.map((r) => {
-    const c = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null } | null);
+    const c = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; prize_amount: number; logo_scan: boolean } | null);
     const src = r.sources as Sources | null;
     const n = order.get(r.contest_id as string)?.indexOf(r.id as string) ?? -1;
     return {
       ...toItem(r),
       logoUrl: urls.get(r.image_path as string) ?? null,
-      contest: { id: c?.id ?? "", slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null },
+      contest: { id: c?.id ?? "", slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: c?.contest_number ?? null, prize: c?.prize_amount ?? 0, logoScan: Boolean(c?.logo_scan) },
       requester: one(r.requester as { id: string; name: string } | null) ?? { id: "", name: "—" },
       paid: Boolean(r.paid),
       close: src?.shape.close ?? 0,

@@ -56,7 +56,7 @@ export function Collage({ previews, total, ratio = 1 }: { previews: string[]; to
 }
 
 /** One card in the Entries tab grid (UI-JOURNEY §1.3 entry card). Opens P-04. */
-export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number; /** Designer Pro plan (owner, 2026-10-13): badge, gold border, "Invited". */ pro?: { badge: boolean; highlight: boolean; invited: boolean } }) {
+export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number; /** Designer Pro plan (owner, 2026-10-13): badge, gold border, "Invited". */ pro?: { badge: boolean; highlight: boolean; invited: boolean; /** On the free Pro Trial (owner, 2026-10-14). */ trial?: boolean } }) {
   const winner = entry.status === "winner";
   return (
     <Link
@@ -90,7 +90,7 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entr
         <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="min-w-0 truncate">{entry.designer ? (entry.designer.username ? `@${entry.designer.username}` : entry.designer.name) : t("entry.hiddenName")}</span>
-            {pro?.badge && entry.designer && <span className="shrink-0 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-1.5 py-px text-[0.5625rem] font-extrabold tracking-[0.05em] text-white" title={t("pro.entry.pro")}>PRO</span>}
+            {pro?.badge && entry.designer && <span className="shrink-0 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-1.5 py-px text-[0.5625rem] font-extrabold tracking-[0.05em] text-white" title={t("pro.entry.pro")}>{pro.trial ? t("pro.trial.badge") : "PRO"}</span>}
           </span>
           <span className="shrink-0">{entry.imageCount === 1 ? t("entry.oneMockup") : t("entry.mockups", { n: fmt(entry.imageCount) })}</span>
         </div>

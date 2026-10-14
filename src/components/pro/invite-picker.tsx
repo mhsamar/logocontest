@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/client";
-import { saveContestInvites } from "@/lib/pro/invite-actions";
+import { findProDesigner, saveContestInvites, type FoundDesigner } from "@/lib/pro/invite-actions";
 import type { InviteCandidate } from "@/lib/pro/invites";
 import { Icon, ProAvatar, ProBadge } from "./parts";
 
@@ -45,6 +45,23 @@ export function InvitePicker({
   const [shown, setShown] = useState(PAGE);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
+  // Invite by Designer ID (owner, 2026-10-14): the server checks the ID and that the designer's Pro is active.
+  const [idText, setIdText] = useState("");
+  const [idMsg, setIdMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [byId, setById] = useState<FoundDesigner[]>([]);
+  const [finding, find] = useTransition();
+  const addById = () =>
+    find(async () => {
+      setIdMsg(null);
+      const res = await findProDesigner(idText);
+      if (!res.ok) return setIdMsg({ text: t(res.error), ok: false });
+      if (picked.includes(res.designer.id)) return setIdMsg({ text: t("pro.inviteById.already"), ok: true });
+      if (picked.length >= max) return setIdMsg({ text: t("pro.inviteById.full", { max }), ok: false });
+      setPicked((p) => [...p, res.designer.id]);
+      setById((b) => (b.some((x) => x.id === res.designer.id) ? b : [...b, res.designer]));
+      setIdMsg({ text: t("pro.inviteById.added", { name: res.designer.name }), ok: true });
+      setIdText("");
+    });
   const n = (v: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US", { maximumFractionDigits: 1 }).format(v);
   const date = (iso: string) => new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { month: "short", year: "numeric" }).format(new Date(iso));
 
@@ -156,6 +173,56 @@ export function InvitePicker({
           </div>
         </aside>
         <div>
+          <section className="pr-card" style={{ marginBottom: 14 }} aria-labelledby="iv-byid">
+            <h2 id="iv-byid" style={{ margin: 0, fontSize: 17 }}>
+              {t("pro.inviteById.title")}
+            </h2>
+            <p className="pr-hint" style={{ margin: "4px 0 10px" }}>
+              {t("pro.inviteById.lead")}
+            </p>
+            <form
+              style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (idText.trim().length >= 3) addById();
+              }}
+            >
+              <label className="pr-search" style={{ flex: "1 1 220px" }}>
+                <Icon name="user" />
+                <input value={idText} onChange={(e) => setIdText(e.target.value.slice(0, 31))} placeholder={t("pro.inviteById.placeholder")} aria-label={t("pro.inviteById.title")} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+              </label>
+              <button type="submit" className="pr-btn sm" disabled={finding || idText.trim().length < 3}>
+                {t("pro.inviteById.add")}
+              </button>
+            </form>
+            {idMsg && (
+              <p role="status" style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 700, color: idMsg.ok ? "#14633c" : "#A3121B" }}>
+                {idMsg.text}
+              </p>
+            )}
+            {byId.filter((d) => picked.includes(d.id)).length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <span className="pr-hint">{t("pro.inviteById.list")}</span>
+                <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {byId
+                    .filter((d) => picked.includes(d.id))
+                    .map((d) => (
+                      <li key={d.id} className="pr-pill op" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {d.name} · @{d.username}
+                        {!sent.includes(d.id) && (
+                          <button type="button" aria-label={`${t("pro.inviteById.remove")} ${d.name}`} onClick={() => setPicked((p) => p.filter((x) => x !== d.id))} style={{ border: 0, background: "none", cursor: "pointer", padding: 0, lineHeight: 0 }}>
+                            <Icon name="x" size={12} />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+            <p className="pr-hint" style={{ margin: "8px 0 0" }}>
+              {t("pro.inviteById.note")}
+            </p>
+          </section>
           <div className="iv-top">
             <label className="pr-search">
               <Icon name="search" />
@@ -177,7 +244,7 @@ export function InvitePicker({
                       <div className="iv-n">
                         <div>
                           <b>{d.name}</b>
-                          <ProBadge size="sm" />
+                          <ProBadge size="sm" label={d.trial ? t("pro.trial.badge") : undefined} />
                           {sort === "match" && i === 0 && <span className="iv-tag">{t("pro.invite.topMatch")}</span>}
                           {d.replyMinutes !== null && d.replyMinutes <= 60 && <span className="iv-tag">{t("pro.invite.fastReply")}</span>}
                         </div>

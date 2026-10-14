@@ -13,7 +13,11 @@ import type { Translate } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
 import { isProActive, priceQuote, type ProSettings } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
-import { getSubscription } from "@/lib/pro/status";
+import { getSubscription, getTrial } from "@/lib/pro/status";
+import { StartTrialButton } from "@/components/pro/trial-buttons";
+import { trialEligibilityFor } from "@/lib/pro/trial";
+import { isTrialActive } from "@/lib/pro/trial-rules";
+import { portfolioCount } from "@/lib/pro/workspace";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -112,7 +116,13 @@ export default async function GoProPage() {
   const sub = designer ? await getSubscription(designer.id) : null;
   const pro = isProActive(sub);
   const forSale = ready && s.isForSale;
-  const quote = priceQuote(s, { firstTime: !sub });
+  // The 3-day free Pro Trial (owner, 2026-10-14): start it, see its end date, or see that it ended.
+  const [trial, eligible] = designer ? await Promise.all([getTrial(designer.id), trialEligibilityFor(designer.id, designer.role)]) : [null, null];
+  const onTrial = !pro && isTrialActive(trial);
+  const trialOpen = ready && s.freeTrialEnabled;
+  const keptSlots = !pro && !onTrial && trial ? await portfolioCount(designer!.id) : 0;
+  // Someone who had the free Pro Trial is not a first-time buyer (no second free period from the checkout trial).
+  const quote = priceQuote(s, { firstTime: !sub && !(designer && (await getTrial(designer.id))) });
   const price = formatTaka(s.priceBdt, locale);
   const shown = forSale ? quote : { ...quote, amount: s.priceBdt, reason: "list" as const };
   const checkout = designer ? "/pro/checkout" : "/login?as=designer&next=%2Fpro%2Fcheckout";
@@ -130,15 +140,72 @@ export default async function GoProPage() {
           </Link>
         </div>
       );
-    if (!forSale) return <div className="gp-soon">{t("pro.go.soonTitle")}</div>;
+    if (onTrial && trial)
+      return (
+        <>
+          <div className="gp-pro-on">
+            <span>
+              {t("pro.trial.activeTitle")} · {t("pro.trial.endsOn", { date: formatDate(trial.endsAt, locale, "long") })}
+            </span>
+            <Link href="/dashboard/profile#subscription" className="pr-link">
+              {t("pro.go.manage")}
+            </Link>
+          </div>
+          {forSale ? (
+            <UpgradeLink href={checkout} step={step} className={`gp-up${wide ? " wide" : ""}`}>
+              {t("pro.trial.upgrade")}
+              <i>
+                <Icon name="arrow" />
+              </i>
+            </UpgradeLink>
+          ) : (
+            <div className="gp-soon">{t("pro.go.soonTitle")}</div>
+          )}
+        </>
+      );
+    const trialButton =
+      eligible === "ok" ? (
+        <StartTrialButton days={s.freeTrialDays} className={`gp-up${wide ? " wide" : ""}`} />
+      ) : !user && trialOpen ? (
+        <Link href="/login?as=designer&next=%2Fpro" className={`gp-up${wide ? " wide" : ""}`}>
+          {t("pro.trial.start", { days: s.freeTrialDays })}
+        </Link>
+      ) : null;
+    const ended = trial && !onTrial ? (
+      <div className="gp-soon">
+        {t("pro.trial.ended")}
+        {keptSlots > 0 && <small style={{ display: "block", fontWeight: 600, marginTop: 4 }}>{t("pro.trial.endedSlots", { n: n(keptSlots) })}</small>}
+      </div>
+    ) : null;
+    if (!forSale)
+      return (
+        <>
+          {ended}
+          {trialButton ?? (!ended && <div className="gp-soon">{t("pro.go.soonTitle")}</div>)}
+          {trialButton && <span className="gp-pc">{t("pro.trial.includes", { checks: n(s.trialLogoChecks), slots: n(s.trialPortfolioLimit) })}</span>}
+        </>
+      );
     if (user && !designer) return <div className="gp-soon">{t("pro.go.clientNote")}</div>;
+    if (trialButton)
+      return (
+        <>
+          {trialButton}
+          <span className="gp-pc">{t("pro.trial.includes", { checks: n(s.trialLogoChecks), slots: n(s.trialPortfolioLimit) })}</span>
+          <UpgradeLink href={checkout} step={step} className="pr-link" >
+            {user ? t("pro.go.upgrade") : t("pro.go.login")}
+          </UpgradeLink>
+        </>
+      );
     return (
+      <>
+        {ended}
       <UpgradeLink href={checkout} step={step} className={`gp-up${wide ? " wide" : ""}`}>
         {user ? t("pro.go.upgrade") : t("pro.go.login")}
         <i>
           <Icon name="arrow" />
         </i>
       </UpgradeLink>
+      </>
     );
   };
 

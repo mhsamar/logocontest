@@ -9,6 +9,7 @@ import { PRO_FEATURES, isProActive, type ProFeature } from "./rules";
 import { getProSettings } from "./settings";
 import { getSubscription } from "./status";
 import { cancelPro, freeMonthEnd, grantPro, logFunnel, logProActivity, tellDesigner } from "./subscription";
+import { cancelTrial, extendTrial, startTrial } from "./trial";
 
 type Result = { ok: true } | { ok: false; error: MessageKey; params?: MessageParams };
 const fail = (error: MessageKey, params?: MessageParams): Result => ({ ok: false, error, params });
@@ -28,6 +29,10 @@ export type ProSettingsInput = {
   basicLogoChecks: number;
   checkLowMax: number;
   checkMediumMax: number;
+  freeTrialEnabled: boolean;
+  freeTrialDays: number;
+  trialLogoChecks: number;
+  trialPortfolioLimit: number;
   proPortfolioLimit: number;
   proEntriesPerContest: number | null;
   basicEntriesPerContest: number;
@@ -64,6 +69,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
   if (!intIn(i.proLogoChecks, 0, 10000) || !intIn(i.basicLogoChecks, 0, 10000)) return fail("pro.admin.errors.limit");
   // Match levels (owner, 2026-10-14): Low 0–low %, Medium up to medium %, High above.
   if (!intIn(i.checkLowMax, 0, 98) || !intIn(i.checkMediumMax, i.checkLowMax + 1, 99)) return fail("pro.admin.errors.levels");
+  // 3-day free Pro Trial (owner, 2026-10-14).
+  if (typeof i.freeTrialEnabled !== "boolean" || !intIn(i.freeTrialDays, 1, 30) || !intIn(i.trialLogoChecks, 0, 1000) || !intIn(i.trialPortfolioLimit, 0, 1000)) return fail("pro.admin.errors.trialLimits");
   if (!intIn(i.proPortfolioLimit, 0, 1000) || !intIn(i.basicEntriesPerContest, 1, 1000) || !intIn(i.invitesPerContest, 0, 100)) return fail("pro.admin.errors.limit");
   if (i.proEntriesPerContest !== null && !intIn(i.proEntriesPerContest, 1, 1000)) return fail("pro.admin.errors.limit");
   if (!intIn(i.earlyAccessMinutes, 0, 10080)) return fail("pro.admin.errors.early");
@@ -83,6 +90,10 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
     basic_logo_checks: i.basicLogoChecks,
     check_low_max: i.checkLowMax,
     check_medium_max: i.checkMediumMax,
+    free_trial_enabled: i.freeTrialEnabled,
+    free_trial_days: i.freeTrialDays,
+    trial_logo_checks: i.trialLogoChecks,
+    trial_portfolio_limit: i.trialPortfolioLimit,
     pro_portfolio_limit: i.proPortfolioLimit,
     pro_entries_per_contest: i.proEntriesPerContest,
     basic_entries_per_contest: i.basicEntriesPerContest,
@@ -107,6 +118,10 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
     basic_logo_checks: before.basicLogoChecks,
     check_low_max: before.checkLowMax,
     check_medium_max: before.checkMediumMax,
+    free_trial_enabled: before.freeTrialEnabled,
+    free_trial_days: before.freeTrialDays,
+    trial_logo_checks: before.trialLogoChecks,
+    trial_portfolio_limit: before.trialPortfolioLimit,
     pro_portfolio_limit: before.proPortfolioLimit,
     pro_entries_per_contest: before.proEntriesPerContest,
     basic_entries_per_contest: before.basicEntriesPerContest,
@@ -217,4 +232,56 @@ export async function grantProByUsername(username: string): Promise<Result> {
   const { data } = await db().from("profiles").select("id, role").eq("username", name).maybeSingle();
   if (!data || data.role !== "designer") return fail("pro.admin.errors.notFound");
   return manageProMember(data.id as string, "free_month");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// 3-day free Pro Trial (owner, 2026-10-14): start one for a designer, extend it, or end it.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Starts a trial for a designer who never had one (works while trials are off). */
+export async function adminStartTrial(username: string): Promise<Result> {
+  const admin = await adminUser("pro.manage");
+  if (!admin) return fail("auth.errors.generic");
+  const name = (username ?? "").trim().replace(/^@/, "").toLowerCase();
+  if (!/^[a-z0-9_]{3,30}$/.test(name)) return fail("pro.trial.admin.errors.notFound");
+  const { data } = await db().from("profiles").select("id, role").eq("username", name).maybeSingle();
+  if (!data || data.role !== "designer") return fail("pro.trial.admin.errors.notFound");
+  const res = await startTrial(data.id as string, { kind: "admin", adminId: admin.id });
+  if (!res.ok) return fail(res.error === "used" ? "pro.trial.admin.errors.used" : "pro.trial.admin.errors.generic");
+  refresh();
+  return { ok: true };
+}
+
+export async function adminExtendTrial(designerId: string, days: number): Promise<Result> {
+  const admin = await adminUser("pro.manage");
+  if (!admin || !UUID.test(designerId) || !Number.isInteger(days) || days < 1 || days > 30) return fail("auth.errors.generic");
+  if (!(await extendTrial(designerId, days, admin.id))) return fail("pro.trial.admin.errors.generic");
+  refresh();
+  return { ok: true };
+}
+
+export async function adminCancelTrial(designerId: string): Promise<Result> {
+  const admin = await adminUser("pro.manage");
+  if (!admin || !UUID.test(designerId)) return fail("auth.errors.generic");
+  if (!(await cancelTrial(designerId, { kind: "admin", adminId: admin.id }))) return fail("pro.trial.admin.errors.generic");
+  refresh();
+  return { ok: true };
+}
+
+/** Admin › Pro plan › Invitations (owner, 2026-10-14): take an invitation back. The designer no longer sees it. */
+export async function adminRemoveInvite(contestId: string, designerId: string): Promise<Result> {
+  const admin = await adminUser("pro.manage");
+  if (!admin || !UUID.test(contestId) || !UUID.test(designerId)) return fail("auth.errors.generic");
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from("contest_invites")
+    .update({ status: "removed", removed_by: admin.id, removed_at: now })
+    .eq("contest_id", contestId)
+    .eq("designer_id", designerId)
+    .neq("status", "removed")
+    .select("status");
+  if (error || !data?.length) return fail("pro.trial.admin.errors.generic");
+  await logProActivity(admin.id, "admin_removed_invite", designerId, null, { contest: contestId });
+  refresh();
+  return { ok: true };
 }

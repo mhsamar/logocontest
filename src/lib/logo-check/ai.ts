@@ -40,7 +40,8 @@ type Block = { type: "text"; text: string } | { type: "image"; source: { type: "
 export const textBlock = (text: string): Block => ({ type: "text", text });
 export const imageBlock = (png: Uint8Array): Block => ({ type: "image", source: { type: "base64", media_type: "image/png", data: Buffer.from(png).toString("base64") } });
 
-export type AiResult<T> = { data: T; costUsd: number };
+/** costUsd from the built-in prices; tokens let the cost report use the admin's prices (owner, 2026-10-14). */
+export type AiResult<T> = { data: T; costUsd: number; tokens: { in: number; out: number } };
 type Tool = { name: string; description: string; input_schema: object };
 
 async function callTool<T>(system: string, content: Block[], tool: Tool, maxTokens: number, fetcher: typeof fetch = fetch): Promise<AiResult<T>> {
@@ -67,8 +68,9 @@ async function callClaude<T>(system: string, content: Block[], tool: Tool, maxTo
   const json = (await res.json()) as { content?: { type: string; name?: string; input?: unknown }[]; usage?: { input_tokens?: number; output_tokens?: number } };
   const call = json.content?.find((c) => c.type === "tool_use" && c.name === tool.name);
   if (!call?.input) throw new Error("Claude gave no answer");
-  const costUsd = (json.usage?.input_tokens ?? 0) * PRICES.claude.in + (json.usage?.output_tokens ?? 0) * PRICES.claude.out;
-  return { data: call.input as T, costUsd };
+  const tokens = { in: json.usage?.input_tokens ?? 0, out: json.usage?.output_tokens ?? 0 };
+  const costUsd = tokens.in * PRICES.claude.in + tokens.out * PRICES.claude.out;
+  return { data: call.input as T, costUsd, tokens };
 }
 
 /**
@@ -149,8 +151,9 @@ async function callGeminiModel<T>(model: string, system: string, content: Block[
     throw new Error("Gemini's answer was not valid JSON");
   }
   const u = json.usageMetadata ?? {};
-  const costUsd = (u.promptTokenCount ?? 0) * PRICES.gemini.in + ((u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0)) * PRICES.gemini.out;
-  return { data, costUsd };
+  const tokens = { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) };
+  const costUsd = tokens.in * PRICES.gemini.in + tokens.out * PRICES.gemini.out;
+  return { data, costUsd, tokens };
 }
 
 const SYSTEM =
@@ -250,7 +253,7 @@ export async function compareShapes(logo: Uint8Array, images: Uint8Array[], fetc
     1500,
     fetcher,
   );
-  return { data: r.data.matches ?? [], costUsd: r.costUsd };
+  return { data: r.data.matches ?? [], costUsd: r.costUsd, tokens: r.tokens };
 }
 
 // ---- 5. Scores' sentences and advice --------------------------------------------------------------

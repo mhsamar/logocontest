@@ -129,7 +129,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
           <div className="pp-av">
             <span className="ring" aria-hidden />
             <span className="in">{designer.avatarUrl ? <img src={designer.avatarUrl} alt="" /> : designer.name.trim()[0]?.toUpperCase()}</span>
-            <span className="rib">{extra.prefs.showBadge && <ProBadge size="sm" />}</span>
+            <span className="rib">{extra.prefs.showBadge && <ProBadge size="sm" label={extra.trial ? t("pro.trial.badge") : undefined} />}</span>
           </div>
           <div className="pp-nm">
             <h1>{designer.name}</h1>

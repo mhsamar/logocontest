@@ -6,7 +6,6 @@ import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CHECKABLE_STATUSES } from "@/lib/logo-check/rules";
-import { checkLimits } from "@/lib/logo-check/run";
 import type { AddonKey } from "./addons";
 
 /** Add-ons and extensions bought after launch (BLUEPRINT §7.4, owner 2026-10-08). */
@@ -62,9 +61,9 @@ export async function startAddonCheckout(
   let amount: number;
   let row: { purpose: "addon" | "extension"; addon: AddonKey | null; extension_days: number | null };
   if ("addon" in order) {
+    // The AI logo checker is free on every logo contest (owner, 2026-10-14): nothing to buy.
+    if (order.addon === "logo_scan") return { ok: false, error: "active" };
     if (c[ACTIVE[order.addon]]) return { ok: false, error: "active" };
-    // Free with this prize: nothing to buy (owner, 2026-10-10).
-    if (order.addon === "logo_scan" && c.prize_amount >= (await checkLimits()).freeFrom) return { ok: false, error: "active" };
     amount = prices[order.addon];
     row = { purpose: "addon", addon: order.addon, extension_days: null };
   } else {
