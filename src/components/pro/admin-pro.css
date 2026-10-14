@@ -14,13 +14,16 @@
   align-items: center;
   gap: 14px;
 }
+/* A small strip, not a big card (owner, 2026-10-14): it sits in the page's column, so it must not grow. */
 .ap-master {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex: 1 1 380px;
-  padding: 16px 18px;
-  border-radius: 18px;
+  flex: none;
+  align-self: flex-start;
+  width: min(100%, 760px);
+  padding: 12px 16px;
+  border-radius: 14px;
   background: #fff;
   border: 1px solid #e9eaee;
 }
