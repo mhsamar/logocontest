@@ -36,6 +36,15 @@ export function ProofActions({ id, amount, txn }: { id: string; amount: string; 
         body={t("pay.admin.approvals.rejectBody")}
         done={t("pay.admin.approvals.rejected")}
         tone="danger"
+        // Five ready-made reasons (owner, 2026-10-14); the payer sees the text, which can still be changed.
+        fields={[
+          {
+            name: "reason",
+            kind: "reason",
+            hint: t("pay.admin.approvals.reasonHint"),
+            suggestions: (["notFound", "amount", "wrongNumber", "used", "test"] as const).map((k) => ({ label: t(`pay.admin.approvals.reasons.${k}.label`), text: t(`pay.admin.approvals.reasons.${k}.text`) })),
+          },
+        ]}
         run={(f) => rejectPayment(id, f)}
       />
     </div>
