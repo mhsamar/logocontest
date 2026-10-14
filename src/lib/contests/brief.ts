@@ -88,6 +88,8 @@ export type Brief = {
   dislikes: string;
   requirements: Requirement[];
   requirementsNote: string;
+  /** Answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14), by question key. */
+  extra?: Record<string, string | string[]>;
 };
 
 export type Order = {
@@ -141,8 +143,13 @@ export function normalizeUrl(input: string): string | null {
 
 const len = (s: string) => s.trim().length;
 
-/** Brief steps are 1–7 (C-01…C-07). Returns an empty object when the step is valid. */
-export function validateBriefStep(step: number, b: Brief): FieldErrors {
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * Brief steps are 1–7 (C-01…C-07). Returns an empty object when the step is valid. `hidden`: questions the owner
+ * switched off in Admin › Onboarding (owner, 2026-10-14) are not asked, so they can't be missing.
+ */
+export function validateBriefStep(step: number, b: Brief, hidden: ReadonlySet<string> = NONE): FieldErrors {
   const e: FieldErrors = {};
   switch (step) {
     case 1:
@@ -155,18 +162,19 @@ export function validateBriefStep(step: number, b: Brief): FieldErrors {
       if (!BUSINESS_TYPES.includes(b.businessType as BusinessType)) e.businessType = "wizard.errors.businessType";
       if (len(b.businessDescription) < LIMITS.description.min || len(b.businessDescription) > LIMITS.description.max)
         e.businessDescription = "wizard.errors.description";
-      if (len(b.targetAudience) < LIMITS.targetAudience.min || len(b.targetAudience) > LIMITS.targetAudience.max) e.targetAudience = "wizard.errors.audience";
+      if (!hidden.has("targetAudience") && (len(b.targetAudience) < LIMITS.targetAudience.min || len(b.targetAudience) > LIMITS.targetAudience.max)) e.targetAudience = "wizard.errors.audience";
+      else if (hidden.has("targetAudience") && len(b.targetAudience) > LIMITS.targetAudience.max) e.targetAudience = "wizard.errors.audience";
       break;
     case 3:
       if (!b.noWebsite && b.websiteUrl.trim() && (!normalizeUrl(b.websiteUrl) || len(b.websiteUrl) > LIMITS.url.max))
         e.websiteUrl = "wizard.errors.url";
       break;
     case 4:
-      if (b.styles.length === 0 || b.styles.some((s) => !LOGO_STYLES.includes(s))) e.styles = "wizard.errors.styles";
+      if ((!hidden.has("styles") && b.styles.length === 0) || b.styles.some((s) => !LOGO_STYLES.includes(s))) e.styles = "wizard.errors.styles";
       if (STYLE_SLIDERS.some((k) => !Number.isInteger(b.sliders[k]) || b.sliders[k] < 1 || b.sliders[k] > 5)) e.sliders = "wizard.errors.generic";
       break;
     case 5:
-      if (!b.letDesignersChoose && b.colors.length === 0) e.colors = "wizard.errors.colors";
+      if (!hidden.has("colors") && !b.letDesignersChoose && b.colors.length === 0) e.colors = "wizard.errors.colors";
       if (b.colors.length > MAX_COLORS || b.colors.some((c) => !HEX.test(c))) e.colors = "wizard.errors.colors";
       if (b.usedOn.some((u) => !USED_ON.includes(u))) e.usedOn = "wizard.errors.generic";
       if (b.deliverables.some((d) => !DELIVERABLES.includes(d))) e.deliverables = "wizard.errors.generic";
@@ -183,8 +191,8 @@ export function validateBriefStep(step: number, b: Brief): FieldErrors {
 }
 
 /** Validates the whole brief (steps 1–6; step 7 files are checked separately). */
-export function validateBrief(b: Brief): FieldErrors {
-  return Object.assign({}, ...[1, 2, 3, 4, 5, 6].map((s) => validateBriefStep(s, b)));
+export function validateBrief(b: Brief, hidden: ReadonlySet<string> = NONE): FieldErrors {
+  return Object.assign({}, ...[1, 2, 3, 4, 5, 6].map((s) => validateBriefStep(s, b, hidden)));
 }
 
 /** Trims text and drops fields the client didn't mean to send. */

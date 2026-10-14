@@ -31,7 +31,7 @@ function Ticks({ items }: { items: string[] }) {
 }
 
 /** P-03 Brief tab. Only rendered for viewers allowed to read the brief. */
-export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail["brief"]> }) {
+export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<ContestDetail["brief"]>; /** Answers to the owner's own questions. */ extra?: { label: string; answer: string }[] }) {
   const { t } = await getI18n();
   const facts = [
     brief.shortName && { label: t("contest.brief.shortName"), value: brief.shortName },
@@ -157,6 +157,20 @@ export async function ContestBrief({ brief }: { brief: NonNullable<ContestDetail
           )}
         </Block>
       </div>
+
+      {/* The client's answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14) */}
+      {extra.length > 0 && (
+        <Block title={t("contest.brief.more")} className="lg:col-span-2">
+          <dl className="m-0 space-y-3">
+            {extra.map((x) => (
+              <div key={x.label}>
+                <dt className="text-xs text-muted">{x.label}</dt>
+                <dd className="m-0 mt-0.5 whitespace-pre-line leading-relaxed">{x.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </Block>
+      )}
 
       {brief.files.length > 0 && (
         <Block title={t("contest.brief.files")} className="lg:col-span-2">

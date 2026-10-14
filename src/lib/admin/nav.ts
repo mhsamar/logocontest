@@ -61,6 +61,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "admin.groups.content",
     items: [
       { href: "/admin/texts", icon: "texts", label: "admin.nav.texts", perm: "content.view" },
+      // The questions new clients and designers answer (owner, 2026-10-14).
+      { href: "/admin/onboarding", icon: "lists", label: "admin.nav.onboarding", perm: "content.view" },
       { href: "/admin/lists", icon: "lists", label: "admin.nav.lists", perm: "content.view" },
       { href: "/admin/legal", icon: "legal", label: "admin.nav.legal", perm: "content.view" },
       { href: "/admin/brand", icon: "brand", label: "admin.nav.brand", perm: "content.view" },

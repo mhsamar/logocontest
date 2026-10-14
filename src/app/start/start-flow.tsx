@@ -18,6 +18,7 @@ import { openMethods } from "@/lib/payments/methods";
 import { getProSettings } from "@/lib/pro/settings";
 import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOnboarding } from "@/lib/onboarding/store";
 
 /*
  * Shared by /start (the "What do you need?" page, draft links and the logo wizard's ?step= links) and
@@ -103,7 +104,7 @@ export async function serviceDraftOf(user: CurrentUser | null, draftId: string |
 
 /** The original logo wizard, C-01 … C-11 (UI-JOURNEY §4), with its ?step=, ?draft= and ?name= links. */
 export async function logoWizard(params: StartParams, user: CurrentUser | null) {
-  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods] = await Promise.all([
+  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods, onboarding] = await Promise.all([
     getPricingConfig(),
     getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length"]),
     visibleList("business_types", "en"),
@@ -111,6 +112,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
     profileOf(user),
     invitesAvailable(),
     payMethods(),
+    getOnboarding("client"),
   ]);
 
   let previous: WizardProps["previous"] = [];
@@ -156,6 +158,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       choices={{ businessTypes: businessTypes.map((b) => b.id), swatches: colours.map((c) => c.value ?? "").filter(Boolean) }}
       inviteFirst={inviteFirst}
       methods={methods}
+      onboarding={onboarding}
     />
   );
 }

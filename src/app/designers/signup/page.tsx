@@ -6,6 +6,7 @@ import { DesignerSignupFlow } from "@/components/designers/signup-flow";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
+import { getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -34,7 +35,7 @@ export default async function DesignerSignupPage() {
         </>
       }
     >
-      <DesignerSignupFlow passwordMin={s["auth.password_min_length"]} bioMax={s["limits.designer_bio_max_length"]} />
+      <DesignerSignupFlow passwordMin={s["auth.password_min_length"]} bioMax={s["limits.designer_bio_max_length"]} onboarding={await getOnboarding("designer")} />
     </AuthCard>
   );
 }

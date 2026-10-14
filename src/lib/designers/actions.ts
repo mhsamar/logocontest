@@ -20,6 +20,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import { isPersonName } from "@/lib/profile/name-rules";
 import { checkPayout, checkUsernameFormat, type PayoutInput } from "./signup";
+import { checkExtraAnswers } from "@/lib/onboarding/config";
+import { getOnboarding } from "@/lib/onboarding/store";
 
 /** D-01 designer sign-up (UI-JOURNEY). Each step is checked on the server before the next one opens. */
 
@@ -33,7 +35,19 @@ const NAME_MIN = 2;
 const NAME_MAX = 60;
 
 /** Step 1: full name and mobile. */
-export async function checkDesignerBasics(input: { name: string; mobile: string; country?: string }): Promise<StepResult> {
+/** The owner's own questions on a sign-up step (Admin › Onboarding, owner 2026-10-14): answered, and no contact details. */
+async function extraProblem(answers: unknown, steps?: number[]): Promise<StepResult | null> {
+  const cfg = await getOnboarding("designer");
+  if (!cfg.extra.length) return null;
+  const { answers: clean, errors } = checkExtraAnswers(cfg, answers, steps);
+  const first = Object.values(errors)[0];
+  if (first) return fail(`services.wizard.errors.${first}` as MessageKey);
+  const terms = await blockedTerms();
+  if (Object.values(clean).some((v) => typeof v === "string" && findContactDetails(v, terms))) return fail("contest.comments.contact");
+  return null;
+}
+
+export async function checkDesignerBasics(input: { name: string; mobile: string; country?: string; answers?: unknown }): Promise<StepResult> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const name = input.name.trim().replace(/\s+/g, " ");
   if (name.length < NAME_MIN || name.length > NAME_MAX) return fail("designerSignup.errors.name", "name");
@@ -43,7 +57,7 @@ export async function checkDesignerBasics(input: { name: string; mobile: string;
   const mobile = toE164(input.mobile, input.country);
   if (!mobile) return fail(input.country && input.country !== "BD" ? "auth.errors.invalidPhoneIntl" : "auth.errors.invalidPhone", "mobile");
   if (await findProfileByPhone(mobile)) return fail("auth.errors.phoneTaken", "mobile");
-  return { ok: true };
+  return (await extraProblem(input.answers, [1])) ?? { ok: true };
 }
 
 /** Step 2: email and password. */
@@ -76,14 +90,14 @@ export async function checkUsername(input: string): Promise<{ ok: true; username
 }
 
 /** Step 3: username and bio before going on. */
-export async function checkDesignerProfile(input: { username: string; bio: string }): Promise<StepResult> {
+export async function checkDesignerProfile(input: { username: string; bio: string; answers?: unknown }): Promise<StepResult> {
   const u = await checkUsername(input.username);
   if (!u.ok) return fail(u.error, "username");
   const max = await getSetting("limits.designer_bio_max_length");
   const bio = input.bio.trim();
   if (bio.length > max) return fail("designerSignup.errors.bioLong", "bio", { max });
   if (bio && findContactDetails(bio, await blockedTerms())) return fail("contest.comments.contact", "bio");
-  return { ok: true };
+  return (await extraProblem(input.answers, [3])) ?? { ok: true };
 }
 
 /** Step 4: creates the designer account, signs in, sends the email code and the welcome push. */
@@ -93,6 +107,8 @@ export async function createDesignerAccount(input: {
   country?: string;
   /** "This number is on WhatsApp" (owner, 2026-10-14). */
   whatsapp?: boolean;
+  /** Answers to the owner's own questions (Admin › Onboarding). */
+  answers?: unknown;
   email: string;
   password: string;
   username: string;
@@ -120,6 +136,9 @@ export async function createDesignerAccount(input: {
   const email = normalizeEmail(input.email)!;
   const username = checkUsernameFormat(input.username);
   if (!username.ok) return fail("designerSignup.username.format", "username");
+  const onboarding = await getOnboarding("designer");
+  const extra = await extraProblem(input.answers);
+  if (extra) return extra;
   const { locale } = await getI18n();
   const admin = createAdminClient();
 
@@ -137,7 +156,15 @@ export async function createDesignerAccount(input: {
   // The sign-up trigger makes every new profile a client; this one is a designer.
   const { error: profileError } = await admin
     .from("profiles")
-    .update({ role: "designer", username: username.username, bio: input.bio.trim() || null, rules_accepted_at: new Date().toISOString(), whatsapp: input.whatsapp === true })
+    .update({
+      role: "designer",
+      username: username.username,
+      bio: input.bio.trim() || null,
+      rules_accepted_at: new Date().toISOString(),
+      whatsapp: input.whatsapp === true,
+      // Only once the owner has questions, so sign-up keeps working before migration 0056.
+      ...(onboarding.extra.length ? { onboarding_answers: checkExtraAnswers(onboarding, input.answers).answers } : {}),
+    })
     .eq("id", userId);
   const { error: payoutError } = profileError ? { error: null } : await admin.from("designer_payout_methods").insert({ user_id: userId, ...payout.payout });
   if (profileError || payoutError) {

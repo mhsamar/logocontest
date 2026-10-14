@@ -37,6 +37,9 @@ import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
 import { ReviewStep, type PromoPreview, type UploadState } from "./step-review";
+import { FieldInput } from "@/components/services/field-input";
+import { checkExtraAnswers, clientStepShown, EMPTY_ONBOARDING, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
+import type { Lang } from "@/lib/services/types";
 
 export type WizardProps = {
   user: { name: string; mobile: string } | null;
@@ -53,6 +56,8 @@ export type WizardProps = {
   inviteFirst?: boolean;
   /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
   methods: PublicMethod[];
+  /** Questions the owner hid or added (Admin › Onboarding, owner 2026-10-14). */
+  onboarding?: OnboardingConfig;
 };
 
 
@@ -60,10 +65,16 @@ const HEADINGS = ["c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09",
 const BUCKET = "contest-files";
 
 export function Wizard(props: WizardProps) {
-  const { t, price: money } = useI18n();
+  const { t, locale, price: money } = useI18n();
   const toast = useToast();
   const router = useRouter();
-  const steps = useMemo(() => (props.user ? [1, 2, 3, 4, 5, 6, 7, 8, 11] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]), [props.user]);
+  const onboarding = props.onboarding ?? EMPTY_ONBOARDING;
+  const hidden = useMemo(() => new Set(onboarding.hidden), [onboarding]);
+  // A brief step whose every question the owner hid is skipped (Admin › Onboarding, owner 2026-10-14).
+  const steps = useMemo(
+    () => (props.user ? [1, 2, 3, 4, 5, 6, 7, 8, 11] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).filter((s) => s > 7 || clientStepShown(onboarding, s)),
+    [props.user, onboarding],
+  );
 
   const [state, setState] = useState<WizardState | null>(null);
   const [step, setStep] = useState(1);
@@ -102,7 +113,7 @@ export function Wizard(props: WizardProps) {
     setState(next);
     // Coming from the home page with a name: C-01 is already answered, start at C-02.
     const wanted = props.initialStep ?? (fromHero ? 2 : 1);
-    const first = firstReachable(wanted, next, steps, props.pricing, !props.user);
+    const first = firstReachable(wanted, next, steps, props.pricing, !props.user, onboarding);
     setStep(first);
     // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry.
     window.history.replaceState({ step: first }, "", `?step=${first}`);
@@ -236,7 +247,11 @@ export function Wizard(props: WizardProps) {
   }
 
   // ---- validity per step -----------------------------------------------------
-  const stepErrors = step <= 6 ? validateBriefStep(step, state.brief) : {};
+  const stepErrors = step <= 6 ? validateBriefStep(step, state.brief, hidden) : {};
+  // The owner's own questions on this step.
+  const extraHere = step <= 7 ? extraOn(onboarding, step) : [];
+  const extraErrors = extraHere.length ? checkExtraAnswers(onboarding, state.brief.extra, [step]).errors : {};
+  const extraOk = Object.keys(extraErrors).length === 0;
   const serverErrorShown =
     serverError && CONTACT_CHECKED_FIELDS[serverError.field] === step && state.brief[serverError.field] === serverError.value;
   const briefErrors = serverErrorShown ? { [serverError.field]: serverError.key, ...stepErrors } : stepErrors;
@@ -246,9 +261,9 @@ export function Wizard(props: WizardProps) {
   const leadMobileOk = Boolean(props.user) || toE164(state.mobile, country) !== null;
   const valid =
     step <= 6
-      ? Object.keys(briefErrors).length === 0 && (step !== 1 || leadMobileOk)
+      ? Object.keys(briefErrors).length === 0 && extraOk && (step !== 1 || leadMobileOk)
       : step === 7
-        ? true
+        ? extraOk
         : step === 8
           ? price !== null
           : step === 9
@@ -358,7 +373,8 @@ export function Wizard(props: WizardProps) {
     go(s);
   };
 
-  const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch, choices: props.choices };
+  const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch, choices: props.choices, hidden };
+  const lang = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en || x.bn);
   const key = HEADINGS[step - 1];
   // A promo code was checked against the total at that moment; after the order changes it no longer counts.
   const promoNow = promo && price && promo.total + promo.saves === price.total ? promo : null;
@@ -464,6 +480,24 @@ export function Wizard(props: WizardProps) {
                   }
                 />
               )}
+              {/* The owner's own questions on this step (Admin › Onboarding, owner 2026-10-14) */}
+              {extraHere.length > 0 && (
+                <div className="mt-6 space-y-5">
+                  {extraHere.map((q) => (
+                    <FieldInput
+                      key={q.key}
+                      f={q}
+                      l={lang}
+                      value={state.brief.extra?.[q.key]}
+                      onChange={(v) => {
+                        updateBrief({ extra: { ...(state.brief.extra ?? {}), [q.key]: v } });
+                        touch(`extra.${q.key}`);
+                      }}
+                      error={touched.has(`extra.${q.key}`) && extraErrors[q.key] ? t(`services.wizard.errors.${extraErrors[q.key]}` as MessageKey) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
               {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
               {step === 9 && (
                 <AccountStep
@@ -475,7 +509,7 @@ export function Wizard(props: WizardProps) {
                     setAccountError(null);
                   }}
                   whatsapp={state.whatsapp === true}
-                  onWhatsapp={(on) => setState({ ...state, whatsapp: on })}
+                  onWhatsapp={hidden.has("whatsapp") ? undefined : (on) => setState({ ...state, whatsapp: on })}
                   onMobile={(mobile) => {
                     setState({ ...state, mobile });
                     setAccountError(null);
@@ -559,12 +593,15 @@ function inlineField(e: { field?: ContactCheckedField }): ContactCheckedField | 
 }
 
 /** Never land past the first unfinished step (e.g. a stale ?step=11 link). */
-function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig, needMobile = false): number {
+function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig, needMobile = false, onboarding: OnboardingConfig = EMPTY_ONBOARDING): number {
+  const hidden = new Set(onboarding.hidden);
   for (const st of steps) {
     if (st >= wanted) return steps.includes(wanted) ? wanted : st;
     const incomplete =
       st <= 6
-        ? Object.keys(validateBriefStep(st, s.brief)).length > 0 || (st === 1 && needMobile && toE164(s.mobile, s.mobileCountry ?? "BD") === null)
+        ? Object.keys(validateBriefStep(st, s.brief, hidden)).length > 0 ||
+          Object.keys(checkExtraAnswers(onboarding, s.brief.extra, [st]).errors).length > 0 ||
+          (st === 1 && needMobile && toE164(s.mobile, s.mobileCountry ?? "BD") === null)
         : st === 8
           ? validateOrder(s.order, cfg) !== null
           : st === 9 || st === 10;

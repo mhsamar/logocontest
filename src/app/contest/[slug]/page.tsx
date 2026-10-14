@@ -50,6 +50,7 @@ import { getService } from "@/lib/services/store";
 import { isLogo, type Lang } from "@/lib/services/types";
 import { getSetting } from "@/lib/settings";
 import { can, type CurrentUser } from "@/lib/auth/policies";
+import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata({ params }: PageProps<"/contest/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -444,7 +445,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <ServiceBrief service={svc} answers={contest.serviceBrief} full />
             </div>
           ) : contest.brief ? (
-            <ContestBrief brief={contest.brief} />
+            <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />
           ) : (
             <div className="mx-auto max-w-xl">
               <EmptyState
