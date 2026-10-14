@@ -34,7 +34,7 @@ export type ProSettings = {
   autoRemind: boolean;
 };
 
-export const PRO_FEATURES = ["early_access", "highlighted_entries", "client_chat", "invitations", "insights", "priority_support", "floating_card", "show_contact_on_profile"] as const;
+export const PRO_FEATURES = ["early_access", "highlighted_entries", "client_chat", "invitations", "insights", "priority_support", "floating_card", "show_contact_on_profile", "hidden_entries"] as const;
 export type ProFeature = (typeof PRO_FEATURES)[number];
 
 /** The seed row (migration 0046). Before that migration runs the plan is simply not there (see settings.ts). */
@@ -62,7 +62,7 @@ export const DEFAULT_PRO_SETTINGS: ProSettings = {
   basicEntriesPerContest: 5,
   invitesPerContest: 10,
   earlyAccessMinutes: 60,
-  features: { early_access: true, highlighted_entries: true, client_chat: true, invitations: true, insights: true, priority_support: true, floating_card: true, show_contact_on_profile: false },
+  features: { early_access: true, highlighted_entries: true, client_chat: true, invitations: true, insights: true, priority_support: true, floating_card: true, show_contact_on_profile: false, hidden_entries: true },
   autoRemind: true,
 };
 

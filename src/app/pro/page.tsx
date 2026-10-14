@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("pro.go.metaTitle"), description: t("pro.go.metaDescription") };
 }
 
-const BENEFITS: { key: "b1" | "b2" | "b3" | "b4" | "b5" | "b6" | "b7" | "b8"; icon: ProIconName; color: string; feature?: keyof ProSettings["features"] }[] = [
+const BENEFITS: { key: "b1" | "b2" | "b3" | "b4" | "b5" | "b6" | "b7" | "b8" | "b9"; icon: ProIconName; color: string; feature?: keyof ProSettings["features"] }[] = [
   { key: "b1", icon: "eye", color: "#8B0000" },
   { key: "b2", icon: "crown", color: "#D9A52B", feature: "highlighted_entries" },
   { key: "b3", icon: "chat", color: "#1F6FB2", feature: "client_chat" },
@@ -32,6 +32,8 @@ const BENEFITS: { key: "b1" | "b2" | "b3" | "b4" | "b5" | "b6" | "b7" | "b8"; ic
   { key: "b6", icon: "image", color: "#7C3AED" },
   { key: "b7", icon: "chart", color: "#0F7A73", feature: "insights" },
   { key: "b8", icon: "help", color: "#A3121B", feature: "priority_support" },
+  // Hide my design (owner, 2026-10-14)
+  { key: "b9", icon: "lock", color: "#5B21B6", feature: "hidden_entries" },
 ];
 
 type Cell = { kind: "yes"; text?: string } | { kind: "no" } | { kind: "text"; text: string } | { kind: "dash" };
@@ -77,6 +79,8 @@ function rows(s: ProSettings, t: Translate): { group: string; items: { label: st
             ]
           : []),
         ...(f.highlighted_entries ? [{ label: t("pro.go.cmp.entries"), basic: { kind: "text", text: t("pro.go.cmp.normalEntry") } as Cell, pro: { kind: "yes", text: t("pro.go.cmp.highlighted") } as Cell }] : []),
+        // Hide my design (owner, 2026-10-14)
+        ...(f.hidden_entries ? [{ label: t("pro.go.cmp.hideEntries"), basic: { kind: "no" } as Cell, pro: { kind: "yes", text: t("pro.go.cmp.hideUntil") } as Cell }] : []),
         { label: t("pro.go.cmp.badge"), basic: { kind: "dash" }, pro: { kind: "yes", text: t("pro.go.cmp.proBadge") } },
       ],
     },

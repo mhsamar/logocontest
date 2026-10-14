@@ -1,5 +1,6 @@
 "use server";
 
+import { isPersonName } from "@/lib/profile/name-rules";
 import { randomUUID } from "node:crypto";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { refresh } from "next/cache";
@@ -39,6 +40,8 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
   if (!user) return fail("auth.errors.generic");
   const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
   if (name.length < 2 || name.length > 60) return fail("designerSignup.errors.name", "name");
+  // Letters only (owner, 2026-10-14): no digits or signs like . / ,
+  if (!isPersonName(name)) return fail("designerSignup.errors.nameLetters", "name");
   const update: Record<string, string | null> = { name };
 
   if (user.role === "designer") {

@@ -31,14 +31,15 @@ import { EntryViewBeacon } from "@/components/pro/entry-view-beacon";
 import { chattableEntries } from "@/lib/pro/chat";
 import { invitedPairs } from "@/lib/pro/invites";
 import { getProSettings } from "@/lib/pro/settings";
-import { badgeIdsAmong, trialIdsAmong } from "@/lib/pro/status";
+import { badgeIdsAmong, isPro, trialIdsAmong } from "@/lib/pro/status";
 import { contestTimeline } from "@/lib/contests/browse-query";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
-import { canVote, canWithdraw, entryScope, isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
+import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
+import { HideToggle } from "@/components/entries/hidden-bits";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
 import { contestIndexable, openGraphFor } from "@/lib/seo";
@@ -127,13 +128,16 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   ]);
   // Designer Pro plan (owner, 2026-10-13): Pro badge and gold border, "Invited" on invited designers' designs, Pro
   // designs higher in the default order (winners stay first), and "Message designer" for the contest's client.
-  const [{ settings: proSet }, badges, trials, invited, chattable] = await Promise.all([
+  const [{ settings: proSet }, badges, trials, invited, chattable, viewerIsPro] = await Promise.all([
     getProSettings(),
     badgeIdsAmong(entries.map((e) => e.designerId)),
     trialIdsAmong(entries.map((e) => e.designerId)),
     invitedPairs([contest.id]),
     entry ? chattableEntries(contest.id, user) : Promise.resolve(new Set<string>()),
+    // Pro "Hide my design" (owner, 2026-10-14): the designer's own switch on their design.
+    entry?.mine && user ? isPro(user.id) : Promise.resolve(false),
   ]);
+  const canHideDesigns = proSet.features.hidden_entries && viewerIsPro;
   const proMark = (e: { designerId: string; designer: unknown }) => ({
     badge: Boolean(e.designer) && badges.has(e.designerId),
     highlight: proSet.features.highlighted_entries && Boolean(e.designer) && badges.has(e.designerId),
@@ -499,6 +503,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           labels={entry.labels}
           winner={entry.status === "winner"}
           closeHref={entriesHref}
+          locked={entry.locked}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
         >
           <EntryViewBeacon entryId={entry.id} />
@@ -554,6 +559,11 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           {canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) && (
             <div className="mt-5 border-t border-line pt-2">
               <WithdrawButton entryId={entry.id} number={entry.number} afterHref={entriesHref} />
+            </div>
+          )}
+          {entry.mine && HIDING_STATUSES.includes(contest.status) && (
+            <div className="mt-4">
+              <HideToggle entryId={entry.id} hidden={entry.hidden} canHide={canHideDesigns} />
             </div>
           )}
         </EntryViewer>

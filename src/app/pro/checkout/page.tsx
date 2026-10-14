@@ -49,6 +49,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
     { key: "pro.checkout.inc.i6", on: s.features.insights },
     { key: "pro.checkout.inc.i7", on: s.features.priority_support },
     { key: "pro.checkout.inc.i8", on: true },
+    { key: "pro.checkout.inc.i9", on: s.features.hidden_entries },
   ];
 
   const summary = (

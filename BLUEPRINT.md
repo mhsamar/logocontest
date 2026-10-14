@@ -417,6 +417,16 @@ Available balance, pending (won but not yet approved), current fee rate with pro
 - **Not a hire:** an invitation is only to take part in the contest. It doesn't open a chat; the client can message the designer only after they send a design (as before).
 - **Admin › Pro plan › Invitations:** every invitation with the contest, client, designer, the answer and its date, whether they took part (designs sent), filters and search, and **Remove** (the designer no longer sees it; kept in the Pro activity log).
 
+### 9.7.2 Pro "Hide my design" (owner, 2026-10-14; migration `0053_pro_hidden_entries`)
+
+- A Pro designer (trial included) can hide a design when sending it, or later from the design while the contest is open or being judged; showing it again is always allowed.
+- Hidden: the contest's client and admins see it (with a "Hidden" badge); other designers and visitors see a locked card ("Hidden by a Pro designer · Public when the winner is picked"). Its pictures are never signed for them. It still counts in the design numbers.
+- It is left out of public contest-card pictures, Design Studio and designer profiles until then. Once the winner is picked (the contest leaves open / judging) every design is public. A designer who is no longer Pro has their hidden designs shown again. Switch: Admin › Pro plan › "Hide my design".
+
+### People's names (owner, 2026-10-14)
+
+Client and designer names: letters only (English or Bangla, with their marks) and single spaces; no digits or signs like . / , (sign-up and Profile). A new client's name comes from the brand name without its digits and signs ("Client" when nothing is left).
+
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 
 - **Before sending:** Send opens Upload → Check → Send for the cover image. "Check originality" runs the existing Logo Checker on the exact uploaded file and uses one of the designer's monthly checks (Basic 2, Pro 100, shared with their own Logo Checker checks; they start again on the 1st, Bangladesh time). The designer can skip ("Not checked"). High → "Upload a new version" or "Send anyway". Logo contests only.

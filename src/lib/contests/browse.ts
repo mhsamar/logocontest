@@ -109,7 +109,7 @@ export async function countEntries(contestIds: string[]): Promise<Map<string, nu
 
 /** Rows with their design counts and card covers. */
 async function toRows(rows: DbRow[]): Promise<ContestRow[]> {
-  const refs = rows.map((r) => ({ id: r.id, isBlind: r.is_blind, isPrivate: r.is_private }));
+  const refs = rows.map((r) => ({ id: r.id, isBlind: r.is_blind, isPrivate: r.is_private, status: r.status }));
   const [entries, covers, faces, info, services] = await Promise.all([countEntries(rows.map((r) => r.id)), leadingDesigns(refs), designerFaces(refs, 3), contestServiceInfo(rows.map((r) => r.id)), allServices()]);
   return rows.map((r) => {
     const service = info.get(r.id)?.service ?? "logo";

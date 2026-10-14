@@ -72,12 +72,13 @@ async function toSquare(img: HTMLImageElement, px: number, h = px): Promise<Blob
 
 /** D-04 Submit a design (owner, 2026-10-08): 1–8 mockups in one box each (drag and drop works), each made px×px automatically, and eight declarations (one: no nude or sexual content). */
 /** `check`: the logo check before sending (owner, 2026-10-14; logo contests only); without it the design is sent straight away. */
-export function SubmitForm({ contestId, slug, limits, contestName, check }: { contestId: string; slug: string; limits: Limits; contestName: string; check?: SendCheckSetup | null }) {
+export function SubmitForm({ contestId, slug, limits, contestName, check, canHide = false }: { contestId: string; slug: string; limits: Limits; contestName: string; check?: SendCheckSetup | null; /** Pro "Hide my design" (owner, 2026-10-14). */ canHide?: boolean }) {
   const { t, locale } = useI18n();
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [ticked, setTicked] = useState<Set<DeclarationKey>>(new Set());
+  const [hide, setHide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
   const [over, setOver] = useState(false);
@@ -160,7 +161,7 @@ export function SubmitForm({ contestId, slug, limits, contestName, check }: { co
   const submit = (checkId: string | null = null) =>
     start(async () => {
       setError(null);
-      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked], checkId });
+      const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked], checkId, hidden: canHide && hide });
       setSending(false);
       if (!res.ok) return setError(t(res.error.key, res.error.params));
       setDone(res.number);
@@ -318,6 +319,12 @@ export function SubmitForm({ contestId, slug, limits, contestName, check }: { co
             />
           ))}
         </div>
+        {/* Pro "Hide my design" (owner, 2026-10-14) */}
+        {canHide && (
+          <div className="mt-3 rounded-[14px] bg-[#F4F0FF] px-3.5 py-1" data-hide-option>
+            <Checkbox label={t("pro.hide.submitLabel")} description={t("pro.hide.submitHint")} checked={hide} onChange={(e) => setHide(e.target.checked)} />
+          </div>
+        )}
       </section>
 
       {/* 3. Submit */}

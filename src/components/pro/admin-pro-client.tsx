@@ -59,6 +59,7 @@ const FEATURE_ROWS: { f: ProFeature; title: string; sub: string; value?: "early"
   { f: "priority_support", title: "pro.admin.fSupport", sub: "pro.admin.fSupportSub" },
   { f: "floating_card", title: "pro.admin.fCard", sub: "pro.admin.fCardSub" },
   { f: "show_contact_on_profile", title: "pro.admin.fContact", sub: "pro.admin.fContactSub" },
+  { f: "hidden_entries", title: "pro.admin.fHidden", sub: "pro.admin.fHiddenSub" },
 ];
 
 const QUICK = [300, 400, 500, 600];

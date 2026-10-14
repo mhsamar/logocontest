@@ -66,6 +66,18 @@ export function showDesignerName(contest: ContestForEntries, viewer: EntryViewer
   return Boolean(viewer && (viewer.id === contest.ownerId || viewer.role === "admin" || viewer.id === entryDesignerId));
 }
 
+/**
+ * Pro "Hide my design" (owner, 2026-10-14): a hidden design stays hidden while the contest is open or being judged;
+ * once the winner is picked every design is public.
+ */
+export const HIDING_STATUSES = ["open", "judging"];
+export const stillHidden = (isHidden: boolean | null | undefined, contestStatus: string) => Boolean(isHidden) && HIDING_STATUSES.includes(contestStatus);
+
+/** Who sees the picture of a hidden design: the contest's client, admins and its designer. */
+export function seesHiddenPicture(contest: { ownerId: string }, viewer: EntryViewer, designerId: string): boolean {
+  return Boolean(viewer && (viewer.id === contest.ownerId || viewer.role === "admin" || viewer.id === designerId));
+}
+
 export type PublicDesignContest = { status: string; isPrivate: boolean; isBlind: boolean; winnerIsPublic: boolean };
 
 /**
@@ -73,8 +85,10 @@ export type PublicDesignContest = { status: string; isPrivate: boolean; isBlind:
  * a public, non-private contest; active, winning or forfeited designs; in blind contests only the
  * winner, once the contest is completed and the client made it public.
  */
-export function isPublicDesign(entry: { status: EntryStatus }, contest: PublicDesignContest): boolean {
+export function isPublicDesign(entry: { status: EntryStatus; isHidden?: boolean | null }, contest: PublicDesignContest): boolean {
   if (!SHOWN_STATUSES.includes(entry.status) || !(PUBLIC_STATUSES as readonly string[]).includes(contest.status) || contest.isPrivate) return false;
+  // A Pro designer's hidden design (owner, 2026-10-14) is public only once the winner is picked.
+  if (stillHidden(entry.isHidden, contest.status)) return false;
   if (!contest.isBlind) return true;
   return entry.status === "winner" && contest.status === "completed" && contest.winnerIsPublic;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import { LockedPicture } from "@/components/entries/hidden-bits";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +19,7 @@ export function EntryViewer({
   labels = [],
   closeHref,
   byline,
+  locked = false,
   winner = false,
   square = true,
   children,
@@ -32,6 +34,8 @@ export function EntryViewer({
   labels?: (string | null)[];
   closeHref: string;
   byline: React.ReactNode;
+  /** Pro "Hide my design" (owner, 2026-10-14): this viewer sees a lock instead of the pictures. */
+  locked?: boolean;
   /** Story and comment box, rendered on the server. */
   children: React.ReactNode;
 }) {
@@ -92,6 +96,7 @@ export function EntryViewer({
               touch.current = null;
             }}
           >
+            {locked && <LockedPicture title={t("pro.hide.lockedTitle")} sub={t("pro.hide.lockedSub")} ratio={square ? 1 : 4 / 3} large />}
             {images[i] && (
               <div className="relative">
                 <img src={images[i]} alt={labels[i] ?? t("submit.mockups.image", { n: i + 1 })} className={cx(square && "aspect-square", "max-h-[52vh] w-auto max-w-full rounded-lg object-contain shadow-card lg:max-h-[72vh]")} />

@@ -40,6 +40,8 @@ type Row = {
   status: EntryStatus;
   rating: number | null;
   is_shortlisted: boolean;
+  /** Pro "Hide my design" (owner, 2026-10-14): public only once the winner is picked. */
+  is_hidden: boolean | null;
   created_at: string;
   contest: { id: string; slug: string; brand_name: string; business_type: string; status: string; is_private: boolean; is_nda: boolean; is_blind: boolean; winner_is_public: boolean } | null;
   images: { position: number }[];
@@ -51,7 +53,7 @@ const publicRows = cache(async (designerId: string): Promise<(Row & { contest: N
   const { data, error } = await createAdminClient()
     .from("entries")
     .select(
-      "id, number, status, rating, is_shortlisted, created_at, contest:contests!contest_id(id, slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position)",
+      "id, number, status, rating, is_shortlisted, is_hidden, created_at, contest:contests!contest_id(id, slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position)",
     )
     .eq("designer_id", designerId)
     .not("status", "in", "(removed,withdrawn)")
@@ -61,7 +63,7 @@ const publicRows = cache(async (designerId: string): Promise<(Row & { contest: N
   return ((data ?? []) as unknown as Row[]).flatMap((r) => {
     const c = Array.isArray(r.contest) ? (r.contest[0] ?? null) : r.contest;
     if (!c) return [];
-    const ok = isPublicDesign(r, { status: c.status, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public });
+    const ok = isPublicDesign({ status: r.status, isHidden: r.is_hidden }, { status: c.status, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public });
     return ok ? [{ ...r, contest: c }] : [];
   });
 });

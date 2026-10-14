@@ -17,6 +17,7 @@ import { notifyUser, savePushSubscription } from "@/lib/push";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
+import { isPersonName } from "@/lib/profile/name-rules";
 import { checkPayout, checkUsernameFormat, type PayoutInput } from "./signup";
 
 /** D-01 designer sign-up (UI-JOURNEY). Each step is checked on the server before the next one opens. */
@@ -35,6 +36,8 @@ export async function checkDesignerBasics(input: { name: string; mobile: string 
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const name = input.name.trim().replace(/\s+/g, " ");
   if (name.length < NAME_MIN || name.length > NAME_MAX) return fail("designerSignup.errors.name", "name");
+  // Letters only (owner, 2026-10-14): no digits or signs like . / ,
+  if (!isPersonName(name)) return fail("designerSignup.errors.nameLetters", "name");
   const mobile = normalizeBdMobile(input.mobile);
   if (!mobile) return fail("auth.errors.invalidPhone", "mobile");
   if (await findProfileByPhone(mobile)) return fail("auth.errors.phoneTaken", "mobile");

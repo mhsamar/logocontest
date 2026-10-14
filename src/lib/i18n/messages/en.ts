@@ -896,6 +896,7 @@ const en = {
     startContest: "Start a contest",
     errors: {
       name: "Enter your full name (2–60 characters).",
+      nameLetters: "Use letters only in your name: no numbers or signs like . / ,",
       bioLong: "Please keep your bio under {max} characters.",
       rules: "Please agree to the Designer Rules.",
       signedIn: "You're already logged in. Log out first to make a designer account.",
