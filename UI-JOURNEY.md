@@ -692,3 +692,11 @@ Wherever the onboarding asks the client or designer to write, a **Need ideas?** 
 - **On the trial:** the Pro dashboard and workspace with a **PRO TRIAL** badge; the side box shows the end date, trial portfolio images (x of 10), trial logo checks left (x of 10) and Upgrade to keep Pro. Entries, the Pro profile and the invite list show **PRO TRIAL**. Settings › Subscription shows the trial with Upgrade (when for sale) and **End trial** (asks once more; no new trial afterwards).
 - **Admin › Pro plan:** a **Free Pro Trial** box in Plan settings (switch, trial length, trial logo checks, trial portfolio images) and a **Pro Trials** section with the numbers, "Start a trial" by username, and a row per trial with +1 day, +3 days and Cancel trial.
 
+## Logo Image Checker policy, cost report and Pro invitations (owner, 2026-10-14)
+
+- **Checker:** the checker box says "Free · 15 checks per ৳1,000 of prize" and "x used · y left of z"; My contests shows the same line on every logo contest that can still be checked. The wizard and the add-ons panel no longer offer the checker. The home page and the Logo Checker page say "Free on every logo contest", "15 checks per ৳1,000 of prize" and "৳3,000 prize → 45 checks".
+- **Admin › Copyright checker:** the rules card (free, 15 per ৳1,000, logo contests only, similarity limits) and a **Cost report** button. The cost report has the month chips, the numbers (API cost, checks done / failed, average per check, contests), the prices used (with Change in Settings), by month, by contest, every check, and Download CSV.
+- **Invite Pro designers (client):** an "Invite by Designer ID" box above the list: type @username → Add; the answer says added, already invited, not found, or not Pro.
+- **Pro › Contest invitations (designer):** one card per invitation with the status (New / Accepted / Declined), prize, end date, design type, the brief and the client's requirements (or the NDA note), Accept / Decline, Open contest and Send a design. The dashboard's invitations box has See invitation and Accept / Decline.
+- **Admin › Pro plan › Invitations:** numbers (sent, accepted, declined, sent a design), status chips, search, and a row per invitation with Remove.
+

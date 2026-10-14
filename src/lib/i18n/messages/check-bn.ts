@@ -146,6 +146,7 @@ const checkBn: Messages["entryCheck"] = {
     byMonth: "মাস অনুযায়ী",
     byContest: "কনটেস্ট অনুযায়ী (এই মাস)",
     checksN: "{n}টি চেক",
+    checksOne: "১টি চেক",
     none: "এই মাসে কোনো চেক নেই।",
     colWhen: "চেক",
     colWho: "যিনি চেক করেছেন",

@@ -95,7 +95,7 @@ export default async function CheckerCostsPage({ searchParams }: PageProps<"/adm
                     {monthName(m.key)}
                   </Link>
                   <span className="text-muted">
-                    {t("entryCheck.costs.checksN", { n: num(m.checks) })} · <b className="text-ink">{tk(m.bdt)}</b>
+                    {m.checks === 1 ? t("entryCheck.costs.checksOne") : t("entryCheck.costs.checksN", { n: num(m.checks) })} · <b className="text-ink">{tk(m.bdt)}</b>
                   </span>
                 </li>
               ))}
@@ -120,7 +120,7 @@ export default async function CheckerCostsPage({ searchParams }: PageProps<"/adm
                     <span className="block text-[13.5px] text-muted">{c.client}</span>
                   </Link>
                   <span className="text-muted">
-                    {t("entryCheck.costs.checksN", { n: num(c.checks) })} · <b className="text-ink">{tk(c.bdt)}</b>
+                    {c.checks === 1 ? t("entryCheck.costs.checksOne") : t("entryCheck.costs.checksN", { n: num(c.checks) })} · <b className="text-ink">{tk(c.bdt)}</b>
                   </span>
                 </li>
               ))}

@@ -147,6 +147,7 @@ const checkEn = {
     byMonth: "By month",
     byContest: "By contest (this month)",
     checksN: "{n} checks",
+    checksOne: "1 check",
     none: "No checks in this month.",
     colWhen: "Check",
     colWho: "Asked by",
