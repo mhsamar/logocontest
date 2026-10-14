@@ -12,7 +12,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { useReadOnly } from "./read-only";
 
 export type ActionField =
-  | { name: string; kind: "reason"; label?: string }
+  | { name: string; kind: "reason"; label?: string; hint?: string; /** Ready-made reasons: a tap fills the box (owner, 2026-10-14). */ suggestions?: { label: string; text: string }[] }
   | { name: string; kind: "number"; label: string; min?: number; max?: number; defaultValue?: string; hint?: string }
   | { name: string; kind: "text"; label: string; defaultValue?: string; hint?: string }
   | { name: string; kind: "select"; label: string; options: { value: string; label: string }[]; defaultValue?: string };
@@ -89,15 +89,35 @@ export function AdminAction({
           {body && <p className="text-sm leading-relaxed text-muted">{body}</p>}
           {fields.map((f) =>
             f.kind === "reason" ? (
-              <TextAreaField
-                key={f.name}
-                label={f.label ?? t("admin.reason")}
-                hint={t("admin.reasonHint")}
-                value={values[f.name] ?? ""}
-                onChange={(e) => set(f.name, e.target.value)}
-                maxLength={500}
-                rows={3}
-              />
+              <div key={f.name} className="space-y-2.5">
+                {f.suggestions && f.suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5" data-reason-suggestions>
+                    {f.suggestions.map((s) => (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => set(f.name, s.text)}
+                        aria-pressed={values[f.name] === s.text}
+                        className={
+                          values[f.name] === s.text
+                            ? "min-h-10 rounded-full bg-primary px-3.5 text-[14px] font-bold text-white"
+                            : "min-h-10 rounded-full bg-[#F4F5F7] px-3.5 text-[14px] font-bold text-ink ring-1 ring-[#E3E5EA] hover:ring-primary"
+                        }
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <TextAreaField
+                  label={f.label ?? t("admin.reason")}
+                  hint={f.hint ?? t("admin.reasonHint")}
+                  value={values[f.name] ?? ""}
+                  onChange={(e) => set(f.name, e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                />
+              </div>
             ) : f.kind === "select" ? (
               <SelectField key={f.name} label={f.label} value={values[f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} options={f.options} placeholder={f.label} />
             ) : (
