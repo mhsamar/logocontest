@@ -25,7 +25,7 @@ type Filter = (typeof FILTERS)[number];
 // Pro › Contests (owner, 2026-10-13; Design/pro/pro-contests.html): every open contest with the early-access ones and
 // the invitations marked, and the instant-alert switches. Basic designers use Browse Contests.
 export default async function ProContestsPage({ searchParams }: PageProps<"/dashboard/contests">) {
-  const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
+  const [{ t, locale, price }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   if (!user) redirect("/login?as=designer&next=%2Fdashboard%2Fcontests");
   if (user.role !== "designer") redirect("/dashboard");
   if (!(await isPro(user.id))) redirect("/contests");
@@ -67,7 +67,7 @@ export default async function ProContestsPage({ searchParams }: PageProps<"/dash
         {list.length ? (
           <div className="pr-cg">
             {list.map((c) => (
-              <ProContestCard key={c.id} c={c} saved={saved.has(c.id)} invited={invited.has(c.id)} names={names} t={t} locale={locale} />
+              <ProContestCard key={c.id} c={c} saved={saved.has(c.id)} invited={invited.has(c.id)} names={names} t={t} locale={locale} price={price} />
             ))}
           </div>
         ) : (

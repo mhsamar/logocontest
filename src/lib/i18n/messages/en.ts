@@ -1,9 +1,11 @@
 import checkEn from "./check-en";
+import payEn from "./pay-en";
 import proEn from "./pro-en";
 
 const en = {
   pro: proEn,
   entryCheck: checkEn,
+  pay: payEn,
   meta: {
     title: "logocontest.bd — Logo design contests in Bangladesh",
     description: "Many designers. Many ideas. One perfect logo. Get your logo from Bangladesh's best designers.",
@@ -1080,6 +1082,11 @@ const en = {
       pro_trial_ending: "Your Pro Trial is ending. Upgrade now to keep your Pro benefits active.",
       pro_trial_ended: "Your Pro Trial has ended. You are on Basic now; your portfolio is kept and shows again when you upgrade.",
       pro_trial_extended: "Your Pro Trial was extended by {days} days.",
+      payment_received: "We got your payment details ({amount}). We are checking it and will tell you as soon as it is approved.",
+      payment_approved_contest: "Payment approved! Your contest \"{brand}\" is live now.",
+      payment_approved_addon: "Payment approved: your add-on for \"{brand}\" is on.",
+      payment_rejected: "We couldn't approve your payment of {amount}: {reason}. Check the transaction ID and send it again.",
+      payment_submitted_admin: "{name} sent a bKash payment of {amount} to check.",
       account_banned: "Your account was banned permanently: {reason}",
       flag_warning: "Your report on design #{number} ({brand}) was found to be false. 3 false reports close an account.",
       report_upheld: "Thank you. Your report on design #{number} ({brand}) was upheld and the design was removed.",
@@ -2650,7 +2657,7 @@ const en = {
     settings: {
       title: "Settings",
       lead: "Every number an admin can change. Each save needs a reason and is written to the audit log.",
-      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", timers: "Timers", limits: "Limits", checker: "Logo checker costs", monthly: "Monthly prize", site: "Site", auth: "Login and codes", live: "Home page: live designers" },
+      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", payments: "Dollar prices (Stripe)", timers: "Timers", limits: "Limits", checker: "Logo checker costs", monthly: "Monthly prize", site: "Site", auth: "Login and codes", live: "Home page: live designers" },
       liveNote: "Right now: {joined} designers joined, {online} online.",
       on: "On",
       off: "Off",

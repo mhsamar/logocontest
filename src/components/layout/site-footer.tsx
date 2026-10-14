@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getContact } from "@/lib/content/contact";
 import { visibleList } from "@/lib/content/lists";
-import { offersOn, showsLink } from "@/lib/rewards/program";
+import { showsLink } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
+import { setCurrency } from "@/lib/currency/actions";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
@@ -61,8 +63,8 @@ const SOCIAL = [
 
 /** Site footer (owner, 2026-10-10; the home page design, on every page): links from Lists → Footer links, social links and phone from Settings. */
 export async function SiteFooter() {
-  const { t, locale } = await getI18n();
-  const [links, contact, allFooterLinks, offers] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale), offersOn()]);
+  const { t, locale, currency } = await getI18n();
+  const [links, contact, allFooterLinks, offers] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale), visibleOffers()]);
   // Owner, 2026-10-13: no leaderboard link while the monthly prizes program is off.
   const footerLinks = allFooterLinks.filter((l) => showsLink(l.href, offers));
   const social = SOCIAL.filter((x) => links[x.key]);
@@ -128,11 +130,24 @@ export async function SiteFooter() {
       </div>
       <div className="lc-ft-bar lc-rv-soft relative mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 pt-5 text-[15px] text-muted">
         <span>{t("footer.rights", { year })}</span>
-        <form action={setLocale} aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
-          {languageButton("en")}
-          <span aria-hidden>·</span>
-          {languageButton("bn")}
-        </form>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <form action={setLocale} aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
+            {languageButton("en")}
+            <span aria-hidden>·</span>
+            {languageButton("bn")}
+          </form>
+          {/* Prices in taka or US dollars (owner, 2026-10-14): set from the visitor's country, changeable here. */}
+          <form action={setCurrency} aria-label={t("pay.currency.label")} className="flex items-center gap-1.5" data-currency-switch>
+            {(["BDT", "USD"] as const).map((c, i) => (
+              <span key={c} className="flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden>·</span>}
+                <button type="submit" name="currency" value={c} aria-current={currency.code === c ? "true" : undefined} className={currency.code === c ? "lc-ft-lang font-semibold text-ink" : "lc-ft-lang hover:text-ink"}>
+                  {t(c === "BDT" ? "pay.currency.bdt" : "pay.currency.usd")}
+                </button>
+              </span>
+            ))}
+          </form>
+        </span>
         <span>{t("footer.madeIn")}</span>
       </div>
       <div aria-hidden className="lc-ft-word lc-d lc-rv lc-big mb-[-0.16em] mt-7 whitespace-nowrap text-center text-[clamp(54px,14.5vw,212px)] font-semibold leading-[0.82] tracking-[-0.06em] text-primary">

@@ -8,6 +8,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { designerFeeWithCode, markPromoUsed } from "@/lib/promos/promos";
 import { feeRateFor } from "@/lib/wallet/fees";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { REJECT_REASONS } from "./review-options";
@@ -92,10 +93,12 @@ export async function pickWinner(entryId: string): Promise<Result> {
     db.from("profiles").select("counted_wins_count").eq("id", own.entry.designer_id).single(),
     getSettings(["fees.designer_tiers", "timers.designer_file_upload_days"]),
   ]);
-  const feeRate = feeRateFor(designer?.counted_wins_count ?? 0, s["fees.designer_tiers"]);
+  // A designer fee code (owner, 2026-10-14) lowers the fee on this win.
+  const { rate: feeRate, redemptionId } = await designerFeeWithCode(own.entry.designer_id, feeRateFor(designer?.counted_wins_count ?? 0, s["fees.designer_tiers"]));
   const dueAt = new Date(Date.now() + s["timers.designer_file_upload_days"] * 86_400_000).toISOString();
   const { error } = await db.rpc("pick_winner", { p_contest_id: own.contest.id, p_entry_id: entryId, p_fee_rate: feeRate, p_due_at: dueAt });
   if (error) return { ok: false, error: "manage.closed" };
+  await markPromoUsed(redemptionId, { contestId: own.contest.id });
   const n = { brand: own.contest.brand_name, number: own.entry.number };
   const link = `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`;
   await notify([own.entry.designer_id], "winner_picked", n, `/dashboard/handover/${own.contest.slug}`);

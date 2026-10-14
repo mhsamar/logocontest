@@ -12,6 +12,7 @@ import {
   type RacePayment,
   type RacePerson,
   type RaceWin,
+  visitsAbroad,
 } from "./race-rules";
 import { monthRange } from "./rules";
 
@@ -63,10 +64,18 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
   for (const r of [paidRes, paymentsRes, entriesRes, peopleRes]) if (r.error) throw new Error(r.error.message);
 
   const paid = new Set((paidRes.data ?? []).map((p) => p.contest_id as string));
+  // Where each person visited from this month (owner, 2026-10-14: the prizes are for Bangladesh only). Before
+  // migration 0051 the function is missing and everyone counts, as before.
+  const visits = new Map<string, { bd: number; abroad: number }>();
+  const allIds = [...clientIds, ...designerIds];
+  if (allIds.length) {
+    const { data: v } = await db.rpc("visit_countries", { p_user_ids: allIds, p_from: from, p_to: to });
+    for (const r of (v ?? []) as { user_id: string; bd_views: number; abroad_views: number }[]) visits.set(r.user_id, { bd: Number(r.bd_views), abroad: Number(r.abroad_views) });
+  }
   const people = new Map<string, RacePerson>();
   const profiles = new Map<string, RaceProfile>();
   for (const p of peopleRes.data ?? []) {
-    people.set(p.id as string, { id: p.id as string, role: p.role as RacePerson["role"], status: p.status as string, isTest: Boolean(p.is_test) });
+    people.set(p.id as string, { id: p.id as string, role: p.role as RacePerson["role"], status: p.status as string, isTest: Boolean(p.is_test), abroad: visitsAbroad(visits.get(p.id as string)) });
     profiles.set(p.id as string, {
       id: p.id as string,
       name: (p.name as string) ?? "",

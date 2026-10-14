@@ -1,7 +1,9 @@
 import "server-only";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { getPaymentGateway } from "@/lib/payments";
-import type { PaymentMethod, VerifiedCallback } from "@/lib/payments/gateway";
+import type { VerifiedCallback } from "@/lib/payments/gateway";
+import { gatewayMethod, isManual, type MethodKey } from "@/lib/payments/manual-rules";
+import { openStripeCheckout } from "@/lib/payments/stripe-api";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,12 +41,15 @@ const ACTIVE: Record<AddonKey, keyof ContestFlags> = { promote: "is_promoted", p
 
 export type AddonOrder = { addon: AddonKey } | { extensionDays: number };
 
-/** Records the payment and returns the gateway checkout URL. */
+/**
+ * Records the payment and returns the gateway checkout URL: the pay page for manual bKash, or Stripe's page for a
+ * card payment in US dollars (owner, 2026-10-14).
+ */
 export async function startAddonCheckout(
   user: CurrentUser,
   contestId: string,
   order: AddonOrder,
-  method: PaymentMethod,
+  key: MethodKey,
 ): Promise<{ ok: true; redirectUrl: string } | { ok: false; error: "not_found" | "closed" | "active" | "invalid" }> {
   const db = createAdminClient();
   const { data: c } = await db
@@ -73,13 +78,21 @@ export async function startAddonCheckout(
   }
   if (amount <= 0) return { ok: false, error: "invalid" };
 
-  const gateway = getPaymentGateway();
+  const manual = isManual(key);
+  const method = manual ? "bkash" : gatewayMethod(key as "bkash_api" | "sslcommerz" | "stripe");
+  const gateway = manual || key === "stripe" ? null : getPaymentGateway();
   const { data: payment, error } = await db
     .from("payments")
-    .insert({ contest_id: c.id, client_id: user.id, gateway: gateway.name, method, amount, ...row })
+    .insert({ contest_id: c.id, client_id: user.id, gateway: gateway?.name ?? key, method, amount, ...row })
     .select("id")
     .single();
   if (error || !payment) return { ok: false, error: "invalid" };
+  if (key === "stripe") {
+    const what = "addon" in order ? order.addon : `+${order.extensionDays} days`;
+    const url = await openStripeCheckout({ kind: "addon", paymentId: payment.id as string, bdt: amount, name: `logocontest.bd · ${c.brand_name} · ${what}`, email: user.email, cancelPath: `/dashboard/contests/${c.slug}` });
+    return url ? { ok: true, redirectUrl: url } : { ok: false, error: "invalid" };
+  }
+  if (!gateway) return { ok: true, redirectUrl: `/pay/addon/${payment.id}` };
 
   const { redirectUrl } = await gateway.createCheckout({
     paymentId: payment.id as string,

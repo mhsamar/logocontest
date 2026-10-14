@@ -1,20 +1,21 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageShell } from "@/components/ui/panel";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { pastMonthWinners, publicRace, raceMonths, type PastWinners, type PublicPerson } from "@/lib/rewards/leaderboard";
-import { offersOn } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { isMonthKey, monthKey, monthRange } from "@/lib/rewards/rules";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [{ t }, offers] = await Promise.all([getI18n(), offersOn()]);
+  const [{ t }, offers] = await Promise.all([getI18n(), visibleOffers()]);
   if (!offers.program) return { title: t("leaderboard.soon.title"), robots: { index: false } };
   return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription") };
 }
@@ -144,7 +145,7 @@ function RaceList({
   );
 }
 
-function PastCard({ w, t, locale }: { w: PastWinners; t: Translate; locale: Locale }) {
+function PastCard({ w, t, locale, price }: { w: PastWinners; t: Translate; locale: Locale; price: (bdt: number) => string }) {
   const fmt = (n: number) => formatNumber(n, locale);
   return (
     <article className="flex flex-col gap-2.5 rounded-[24px] border border-[#E9EAEE] bg-white p-4">
@@ -158,7 +159,7 @@ function PastCard({ w, t, locale }: { w: PastWinners; t: Translate; locale: Loca
           <div className="flex min-w-0 flex-1 flex-col gap-px">
             <span className="text-[12.5px] font-bold uppercase tracking-[0.05em] text-[#8B0000]">{t("leaderboard.past.client")}</span>
             <strong className="truncate text-[17px]">{w.smartphone.name}</strong>
-            <span className="text-[14px] text-[#5F626B]">{t("leaderboard.past.clientLine", { n: fmt(w.smartphone.contests), prize: formatTaka(w.smartphone.prizeTotal, locale) })}</span>
+            <span className="text-[14px] text-[#5F626B]">{t("leaderboard.past.clientLine", { n: fmt(w.smartphone.contests), prize: price(w.smartphone.prizeTotal) })}</span>
           </div>
         </div>
       )}
@@ -179,7 +180,9 @@ function PastCard({ w, t, locale }: { w: PastWinners; t: Translate; locale: Loca
 // P-07 Leaderboard (owner, 2026-10-11; Design/rewards/leaderboard.html): who is winning this month's smartphone and gift box.
 export default async function LeaderboardPage({ searchParams }: PageProps<"/leaderboard">) {
   const sp = await searchParams;
-  const [{ t, locale }, offers] = await Promise.all([getI18n(), offersOn()]);
+  const [{ t, locale, price, currency }, offers] = await Promise.all([getI18n(), visibleOffers()]);
+  // The smartphone and gift box are for Bangladesh only (owner, 2026-10-14): visitors from abroad go to the home page.
+  if (currency.code === "USD") redirect("/");
   if (!offers.program) return <ComingSoon t={t} />;
   const now = new Date();
   const current = monthKey(now);
@@ -264,7 +267,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
             lead={t("leaderboard.clients.lead")}
             prize={t("leaderboard.clients.prize")}
             tone="red"
-            rows={race.clients.map((c) => ({ ...c, score: c.contests, unit: t("leaderboard.clients.unit"), sub: t("leaderboard.clients.prizeMoney", { amount: formatTaka(c.prizeTotal, locale) }) }))}
+            rows={race.clients.map((c) => ({ ...c, score: c.contests, unit: t("leaderboard.clients.unit"), sub: t("leaderboard.clients.prizeMoney", { amount: price(c.prizeTotal) }) }))}
             totalText={t("leaderboard.clients.total", { n: fmt(race.clients.length) })}
             more={more("clients", race.clients.length)}
             showAll={full === "clients"}
@@ -276,7 +279,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
             lead={t("leaderboard.designers.lead")}
             prize={t("leaderboard.designers.prize")}
             tone="gold"
-            rows={race.designers.map((d) => ({ ...d, score: d.wins, unit: t("leaderboard.designers.unit"), sub: `${t("leaderboard.designers.earned", { amount: formatTaka(d.earned, locale) })} · ${t(d.joined === 1 ? "leaderboard.designers.joinedOne" : "leaderboard.designers.joined", { n: fmt(d.joined) })}` }))}
+            rows={race.designers.map((d) => ({ ...d, score: d.wins, unit: t("leaderboard.designers.unit"), sub: `${t("leaderboard.designers.earned", { amount: price(d.earned) })} · ${t(d.joined === 1 ? "leaderboard.designers.joinedOne" : "leaderboard.designers.joined", { n: fmt(d.joined) })}` }))}
             totalText={t("leaderboard.designers.total", { n: fmt(race.designers.length) })}
             more={more("designers", race.designers.length)}
             showAll={full === "designers"}
@@ -297,7 +300,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
           ) : (
             <div className="grid gap-4 min-[1021px]:grid-cols-3">
               {past.map((w) => (
-                <PastCard key={w.month} w={w} t={t} locale={locale} />
+                <PastCard key={w.month} w={w} t={t} locale={locale} price={price} />
               ))}
             </div>
           )}

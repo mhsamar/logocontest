@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/client";
 import type { Locale } from "@/lib/i18n/config";
 import { formatNumber, formatTaka } from "@/lib/money";
 
@@ -13,15 +14,19 @@ export function CountUp({
   value,
   locale,
   taka = false,
+  money = false,
   duration = 1100,
   fromZero = true,
 }: {
   value: number;
   locale: Locale;
   taka?: boolean;
+  /** A price in the visitor's currency (owner, 2026-10-14: US dollars for visitors from abroad). */
+  money?: boolean;
   duration?: number;
   fromZero?: boolean;
 }) {
+  const { price } = useI18n();
   const [shown, setShown] = useState(value);
   const current = useRef(value);
   const first = useRef(true);
@@ -43,5 +48,5 @@ export function CountUp({
     return () => cancelAnimationFrame(frame);
   }, [value, duration, fromZero]);
 
-  return <>{taka ? formatTaka(shown, locale) : formatNumber(shown, locale)}</>;
+  return <>{money ? price(shown) : taka ? formatTaka(shown, locale) : formatNumber(shown, locale)}</>;
 }

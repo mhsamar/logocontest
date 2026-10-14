@@ -1,4 +1,4 @@
-import { offersOn } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { getSettings } from "@/lib/settings";
 import { VisitorPopup } from "./visitor-popup";
 
@@ -7,7 +7,7 @@ import { VisitorPopup } from "./visitor-popup";
  * whether the monthly smartphone / gift box offers are running (Admin → Monthly winner), so their ticks stay honest.
  */
 export async function VisitorPopupSlot({ signedIn }: { signedIn: boolean }) {
-  const [s, on] = await Promise.all([getSettings(["popup.on", "popup.seconds", "popup.snooze_days"]), offersOn()]);
+  const [s, on] = await Promise.all([getSettings(["popup.on", "popup.seconds", "popup.snooze_days"]), visibleOffers()]);
   return (
     <VisitorPopup
       signedIn={signedIn}

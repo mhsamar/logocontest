@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closableMonth, daysLeft, inRace, isLastDayOfMonth, missedMonth, rankClients, rankDesigners, winnerOf, type RaceContest, type RaceEntry, type RacePerson, type RaceWin } from "@/lib/rewards/race-rules";
+import { closableMonth, daysLeft, inRace, visitsAbroad, isLastDayOfMonth, missedMonth, rankClients, rankDesigners, winnerOf, type RaceContest, type RaceEntry, type RacePerson, type RaceWin } from "@/lib/rewards/race-rules";
 import { monthKey, monthRange } from "@/lib/rewards/rules";
 
 // Dhaka is UTC+6 with no daylight saving.
@@ -193,5 +193,17 @@ describe("month close timing", () => {
     expect(missedMonth(new Date("2026-11-01T17:59:00Z"))).toBe("2026-10");
     expect(missedMonth(new Date("2026-11-01T18:00:00Z"))).toBeNull(); // 2 Nov
     expect(missedMonth(new Date("2027-01-01T03:00:00Z"))).toBe("2026-12");
+  });
+});
+
+describe("monthly prizes are for Bangladesh only (owner, 2026-10-14)", () => {
+  it("an account visiting mostly from abroad is out of the race", () => {
+    const base = { id: "a", role: "client" as const, status: "active", isTest: false };
+    expect(inRace({ ...base, abroad: false }, false)).toBe(true);
+    expect(inRace({ ...base, abroad: true }, false)).toBe(false);
+    expect(visitsAbroad({ bd: 3, abroad: 10 })).toBe(true);
+    expect(visitsAbroad({ bd: 10, abroad: 3 })).toBe(false);
+    expect(visitsAbroad({ bd: 5, abroad: 5 })).toBe(false);
+    expect(visitsAbroad(undefined)).toBe(false);
   });
 });

@@ -8,7 +8,7 @@ import { durationText, Icon } from "./parts";
 import { contestTypeLabel, leftText } from "./pro-dashboard";
 
 /** One contest in the Pro workspace: early-access and invited ones are marked, with the time before others see it. */
-export function ProContestCard({ c, saved, invited, names, t, locale }: { c: MiniContest; saved: boolean | null; invited: boolean; names: Map<string, string>; t: Translate; locale: Locale }) {
+export function ProContestCard({ c, saved, invited, names, t, locale, price }: { c: MiniContest; saved: boolean | null; invited: boolean; names: Map<string, string>; t: Translate; locale: Locale; price?: (bdt: number) => string }) {
   const early = Boolean(c.opensToAll);
   const letters = (c.brand ?? "").replace(/[^\p{L}\p{N} ]/gu, "").trim().split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
   return (
@@ -37,7 +37,7 @@ export function ProContestCard({ c, saved, invited, names, t, locale }: { c: Min
       <div className="bd">
         <b>{c.brand ?? t("pro.contests.privateContest")}</b>
         <div className="meta">
-          <span className="prize">{formatTaka(c.prize, locale)}</span>
+          <span className="prize">{price ? price(c.prize) : formatTaka(c.prize, locale)}</span>
           <span>{contestTypeLabel(c, t, names)}</span>
           <span>{t("pro.contests.left", { time: leftText(c.endsAt, t) })}</span>
           <span>{c.entries === 1 ? t("pro.contests.oneDesign") : t("pro.contests.designs", { n: formatNumber(c.entries, locale) })}</span>

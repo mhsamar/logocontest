@@ -294,6 +294,15 @@ Full spec: `Design/copyright-checker/COPYRIGHT-CHECKER-HANDOFF.md` and the five 
 - **Used and left** show on My contests (every logo contest that can still be checked) and in the checker box on the contest's manage page.
 - **Cost report** (Admin › Copyright checker › Cost report): every check with who asked (name and ID, client or designer), contest (name and ID), time, result and API cost in taka; totals per contest and per month; CSV download. The API prices (Google Lens per 1,000 searches, Cloud Vision per 1,000 images, AI per million input / output tokens, in US cents) and the taka rate are in Settings › Logo checker costs; each check keeps its cost in USD and taka at the rate of the day it ran (older checks are shown at today's rate, marked).
 
+### 7.9 Payment methods, manual bKash, promo codes and Stripe (owner, 2026-10-14; migration `0050_manual_payments_promos`)
+
+- **Methods (Admin › Payments › Methods):** bKash Personal (+8801677713493) and bKash Merchant (+8801712028511) are manual; the bKash API, SSLCommerz and Stripe are automatic. Each has its own on/off switch; an automatic one can only be switched on once its keys are on the server. Used for everything that is paid: contests, add-ons and extensions, and Pro.
+- **Manual bKash:** the payer sends money to the number and gives the transaction ID (required), their bKash number and a screenshot (both optional) on `/pay/{contest|addon|pro}/{id}`. They see "Your payment is successful. Your contest will be live soon. We will notify you." The contest stays "Waiting for approval" (dashboard, My contests, manage page) and the client can use their dashboard as usual. An admin approves in **Payments › Approvals**: the same steps as a paid gateway payment (contest live, add-on on, Pro on). Rejecting needs a reason; the payment stays open so the payer can send the right ID. A transaction ID can only be used once.
+- **QA transaction IDs:** an admin makes test IDs ("QA" + 8 characters) in Payments › Approvals; a tester types one as the TrxID and the admin approves it. The proof is marked "QA test ID".
+- **Promo codes (Payments › Promo codes):** random one-time codes (a batch, optional prefix) work once in total; a shared code works once per account (optional most uses, start and end). Client codes set the contest service fee to 20/15/10/5/0 %. Designer codes set the fee on the designer's next win to 15/10/5/0 % (added in Wallet) or take a percent off Pro. A code never raises a fee. It is kept for the person when they pay and counted as used when the payment is approved (or the win is picked); a client or Pro code from a checkout that was never paid comes back after 7 days.
+- **Stripe and US dollars:** visitors from outside Bangladesh (Vercel's country of the connection) see prices in US dollars; anyone can switch ৳/$ in the footer. Every amount is still kept in taka: dollars = taka ÷ `payments.usd_rate` (Settings › Dollar prices, 122) plus `payments.usd_markup_percent` (0) for card fees. Dollar visitors pay only with Stripe (card); taka visitors see the other methods. The dollars charged and the Stripe session are kept on the payment and must match exactly before it counts. The return page and the webhook both settle it; whichever comes first. Keys only in the server's environment: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. The designer's wallet, withdrawals and the admin stay in taka; withdrawals stay manual.
+- **Monthly prizes are for Bangladesh only (owner, 2026-10-14):** visitors who see dollars see no smartphone or gift box offers, prize cards, pop-up offer, leaderboard page or leaderboard links (`visibleOffers()`); `/leaderboard` sends them to the home page. The month-close job and prize claims are unchanged.
+
 ## 8. Client flow
 
 ### 8.1 Wizard (`/start`)
@@ -643,7 +652,7 @@ Finish, test and commit each milestone before starting the next.
 
 ## 17. Out of scope for now
 
-Direct messaging, refunds, NID verification, international payments, design categories other than logos, hiring a designer one-to-one, mobile apps, featured/highlighted upgrades, second and third prizes.
+Direct messaging, refunds, NID verification, design categories other than logos, hiring a designer one-to-one, mobile apps, featured/highlighted upgrades, second and third prizes.
 
 ## 18. Things the owner still needs to settle
 

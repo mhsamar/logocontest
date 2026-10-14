@@ -228,6 +228,15 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(0, 1000), default: 15,
     description: "Free AI logo checks a logo contest gets for each full ৳1,000 of prize (৳3,000 → 45). Failed checks do not count.",
   },
+  // US dollar prices for visitors from abroad, paid with Stripe (owner, 2026-10-14). Amounts stay in taka.
+  "payments.usd_rate": {
+    group: "payments", type: "int", schema: int(1, 1000), default: 122,
+    description: "Taka per US dollar. Visitors from abroad see every price in dollars at this rate and pay with Stripe.",
+  },
+  "payments.usd_markup_percent": {
+    group: "payments", type: "int", schema: int(0, 50), default: 0,
+    description: "Added to dollar prices to cover card and currency fees, in percent (0 = none).",
+  },
   // Logo checker cost report (owner, 2026-10-14): API prices and the taka rate. Each check keeps its own cost.
   "checker.usd_to_bdt": {
     group: "checker", type: "int", schema: int(1, 1000), default: 122,

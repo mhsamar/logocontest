@@ -10,7 +10,8 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
+import { openMethods } from "@/lib/payments/methods";
 
 /** The one next step for this contest (UI-JOURNEY C-13, owner 2026-10-08: no two buttons to the same place). */
 function nextAction(c: DashboardContest): { href: string; label: MessageKey } | null {
@@ -28,16 +29,20 @@ function nextAction(c: DashboardContest): { href: string; label: MessageKey } | 
   }
 }
 
-/** C-13 contest card: the leading or winning design, the key facts and one clear button. */
-export async function ClientContestCard({ contest: c, now, addons }: { contest: DashboardContest; now: Date; addons?: AddonPrices }) {
-  const { t, locale } = await getI18n();
+/**
+ * C-13 contest card: the leading or winning design, the key facts and one clear button. `awaitingPayment` is the
+ * payment id when the client sent a bKash transaction ID that waits for approval (owner, 2026-10-14).
+ */
+export async function ClientContestCard({ contest: c, now, addons, awaitingPayment }: { contest: DashboardContest; now: Date; addons?: AddonPrices; awaitingPayment?: string | null }) {
+  const { t, locale, currency, price } = await getI18n();
   const isDraft = c.tab === "drafts";
-  const action = nextAction(c);
+  const action = awaitingPayment ? { href: `/pay/contest/${awaitingPayment}`, label: "pay.viewPayment" as MessageKey } : nextAction(c);
+  const methods = addons && c.status === "open" ? await openMethods(locale, currency.code) : [];
   const live = c.startsAt !== null;
 
   const facts: { label: string; value: string; className?: string }[] = [
-    { label: t("dashboard.facts.prize"), value: formatTaka(c.prize, locale), className: cx("text-lg font-extrabold", PRIZE_TEXT) },
-    { label: t("dashboard.facts.paid"), value: formatTaka(c.paid, locale) },
+    { label: t("dashboard.facts.prize"), value: price(c.prize), className: cx("text-lg font-extrabold", PRIZE_TEXT) },
+    { label: t("dashboard.facts.paid"), value: price(c.paid) },
     { label: t("dashboard.facts.designs"), value: formatNumber(c.entries, locale) },
     { label: t("dashboard.facts.designers"), value: formatNumber(c.designers, locale) },
   ];
@@ -59,6 +64,7 @@ export async function ClientContestCard({ contest: c, now, addons }: { contest: 
         extensionDays={addons.extensionDays}
         endsAt={c.endsAt ? c.endsAt.toISOString() : null}
         prize={c.prize}
+        methods={methods}
       />
     ) : null;
 
@@ -105,7 +111,21 @@ export async function ClientContestCard({ contest: c, now, addons }: { contest: 
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 sm:max-w-sm sm:flex-1">
-            {isDraft ? <p className="text-sm font-medium text-warning">{t("dashboard.draftNote")}</p> : <StatusLine contest={c} now={now} t={t} locale={locale} />}
+            {awaitingPayment ? (
+              <p className="m-0 flex flex-col gap-1 text-sm" data-awaiting-approval>
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#fff4dc] px-2.5 py-1 text-[13px] font-bold text-[#9a6200]">
+                  <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                    <path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  {t("pay.waiting")}
+                </span>
+                <span className="text-muted">{t("pay.waitingLead")}</span>
+              </p>
+            ) : isDraft ? (
+              <p className="text-sm font-medium text-warning">{t("dashboard.draftNote")}</p>
+            ) : (
+              <StatusLine contest={c} now={now} t={t} locale={locale} />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {addonsButton && <span className="sm:hidden">{addonsButton}</span>}

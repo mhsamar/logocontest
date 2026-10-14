@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import type { Lang, ServiceDef } from "@/lib/services/types";
 import { getSettings } from "@/lib/settings";
+import { openMethods } from "@/lib/payments/methods";
 import { getProSettings } from "@/lib/pro/settings";
 import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -76,8 +77,14 @@ const profileOf = async (user: CurrentUser | null) => {
 
 /** The wizard of a non-logo service (fresh, or resuming one of the client's drafts). */
 export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null, startAtPay = false) {
-  const [pricing, s, svcUser, inviteFirst] = await Promise.all([getPricingConfig(), getSettings(["auth.password_min_length"]), profileOf(user), invitesAvailable()]);
-  return <ServiceWizard key={service.slug} service={service} user={svcUser} pricing={pricing} passwordMin={s["auth.password_min_length"]} resume={resume} inviteFirst={inviteFirst} startAtPay={startAtPay} />;
+  const [pricing, s, svcUser, inviteFirst, methods] = await Promise.all([getPricingConfig(), getSettings(["auth.password_min_length"]), profileOf(user), invitesAvailable(), payMethods()]);
+  return <ServiceWizard key={service.slug} service={service} user={svcUser} pricing={pricing} passwordMin={s["auth.password_min_length"]} resume={resume} inviteFirst={inviteFirst} startAtPay={startAtPay} methods={methods} />;
+}
+
+/** The payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14), in the visitor's language. */
+async function payMethods() {
+  const { locale, currency } = await getI18n();
+  return openMethods(locale, currency.code);
 }
 
 /** Designer Pro plan (owner, 2026-10-13): the invite step is offered while invitations are on and someone is Pro. */
@@ -96,13 +103,14 @@ export async function serviceDraftOf(user: CurrentUser | null, draftId: string |
 
 /** The original logo wizard, C-01 … C-11 (UI-JOURNEY §4), with its ?step=, ?draft= and ?name= links. */
 export async function logoWizard(params: StartParams, user: CurrentUser | null) {
-  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst] = await Promise.all([
+  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods] = await Promise.all([
     getPricingConfig(),
     getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length"]),
     visibleList("business_types", "en"),
     visibleList("colours", "en"),
     profileOf(user),
     invitesAvailable(),
+    payMethods(),
   ]);
 
   let previous: WizardProps["previous"] = [];
@@ -147,6 +155,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       prefillName={typeof params.name === "string" ? params.name : ""}
       choices={{ businessTypes: businessTypes.map((b) => b.id), swatches: colours.map((c) => c.value ?? "").filter(Boolean) }}
       inviteFirst={inviteFirst}
+      methods={methods}
     />
   );
 }

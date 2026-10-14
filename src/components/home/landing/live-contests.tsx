@@ -6,7 +6,7 @@ import { SectionHead } from "@/components/ui/section-heading";
 
 /** "Contests live right now" (design file), from the open contests; an empty state until there are any. Kept compact (owner, 2026-10-13). */
 export async function LiveContests({ contests }: { contests: ContestRow[] }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const now = new Date();
   return (
     <section id="contests" className="rounded-[32px] bg-[var(--lc-panel-alt)] px-6 py-12">
@@ -26,7 +26,7 @@ export async function LiveContests({ contests }: { contests: ContestRow[] }) {
           // Owner, 2026-10-13: each card at most 372px wide and centred, so one or two live contests don't stretch into a huge card.
           <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,300px),372px))] justify-center gap-3.5">
             {contests.map((c) => (
-              <ContestTile key={c.id} c={c} now={now} t={t} locale={locale} />
+              <ContestTile key={c.id} c={c} now={now} t={t} locale={locale} price={price} />
             ))}
           </div>
         ) : (

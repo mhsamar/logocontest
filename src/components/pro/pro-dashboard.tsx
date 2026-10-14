@@ -3,7 +3,7 @@ import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { listNotifications } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
@@ -39,7 +39,7 @@ export function leftText(end: Date | null, t: Translate): string {
  * week's numbers, the Logo Checker, my contests and profile strength.
  */
 export async function ProDashboard({ user }: { user: CurrentUser }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const [{ settings }, early, notes, invitations, week, usage, mine, strength, names] = await Promise.all([
     getProSettings(),
     earlyContests(),
@@ -94,7 +94,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
               </span>
               <div>
                 <b>{c.brand ?? t("pro.contests.privateContest")}</b>
-                <em>{t("pro.dash.contestLine", { type: contestTypeLabel(c, t, names), prize: formatTaka(c.prize, locale), left: leftText(c.endsAt, t) })}</em>
+                <em>{t("pro.dash.contestLine", { type: contestTypeLabel(c, t, names), prize: price(c.prize), left: leftText(c.endsAt, t) })}</em>
               </div>
               {c.opensToAll && <span className="tm">{t("pro.dash.headStart", { time: durationText((c.opensToAll.getTime() - now.getTime()) / 60_000, t) })}</span>}
             </Link>
@@ -149,7 +149,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
               </span>
               <div>
                 <b>{i.contest.brand ?? t("pro.contests.privateContest")}</b>
-                <em>{t("pro.dash.invLine", { prize: formatTaka(i.contest.prize, locale), left: leftText(i.contest.endsAt, t) })}</em>
+                <em>{t("pro.dash.invLine", { prize: price(i.contest.prize), left: leftText(i.contest.endsAt, t) })}</em>
               </div>
               {/* Accept or decline (owner, 2026-10-14); the full brief is on the invitations page. */}
               <Link href={`/dashboard/invitations#${i.contest.id}`} className="pr-out sm">
@@ -251,7 +251,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
                   <span className="n">
                     <b>{r.contest.brand ?? t("pro.contests.privateContest")}</b>
                     <em>
-                      {contestTypeLabel(r.contest, t, names)} · {formatTaka(r.contest.prize, locale)}
+                      {contestTypeLabel(r.contest, t, names)} · {price(r.contest.prize)}
                     </em>
                   </span>
                   <span>{n(r.designs)}</span>

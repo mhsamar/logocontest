@@ -133,6 +133,12 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   pro_trial_ending: "money",
   pro_trial_ended: "money",
   pro_trial_extended: "money",
+  // Manual bKash payments (owner, 2026-10-14)
+  payment_received: "money",
+  payment_approved_contest: "approved",
+  payment_approved_addon: "money",
+  payment_rejected: "money",
+  payment_submitted_admin: "admin",
 };
 
 const P = {

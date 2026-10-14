@@ -54,7 +54,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const { t, locale } = await getI18n();
+  const { t, locale, currency } = await getI18n();
   const [messages, notice, user] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser()]);
   // Guests and admins get the designed home page, whose hero holds the nav (owner, 2026-10-10).
   const guestHome = showsLanding(user?.role);
@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={locale} data-scroll-behavior="smooth" className={`${landingBody.variable} ${landingHeading.variable} ${bangla.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <I18nProvider locale={locale} messages={messages}>
+        <I18nProvider locale={locale} messages={messages} currency={currency}>
           <ToastProvider>
             {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero.
                 It stays in one place, so the bars come after it (owner, 2026-10-10: the menu bar never moves). */}

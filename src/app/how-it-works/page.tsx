@@ -11,7 +11,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { fillLegal } from "@/lib/legal/types";
 import { formatNumber } from "@/lib/money";
-import { offersOn } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { getSettings } from "@/lib/settings";
 
 type StepFaq = { q: string; a: string };
@@ -51,13 +51,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HowItWorksPage({ searchParams }: PageProps<"/how-it-works">) {
   const sp = await searchParams;
   const designers = sp.for === "designers";
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const [{ params }, contact, homeFaq, s, offers] = await Promise.all([
-    faqParams(t, locale),
+    faqParams(t, locale, price),
     getContact(locale),
     visibleList("home_faq", locale),
     getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer"]),
-    offersOn(),
+    visibleOffers(),
   ]);
   const tk = (key: string, p?: Record<string, string | number>) => t(key as MessageKey, p);
   const fmt = (n: number) => formatNumber(n, locale);

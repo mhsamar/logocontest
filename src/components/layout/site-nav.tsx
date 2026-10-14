@@ -8,7 +8,8 @@ import type { Translate } from "@/lib/i18n/translate";
 import { brandPictures } from "@/lib/content/brand";
 import { isNewLink } from "@/lib/content/list-defs";
 import { visibleList } from "@/lib/content/lists";
-import { offersOn, showsLink } from "@/lib/rewards/program";
+import { showsLink } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
@@ -55,7 +56,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   const { t, locale } = await getI18n();
   // Owner, 2026-10-11: a signed-in client gets "My contests" (P-14) where the menu has Browse Contests.
   const now = new Date();
-  const [menu, offers] = await Promise.all([visibleList("header_menu", locale), offersOn()]);
+  const [menu, offers] = await Promise.all([visibleList("header_menu", locale), visibleOffers()]);
   // Owner, 2026-10-13: the leaderboard link leaves the menu while the monthly prizes program is off.
   const links = menu.filter((item) => showsLink(item.href, offers)).map((item) =>
     user?.role === "client" && item.href === "/contests"

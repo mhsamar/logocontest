@@ -10,7 +10,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
-import { formatTaka } from "@/lib/money";
 import { isProActive, priceQuote, type ProSettings } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSubscription, getTrial } from "@/lib/pro/status";
@@ -111,7 +110,7 @@ function rows(s: ProSettings, t: Translate): { group: string; items: { label: st
 // Go Pro (owner, 2026-10-13; Design/pro/go-pro.html): the price and benefits from Admin › Pro plan, Basic vs Pro,
 // and Upgrade. Pro designers see "You are Pro · Manage plan"; while the plan isn't for sale nobody can buy.
 export default async function GoProPage() {
-  const [{ t, locale }, user, { settings: s, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
+  const [{ t, locale, price: money }, user, { settings: s, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
   const designer = user?.role === "designer" ? user : null;
   const sub = designer ? await getSubscription(designer.id) : null;
   const pro = isProActive(sub);
@@ -123,7 +122,7 @@ export default async function GoProPage() {
   const keptSlots = !pro && !onTrial && trial ? await portfolioCount(designer!.id) : 0;
   // Someone who had the free Pro Trial is not a first-time buyer (no second free period from the checkout trial).
   const quote = priceQuote(s, { firstTime: !sub && !(designer && (await getTrial(designer.id))) });
-  const price = formatTaka(s.priceBdt, locale);
+  const price = money(s.priceBdt);
   const shown = forSale ? quote : { ...quote, amount: s.priceBdt, reason: "list" as const };
   const checkout = designer ? "/pro/checkout" : "/login?as=designer&next=%2Fpro%2Fcheckout";
   const n = (v: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(v);
@@ -233,11 +232,11 @@ export default async function GoProPage() {
                 <span className="gp-pm">{t("pro.go.monthly")}</span>
               </div>
               <div className="gp-pp">
-                <b>{formatTaka(shown.reason === "trial" ? s.priceBdt : shown.amount, locale)}</b>
+                <b>{money(shown.reason === "trial" ? s.priceBdt : shown.amount)}</b>
                 {shown.reason === "offer" && <s>{price}</s>}
                 <span>{t("pro.go.perMonth")}</span>
               </div>
-              {shown.reason === "offer" && <span className="gp-offer">{t(s.offerAudience === "all" ? "pro.go.offerAllLine" : "pro.go.offerLine", { amount: formatTaka(shown.amount, locale), price })}</span>}
+              {shown.reason === "offer" && <span className="gp-offer">{t(s.offerAudience === "all" ? "pro.go.offerAllLine" : "pro.go.offerLine", { amount: money(shown.amount), price })}</span>}
               {shown.reason === "trial" && <span className="gp-offer">{t("pro.go.trialLine", { days: n(shown.trialDays), price })}</span>}
               {upgrade("hero")}
               <span className="gp-pc">{forSale || pro ? t("pro.go.cancelLine") : t("pro.go.soonLead")}</span>

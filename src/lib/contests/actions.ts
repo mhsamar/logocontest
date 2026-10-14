@@ -18,7 +18,11 @@ import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getSettings } from "@/lib/settings";
 import { getService } from "@/lib/services/store";
 import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
-import { paymentsAvailable } from "@/lib/payments";
+import { awaitingApproval } from "@/lib/payments/manual";
+import { gatewayMethod, isManual } from "@/lib/payments/manual-rules";
+import { openMethod } from "@/lib/payments/methods";
+import { openStripeCheckout } from "@/lib/payments/stripe-api";
+import { applyContestPromo, lookupPromo, releasePromo, reservePromo, type Reserved } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import {
@@ -36,6 +40,8 @@ import {
 } from "./brief";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { blockedTerms } from "./community";
+import { feePercentFor, serviceFee as feeFor } from "./pricing";
+import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
 import { makeSlug } from "./service";
 
@@ -246,10 +252,15 @@ export async function createAccountAndDraft(input: {
   return { ok: true, contestId: saved.contest.id };
 }
 
-/** C-11: saves the client's name, records the payment and sends them to the gateway. */
+/**
+ * C-11: saves the client's name, records the payment and sends them to the gateway, or for manual bKash (owner,
+ * 2026-10-14) to the contest's pay page. `method` is a method key from Admin › Payments › Methods; `promo` is an
+ * optional client fee code.
+ */
 export async function startCheckout(input: {
   contestId: string;
-  method: "bkash" | "card";
+  method: string;
+  promo?: string | null;
   name: string;
   acceptedTerms: boolean;
   acceptedContentRules?: boolean;
@@ -263,9 +274,10 @@ export async function startCheckout(input: {
   if (!input.acceptedTerms) return err("wizard.errors.terms");
   // No nude or sexual contests (owner, 2026-10-12): agreed in the wizard's first popup, saved with the contest.
   if (!input.acceptedContentRules) return err("wizard.errors.contentRules");
-  if (input.method !== "bkash" && input.method !== "card") return err("wizard.errors.generic");
-  // Live site before SSLCommerz is connected: the draft stays saved; the client is told payments open soon.
-  if (!paymentsAvailable()) return err("wizard.errors.paymentsClosed");
+  // Each method has its own switch (Admin › Payments › Methods). None open: the draft stays saved; payments open soon.
+  const method = await openMethod(input.method);
+  if (!method) return err("wizard.errors.paymentsClosed");
+  if ((await awaitingApproval([input.contestId])).size > 0) return err("pay.page.errors.awaiting");
 
   // The draft was checked when saved, but the admin may have blocked more terms since.
   const contest = await contestRepository().findContest(input.contestId);
@@ -276,17 +288,67 @@ export async function startCheckout(input: {
     if (contact) return contact;
   }
 
+  // A client fee code (owner, 2026-10-14): reserved for this client now, used when the payment is approved.
+  let promo: Reserved | null = null;
+  if (input.promo && input.promo.trim()) {
+    const res = await reservePromo(input.promo, user.id, ["client_fee"]);
+    if (!res.ok) return err(res.error);
+    promo = res.promo;
+  }
+
   await createAdminClient().from("profiles").update({ name }).eq("id", user.id);
   await createAdminClient().from("contests").update({ content_rules_agreed_at: new Date().toISOString() }).eq("id", input.contestId).eq("client_id", user.id);
 
+  // Manual bKash and Stripe keep the method key as the payment's gateway (owner, 2026-10-14).
+  const provider = isManual(method.key) || method.key === "stripe" ? method.key : null;
   const result = await contestService().startCheckout({
     clientId: user.id,
     contestId: input.contestId,
-    method: input.method,
+    method: isManual(method.key) ? "bkash" : gatewayMethod(method.key as "bkash_api" | "sslcommerz" | "stripe"),
     customer: { name, mobile: user.mobile },
+    provider,
+    adjust: (fresh) => applyContestPromo(fresh, promo),
   });
-  if (!result.ok) return err(SAVE_ERRORS[result.error] ?? "wizard.errors.payment");
+  if (!result.ok) {
+    if (promo) await releasePromo(promo.redemptionId);
+    return err(SAVE_ERRORS[result.error] ?? "wizard.errors.payment");
+  }
+  // Stripe (owner, 2026-10-14): card payment in US dollars on Stripe's page.
+  if (method.key === "stripe") {
+    const logoDraft = !contest || contest.service === "logo";
+    const url = await openStripeCheckout({
+      kind: "contest",
+      paymentId: result.payment.id,
+      bdt: result.payment.amount,
+      name: `logocontest.bd · ${contest?.brief.brandName ?? "Contest"}`,
+      email: user.email,
+      cancelPath: `/start?draft=${input.contestId}&step=${logoDraft ? "11" : "pay"}`,
+    });
+    if (!url) return err("wizard.errors.payment");
+    redirect(url);
+  }
   redirect(result.redirectUrl);
+}
+
+/**
+ * The wizard's "Apply" button: checks a client fee code and shows the new fee and total, without keeping it (the
+ * code is only reserved when the client pays).
+ */
+export async function previewPromo(input: { contestId: string; code: string }): Promise<WizardResult<{ code: string; fee: number; normal: number; serviceFee: number; total: number; saves: number }>> {
+  if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
+  const user = await currentClient();
+  if (!user) return err("pay.promo.signIn");
+  const contest = await contestRepository().findContest(input.contestId);
+  if (!contest || contest.clientId !== user.id) return err("wizard.errors.notSaved");
+  const look = await lookupPromo(input.code, user.id, "client_fee");
+  if (!look.ok) return err(look.error);
+  // The normal fee from today's settings (the saved amounts may already have an earlier code in them).
+  const a = contest.amounts;
+  const normal = feePercentFor(a.prize, await getPricingConfig());
+  const full = feeFor(a.prize, normal);
+  const fee = Math.min(full, feeFor(a.prize, look.value));
+  if (fee >= full) return err("pay.promo.noBetter", { normal });
+  return { ok: true, code: look.code, fee: look.value, normal, serviceFee: fee, total: a.prize + fee + a.upgrades, saves: full - fee };
 }
 
 // ---------------------------------------------------------------------------

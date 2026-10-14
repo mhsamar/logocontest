@@ -10,7 +10,10 @@ import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
 import { Suggestions } from "@/components/wizard/suggestions";
-import { checkAccountDetails, createAccountAndDraft, saveDraft, startCheckout } from "@/lib/contests/actions";
+import { checkAccountDetails, createAccountAndDraft, previewPromo, saveDraft, startCheckout } from "@/lib/contests/actions";
+import type { PublicMethod } from "@/lib/payments/manual-rules";
+import { MethodPicker, PromoField } from "@/components/payments/pay-bits";
+import type { PromoPreview } from "@/components/wizard/step-review";
 import { emptyBrief, noUpgrades, type Order, type UpgradeKey } from "@/lib/contests/brief";
 import { calculatePrice, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
@@ -35,6 +38,8 @@ export type ServiceWizardProps = {
   inviteFirst?: boolean;
   /** Back from the invite step: open at "Review and pay". */
   startAtPay?: boolean;
+  /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
+  methods: PublicMethod[];
 };
 
 /**
@@ -42,8 +47,9 @@ export type ServiceWizardProps = {
  * the questions set in Admin → Services), prize and days, an account for new clients, then review and pay. Saved on
  * this device until the draft is on the server. The same actions as the logo wizard save and check out.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay }: ServiceWizardProps) {
-  const { t, locale } = useI18n();
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods }: ServiceWizardProps) {
+  // The prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
+  const { t, locale, price: money } = useI18n();
   const router = useRouter();
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
   const cfg = useMemo<PricingConfig>(() => ({ ...pricing, customMin: service.minPrize }), [pricing, service.minPrize]);
@@ -65,7 +71,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [accountError, setAccountError] = useState<{ field: "mobile" | "email"; message: string; taken: boolean } | null>(null);
   const [password, setPassword] = useState("");
   const [name, setName] = useState(user?.name ?? "");
-  const [method, setMethod] = useState<"bkash" | "card" | null>(null);
+  const [method, setMethod] = useState<string | null>(methods.length === 1 ? methods[0].key : null);
+  const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
   const [contentOk, setContentOk] = useState(false);
 
@@ -146,7 +153,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
       });
     }
     return start(async () => {
-      const res = await startCheckout({ contestId: d.contestId!, method: method!, name: name.trim(), acceptedTerms: terms, acceptedContentRules: contentOk });
+      const res = await startCheckout({ contestId: d.contestId!, method: method!, promo: promoNow?.code ?? null, name: name.trim(), acceptedTerms: terms, acceptedContentRules: contentOk });
       if (res && !res.ok) setError(t(res.error.key, res.error.params));
     });
   };
@@ -155,6 +162,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const fieldError = (f: BriefField) => (touched && errors[f.key] ? t(`services.wizard.errors.${errors[f.key]}`) : undefined);
   const heading = step === "brief" ? l(service.name) : t(`services.wizard.steps.${step}`);
   const showPrice = step === "order" || step === "pay";
+  // A promo code was checked against the total at that moment; after the order changes it no longer counts.
+  const promoNow = promo && price && promo.total + promo.saves === price.total ? promo : null;
 
   return (
     <div className="flex flex-1 flex-col bg-canvas px-4 pb-10 pt-6 min-[721px]:px-6 min-[721px]:pt-10">
@@ -215,7 +224,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                   <div className="mt-2.5 flex flex-wrap gap-2">
                     {[service.defaultPrize, service.defaultPrize * 2, service.defaultPrize * 3].map((p) => (
                       <button key={p} type="button" aria-pressed={d.prize === p} onClick={() => setD({ ...d, prize: p })} className={cx("min-h-10 rounded-full px-4 text-[14.5px] font-bold ring-1", d.prize === p ? "bg-ink text-white ring-ink" : "bg-surface ring-line")}>
-                        {formatTaka(p, locale)}
+                        {money(p)}
                       </button>
                     ))}
                   </div>
@@ -238,7 +247,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                         <input type="checkbox" checked={d.upgrades[u]} onChange={(e) => setD({ ...d, upgrades: { ...d.upgrades, [u]: e.target.checked } })} className="mt-1 size-[18px] accent-[#8B0000]" />
                         <span className="flex flex-col">
                           <strong className="text-[15px]">
-                            {t(`wizard.upgrades.${u}.name`)} · {formatTaka(cfg.upgradePrices[u], locale)}
+                            {t(`wizard.upgrades.${u}.name`)} · {money(cfg.upgradePrices[u])}
                           </strong>
                           <span className="text-[13.5px] text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>
                         </span>
@@ -289,21 +298,26 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                   ))}
                   <div className="mt-2 flex justify-between border-t border-line pt-3 font-semibold text-ink">
                     <dt>{t("wizard.summary.total")}</dt>
-                    <dd className="m-0 text-lg tabular-nums">{formatTaka(price.total, locale)}</dd>
+                    <dd className="m-0 text-lg tabular-nums">
+                      {promoNow && <s className="mr-2 text-sm font-medium text-muted">{money(price.total)}</s>}
+                      {money(promoNow ? promoNow.total : price.total)}
+                    </dd>
+                  </div>
+                  <div className="mt-3 flex flex-col">
+                    <PromoField
+                      applied={promoNow ? { code: promoNow.code, line: t("pay.promo.feeApplied", { code: promoNow.code, fee: promoNow.fee, normal: promoNow.normal }), saves: t("pay.promo.saves", { amount: money(promoNow.saves) }) } : null}
+                      apply={async (code) => {
+                        const res = await previewPromo({ contestId: d.contestId!, code });
+                        if (!res.ok) return { ok: false, error: t(res.error.key, res.error.params) };
+                        setPromo(res);
+                        return { ok: true };
+                      }}
+                      onRemove={() => setPromo(null)}
+                    />
                   </div>
                 </dl>
                 <TextField label={t("wizard.c11.nameLabel")} hint={t("wizard.c11.nameHint")} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-                <fieldset className="m-0 border-0 p-0">
-                  <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c11.methodTitle")}</legend>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(["bkash", "card"] as const).map((m) => (
-                      <button key={m} type="button" onClick={() => setMethod(m)} aria-pressed={method === m} className={cx("flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg bg-surface ring-1", method === m ? "ring-2 ring-primary" : "ring-line")}>
-                        <span className={cx("text-base font-bold", m === "bkash" ? "text-[#e2136e]" : "text-ink")}>{t(`wizard.c11.${m}`)}</span>
-                        <span className="text-xs text-muted">{t(`wizard.c11.${m}Hint`)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
+                <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("wizard.c11.methodTitle")} />
                 <div className="rounded-[16px] bg-frame p-4 text-[14px] text-ink">
                   <p className="m-0 font-semibold">{t("wizard.contentRules.title")}</p>
                   <ul className="m-0 mt-1.5 space-y-1 pl-5">

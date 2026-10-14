@@ -11,6 +11,7 @@ import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { isManual } from "@/lib/payments/manual-rules";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -82,7 +83,8 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
   const detail = selected ?? rows[0] ?? null;
   const link = (over: Record<string, string | number | undefined>) => `/admin/payments${qs({ tab: tab === "all" ? undefined : tab, q: str(sp.q) || undefined, page: page > 1 ? page : undefined, ...over })}`;
 
-  const method = (p: PaymentRow) => `${t(`admin.payments.methods.${p.method}` as MessageKey)}${p.gateway === "fake" ? ` · ${t("admin.payments.test")}` : ""}`;
+  // Manual bKash (owner, 2026-10-14) keeps the method key as the gateway: "bKash Personal", "bKash Merchant".
+  const method = (p: PaymentRow) => (isManual(p.gateway) || p.gateway === "stripe" ? t(`pay.methods.${p.gateway}`) : `${t(`admin.payments.methods.${p.method}` as MessageKey)}${p.gateway === "fake" ? ` · ${t("admin.payments.test")}` : ""}`);
   const covers = (p: PaymentRow) => {
     const s = splitOf(p);
     return p.purpose === "contest"
@@ -119,7 +121,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
           [
             [t("admin.payments.prize"), taka(splitOf(detail).prize)],
             [t("admin.payments.feesAddons"), taka(splitOf(detail).platform)],
-            [t("admin.payments.method"), `${method(detail)}${detail.gateway === "fake" ? "" : ` · ${detail.gateway}`}`],
+            [t("admin.payments.method"), `${method(detail)}${detail.gateway === "fake" || isManual(detail.gateway) || detail.gateway === "stripe" ? "" : ` · ${detail.gateway}`}`],
             [t("admin.payments.txn"), detail.txnId ?? t("admin.payments.noId")],
           ] as const
         ).map(([k, v]) => (

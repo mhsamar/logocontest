@@ -18,7 +18,8 @@ export function FloatingProCard({ price, checks, minimised: initial, trialDays =
   const { t, locale } = useI18n();
   const path = usePathname();
   const [min, setMin] = useState(initial);
-  const hidden = path.startsWith("/pro") || path.startsWith("/admin") || path.startsWith("/dev");
+  // Not while paying either (owner, 2026-10-14: the bKash pay page).
+  const hidden = path.startsWith("/pro") || path.startsWith("/admin") || path.startsWith("/dev") || path.startsWith("/pay");
 
   useEffect(() => {
     if (!hidden) proEvent("card_seen", min ? "pill" : "card");

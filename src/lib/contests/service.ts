@@ -169,12 +169,18 @@ export class ContestService {
     return { ok: true, contest: await this.deps.repo.updateDraft(contestId, data) };
   }
 
-  /** C-11: records an initiated payment for the current total and returns the gateway checkout URL. */
+  /**
+   * C-11: records an initiated payment for the current total and returns the gateway checkout URL. Manual bKash
+   * (owner, 2026-10-14) and Stripe: `provider` is the method key, kept as the payment's gateway, and no gateway page
+   * is opened here (manual bKash goes to the contest's pay page; the caller opens Stripe). `adjust` lowers the total with a promo code after the re-pricing and returns it.
+   */
   async startCheckout(input: {
     clientId: string;
     contestId: string;
     method: PaymentMethod;
     customer: { name: string; mobile: string };
+    provider?: string | null;
+    adjust?: (contest: ContestRecord) => Promise<number>;
   }): Promise<{ ok: true; payment: PaymentRecord; redirectUrl: string } | Fail<"not_found" | "not_editable" | "invalid_brief" | "invalid_order">> {
     const contest = await this.deps.repo.findContest(input.contestId);
     if (!contest || contest.clientId !== input.clientId) return { ok: false, error: "not_found" };
@@ -185,15 +191,18 @@ export class ContestService {
     if (typeof data === "string") return { ok: false, error: data };
     const fresh = await this.deps.repo.updateDraft(contest.id, data);
 
+    const total = input.adjust ? await input.adjust(fresh) : fresh.amounts.total;
+
     const payment = await this.deps.repo.createPayment({
       contestId: fresh.id,
       clientId: input.clientId,
       purpose: "contest",
-      gateway: this.deps.gateway.name,
+      gateway: input.provider ?? this.deps.gateway.name,
       method: input.method,
-      amount: fresh.amounts.total,
+      amount: total,
     });
     await this.deps.repo.setPendingPayment(fresh.id);
+    if (input.provider) return { ok: true, payment, redirectUrl: `/pay/contest/${payment.id}` };
 
     const { redirectUrl } = await this.deps.gateway.createCheckout({
       paymentId: payment.id,

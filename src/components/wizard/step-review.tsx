@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { MethodPicker, PromoField, type AppliedPromo } from "@/components/payments/pay-bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox, TextField } from "@/components/ui/field";
 import type { Brief, Order } from "@/lib/contests/brief";
 import type { Price } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
-import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
+import { useI18n } from "@/lib/i18n/client";
+import type { PublicMethod } from "@/lib/payments/manual-rules";
 
 export type UploadState = { name: string; status: "waiting" | "uploading" | "done" | "error" };
+
+/** A client fee code checked on the server (owner, 2026-10-14): the new fee, and the total with it. */
+export type PromoPreview = { code: string; fee: number; normal: number; serviceFee: number; total: number; saves: number };
 
 // C-11
 export function ReviewStep({
@@ -19,8 +24,12 @@ export function ReviewStep({
   feePercent,
   name,
   onName,
+  methods,
   method,
   onMethod,
+  promo,
+  onApplyPromo,
+  onRemovePromo,
   terms,
   onTerms,
   uploads,
@@ -34,8 +43,12 @@ export function ReviewStep({
   feePercent: number;
   name: string;
   onName: (v: string) => void;
-  method: "bkash" | "card" | null;
-  onMethod: (m: "bkash" | "card") => void;
+  methods: PublicMethod[];
+  method: string | null;
+  onMethod: (m: string) => void;
+  promo: PromoPreview | null;
+  onApplyPromo: (code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onRemovePromo: () => void;
   terms: boolean;
   onTerms: (v: boolean) => void;
   uploads: UploadState[];
@@ -43,8 +56,7 @@ export function ReviewStep({
   goTo: (step: number) => void;
   nameError?: string;
 }) {
-  const { t, locale } = useI18n();
-  const taka = (n: number) => formatTaka(n, locale);
+  const { t, locale, currency, price: taka } = useI18n();
   const failed = uploads.some((u) => u.status === "error");
 
   const recap: { step: number; label: string; value: string }[] = [
@@ -134,7 +146,7 @@ export function ReviewStep({
         <dl className="text-sm">
           {[
             [t("wizard.summary.prize"), price.prize],
-            [t("wizard.summary.fee", { percent: feePercent }), price.serviceFee],
+            [t("wizard.summary.fee", { percent: promo ? promo.fee : feePercent }), promo ? promo.serviceFee : price.serviceFee],
             ...price.upgrades.map((u) => [t(`wizard.upgrades.${u.key}.name`), u.price] as const),
           ].map(([label, amount]) => (
             <div key={label} className="flex justify-between py-1.5">
@@ -144,31 +156,24 @@ export function ReviewStep({
           ))}
           <div className="mt-1 flex justify-between border-t border-line pt-3 font-semibold text-ink">
             <dt>{t("wizard.summary.total")}</dt>
-            <dd className="text-lg tabular-nums">{taka(price.total)}</dd>
+            <dd className="text-lg tabular-nums">
+              {promo && <s className="mr-2 text-sm font-medium text-muted">{taka(price.total)}</s>}
+              {taka(promo ? promo.total : price.total)}
+            </dd>
           </div>
         </dl>
+        {/* Paying in dollars (owner, 2026-10-14): the prize and fees are set in taka; Stripe charges the dollars. */}
+        {currency.code === "USD" && <p className="m-0 mt-2 text-[13.5px] text-muted">{t("pay.stripe.usdNote", { usd: taka(promo ? promo.total : price.total), bdt: formatTaka(promo ? promo.total : price.total, locale) })}</p>}
+        <div className="mt-3 flex flex-col">
+          <PromoField
+            applied={promo ? { code: promo.code, line: t("pay.promo.feeApplied", { code: promo.code, fee: promo.fee, normal: promo.normal }), saves: t("pay.promo.saves", { amount: taka(promo.saves) }) } satisfies AppliedPromo : null}
+            apply={onApplyPromo}
+            onRemove={onRemovePromo}
+          />
+        </div>
       </div>
 
-      <fieldset>
-        <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c11.methodTitle")}</legend>
-        <div className="grid grid-cols-2 gap-3">
-          {(["bkash", "card"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onMethod(m)}
-              aria-pressed={method === m}
-              className={cx(
-                "flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg bg-surface ring-1",
-                method === m ? "ring-2 ring-primary" : "ring-line hover:ring-muted/40",
-              )}
-            >
-              <span className={cx("text-base font-bold", m === "bkash" ? "text-[#e2136e]" : "text-ink")}>{t(`wizard.c11.${m}`)}</span>
-              <span className="text-xs text-muted">{t(`wizard.c11.${m}Hint`)}</span>
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <MethodPicker methods={methods} value={method} onChange={onMethod} title={t("wizard.c11.methodTitle")} />
 
       <Checkbox
         checked={terms}

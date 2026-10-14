@@ -13,7 +13,7 @@ import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, browseHref, parseBrowseQu
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
-import { offersOn } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { getSetting } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,7 +42,7 @@ const Star = () => (
 // bar, then All contests with tabs, quick filters, search, business type and sort, paid add-ons first, and Load more.
 // Guests (and clients, whose menu has My Contests instead) get the visitor look; signed-in designers the designer look.
 export default async function BrowsePage({ searchParams }: PageProps<"/contests">) {
-  const [query, user, { t, locale }] = await Promise.all([searchParams.then(parseBrowseQuery), getCurrentUser(), getI18n()]);
+  const [query, user, { t, locale, price }] = await Promise.all([searchParams.then(parseBrowseQuery), getCurrentUser(), getI18n()]);
   const designer = user?.role === "designer" ? user : null;
   if (!designer && query.tab === "joined") query.tab = "open";
   const now = new Date();
@@ -54,7 +54,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
     getSetting("limits.big_prize_from").then((bigPrize) => browseContests(query, { designerId: designer?.id ?? null, bigPrize, now, hideNewerThan })),
     showFeatured ? featuredContests(3, hideNewerThan) : [],
     visibleBusinessTypes(query.type),
-    offersOn(),
+    visibleOffers(),
   ]);
   const ids = list.rows.map((c) => c.id);
   const [saved, facts] = await Promise.all([
@@ -108,7 +108,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
             {featured.map((c) => (
               <li key={c.id} className="flex">
                 <div className="w-full">
-                  <FeaturedContestCard c={c} t={t} locale={locale} now={now} designer={Boolean(designer)} />
+                  <FeaturedContestCard c={c} t={t} locale={locale} price={price} now={now} designer={Boolean(designer)} />
                 </div>
               </li>
             ))}
@@ -219,7 +219,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
             {list.rows.map((c) => (
               <li key={c.id} className="flex">
                 <div className="flex w-full">
-                  <ContestCard c={c} t={t} locale={locale} now={now} designer={Boolean(designer)} facts={facts?.get(c.id)} saved={saved ? saved.has(c.id) : undefined} />
+                  <ContestCard c={c} t={t} locale={locale} price={price} now={now} designer={Boolean(designer)} facts={facts?.get(c.id)} saved={saved ? saved.has(c.id) : undefined} />
                 </div>
               </li>
             ))}

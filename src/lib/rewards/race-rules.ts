@@ -12,13 +12,19 @@
 import { payoutFor } from "@/lib/wallet/fees";
 import { monthKey, monthRange, previousMonth } from "./rules";
 
-export type RacePerson = { id: string; role: "client" | "designer" | "admin"; status: string; isTest: boolean };
+export type RacePerson = { id: string; role: "client" | "designer" | "admin"; status: string; isTest: boolean; abroad?: boolean };
 
-/** Who is in the race. Test mode counts only test accounts, so a test close never touches real people. */
+/**
+ * Who is in the race. Test mode counts only test accounts, so a test close never touches real people. The smartphone
+ * and gift box are for Bangladesh only (owner, 2026-10-14): an account visiting mostly from abroad is out.
+ */
 export function inRace(p: RacePerson | undefined, testMode: boolean): boolean {
-  if (!p || p.role === "admin" || p.status === "banned") return false;
+  if (!p || p.role === "admin" || p.status === "banned" || p.abroad) return false;
   return testMode ? p.isTest : !p.isTest;
 }
+
+/** More of the month's visits came from outside Bangladesh than from it. No country known: in Bangladesh. */
+export const visitsAbroad = (v: { bd: number; abroad: number } | undefined) => Boolean(v && v.abroad > v.bd);
 
 export type RaceContest = { contestId: string; clientId: string; prize: number; startsAt: Date; status: string; paid: boolean };
 export type RacePayment = { clientId: string; amount: number; paidAt: Date };

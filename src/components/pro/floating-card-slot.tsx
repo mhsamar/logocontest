@@ -1,6 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
-import { formatTaka } from "@/lib/money";
 import { priceQuote } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSubscription, getTrial, isPro } from "@/lib/pro/status";
@@ -20,7 +19,7 @@ export async function FloatingProCardSlot() {
   if (await isPro(user.id)) return null;
   const [sub, eligible] = await Promise.all([getSubscription(user.id), trialEligibilityFor(user.id, user.role)]);
   if (!settings.isForSale && eligible !== "ok") return null;
-  const [{ locale }, { data: pref }] = await Promise.all([getI18n(), createAdminClient().from("pro_preferences").select("card_minimised").eq("designer_id", user.id).maybeSingle()]);
+  const [{ price }, { data: pref }] = await Promise.all([getI18n(), createAdminClient().from("pro_preferences").select("card_minimised").eq("designer_id", user.id).maybeSingle()]);
   const quote = priceQuote(settings, { firstTime: !sub && !(await getTrial(user.id)) });
-  return <FloatingProCard price={formatTaka(quote.reason === "trial" ? settings.priceBdt : quote.amount, locale)} checks={settings.proLogoChecks} minimised={pref?.card_minimised === true} trialDays={eligible === "ok" ? settings.freeTrialDays : null} forSale={settings.isForSale} />;
+  return <FloatingProCard price={price(quote.reason === "trial" ? settings.priceBdt : quote.amount)} checks={settings.proLogoChecks} minimised={pref?.card_minimised === true} trialDays={eligible === "ok" ? settings.freeTrialDays : null} forSale={settings.isForSale} />;
 }

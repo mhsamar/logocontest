@@ -3,19 +3,24 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/client";
+import { showMobile, type PublicMethod } from "@/lib/payments/manual-rules";
 import { startProCheckout } from "@/lib/pro/actions";
+import { previewProPromo } from "@/lib/promos/actions";
 import { Icon } from "./parts";
 import { proEvent } from "./upgrade-link";
 
 /**
- * Pro checkout (owner, 2026-10-13; Design/pro/pro-checkout.html): bKash or card, an optional promo code, the
- * renewal tick, then "Paying" while the browser moves to the gateway's secure page. The amount is worked out on the
- * server; the browser only sends the choices. Leaving without paying is counted as "closed checkout".
+ * Pro checkout (owner, 2026-10-13; Design/pro/pro-checkout.html): the payment methods switched on in Admin ›
+ * Payments › Methods (owner, 2026-10-14), an optional promo code, the renewal tick, then "Paying" while the browser
+ * moves to the gateway's secure page or the bKash pay page. The amount is worked out on the server; the browser only
+ * sends the choices. Leaving without paying is counted as "closed checkout".
  */
-export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew }: { amountLabel: string; priceLabel: string; trialDays: number; renew: boolean }) {
-  const { t, locale } = useI18n();
-  const [method, setMethod] = useState<"bkash" | "card">("bkash");
+export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, methods }: { amountLabel: string; priceLabel: string; trialDays: number; renew: boolean; methods: PublicMethod[] }) {
+  const { t, locale, price, currency } = useI18n();
+  const [method, setMethod] = useState<string | null>(methods[0]?.key ?? null);
   const [promo, setPromo] = useState("");
+  const [applied, setApplied] = useState<{ code: string; amount: number; percent: number | null } | null>(null);
+  const [checking, check] = useTransition();
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -34,7 +39,7 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew }: { am
   const pay = () =>
     start(async () => {
       setError(null);
-      const res = await startProCheckout({ method, promo: promo.trim() || undefined, acceptedTerms: agree });
+      const res = await startProCheckout({ method: method ?? "", promo: promo.trim() || undefined, acceptedTerms: agree });
       if (!res.ok) {
         setError(t(res.error));
         return;
@@ -72,18 +77,23 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew }: { am
     <section className="ck-pay">
       <h1>{renew ? t("pro.checkout.renewTitle") : t("pro.checkout.title")}</h1>
       <p className="ck-ps">{t("pro.checkout.lead")}</p>
-      {trialDays === 0 && (
+      {trialDays === 0 && methods.length === 0 && (
+        <p className="ck-err" role="status">
+          {t(currency.code === "USD" ? "pay.methods.noneUsd" : "pay.methods.none")}
+        </p>
+      )}
+      {trialDays === 0 && methods.length > 0 && (
         <fieldset className="ck-pms">
           <legend className="sr-only">{t("pro.checkout.lead")}</legend>
-          {(["bkash", "card"] as const).map((m) => (
-            <label key={m} className="ck-pm">
-              <input type="radio" name="pm" checked={method === m} onChange={() => setMethod(m)} />
-              <span className="ck-pmi" style={{ background: m === "bkash" ? "#E2136E" : "#1F2A44" }} aria-hidden>
-                {m === "bkash" ? "b" : <Icon name="wallet" size={22} />}
+          {methods.map((m) => (
+            <label key={m.key} className="ck-pm" data-method={m.key}>
+              <input type="radio" name="pm" checked={method === m.key} onChange={() => setMethod(m.key)} />
+              <span className="ck-pmi" style={{ background: m.key === "stripe" ? "#635BFF" : m.key === "sslcommerz" ? "#1F2A44" : "#E2136E" }} aria-hidden>
+                {m.key === "sslcommerz" || m.key === "stripe" ? <Icon name="wallet" size={22} /> : "b"}
               </span>
               <span>
-                <b>{t(`pro.checkout.${m}`)}</b>
-                <em>{t(`pro.checkout.${m}Sub`)}</em>
+                <b>{t(`pay.methods.${m.key}`)}</b>
+                <em>{m.key === "stripe" ? t("pay.methods.stripeHint") : m.manual ? `${t("pay.methods.manualHint")}${m.number ? ` · ${showMobile(m.number)}` : ""}` : t("pay.methods.autoHint")}</em>
               </span>
               <i className="ck-rd" aria-hidden />
             </label>
@@ -91,10 +101,38 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew }: { am
         </fieldset>
       )}
       {trialDays === 0 && (
-        <label className="ck-promo">
-          {t("pro.checkout.promo")}
-          <input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))} autoComplete="off" />
-        </label>
+        <div className="ck-promo">
+          <label htmlFor="ck-promo-code">{t("pro.checkout.promo")}</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              id="ck-promo-code"
+              style={{ flex: "1 1 auto", minWidth: 0 }}
+              value={promo}
+              onChange={(e) => (setPromo(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 24)), setApplied(null))}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="ck-apply"
+              disabled={!promo.trim() || checking}
+              onClick={() =>
+                check(async () => {
+                  setError(null);
+                  const res = await previewProPromo(promo);
+                  if (!res.ok) return setError(t(res.error));
+                  setApplied({ code: res.code, amount: res.amount, percent: res.percent });
+                })
+              }
+            >
+              {t("pay.promo.apply")}
+            </button>
+          </div>
+          {applied && (
+            <span className="ck-applied" data-promo-applied={applied.code}>
+              {applied.percent !== null ? t("pay.promo.proApplied", { code: applied.code, percent: n(applied.percent) }) : applied.code} · {price(applied.amount)}
+            </span>
+          )}
+        </div>
       )}
       <label className="ck-agree">
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
@@ -108,9 +146,9 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew }: { am
           {error}
         </p>
       )}
-      <button type="button" className="ck-payb" onClick={pay} disabled={busy || !agree}>
+      <button type="button" className="ck-payb" onClick={pay} disabled={busy || !agree || (trialDays === 0 && !method)}>
         <Icon name="lock" size={20} />
-        {trialDays > 0 ? t("pro.checkout.payTrial", { days: n(trialDays) }) : promo ? t("pro.go.upgrade") : t("pro.checkout.pay", { amount: amountLabel })}
+        {trialDays > 0 ? t("pro.checkout.payTrial", { days: n(trialDays) }) : applied ? t("pro.checkout.pay", { amount: price(applied.amount) }) : promo ? t("pro.go.upgrade") : t("pro.checkout.pay", { amount: amountLabel })}
       </button>
       <p className="ck-safe">
         <Icon name="shield" size={18} />

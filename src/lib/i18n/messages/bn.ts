@@ -1,10 +1,12 @@
 import type { Messages } from "./en";
 import checkBn from "./check-bn";
+import payBn from "./pay-bn";
 import proBn from "./pro-bn";
 
 const bn: Messages = {
   pro: proBn,
   entryCheck: checkBn,
+  pay: payBn,
   meta: {
     title: "logocontest.bd — বাংলাদেশে লোগো ডিজাইন কনটেস্ট",
     description: "অনেক ডিজাইনার। অনেক আইডিয়া। একটি নিখুঁত লোগো। বাংলাদেশের সেরা ডিজাইনারদের কাছ থেকে আপনার লোগো নিন।",
@@ -1079,6 +1081,11 @@ const bn: Messages = {
       pro_trial_ending: "আপনার Pro Trial শেষ হচ্ছে। Pro সুবিধা চালু রাখতে এখনই আপগ্রেড করুন।",
       pro_trial_ended: "আপনার Pro Trial শেষ হয়েছে। আপনি এখন Basic-এ; আপনার পোর্টফোলিও রাখা আছে, আপগ্রেড করলে আবার দেখাবে।",
       pro_trial_extended: "আপনার Pro Trial {days} দিন বাড়ানো হয়েছে।",
+      payment_received: "আপনার পেমেন্টের তথ্য পেয়েছি ({amount})। আমরা যাচাই করছি, অনুমোদন হলেই জানাব।",
+      payment_approved_contest: "পেমেন্ট অনুমোদিত! আপনার কনটেস্ট \"{brand}\" এখন লাইভ।",
+      payment_approved_addon: "পেমেন্ট অনুমোদিত: \"{brand}\"-এর অ্যাড-অন চালু হয়েছে।",
+      payment_rejected: "আপনার {amount} পেমেন্ট অনুমোদন করা যায়নি: {reason}। ট্রানজেকশন আইডি দেখে আবার পাঠান।",
+      payment_submitted_admin: "{name} যাচাইয়ের জন্য {amount} বিকাশ পেমেন্ট পাঠিয়েছেন।",
       account_banned: "আপনার অ্যাকাউন্ট স্থায়ীভাবে ব্যান করা হয়েছে: {reason}",
       flag_warning: "ডিজাইন #{number} ({brand}) নিয়ে আপনার রিপোর্ট ভুয়া প্রমাণিত হয়েছে। ৩টি ভুয়া রিপোর্টে অ্যাকাউন্ট বন্ধ হয়।",
       report_upheld: "ধন্যবাদ। ডিজাইন #{number} ({brand}) নিয়ে আপনার রিপোর্ট প্রমাণিত হয়েছে এবং ডিজাইনটি সরানো হয়েছে।",
@@ -2647,7 +2654,7 @@ const bn: Messages = {
     settings: {
       title: "সেটিংস",
       lead: "অ্যাডমিন যে সংখ্যাগুলো বদলাতে পারেন। প্রতিবার সংরক্ষণে কারণ লাগে এবং অডিট লগে লেখা হয়।",
-      groups: { fees: "ফি ও স্তর", packages: "প্যাকেজ", upgrades: "অ্যাড-অন", timers: "সময়সীমা", limits: "সীমা", checker: "লোগো চেকারের খরচ", monthly: "মাসিক পুরস্কার", site: "সাইট", auth: "লগ ইন ও কোড", live: "হোম পেজ: লাইভ ডিজাইনার" },
+      groups: { fees: "ফি ও স্তর", packages: "প্যাকেজ", upgrades: "অ্যাড-অন", payments: "ডলারে দাম (Stripe)", timers: "সময়সীমা", limits: "সীমা", checker: "লোগো চেকারের খরচ", monthly: "মাসিক পুরস্কার", site: "সাইট", auth: "লগ ইন ও কোড", live: "হোম পেজ: লাইভ ডিজাইনার" },
       liveNote: "এই মুহূর্তে: {joined} জন ডিজাইনার যুক্ত, {online} জন অনলাইনে।",
       on: "চালু",
       off: "বন্ধ",
