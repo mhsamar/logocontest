@@ -59,8 +59,11 @@ export function AddonsPanel({
   locale,
   prize,
   methods,
+  closedNote,
 }: {
   contestId: string;
+  /** Instead of "only while the contest is live", e.g. for the admin's read-only view (owner, 2026-10-14). */
+  closedNote?: string;
   /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
   methods: PublicMethod[];
   open: boolean;
@@ -166,7 +169,7 @@ export function AddonsPanel({
           );
         })}
       </ul>
-      {!open && <p className="mt-3 text-sm text-muted">{t("manage.addons.closed")}</p>}
+      {!open && <p className="mt-3 text-sm text-muted">{closedNote ?? t("manage.addons.closed")}</p>}
 
       <Modal
         open={buying !== null}
