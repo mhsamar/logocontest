@@ -28,6 +28,7 @@ import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
 import { ENTRY_FILES_BUCKET } from "./queries";
 import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
+import { mockupLimit } from "./limits";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES } from "./rules";
 
@@ -123,7 +124,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
 
   const [minImages, siteMaxImages, px, previewPx, maxPerDesigner, rules] = await Promise.all([
     getSetting("limits.entry_min_images"),
-    getSetting("limits.entry_max_images"),
+    mockupLimit(user!.id),
     getSetting("limits.entry_image_min_px"),
     getSetting("limits.entry_preview_max_px"),
     getSetting("limits.max_entries_per_designer"),

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
+import { COMPRESS, compressImage } from "@/lib/images/compress";
 import { Button } from "@/components/ui/button";
 import { TextAreaField } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -55,9 +56,11 @@ export function ReportButton({ entryId, number, loginHref }: { entryId: string; 
     );
   }
 
-  const upload = (f: File) =>
+  const upload = (picked: File) =>
     start(async () => {
       setError(null);
+      // Any size goes in; it is made light first (owner, 2026-10-14).
+      const f = await compressImage(picked, COMPRESS.screenshot);
       const url = URL.createObjectURL(f);
       setImage({ url, path: null });
       const prepared = await prepareReportImageUpload({ type: f.type, size: f.size });

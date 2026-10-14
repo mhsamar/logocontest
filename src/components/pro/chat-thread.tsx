@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { COMPRESS, compressImage, isCompressible } from "@/lib/images/compress";
 import { useI18n } from "@/lib/i18n/client";
 import { prepareChatFile, sendChatMessage } from "@/lib/pro/chat-actions";
 import type { ChatMessage } from "@/lib/pro/chat";
@@ -36,10 +37,12 @@ export function ChatThread({ entryId, messages }: { entryId: string; messages: C
     return () => window.clearInterval(id);
   }, [router]);
 
-  const upload = async (f: File) => {
+  const upload = async (picked: File) => {
     setError(null);
     setUploading(true);
     try {
+      // Pictures are made light first (owner, 2026-10-14); other files go as they are.
+      const f = isCompressible(picked) ? await compressImage(picked, COMPRESS.picture) : picked;
       const prep = await prepareChatFile({ entryId, name: f.name, size: f.size });
       if (!prep.ok) return setError(t(prep.error));
       const { error: up } = await createBrowserSupabase().storage.from("pro-files").uploadToSignedUrl(prep.path, prep.token, f, { contentType: f.type || "application/octet-stream" });

@@ -11,7 +11,7 @@ import { lookupPromo, reservePromo, markPromoUsed } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isProActive, priceQuote } from "./rules";
 import { getProSettings } from "./settings";
-import { getSubscription, getTrial, isPro, proKind } from "./status";
+import { getSubscription, getTrial, isPro, pendingProPayment, proKind } from "./status";
 import { cancelTrial, startTrial } from "./trial";
 import { portfolioLimit } from "./trial-rules";
 import { cancelPro, grantPro, logFunnel, logProActivity } from "./subscription";
@@ -134,6 +134,16 @@ export async function cancelMyPro(input: { reason: string; note?: string }): Pro
 }
 
 /** The Go Pro card folded into its pill (or opened again), remembered for this designer on every device. */
+/**
+ * The Go Pro card asks again on every page change (owner, 2026-10-14): the site's frame is drawn once per visit, so a
+ * designer who became Pro (or paid and waits for approval) while browsing would otherwise keep seeing it.
+ */
+export async function proCardWanted(): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "designer") return false;
+  return !(await isPro(user.id)) && !(await pendingProPayment(user.id));
+}
+
 export async function setProCardMinimised(minimised: boolean): Promise<void> {
   const user = await designer();
   const { ready } = await getProSettings();

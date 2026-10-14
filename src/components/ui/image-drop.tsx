@@ -3,26 +3,17 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { compressImage } from "@/lib/images/compress";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-const MAX_INPUT = 15 * 1024 * 1024;
+// Phone photos of any size are made light in the browser (owner, 2026-10-14); this only guards the phone's memory.
+const MAX_INPUT = 60 * 1024 * 1024;
 
-/** Big phone photos are made smaller in the browser (longest side 1800 px, JPEG) before they are sent. */
-async function shrink(file: File): Promise<File> {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.86));
-    return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
-  } catch {
-    // A format the browser can't draw (some HEIC files): send it as it is; the server checks it.
-    return file;
-  }
-}
+/**
+ * Photos become JPEG (these storage places take only JPEG), longest side 1800 px, about 500 KB. A format the browser
+ * can't draw (some HEIC files) is sent as it is; the server checks it.
+ */
+const shrink = (file: File): Promise<File> => compressImage(file, { maxSide: 1800, targetKb: 500, out: ["image/jpeg"] }).catch(() => file);
 
 /**
  * Pick photos (owner, 2026-10-10): drag and drop, choose a file, or take a photo with the phone camera.

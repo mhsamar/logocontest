@@ -304,13 +304,18 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(1), default: 1,
     description: "Minimum mockups per design.",
   },
+  // Owner, 2026-10-14: set separately for Basic and Pro designers, up to 20.
   "limits.entry_max_images": {
-    group: "limits", type: "int", schema: int(1, 8), default: 8,
-    description: "Maximum mockups per design. A designer who wants more submits another design.",
+    group: "limits", type: "int", schema: int(1, 20), default: 8,
+    description: "Maximum mockups per design for Basic designers. A designer who wants more submits another design.",
+  },
+  "limits.entry_max_images_pro": {
+    group: "limits", type: "int", schema: int(1, 20), default: 8,
+    description: "Maximum mockups per design for Pro designers (and during the free Pro Trial).",
   },
   "limits.entry_image_max_mb": {
     group: "limits", type: "int", schema: int(1), default: 5,
-    description: "Largest entry image (MB).",
+    description: "Largest entry image after the browser makes it light (MB). Designers can pick pictures of any size; this only stops a file that could not be made light.",
   },
   "limits.entry_image_min_px": {
     group: "limits", type: "int", schema: int(1), default: 1000,

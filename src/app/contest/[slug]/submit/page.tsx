@@ -20,6 +20,7 @@ import { isLogo } from "@/lib/services/types";
 import { sendCheckSetup } from "@/lib/logo-check/entry-check";
 import { getProSettings, proFeatureOn } from "@/lib/pro/settings";
 import { isPro } from "@/lib/pro/status";
+import { mockupLimit } from "@/lib/entries/limits";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -50,7 +51,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
 
   const [min, siteMax, px, siteMb] = await Promise.all([
     getSetting("limits.entry_min_images"),
-    getSetting("limits.entry_max_images"),
+    // Basic and Pro each have their own number (owner, 2026-10-14: Admin › Settings).
+    user.role === "designer" ? mockupLimit(user.id) : getSetting("limits.entry_max_images"),
     getSetting("limits.entry_image_min_px"),
     getSetting("limits.entry_image_max_mb"),
   ]);
@@ -84,7 +86,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
                   <ServiceBrief service={svc} answers={contest.serviceBrief} full />
                 </div>
               )}
-              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
+              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max, px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
             </>
           )}
         </div>

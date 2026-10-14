@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { COMPRESS, compressImage, isCompressible } from "@/lib/images/compress";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { CheckView } from "@/lib/logo-check/queries";
 import { certNumber } from "@/lib/logo-check/rules";
@@ -181,8 +182,10 @@ function ChooseStep({ setup, lens, initialEntryId, onStarted }: { setup: Checker
     setPick(p);
   };
 
-  const onFile = (file: File | undefined) => {
-    if (!file) return;
+  const onFile = async (picked: File | undefined) => {
+    if (!picked) return;
+    // Pictures of any size are made light first (owner, 2026-10-14); SVG stays as it is.
+    const file = isCompressible(picked) ? await compressImage(picked, COMPRESS.picture) : picked;
     if (!UPLOAD_TYPES.includes(file.type)) return setError(t("checker.errors.bad_file"));
     if (file.size > UPLOAD_MAX) return setError(t("checker.errors.too_big"));
     choose({ kind: "upload", file, preview: URL.createObjectURL(file) });
@@ -272,7 +275,7 @@ function ChooseStep({ setup, lens, initialEntryId, onStarted }: { setup: Checker
                 </>
               )}
             </button>
-            <input ref={fileInput} type="file" accept=".png,.jpg,.jpeg,.svg,.webp,image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+            <input ref={fileInput} type="file" accept=".png,.jpg,.jpeg,.svg,.webp,image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={(e) => void onFile(e.target.files?.[0])} />
           </li>
         </ul>
 

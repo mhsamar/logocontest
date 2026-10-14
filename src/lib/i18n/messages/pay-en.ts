@@ -56,7 +56,7 @@ const payEn = {
     sender: "Your bKash number (optional)",
     senderHint: "The number you sent from, so we can find it quickly",
     shot: "Screenshot (optional)",
-    shotHint: "PNG, JPG or WEBP, up to 5 MB",
+    shotHint: "A screenshot or photo of any size. We make it lighter for you.",
     shotPick: "Add screenshot",
     shotRemove: "Remove",
     submit: "Send for approval",

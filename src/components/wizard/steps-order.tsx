@@ -10,6 +10,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
 import { deleteFile, putFile } from "./file-store";
+import { COMPRESS, compressImage, isCompressible } from "@/lib/images/compress";
 import type { LocalFile, ServerFile } from "./state";
 
 const ACCEPT: Record<string, true> = { "image/jpeg": true, "image/png": true, "application/pdf": true };
@@ -38,11 +39,13 @@ export function FilesStep({
     if (!list) return;
     const problems: string[] = [];
     const added: LocalFile[] = [];
-    for (const file of Array.from(list)) {
+    for (const picked of Array.from(list)) {
       if (total + added.length >= limits.maxFiles) {
         problems.push(t("wizard.errors.fileCount", { max: limits.maxFiles }));
         break;
       }
+      // Pictures of any size are made light first (owner, 2026-10-14); PDFs keep the size limit.
+      const file = picked.type !== "application/pdf" && isCompressible(picked) ? await compressImage(picked, { ...COMPRESS.picture, out: ["image/jpeg"] }) : picked;
       if (!ACCEPT[file.type]) {
         problems.push(t("wizard.errors.fileType", { name: file.name }));
         continue;
@@ -96,7 +99,7 @@ export function FilesStep({
       <input
         ref={input}
         type="file"
-        accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+        accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,image/jpeg,image/png,image/webp,image/heic,application/pdf"
         multiple
         hidden
         onChange={(e) => void add(e.target.files)}
