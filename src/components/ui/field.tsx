@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { CALLING_CODES, flagOf } from "@/lib/phone";
@@ -82,6 +82,8 @@ export function TextField({
   );
 }
 
+const noSubscribe = () => () => {};
+
 /** Country names in the reader's language, Bangladesh first (owner, 2026-10-14). */
 function countryOptions(locale: string): { iso: string; label: string }[] {
   let names: Intl.DisplayNames | null = null;
@@ -111,7 +113,9 @@ export function PhoneField(
   const [own, setOwn] = useState(controlled ?? "BD");
   const country = controlled ?? own;
   const picker = Boolean(onCountryChange || countryName);
-  const options = useMemo(() => (picker ? countryOptions(locale) : []), [picker, locale]);
+  // Country names differ between the server and the browser, so the full list is made in the browser only.
+  const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
+  const options = useMemo(() => (picker && inBrowser ? countryOptions(locale) : [{ iso: country, label: `+${CALLING_CODES[country]}` }]), [picker, inBrowser, locale, country]);
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <div className={cx("flex rounded-[14px] ring-1 ring-inset ring-line focus-within:ring-2 focus-within:ring-primary bg-surface", error && "ring-2 ring-danger focus-within:ring-danger")}>

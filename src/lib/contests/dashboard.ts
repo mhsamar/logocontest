@@ -94,7 +94,9 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
   const paidByContest = new Map<string, number>();
   const contestsPaidFor = new Set<string>();
   let totalSpent = 0;
-  for (const p of payments ?? []) {
+  // A contest in the Trash (owner, 2026-10-14) leaves the totals too.
+  const shown = new Set((rows ?? []).map((r) => r.id as string));
+  for (const p of (payments ?? []).filter((x) => !x.contest_id || shown.has(x.contest_id as string))) {
     totalSpent += p.amount as number;
     paidByContest.set(p.contest_id as string, (paidByContest.get(p.contest_id as string) ?? 0) + (p.amount as number));
     if (p.purpose === "contest") contestsPaidFor.add(p.contest_id as string);

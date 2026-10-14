@@ -2931,7 +2931,7 @@ const en = {
       deleteContest: "Delete contest",
       deleteContestBody: "The contest leaves the site and goes to the Trash. It can be restored for {days} days; then it is erased for good with its designs, files and payments.",
       deleteUser: "Delete user",
-      deleteUserBody: "The account can't log in any more and goes to the Trash. It can be restored for {days} days; then it is erased for good with everything they made and paid. Designers keep no wallet money here: pay it out first.",
+      deleteUserBody: "The account can't log in any more and goes to the Trash. It can be restored for {days} days; then it is erased for good with everything they made and paid. A designer with money in the wallet must be paid out first.",
       inTrash: "In the Trash since {date} · erased for good on {erase}",
       open: "Open",
       errors: {
