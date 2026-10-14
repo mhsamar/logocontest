@@ -75,7 +75,10 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
   const awaiting = await awaitingApproval(my.drafts.map((c) => c.id));
   const counts = { all: all.length, open: 0, pick: 0, unpaid: 0, done: 0 } as Record<Tab, number>;
   for (const c of all) counts[tabOf(stateOf(c.status))]++;
-  const need = counts.pick + counts.unpaid;
+  // What needs the client (owner, 2026-10-14: the chip now opens it): picking a winner, or paying or finishing a
+  // draft. A bKash payment waiting for our approval needs nothing from them.
+  const needing = all.filter((c) => stateOf(c.status) === "pick" || (stateOf(c.status) === "unpaid" && !awaiting.has(c.id)));
+  const need = needing.length;
 
   const rank = (c: MyContest) => ({ pick: 0, unpaid: 1, open: c.unrated > 0 ? 2 : 3, files: 4, done: 5 })[stateOf(c.status)];
   const newest = (a: MyContest, b: MyContest) => b.createdAt.getTime() - a.createdAt.getTime();
@@ -189,8 +192,14 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
             </nav>
             {need > 0 && (
               <Link
-                href={href({ sort: "action", tab: "all" })}
-                className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-full border border-[#F6D4B0] bg-[#FFF3E6] px-3.5 text-[14.5px] font-bold text-[#9A3412]"
+                href={
+                  need === 1
+                    ? stateOf(needing[0].status) === "pick"
+                      ? `/dashboard/contests/${needing[0].slug}`
+                      : `/start?draft=${needing[0].id}`
+                    : href({ sort: "action", tab: needing.every((c) => stateOf(c.status) === "pick") ? "pick" : needing.every((c) => stateOf(c.status) === "unpaid") ? "unpaid" : "all" })
+                }
+                className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-full border border-[#F6D4B0] bg-[#FFF3E6] px-3.5 text-[14.5px] font-bold text-[#9A3412] hover:border-[#D9480F]"
               >
                 <span aria-hidden className="size-[7px] rounded-full bg-[#D9480F]" />
                 {need === 1 ? t("myContests.x.needOne") : t("myContests.x.needMany", { n: fmt(need) })}

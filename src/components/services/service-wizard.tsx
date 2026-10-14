@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox, TextAreaField, TextField } from "@/components/ui/field";
+import { Checkbox, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
+import { wizardVisitId } from "@/components/wizard/visit-id";
+import { normalizeBdMobile } from "@/lib/phone";
+import { saveWizardLead } from "@/lib/wizard-tracking";
 import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
@@ -70,7 +73,6 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [email, setEmail] = useState("");
   const [accountError, setAccountError] = useState<{ field: "mobile" | "email"; message: string; taken: boolean } | null>(null);
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(user?.name ?? "");
   const [method, setMethod] = useState<string | null>(methods.length === 1 ? methods[0].key : null);
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
@@ -81,8 +83,10 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
     if (resume) return;
     try {
       const saved = sessionStorage.getItem(key);
+      const kept = saved ? (JSON.parse(saved) as Partial<Draft>) : null;
+      // A new contest starts blank (owner, 2026-10-14): a saved draft is opened from the dashboard instead.
       // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount
-      if (saved) setD((cur) => ({ ...cur, ...(JSON.parse(saved) as Partial<Draft>) }));
+      if (kept && !kept.contestId) setD((cur) => ({ ...cur, ...kept }));
     } catch {
       // ignore
     }
@@ -106,8 +110,10 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const brief = { ...emptyBrief(), brandName: d.title.trim(), businessDescription: d.description.trim(), businessType: "other" as const, noWebsite: true };
   const svc = { slug: service.slug, answers: d.answers };
 
+  // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
+  const leadMobileOk = Boolean(user) || normalizeBdMobile(mobile) !== null;
   const valid =
-    step === "brief" ? briefValid : step === "order" ? !orderError : step === "account" ? Boolean(mobile && email) : step === "password" ? password.length >= passwordMin : Boolean(method && terms && contentOk && name.trim().length >= 2);
+    step === "brief" ? briefValid && leadMobileOk : step === "order" ? !orderError : step === "account" ? Boolean(mobile && email) : step === "password" ? password.length >= passwordMin : Boolean(method && terms && contentOk);
   const go = (s: Step) => {
     setError(null);
     setTouched(false);
@@ -117,7 +123,10 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
 
   const onNext = () => {
     if (!valid) return setTouched(true);
-    if (step === "brief") return go("order");
+    if (step === "brief") {
+      if (!user) void saveWizardLead({ visitId: wizardVisitId(), mobile, brandName: d.title, service: service.slug });
+      return go("order");
+    }
     if (step === "order") {
       if (!user) return go("account");
       return start(async () => {
@@ -153,7 +162,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
       });
     }
     return start(async () => {
-      const res = await startCheckout({ contestId: d.contestId!, method: method!, promo: promoNow?.code ?? null, name: name.trim(), acceptedTerms: terms, acceptedContentRules: contentOk });
+      const res = await startCheckout({ contestId: d.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: contentOk });
       if (res && !res.ok) setError(t(res.error.key, res.error.params));
     });
   };
@@ -193,6 +202,16 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
               <div className="mt-4 space-y-5">
                 {l(service.clientInstruction) && <p className="m-0 whitespace-pre-line text-[17px] leading-relaxed text-muted">{l(service.clientInstruction)}</p>}
                 {sizeText(service) && <p className="m-0 rounded-[14px] bg-frame px-4 py-3 text-[14.5px] text-ink">{t("services.wizard.size", { size: sizeText(service) })}</p>}
+                {!user && (
+                  <PhoneField
+                    label={t("wizard.lead.label")}
+                    hint={t("wizard.lead.hint")}
+                    placeholder={t("auth.phone.placeholder")}
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    error={(touched || mobile.replace(/\D/g, "").length >= 11) && normalizeBdMobile(mobile) === null && (touched || mobile) ? t("wizard.lead.error") : undefined}
+                  />
+                )}
                 <TextField label={t("services.wizard.title")} hint={t("services.wizard.titleHint")} value={d.title} maxLength={LIMITS.title.max} onChange={(e) => setD({ ...d, title: e.target.value })} error={touched && titleError ? t("services.wizard.errors.title") : undefined} />
                 <TextAreaField label={t("services.wizard.description")} hint={t("services.wizard.descriptionHint")} value={d.description} maxLength={LIMITS.description.max} onChange={(e) => setD({ ...d, description: e.target.value })} error={touched && descError ? t("services.wizard.errors.description", { min: LIMITS.description.min }) : undefined} />
                 <Suggestions
@@ -316,7 +335,6 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                     />
                   </div>
                 </dl>
-                <TextField label={t("wizard.c11.nameLabel")} hint={t("wizard.c11.nameHint")} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoComplete="name" />
                 <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("wizard.c11.methodTitle")} />
                 <div className="rounded-[16px] bg-frame p-4 text-[14px] text-ink">
                   <p className="m-0 font-semibold">{t("wizard.contentRules.title")}</p>

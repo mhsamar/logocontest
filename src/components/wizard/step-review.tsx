@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MethodPicker, PromoField, type AppliedPromo } from "@/components/payments/pay-bits";
 import { Button } from "@/components/ui/button";
-import { Checkbox, TextField } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/field";
 import type { Brief, Order } from "@/lib/contests/brief";
 import type { Price } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
@@ -22,8 +22,6 @@ export function ReviewStep({
   order,
   price,
   feePercent,
-  name,
-  onName,
   methods,
   method,
   onMethod,
@@ -35,14 +33,11 @@ export function ReviewStep({
   uploads,
   onRetryUploads,
   goTo,
-  nameError,
 }: {
   brief: Brief;
   order: Order;
   price: Price;
   feePercent: number;
-  name: string;
-  onName: (v: string) => void;
   methods: PublicMethod[];
   method: string | null;
   onMethod: (m: string) => void;
@@ -54,7 +49,6 @@ export function ReviewStep({
   uploads: UploadState[];
   onRetryUploads: () => void;
   goTo: (step: number) => void;
-  nameError?: string;
 }) {
   const { t, locale, currency, price: taka } = useI18n();
   const failed = uploads.some((u) => u.status === "error");
@@ -89,15 +83,6 @@ export function ReviewStep({
 
   return (
     <div className="space-y-8">
-      <TextField
-        label={t("wizard.c11.nameLabel")}
-        hint={t("wizard.c11.nameHint")}
-        autoComplete="name"
-        value={name}
-        onChange={(e) => onName(e.target.value)}
-        maxLength={80}
-        error={nameError}
-      />
 
       <details className="group rounded-[20px] border border-line bg-surface">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 font-semibold text-ink">

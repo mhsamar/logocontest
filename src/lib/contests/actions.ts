@@ -261,7 +261,6 @@ export async function startCheckout(input: {
   contestId: string;
   method: string;
   promo?: string | null;
-  name: string;
   acceptedTerms: boolean;
   acceptedContentRules?: boolean;
 }): Promise<WizardResult> {
@@ -269,8 +268,9 @@ export async function startCheckout(input: {
   const user = await currentClient();
   if (!user) return err("wizard.errors.signInAgain");
 
-  const name = input.name.trim();
-  if (name.length < 2 || name.length > 80) return err("wizard.errors.name");
+  // The name on receipts is the profile name (owner, 2026-10-14: the review step no longer asks, so paying never
+  // changes it; the client edits it in Profile).
+  const name = user.name;
   if (!input.acceptedTerms) return err("wizard.errors.terms");
   // No nude or sexual contests (owner, 2026-10-12): agreed in the wizard's first popup, saved with the contest.
   if (!input.acceptedContentRules) return err("wizard.errors.contentRules");
@@ -296,7 +296,6 @@ export async function startCheckout(input: {
     promo = res.promo;
   }
 
-  await createAdminClient().from("profiles").update({ name }).eq("id", user.id);
   await createAdminClient().from("contests").update({ content_rules_agreed_at: new Date().toISOString() }).eq("id", input.contestId).eq("client_id", user.id);
 
   // Manual bKash and Stripe keep the method key as the payment's gateway (owner, 2026-10-14).
