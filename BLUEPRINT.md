@@ -435,6 +435,13 @@ Client and designer names: letters only (English or Bangla, with their marks) an
 - **Portfolio:** experience 0–20 years; up to 5 skills (the "other" skill counts).
 - **Pro bought, waiting for approval:** no Go Pro card or Upgrade button; the Pro page says the payment is being checked and links to it, and Pro checkout opens that payment instead of a second one.
 - Plain Save buttons in Settings are green; email and mobile fields show a red *.
+- **Go Pro card** checks again on every page change: gone the moment the designer is Pro (or has paid and waits), without reloading the site.
+
+### Uploads: any size, made light in the browser (owner, 2026-10-14)
+
+No size limit for people to worry about: every picture is made light in the browser before it is sent (`src/lib/images/compress.ts`), long side brought down (screenshots 1600 px, pictures 2000 px, site pictures 2400 px), saved as WebP (JPEG where the storage place takes only JPEG), quality lowered only while the file is still above its target (about 350–900 KB). A picture that is already small is sent as it is. Used for payment screenshots, report evidence, brief pictures, Pro portfolio and chat pictures, the logo checkers, ID and claim photos and admin site pictures; design mockups were already fitted and made light. **Final design files (handover) are never changed.** PDFs keep their size limit. The MB settings stay as a safety net after compression.
+
+**Mockups per design:** Admin › Settings, separately for Basic (`limits.entry_max_images`) and Pro (`limits.entry_max_images_pro`), 1–20 each (default 8). Client reference files: `limits.brief_max_files`.
 
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 

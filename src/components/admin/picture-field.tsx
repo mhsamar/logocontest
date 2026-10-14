@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { prepareSitePicture, removeSitePicture, saveSitePicture } from "@/lib/content/picture-actions";
 import { PICTURE_TYPES, SITE_BUCKET, type PictureKind } from "@/lib/content/pictures";
 import { cx } from "@/lib/cx";
+import { COMPRESS, compressImage, isCompressible } from "@/lib/images/compress";
 import { useI18n } from "@/lib/i18n/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { useReadOnly } from "./read-only";
@@ -31,8 +32,11 @@ export function PictureField({ kind, url, fallback }: { kind: PictureKind; url: 
   const [busy, run] = useTransition();
   const shown = url ?? fallback;
 
-  const upload = (file: File) =>
+  const upload = (picked: File) =>
     run(async () => {
+      // Made light first where this picture may be WebP or JPEG (owner, 2026-10-14); icons stay PNG.
+      const out = (["image/webp", "image/jpeg"] as const).filter((x) => x in PICTURE_TYPES[kind]);
+      const file = out.length && isCompressible(picked) ? await compressImage(picked, { ...COMPRESS.site, out: [...out] }) : picked;
       const prepared = await prepareSitePicture(kind, { type: file.type, size: file.size });
       if (!prepared.ok) return toast(t(prepared.error), "danger");
       const { error } = await createBrowserSupabase().storage.from(SITE_BUCKET).uploadToSignedUrl(prepared.path, prepared.token, file, { contentType: file.type });

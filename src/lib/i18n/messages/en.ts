@@ -3362,7 +3362,7 @@ const en = {
     brief: {
       forDesigners: "For designers",
       size: "Size: {size}",
-      upload: "Upload {types} · up to {n} images · {mb} MB each",
+      upload: "Upload {types} · up to {n} images · any size, we fit them for you",
       final: "Final files: {types}",
     },
   },
@@ -3715,7 +3715,7 @@ const en = {
     camera: "Take a photo",
     preparing: "Getting the photo ready…",
     photoTypes: "Use a JPG, PNG or WebP photo.",
-    photoTooBig: "That photo is too big. Use one under 15 MB.",
+    photoTooBig: "That photo is too big. Use one under 60 MB.",
   },
   verify: {
     title: "Verify certificate {no}",
@@ -3818,10 +3818,10 @@ const en = {
     },
     c07: {
       heading: "Any examples or a current logo?",
-      helper: "Optional. JPG, PNG or PDF, up to {max} files, {mb} MB each.",
+      helper: "Optional. JPG, PNG or PDF, up to {max} files. Pictures of any size (we make them lighter); PDFs up to {mb} MB.",
       choose: "Tap to choose files",
       drag: "or drag them here",
-      limits: "Up to {max} files · {mb} MB each",
+      limits: "Up to {max} files · pictures any size · PDFs up to {mb} MB",
       remove: "Remove {name}",
       currentLogo: "This is my current logo",
       note: "For reference only. Designers will not copy these.",
@@ -4145,7 +4145,7 @@ const en = {
     back: "Back to the contest",
     mockups: {
       title: "Mockups",
-      rule: "Add 1 to {max} mockups · JPG, PNG or WebP, up to {mb} MB each",
+      rule: "Add 1 to {max} mockups · JPG, PNG or WebP of any size",
       add: "Add mockups",
       drop: "Drag and drop your images here, or tap an empty box to choose them.",
       dropHere: "Drop the images to add them",
@@ -4525,7 +4525,7 @@ const en = {
     upload: {
       title: "How to upload a logo",
       s1: "Open a contest and tap Submit a design.",
-      s2: "Add {min} to {max} mockups: JPG, PNG or WebP, up to {mb} MB each. Each one is fitted into a {px} × {px} square for you.",
+      s2: "Add {min} to {max} mockups: JPG, PNG or WebP of any size. Each one is fitted into a {px} × {px} square and made light for you.",
       s3: "Put your best mockup first. It's the cover clients see in the grid.",
       s4: "Tick the declarations that it's your own original, human-made work, and submit.",
       s5: "Follow ratings and comments on your dashboard.",

@@ -8,6 +8,7 @@ import { TextField } from "@/components/ui/field";
 import { useI18n } from "@/lib/i18n/client";
 import { preparePaymentProof, submitPaymentProof } from "@/lib/payments/manual-actions";
 import { isTxnId, normalizeMobile, normalizeTxn } from "@/lib/payments/manual-rules";
+import { COMPRESS, compressImage, isCompressible } from "@/lib/images/compress";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 const SHOT_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -50,12 +51,15 @@ export function PayForm({ kind, paymentId }: { kind: string; paymentId: string }
   const [busy, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const pick = (f: File | null) => {
+  // Any size goes in; it is made light first (owner, 2026-10-14).
+  const pick = async (f: File | null) => {
     setErrors((e) => ({ ...e, shot: undefined }));
     if (!f) return setShot(null);
-    if (!SHOT_TYPES.includes(f.type)) return setErrors((e) => ({ ...e, shot: t("pay.page.errors.shotType") }));
-    if (f.size > SHOT_MAX) return setErrors((e) => ({ ...e, shot: t("pay.page.errors.shotSize") }));
-    setShot(f);
+    if (!SHOT_TYPES.includes(f.type) && !isCompressible(f)) return setErrors((e) => ({ ...e, shot: t("pay.page.errors.shotType") }));
+    const small = await compressImage(f, COMPRESS.screenshot);
+    if (!SHOT_TYPES.includes(small.type)) return setErrors((e) => ({ ...e, shot: t("pay.page.errors.shotType") }));
+    if (small.size > SHOT_MAX) return setErrors((e) => ({ ...e, shot: t("pay.page.errors.shotSize") }));
+    setShot(small);
   };
 
   const submit = () => {
@@ -106,7 +110,7 @@ export function PayForm({ kind, paymentId }: { kind: string; paymentId: string }
       <TextField label={t("pay.page.sender")} hint={t("pay.page.senderHint")} error={errors.sender} value={sender} onChange={(e) => setSender(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" maxLength={16} />
       <div className="space-y-1.5">
         <span className="block text-sm font-semibold text-ink">{t("pay.page.shot")}</span>
-        <input ref={fileRef} type="file" accept={SHOT_TYPES.join(",")} className="sr-only" tabIndex={-1} onChange={(e) => pick(e.target.files?.[0] ?? null)} aria-label={t("pay.page.shot")} />
+        <input ref={fileRef} type="file" accept={[...SHOT_TYPES, "image/heic", "image/heif"].join(",")} className="sr-only" tabIndex={-1} onChange={(e) => void pick(e.target.files?.[0] ?? null)} aria-label={t("pay.page.shot")} />
         {shot ? (
           <div className="flex min-h-[52px] items-center justify-between gap-3 rounded-[14px] bg-surface px-4 ring-1 ring-inset ring-line">
             <span className="min-w-0 truncate text-[15px] text-ink">{shot.name}</span>

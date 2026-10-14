@@ -115,9 +115,10 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
         continue;
       }
       const key = crypto.randomUUID();
-      // Already the right size and type: upload as it is. Anything else is made square first.
+      // Already the right size, type and light (owner, 2026-10-14: 600 KB): upload as it is. Anything else is made
+      // square (and light) first, so a picture of any size works.
       const [fw, fh] = limits.size ? [limits.size.w, limits.size.h] : [limits.px, limits.px];
-      if (img.naturalWidth === fw && img.naturalHeight === fh && TYPES.includes(file.type)) {
+      if (img.naturalWidth === fw && img.naturalHeight === fh && TYPES.includes(file.type) && file.size <= 600 * 1024) {
         setItems((list) => [...list, { key, url: original, status: "uploading", label: nameFromFile(file.name) }]);
         void upload(key, file);
         continue;

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import { addPortfolioItem, cancelMyPro, preparePortfolioUpload, removePortfolioItem, setProPicks } from "@/lib/pro/actions";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { COMPRESS, compressImage } from "@/lib/images/compress";
 import { Icon } from "./parts";
 
 type Design = { id: string; thumb: string | null; brand: string };
@@ -93,9 +94,11 @@ export function PortfolioManager({ items, max }: { items: { id: string; url: str
   const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState("");
   const full = items.length >= max;
-  const upload = async (f: File) => {
+  const upload = async (picked: File) => {
     setBusy(true);
     try {
+      // Any size goes in; it is made light first (owner, 2026-10-14).
+      const f = await compressImage(picked, COMPRESS.picture);
       const prep = await preparePortfolioUpload({ type: f.type, size: f.size });
       if (!prep.ok) return toast(t(prep.error), "danger");
       const { error } = await createBrowserSupabase().storage.from("pro-files").uploadToSignedUrl(prep.path, prep.token, f, { contentType: f.type });

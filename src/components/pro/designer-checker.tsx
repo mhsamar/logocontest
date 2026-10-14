@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
+import { COMPRESS, compressImage } from "@/lib/images/compress";
 import type { DesignerCheck } from "@/lib/pro/logo-checks";
 import { Icon } from "./parts";
 
@@ -73,7 +74,7 @@ export function DesignerChecker({ left, basicNote }: { left: number; basicNote: 
     <div className="pr-picks">
       <div className="up">
         <label className="pr-out sm" style={{ cursor: "pointer" }}>
-          <input type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <input type="file" hidden accept="image/png,image/jpeg,image/webp,image/heic" onChange={(e) => { const f = e.target.files?.[0]; if (f) void compressImage(f, COMPRESS.picture).then(setFile); else setFile(null); }} />
           <Icon name="upload" size={16} />
           {file ? file.name : t("pro.checker.upload")}
         </label>
