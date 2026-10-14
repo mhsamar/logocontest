@@ -718,6 +718,7 @@ const proBn: Messages["pro"] = {
       lifetime: "ট্রায়াল ব্যবহৃত · নতুন ট্রায়াল নেই",
       byAdmin: "অ্যাডমিন শুরু করেছেন",
       extended: "+{n} দিন যোগ হয়েছে",
+      extendedOne: "+১ দিন যোগ হয়েছে",
       extend1: "+১ দিন",
       extend3: "+৩ দিন",
       cancel: "ট্রায়াল বাতিল",

@@ -719,6 +719,7 @@ const proEn = {
       lifetime: "Trial used · no new trial",
       byAdmin: "started by an admin",
       extended: "+{n} days added",
+      extendedOne: "+1 day added",
       extend1: "+1 day",
       extend3: "+3 days",
       cancel: "Cancel trial",

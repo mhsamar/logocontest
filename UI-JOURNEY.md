@@ -685,3 +685,10 @@ Wherever the onboarding asks the client or designer to write, a **Need ideas?** 
 - **Verify page** `/verify/LC-XXXX-XXXX`: Valid report / File changed, the entry picture (when public), designer, date, fingerprint, status.
 - **Admin › Copyright checker:** "High match entries to review" at the top with Report, Keep entry and Remove entry. **Admin › Pro plan › Limits:** Low match up to % and Medium match up to %.
 
+## 3-day free Pro Trial (owner, 2026-10-14)
+
+- **Go Pro page:** for a designer who can still try it, the price card shows **Start 3-day free trial** and "Everything in Pro, with 10 logo checks and 10 portfolio images during the trial." (and Upgrade under it while Pro is for sale). On the trial: "You are on a free Pro Trial · Your trial ends on …", Manage plan, Upgrade to keep Pro. After it: "Your free Pro Trial has ended" and how many portfolio images are kept, hidden until an upgrade.
+- **Floating card:** Basic designers who can still try it get **Start 3-day free trial** on the card and the phone bar (the card also shows while Pro isn't for sale, as long as the trial is on).
+- **On the trial:** the Pro dashboard and workspace with a **PRO TRIAL** badge; the side box shows the end date, trial portfolio images (x of 10), trial logo checks left (x of 10) and Upgrade to keep Pro. Entries, the Pro profile and the invite list show **PRO TRIAL**. Settings › Subscription shows the trial with Upgrade (when for sale) and **End trial** (asks once more; no new trial afterwards).
+- **Admin › Pro plan:** a **Free Pro Trial** box in Plan settings (switch, trial length, trial logo checks, trial portfolio images) and a **Pro Trials** section with the numbers, "Start a trial" by username, and a row per trial with +1 day, +3 days and Cancel trial.
+

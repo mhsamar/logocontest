@@ -388,7 +388,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
                       </span>
                       <span>
                         {formatDate(r.startedAt, locale, "short")} → {formatDate(r.endedAt && r.endedAt < r.endsAt ? r.endedAt : r.endsAt, locale, "short")}
-                        {r.extendedDays > 0 && <em style={{ display: "block", fontStyle: "normal", fontSize: 12.5, color: "#6a6d76" }}>{t("pro.trial.admin.extended", { n: n(r.extendedDays) })}</em>}
+                        {r.extendedDays > 0 && <em style={{ display: "block", fontStyle: "normal", fontSize: 12.5, color: "#6a6d76" }}>{r.extendedDays === 1 ? t("pro.trial.admin.extendedOne") : t("pro.trial.admin.extended", { n: n(r.extendedDays) })}</em>}
                       </span>
                       <span>
                         <i className={`ap-st ${live ? "ok" : r.status === "upgraded" ? "ok" : r.status === "cancelled" ? "fail" : "off"}`}>{t(`pro.trial.admin.status.${live || r.status !== "active" ? r.status : "expired"}`)}</i>
