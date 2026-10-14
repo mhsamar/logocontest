@@ -7,9 +7,9 @@
 @theme {
   /* Site-wide design (owner, 2026-10-10; UI-JOURNEY §1): Urbanist body, Instrument Sans headings,
      Hind Siliguri for Bangla. font-display is kept as a name so older markup gets the heading font. */
-  --font-sans: var(--font-lc-body), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-lc-heading), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-lc-body), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-lc-heading), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-lc-heading), var(--font-bn-digits), var(--font-bangla), ui-sans-serif, system-ui, sans-serif;
 
   /* Palette (owner, 2026-10-10): light grey page, white panels, brand red #8B0000, defined once here. */
   --color-primary: #8b0000;

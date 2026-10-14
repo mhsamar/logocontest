@@ -199,7 +199,7 @@ export function ShowcaseArt({ slide, first, t }: { slide: HeroSlideView; first: 
           borderRadius: 99,
           background: "#FFE27A",
           boxShadow: shadow(1.5, 3, 0.2),
-          font: `700 ${cq(2.5)} var(--font-lc-body), var(--font-bangla), sans-serif`,
+          font: `700 ${cq(2.5)} var(--font-lc-body), var(--font-bn-digits), var(--font-bangla), sans-serif`,
           whiteSpace: "nowrap",
           color: "#111216",
         }}
@@ -210,7 +210,7 @@ export function ShowcaseArt({ slide, first, t }: { slide: HeroSlideView; first: 
         {t(slide.role === "designer" ? "home.hero.chipDesigner" : "home.hero.chipClient", { name: slide.name })}
       </div>
       {/* Caption */}
-      <span style={{ right: "15%", top: "83%", font: `italic 500 ${cq(2.5)} Georgia, var(--font-bangla), serif`, color: "#3A3C45", whiteSpace: "nowrap" }}>
+      <span style={{ right: "15%", top: "83%", font: `italic 500 ${cq(2.5)} Georgia, var(--font-bn-digits), var(--font-bangla), serif`, color: "#3A3C45", whiteSpace: "nowrap" }}>
         {t(slide.role === "designer" ? "home.hero.captionDesigner" : "home.hero.captionClient", { brand: slide.brand })}
       </span>
     </>
