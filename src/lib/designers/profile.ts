@@ -42,6 +42,7 @@ export type DesignerProfile = {
 type EntryRow = {
   number: number;
   status: EntryStatus;
+  isHidden: boolean;
   rating: number | null;
   createdAt: string;
   contest: { id: string; slug: string; brandName: string; status: string; isPrivate: boolean; isBlind: boolean; winnerIsPublic: boolean };
@@ -55,7 +56,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   const { data, error } = await createAdminClient()
     .from("entries")
     .select(
-      "number, status, rating, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
+      "number, status, rating, is_hidden, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
     )
     .eq("designer_id", designerId)
     .not("status", "in", "(removed,withdrawn)")
@@ -72,6 +73,8 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
       {
         number: r.number as number,
         status: r.status as EntryStatus,
+        // Pro "Hide my design" (owner, 2026-10-14): public only once the winner is picked.
+        isHidden: Boolean(r.is_hidden),
         rating: r.rating as number | null,
         createdAt: r.created_at as string,
         contest: { id: c.id, slug: c.slug, brandName: c.brand_name, status: c.status, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public },

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { LockedPicture } from "@/components/entries/hidden-bits";
 import { ThumbIcon } from "@/components/entries/vote-buttons";
 import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { cx } from "@/lib/cx";
@@ -69,7 +70,17 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entr
       )}
     >
       <div className="relative">
-        <Collage previews={entry.previews} total={entry.imageCount} ratio={ratio} />
+        {/* Pro "Hide my design" (owner, 2026-10-14): a locked card for everyone but the client and the designer. */}
+        {entry.locked ? <LockedPicture title={t("pro.hide.lockedTitle")} sub={t("pro.hide.lockedSub")} ratio={ratio} /> : <Collage previews={entry.previews} total={entry.imageCount} ratio={ratio} />}
+        {entry.hidden && !entry.locked && (
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#5B21B6] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white" title={t("pro.hide.hiddenNote")}>
+            <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            {t("pro.hide.badge")}
+          </span>
+        )}
         {winner && (
           <>
             <WinnerBadge label={t("entry.winner")} className="absolute left-2.5 top-2.5" />

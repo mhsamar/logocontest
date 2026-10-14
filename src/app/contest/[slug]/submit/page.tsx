@@ -18,7 +18,8 @@ import { ServiceBrief } from "@/components/services/service-brief";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
 import { sendCheckSetup } from "@/lib/logo-check/entry-check";
-import { getProSettings } from "@/lib/pro/settings";
+import { getProSettings, proFeatureOn } from "@/lib/pro/settings";
+import { isPro } from "@/lib/pro/status";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -57,6 +58,8 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   // Logo check before sending (owner, 2026-10-14): logo contests only, like the client's checker.
   const check = !blocked && user.role === "designer" && isLogo(contest.service) ? await Promise.all([sendCheckSetup(user), getProSettings()]).then(([s, p]) => ({ ready: s.ready, usage: s.usage, priceBdt: s.priceBdt, proLogoChecks: p.settings.proLogoChecks })) : null;
   const mb = svc ? svc.maxMb : siteMb;
+  // Pro "Hide my design" (owner, 2026-10-14): Pro designers can send a design only the client sees.
+  const canHide = !blocked && user.role === "designer" && (await proFeatureOn("hidden_entries")) && (await isPro(user.id));
 
   return (
     <PageShell>
@@ -79,7 +82,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
                   <ServiceBrief service={svc} answers={contest.serviceBrief} full />
                 </div>
               )}
-              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
+              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max: Math.min(max, 8), px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
             </>
           )}
         </div>

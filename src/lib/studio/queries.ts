@@ -41,6 +41,8 @@ type Light = {
   id: string;
   number: number;
   status: EntryStatus;
+  /** Pro "Hide my design" (owner, 2026-10-14): public only once the winner is picked. */
+  is_hidden: boolean | null;
   created_at: string;
   designer: Profile | Profile[] | null;
   contest: { slug: string; brand_name: string; business_type: string; status: string; is_private: boolean; is_blind: boolean; winner_is_public: boolean };
@@ -49,9 +51,9 @@ type Light = {
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 const LIGHT =
-  "id, number, status, created_at, designer:profiles!designer_id(username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position)";
+  "id, number, status, is_hidden, created_at, designer:profiles!designer_id(username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position)";
 const isPublic = (r: Light) =>
-  isPublicDesign(r, { status: r.contest.status, isPrivate: r.contest.is_private, isBlind: r.contest.is_blind, winnerIsPublic: r.contest.winner_is_public });
+  isPublicDesign({ status: r.status, isHidden: r.is_hidden }, { status: r.contest.status, isPrivate: r.contest.is_private, isBlind: r.contest.is_blind, winnerIsPublic: r.contest.winner_is_public });
 
 /** Every public design, newest first (light rows: no file links). Shared by the hero and the grid in one request. */
 const publicDesigns = cache(async (): Promise<Light[]> => {

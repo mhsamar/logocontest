@@ -4,7 +4,9 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canSeeEntry, entryScope, GONE_STATUSES, SHOWN_STATUSES, showDesignerName, sortEntries, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
+import { proFeatureOn } from "@/lib/pro/settings";
+import { proIdsAmong } from "@/lib/pro/status";
+import { canSeeEntry, entryScope, GONE_STATUSES, HIDING_STATUSES, seesHiddenPicture, SHOWN_STATUSES, showDesignerName, sortEntries, stillHidden, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
 
 /** Designs (entries) on the contest page: the grid, the viewer and their comments (UI-JOURNEY P-03, P-04). */
 
@@ -34,6 +36,10 @@ export type EntryCard = {
   /** Logo check (owner, 2026-10-14): the designer's check and the fingerprint of the cover file. The badge is worked out from both. */
   checkId: string | null;
   fileSha256: string | null;
+  /** Pro "Hide my design" (owner, 2026-10-14): hidden from other designers and visitors until the winner is picked. */
+  hidden: boolean;
+  /** This viewer may not see the picture (previews are empty): a locked card instead. */
+  locked: boolean;
 };
 
 export type EntryComment = {
@@ -58,6 +64,7 @@ type Row = {
   images: { position: number; preview_path: string; label?: string | null }[];
   check_id: string | null;
   file_sha256: string | null;
+  is_hidden: boolean | null;
 };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -94,9 +101,23 @@ function shown(images: { preview_path: string; label?: string | null }[], urls: 
   return { previews: kept.map((k) => k.url), labels: kept.map((k) => k.label) };
 }
 
+/**
+ * Which of these designs are hidden right now (owner, 2026-10-14): marked hidden, the contest still open or being
+ * judged, the feature on in Admin › Pro plan, and the designer still Pro (a lapsed plan shows them again).
+ */
+async function hiddenNow(rows: Row[], contestStatus: string): Promise<Set<string>> {
+  const marked = rows.filter((r) => stillHidden(r.is_hidden, contestStatus));
+  if (marked.length === 0 || !(await proFeatureOn("hidden_entries"))) return new Set();
+  const pro = await proIdsAmong(marked.map((r) => r.designer_id));
+  return new Set(marked.filter((r) => pro.has(r.designer_id)).map((r) => r.id));
+}
+
 async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentUser | null, previewLimit: number): Promise<EntryCard[]> {
+  const hidden = await hiddenNow(rows, contest.status);
+  const locked = new Set(rows.filter((r) => hidden.has(r.id) && !seesHiddenPicture(contest, viewer, r.designer_id)).map((r) => r.id));
   const sorted = rows.map((r) => ({ ...r, images: [...(r.images ?? [])].sort((a, b) => a.position - b.position) }));
-  const paths = sorted.flatMap((r) => r.images.slice(0, previewLimit).map((i) => i.preview_path));
+  // A locked design's pictures are never signed for this viewer.
+  const paths = sorted.flatMap((r) => (locked.has(r.id) ? [] : r.images.slice(0, previewLimit).map((i) => i.preview_path)));
   const [urls, counts, votes] = await Promise.all([
     getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS).catch(() => new Map<string, string>()),
     commentCounts(sorted.map((r) => r.id)),
@@ -111,7 +132,7 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     rating: r.rating,
     isShortlisted: r.is_shortlisted,
     imageCount: r.images.length,
-    ...shown(r.images.slice(0, previewLimit), urls),
+    ...(locked.has(r.id) ? { previews: [], labels: [] } : shown(r.images.slice(0, previewLimit), urls)),
     commentCount: counts.get(r.id) ?? 0,
     mine: r.designer_id === viewer?.id,
     upVotes: votes.get(r.id)?.up ?? 0,
@@ -119,10 +140,12 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     myVote: votes.get(r.id)?.mine ?? 0,
     checkId: r.check_id ?? null,
     fileSha256: r.file_sha256 ?? null,
+    hidden: hidden.has(r.id),
+    locked: locked.has(r.id),
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {
@@ -199,19 +222,23 @@ export type ContestCover = { url: string; isWinner: boolean };
  * otherwise the highest-rated design, otherwise the newest. Blind and private contests
  * keep the brand letter in public lists; pass `owner` for the client's own dashboard.
  */
-export async function leadingDesigns(contests: { id: string; isBlind: boolean; isPrivate: boolean }[], owner = false): Promise<Map<string, ContestCover>> {
+export async function leadingDesigns(contests: { id: string; isBlind: boolean; isPrivate: boolean; status?: string }[], owner = false): Promise<Map<string, ContestCover>> {
   const out = new Map<string, ContestCover>();
   const ids = contests.filter((c) => owner || (!c.isBlind && !c.isPrivate)).map((c) => c.id);
   if (ids.length === 0 || !isSupabaseConfigured()) return out;
   const { data } = await createAdminClient()
     .from("entries")
-    .select("contest_id, status, rating, number, images:entry_images!entry_id(position, preview_path)")
+    .select("contest_id, status, rating, number, is_hidden, images:entry_images!entry_id(position, preview_path)")
     .in("contest_id", ids)
     .in("status", SHOWN_STATUSES);
+  // A Pro designer's hidden design (owner, 2026-10-14) is never a public card's picture while the contest runs.
+  const statusOf = new Map(contests.map((c) => [c.id, c.status]));
+  const coverable = (r: { contest_id: unknown; is_hidden: unknown }) => owner || !r.is_hidden || !HIDING_STATUSES.includes(statusOf.get(r.contest_id as string) ?? "open");
   const best = new Map<string, { status: string; rating: number | null; number: number; path: string }>();
   const rank = (e: { status: string; rating: number | null; number: number }) => [e.status === "winner" ? 1 : 0, e.rating ?? 0, e.number];
   const better = (a: number[], b: number[]) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
   for (const r of data ?? []) {
+    if (!coverable(r)) continue;
     const cover = ((r.images ?? []) as { position: number; preview_path: string }[]).sort((a, b) => a.position - b.position)[0];
     if (!cover) continue;
     const e = { status: r.status as string, rating: r.rating as number | null, number: r.number as number, path: cover.preview_path };

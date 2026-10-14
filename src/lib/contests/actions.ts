@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { normalizeBdMobile } from "@/lib/phone";
+import { personNameFrom } from "@/lib/profile/name-rules";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
 import { translatorFor } from "@/lib/content/texts";
@@ -220,7 +221,8 @@ export async function createAccountAndDraft(input: {
     email,
     password: input.password,
     email_confirm: true,
-    user_metadata: { mobile, name: brandName, email, locale },
+    // A person's name has letters only (owner, 2026-10-14): the brand name without its digits and signs.
+    user_metadata: { mobile, name: personNameFrom(brandName).length >= 2 ? personNameFrom(brandName) : "Client", email, locale },
   });
   if (created.error || !created.data.user) {
     return /already|exists|registered/i.test(created.error?.message ?? "")

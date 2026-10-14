@@ -17,6 +17,8 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { agreementOk } from "@/lib/agreements/queries";
 import { contestVisibleTo, designsAllowed } from "@/lib/pro/limits";
+import { proFeatureOn } from "@/lib/pro/settings";
+import { isPro } from "@/lib/pro/status";
 import { passesNda } from "@/lib/contests/nda";
 import { DECLARATION_KEYS } from "./declarations";
 import { differenceHash, ENTRY_IMAGE_TYPES, hammingDistance, imageSize, NEAR_DUPLICATE_DISTANCE, previewImage } from "./images";
@@ -27,7 +29,7 @@ import { isLogo } from "@/lib/services/types";
 import { ENTRY_FILES_BUCKET } from "./queries";
 import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
-import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES } from "./rules";
+import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES } from "./rules";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -91,6 +93,8 @@ export type SubmitInput = {
   labels: string[];
   /** The designer's logo check of the cover (owner, 2026-10-14); kept only when it is about this exact file. */
   checkId?: string | null;
+  /** Pro "Hide my design" (owner, 2026-10-14): only the client sees it until the winner is picked. */
+  hidden?: boolean;
 };
 
 /** Longest mockup name (migration 0038). */
@@ -173,11 +177,14 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null;
   const now = new Date().toISOString();
+  // Hidden only for a Pro designer while the feature is on (owner, 2026-10-14).
+  const hide = input.hidden === true && (await proFeatureOn("hidden_entries")) && (await isPro(user!.id));
   const { data: entry, error } = await db
     .from("entries")
     .insert({
       contest_id: contest.id,
       designer_id: user!.id,
+      ...(hide ? { is_hidden: true } : {}),
       number: 0, // set by the entries_set_number trigger
       declarations: { version: 1, accepted: [...DECLARATION_KEYS] },
       declared_ip: ip,
@@ -413,6 +420,27 @@ export async function withdrawEntry(entryId: string): Promise<{ ok: true } | Fai
     .select("id")
     .maybeSingle();
   if (!done) return fail("entry.withdraw.notNow");
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Pro "Hide my design" (owner, 2026-10-14): the designer hides their design from other designers and visitors (the
+ * contest's client still sees it) or shows it again. Only while the contest is open or being judged; hiding needs
+ * Pro, showing never does.
+ */
+export async function setEntryHidden(entryId: string, hidden: boolean): Promise<{ ok: true } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const user = await getCurrentUser();
+  if (!user || user.role !== "designer" || user.status === "banned" || !UUID.test(entryId) || typeof hidden !== "boolean") return fail("auth.errors.generic");
+  if (hidden && !((await proFeatureOn("hidden_entries")) && (await isPro(user.id)))) return fail("pro.errors.proOnly");
+  const db = createAdminClient();
+  const { data } = await db.from("entries").select("id, status, designer_id, contest:contests!contest_id(status)").eq("id", entryId).maybeSingle();
+  const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { status: string } | null);
+  if (!data || !c || data.designer_id !== user.id || GONE_STATUSES.includes(data.status)) return fail("auth.errors.generic");
+  if (!HIDING_STATUSES.includes(c.status)) return fail("pro.hide.errors.over");
+  const { error } = await db.from("entries").update({ is_hidden: hidden }).eq("id", entryId).eq("designer_id", user.id);
+  if (error) return fail("auth.errors.generic");
   refresh();
   return { ok: true };
 }
