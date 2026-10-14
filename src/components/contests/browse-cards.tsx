@@ -19,7 +19,8 @@ import { categoryLabel } from "@/lib/contests/browse-query";
  */
 
 const DAY = 86_400_000;
-type Ctx = { t: Translate; locale: Locale; now: Date };
+/** `price`: a taka amount in the visitor's currency (owner, 2026-10-14: US dollars for visitors from abroad). */
+type Ctx = { t: Translate; locale: Locale; now: Date; price?: (bdt: number) => string };
 
 /** Name and brief are hidden for private contests and for NDA contests the viewer hasn't unlocked. */
 export const isHidden = (c: ContestRow, unlocked = false) => c.isPrivate || (c.isNda && !unlocked);
@@ -96,12 +97,12 @@ function Counts({ c, t, locale, now, bar }: Ctx & { c: ContestRow; bar: boolean 
   );
 }
 
-function PrizeRow({ c, t, locale, label, filled, size }: { c: ContestRow; t: Translate; locale: Locale; label: string; filled: boolean; size: "lg" | "md" }) {
+function PrizeRow({ c, t, locale, price, label, filled, size }: { c: ContestRow; t: Translate; locale: Locale; price?: (bdt: number) => string; label: string; filled: boolean; size: "lg" | "md" }) {
   return (
     <div className="flex items-end justify-between gap-2.5 border-t border-[#EEEFF2] pt-3">
       <div className="flex min-w-0 flex-col">
         <span className="text-[12.5px] font-bold text-muted">{t("browse.featuredCard.prize")}</span>
-        <strong className={cx("lc-d leading-[1.05] tracking-[-0.03em] text-primary", size === "lg" ? "text-[30px]" : "text-[28px]")}>{formatTaka(c.prize, locale)}</strong>
+        <strong className={cx("lc-d leading-[1.05] tracking-[-0.03em] text-primary", size === "lg" ? "text-[30px]" : "text-[28px]")}>{price ? price(c.prize) : formatTaka(c.prize, locale)}</strong>
       </div>
       <Link
         href={`/contest/${c.slug}`}
@@ -127,7 +128,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /** One contest in the "All contests" grid. `facts` and `saved` are set only for signed-in designers. */
-export function ContestCard({ c, t, locale, now, designer, facts, saved }: Ctx & { c: ContestRow; designer: boolean; facts?: DesignerFacts; saved?: boolean }) {
+export function ContestCard({ c, t, locale, now, price, designer, facts, saved }: Ctx & { c: ContestRow; designer: boolean; facts?: DesignerFacts; saved?: boolean }) {
   const hidden = isHidden(c, facts?.unlocked);
   const title = hidden ? t("home.card.privateTitle") : c.brandName;
   const meta = [categoryLabel(c, t, locale), c.startsAt && t("browse.started", { ago: timeAgo(c.startsAt, now, locale) })].filter(Boolean).join(" · ");
@@ -205,7 +206,7 @@ export function ContestCard({ c, t, locale, now, designer, facts, saved }: Ctx &
         </div>
       )}
       <div className="mt-auto flex flex-col gap-3">
-        <PrizeRow c={c} t={t} locale={locale} label={label} filled={c.isPromoted} size="md" />
+        <PrizeRow c={c} t={t} locale={locale} price={price} label={label} filled={c.isPromoted} size="md" />
         <Counts c={c} t={t} locale={locale} now={now} bar />
       </div>
     </article>
@@ -213,7 +214,7 @@ export function ContestCard({ c, t, locale, now, designer, facts, saved }: Ctx &
 }
 
 /** A large card in "Featured contests": cover with the Featured tag (and Urgent), then the details. */
-export function FeaturedContestCard({ c, t, locale, now, designer }: Ctx & { c: ContestRow; designer: boolean }) {
+export function FeaturedContestCard({ c, t, locale, now, price, designer }: Ctx & { c: ContestRow; designer: boolean }) {
   const hidden = isHidden(c);
   const label = designer ? t("browse.x.viewSubmit") : t("browse.x.view");
   return (
@@ -249,7 +250,7 @@ export function FeaturedContestCard({ c, t, locale, now, designer }: Ctx & { c: 
             <AddonBadges c={c} t={t} now={now} featured={false} />
           </div>
         </div>
-        <PrizeRow c={c} t={t} locale={locale} label={label} filled size="lg" />
+        <PrizeRow c={c} t={t} locale={locale} price={price} label={label} filled size="lg" />
         <Counts c={c} t={t} locale={locale} now={now} bar={false} />
       </div>
     </article>

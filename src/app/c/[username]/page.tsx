@@ -7,7 +7,7 @@ import { PageShell, Panel } from "@/components/ui/panel";
 import { contestsByIds } from "@/lib/contests/browse";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { clientByUsername } from "@/lib/rewards/queries";
 import { openGraphFor } from "@/lib/seo";
 
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/c/[username]">): 
 // P-12 Client public profile (BLUEPRINT §8.4): total spent, contests, and their non-private contests. No contact details.
 export default async function ClientProfilePage({ params }: PageProps<"/c/[username]">) {
   const { username } = await params;
-  const [{ t, locale }, client] = await Promise.all([getI18n(), clientByUsername(username)]);
+  const [{ t, locale, price }, client] = await Promise.all([getI18n(), clientByUsername(username)]);
   if (!client) notFound();
   const contests = await contestsByIds(client.publicContestIds);
   const display = client.businessName ?? client.name;
@@ -42,7 +42,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/c/[usern
           <dl className="mx-auto m-0 mt-7 grid max-w-md grid-cols-2 gap-2.5 sm:mx-0">
             <div className="flex flex-col-reverse rounded-[20px] bg-frame px-4 py-3.5 text-center">
               <dt className="text-sm text-muted">{t("clientProfile.spent")}</dt>
-              <dd className="lc-d m-0 text-3xl font-semibold tabular-nums tracking-[-0.03em] text-primary">{formatTaka(client.totalSpent, locale)}</dd>
+              <dd className="lc-d m-0 text-3xl font-semibold tabular-nums tracking-[-0.03em] text-primary">{price(client.totalSpent)}</dd>
             </div>
             <div className="flex flex-col-reverse rounded-[20px] bg-frame px-4 py-3.5 text-center">
               <dt className="text-sm text-muted">{t("clientProfile.contests")}</dt>

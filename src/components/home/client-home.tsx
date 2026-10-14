@@ -9,7 +9,7 @@ import { PrizePanel } from "./prize-panel";
 import { Arrow, IconBadge, Pill } from "@/components/ui/section-heading";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { getSetting } from "@/lib/settings";
 
 const AMOUNT = "lc-d text-primary tracking-[-0.03em]";
@@ -23,9 +23,9 @@ const STEP_ICONS = [
 
 /** P-01c Client home (owner, 2026-10-08): everything a returning client needs to start the next contest. */
 export async function ClientHome({ user }: { user: { id: string; name: string } }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const [pricing, perDay] = await Promise.all([getPricingConfig(), getSetting("upgrades.extension_price_per_day")]);
-  const taka = (n: number) => formatTaka(n, locale);
+  const taka = price;
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
 
   return (

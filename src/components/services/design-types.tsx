@@ -2,9 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
-import type { Locale } from "@/lib/i18n/config";
 import type { MessageKey, Translate } from "@/lib/i18n/translate";
-import { formatTaka } from "@/lib/money";
 import { allServices } from "@/lib/services/store";
 import { LOGO, sizeText, type Lang, type ServiceDef } from "@/lib/services/types";
 import "./design-types.css";
@@ -176,11 +174,11 @@ function Mock({ slug, name }: { slug: string; name: string }): ReactNode {
 }
 
 /** One card. The logo card is the big featured one (logo wall, steps, Good for, wide button). */
-function Card({ s, t, l, locale, home }: { s: ServiceDef; t: Translate; l: (x: Lang) => string; locale: Locale; home: boolean }) {
+function Card({ s, t, l, price, home }: { s: ServiceDef; t: Translate; l: (x: Lang) => string; price: (bdt: number) => string; home: boolean }) {
   const name = l(s.name);
   const feat = s.slug === LOGO;
   const on = s.on;
-  const prize = <span className="dt-chip dt-prize">{t("services.picker.from", { amount: formatTaka(s.minPrize, locale) })}</span>;
+  const prize = <span className="dt-chip dt-prize">{t("services.picker.from", { amount: price(s.minPrize) })}</span>;
   const tag = (
     <span className="dt-tag">
       <i aria-hidden />
@@ -313,7 +311,7 @@ function Card({ s, t, l, locale, home }: { s: ServiceDef; t: Translate; l: (x: L
  * `start`: every service, the "Something else?" card, How it works and the samples note.
  */
 export async function DesignTypes({ variant }: { variant: "home" | "start" }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
   const services = await allServices();
   const logoDef = services.find((s) => s.slug === LOGO);
@@ -326,7 +324,7 @@ export async function DesignTypes({ variant }: { variant: "home" | "start" }) {
   return (
     <div className={cx("dt-grid", home && "dt-home")}>
       {cards.map((s) => (
-        <Card key={s.slug} s={s} t={t} l={l} locale={locale} home={home} />
+        <Card key={s.slug} s={s} t={t} l={l} price={price} home={home} />
       ))}
       {!home && (
         <Link href="/support" className="dt-card dt-other">

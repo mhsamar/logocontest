@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ContestRow } from "@/lib/contests/browse";
 import { Avatar } from "@/components/ui/avatar";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { cx } from "@/lib/cx";
 import { BrandTile, ContestNumber, HighlightBadge, PackagePill, PRIZE_TEXT, StatusLine, UrgentBadge, contestTitle } from "./contest-bits";
 import { categoryLabel } from "@/lib/contests/browse-query";
@@ -12,7 +12,7 @@ import { categoryLabel } from "@/lib/contests/browse-query";
  * contests show "Private contest" with a lock and no brand name.
  */
 export async function ContestCard({ contest, now }: { contest: ContestRow; now: Date }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const outline = [contest.isBlind && t("home.card.blind"), contest.isNda ? t("home.card.nda") : contest.isPrivate && t("home.card.private")].filter(Boolean) as string[];
 
   return (
@@ -69,7 +69,7 @@ export async function ContestCard({ contest, now }: { contest: ContestRow; now: 
 
         <div className="mt-auto border-t border-line-soft pt-3.5">
           <div className="flex items-end justify-between gap-2">
-            <p className={cx("m-0 text-[28px] font-semibold leading-none tabular-nums sm:text-[32px]", PRIZE_TEXT)}>{formatTaka(contest.prize, locale)}</p>
+            <p className={cx("m-0 text-[28px] font-semibold leading-none tabular-nums sm:text-[32px]", PRIZE_TEXT)}>{price(contest.prize)}</p>
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[13px] font-bold text-ink">
               <svg viewBox="0 0 24 24" className="size-3.5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />

@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isSkillKey } from "@/lib/designers/portfolio-options";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { inviteCandidates } from "@/lib/pro/invites";
 import { getProSettings } from "@/lib/pro/settings";
 import { serviceNames } from "@/lib/pro/workspace";
@@ -28,7 +28,7 @@ export default async function InviteProPage({ searchParams }: PageProps<"/start/
   const sp = await searchParams;
   const draftId = typeof sp.draft === "string" && UUID.test(sp.draft) ? sp.draft : null;
   if (!draftId) redirect("/start");
-  const [{ t, locale }, user, { settings, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
+  const [{ t, locale, price }, user, { settings, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start/invite?draft=${draftId}`)}`);
   const data = await inviteCandidates(draftId);
   // Only the client who owns this draft.
@@ -83,7 +83,7 @@ export default async function InviteProPage({ searchParams }: PageProps<"/start/
             </span>
             <div>
               <b>{contest.brand}</b>
-              <em>{t("pro.invite.contestLine", { type: isLogo ? (names.get("logo") ?? "Logo") : typeLabel(contest.service), prize: formatTaka(contest.prize, locale), days: n(contest.days) })}</em>
+              <em>{t("pro.invite.contestLine", { type: isLogo ? (names.get("logo") ?? "Logo") : typeLabel(contest.service), prize: price(contest.prize), days: n(contest.days) })}</em>
             </div>
           </div>
         </div>

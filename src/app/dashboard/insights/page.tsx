@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { chatThreads } from "@/lib/pro/chat";
 import { proInsights } from "@/lib/pro/insights";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
@@ -26,7 +26,7 @@ const DAYS_BN = ["শনি", "রবি", "সোম", "মঙ্গল", "ব�
 
 // Pro › Insights (owner, 2026-10-13; Design/pro/pro-insights.html): private numbers from real views and contests.
 export default async function InsightsPage({ searchParams }: PageProps<"/dashboard/insights">) {
-  const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
+  const [{ t, locale, price }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   if (!user) redirect("/login?as=designer&next=%2Fdashboard%2Finsights");
   if (user.role !== "designer" || !(await isPro(user.id))) redirect("/pro");
   const { settings } = await getProSettings();
@@ -303,7 +303,7 @@ export default async function InsightsPage({ searchParams }: PageProps<"/dashboa
             <Icon name="crown" size={26} />
           </span>
           <div>
-            <b>{t("pro.insights.sub", { price: formatTaka(settings.priceBdt, locale) })}</b>
+            <b>{t("pro.insights.sub", { price: price(settings.priceBdt) })}</b>
             <em>{sub.status === "cancelled" ? t("pro.insights.subCancelled", { date: formatDate(sub.currentPeriodEnd, locale, "long") }) : t("pro.insights.subLine", { date: formatDate(sub.currentPeriodEnd, locale, "long") })}</em>
           </div>
           <Link href="/dashboard/profile#subscription" className="pr-out sm">

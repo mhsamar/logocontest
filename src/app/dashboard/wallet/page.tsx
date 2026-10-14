@@ -4,6 +4,7 @@ import { CountUp } from "@/components/ui/count-up";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { SmallPageHeader } from "@/components/ui/section-heading";
+import { DesignerPromo } from "@/components/payments/designer-promo";
 import { WithdrawButton } from "@/components/wallet/withdraw-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { cx } from "@/lib/cx";
@@ -14,6 +15,7 @@ import { getWallet } from "@/lib/wallet/queries";
 import { ProWalletExtras } from "@/components/pro/pro-wallet-extras";
 import { ProWorkspace, WsHead } from "@/components/pro/workspace";
 import { isPro } from "@/lib/pro/status";
+import { pendingDesignerFee } from "@/lib/promos/promos";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -27,7 +29,7 @@ export default async function WalletPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?as=designer&next=/dashboard/wallet");
   if (user.role !== "designer") redirect("/dashboard");
-  const [{ t, locale }, w] = await Promise.all([getI18n(), getWallet(user.id)]);
+  const [{ t, locale }, w, feeCode] = await Promise.all([getI18n(), getWallet(user.id), pendingDesignerFee(user.id)]);
   const taka = (n: number) => formatTaka(n, locale);
   const fmt = (n: number) => formatNumber(n, locale);
   const lastTier = w.tiers.at(-1)?.min_wins ?? 1;
@@ -83,6 +85,7 @@ export default async function WalletPage() {
                 </li>
               ))}
             </ol>
+            <DesignerPromo waiting={feeCode ? { code: feeCode.code, fee: feeCode.value } : null} />
           </section>
         </div>
 

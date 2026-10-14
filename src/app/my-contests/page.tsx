@@ -9,13 +9,14 @@ import { getMyContests, type MyContest } from "@/lib/contests/my-contests";
 import { cx } from "@/lib/cx";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
+import { awaitingApproval } from "@/lib/payments/manual";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Locale } from "@/lib/i18n/config";
 import { aiConfigured } from "@/lib/logo-check/ai";
 import { contestChecks } from "@/lib/logo-check/queries";
 import { contestServiceInfo } from "@/lib/services/contest-service";
-import { formatNumber, formatTaka } from "@/lib/money";
-import { offersOn } from "@/lib/rewards/program";
+import { formatNumber } from "@/lib/money";
+import { visibleOffers } from "@/lib/rewards/visible";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -65,11 +66,13 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
   const tab = pick(TABS, sp.tab, "all");
   const sort = pick(SORTS, sp.sort, "action");
   const q = (typeof sp.q === "string" ? sp.q : "").replace(/\s+/g, " ").trim().slice(0, 60);
-  const [{ t, locale }, my, contact, phoneOn] = await Promise.all([getI18n(), getMyContests(user.id), getContact("en"), offersOn().then((o) => o.smartphone)]);
+  const [{ t, locale, price }, my, contact, phoneOn] = await Promise.all([getI18n(), getMyContests(user.id), getContact("en"), visibleOffers().then((o) => o.smartphone)]);
   const now = new Date();
   const fmt = (n: number) => formatNumber(n, locale);
 
   const all = [...my.running, ...my.drafts, ...my.done];
+  // bKash payments waiting for approval (owner, 2026-10-14): contest → payment.
+  const awaiting = await awaitingApproval(my.drafts.map((c) => c.id));
   const counts = { all: all.length, open: 0, pick: 0, unpaid: 0, done: 0 } as Record<Tab, number>;
   for (const c of all) counts[tabOf(stateOf(c.status))]++;
   const need = counts.pick + counts.unpaid;
@@ -220,7 +223,7 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
           <ul className="m-0 grid list-none items-stretch gap-4 p-0 min-[641px]:grid-cols-2 min-[1101px]:grid-cols-3">
             {list.map((c) => (
               <li key={c.id} className="flex">
-                <MyCard c={c} t={t} locale={locale} now={now} phone={contact.phone} phoneHref={contact.phoneHref} checks={checks.get(c.id)?.checkable ? { used: checks.get(c.id)!.used, left: checks.get(c.id)!.left, limit: checks.get(c.id)!.limit } : null} />
+                <MyCard c={c} awaitingPayment={awaiting.get(c.id) ?? null} t={t} locale={locale} price={price} now={now} phone={contact.phone} phoneHref={contact.phoneHref} checks={checks.get(c.id)?.checkable ? { used: checks.get(c.id)!.used, left: checks.get(c.id)!.left, limit: checks.get(c.id)!.limit } : null} />
               </li>
             ))}
             <li className={cx("flex", span)}>
@@ -246,9 +249,10 @@ export default async function MyContestsPage({ searchParams }: PageProps<"/my-co
 }
 
 /** One of the client's contests: badge, grey note, dashed helper line and button change with its state. */
-function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest; t: Translate; locale: Locale; now: Date; phone: string; phoneHref: string; checks: { used: number; left: number; limit: number } | null }) {
+function MyCard({ c, t, locale, price, now, phone, phoneHref, checks, awaitingPayment = null }: { c: MyContest; t: Translate; locale: Locale; price: (bdt: number) => string; now: Date; phone: string; phoneHref: string; checks: { used: number; left: number; limit: number } | null; awaitingPayment?: string | null }) {
   const fmt = (n: number) => formatNumber(n, locale);
   const state = stateOf(c.status);
+  const waiting = state === "unpaid" && Boolean(awaitingPayment);
   const manage = `/dashboard/contests/${c.slug}`;
   const meta =
     state === "unpaid"
@@ -275,10 +279,12 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest;
           : t("myContests.waiting")
       : state === "pick"
         ? t("myContests.x.note.pick")
-        : state === "unpaid"
-          ? c.status === "draft"
-            ? t("myContests.x.note.draft")
-            : t("myContests.x.note.unpaid")
+        : waiting
+          ? t("pay.waitingLead")
+          : state === "unpaid"
+            ? c.status === "draft"
+              ? t("myContests.x.note.draft")
+              : t("myContests.x.note.unpaid")
           : state === "files"
             ? t("myContests.next.files")
             : c.status === "no_result"
@@ -290,8 +296,10 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest;
       ? { href: manage, label: t("myContests.review"), filled: true }
       : state === "pick"
         ? { href: manage, label: t("myContests.x.pickWinner"), filled: true }
-        : state === "unpaid"
-          ? { href: `/start?draft=${c.id}`, label: c.status === "draft" ? t("myContests.x.finish") : t("myContests.x.pay"), filled: true }
+        : waiting
+          ? { href: `/pay/contest/${awaitingPayment}`, label: t("pay.viewPayment"), filled: false }
+          : state === "unpaid"
+            ? { href: `/start?draft=${c.id}`, label: c.status === "draft" ? t("myContests.x.finish") : t("myContests.x.pay"), filled: true }
           : state === "files"
             ? { href: manage, label: t("myContests.openFiles"), filled: false }
             : { href: manage, label: c.status === "no_result" ? t("myContests.toDashboard") : t("myContests.x.download"), filled: false };
@@ -306,6 +314,8 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest;
       <strong className={soon ? "text-[#9A3412]" : "text-ink"}>{daysText}</strong>
     ) : state === "pick" ? (
       <strong className="text-[#9A3412]">{c.judgingEndsAt ? t("myContests.x.pickBy", { date: formatDate(c.judgingEndsAt, locale, "short") }) : t("myContests.next.pick")}</strong>
+    ) : waiting ? (
+      <strong className="text-[#9a6200]">{t("pay.waiting")}</strong>
     ) : state === "unpaid" ? (
       <strong className="text-[#A3121B]">{t("myContests.x.notLive")}</strong>
     ) : state === "done" && c.status === "completed" ? (
@@ -324,8 +334,8 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest;
           </div>
           <span className="text-sm text-muted">{[t(`wizard.businessTypes.${c.businessType}`), meta].filter(Boolean).join(" · ")}</span>
         </div>
-        <span className={cx("flex-none whitespace-nowrap rounded-full px-[9px] py-0.5 text-[12.5px] font-bold", BADGE[state])}>
-          {c.status === "no_result" ? t("myContests.x.badge.noResult") : t(`myContests.x.badge.${state}`)}
+        <span className={cx("flex-none whitespace-nowrap rounded-full px-[9px] py-0.5 text-[12.5px] font-bold", waiting ? "bg-[#fff4dc] text-[#9a6200]" : BADGE[state])} data-awaiting-approval={waiting || undefined}>
+          {waiting ? t("pay.waiting") : c.status === "no_result" ? t("myContests.x.badge.noResult") : t(`myContests.x.badge.${state}`)}
         </span>
       </div>
 
@@ -384,7 +394,7 @@ function MyCard({ c, t, locale, now, phone, phoneHref, checks }: { c: MyContest;
         <div className="flex items-end justify-between gap-2.5 border-t border-[#EEEFF2] pt-3">
           <div className="flex min-w-0 flex-col">
             <span className="text-[12.5px] font-bold text-muted">{state === "unpaid" ? t("myContests.x.willPay") : state === "done" && c.status === "completed" ? t("myContests.x.prizePaid") : t("myContests.x.prize")}</span>
-            <strong className="lc-d text-[28px] leading-[1.05] tracking-[-0.03em] text-primary">{formatTaka(state === "unpaid" ? c.total : c.prize, locale)}</strong>
+            <strong className="lc-d text-[28px] leading-[1.05] tracking-[-0.03em] text-primary">{price(state === "unpaid" ? c.total : c.prize)}</strong>
           </div>
           <Link href={button.href} className={cx("inline-flex min-h-11 flex-none items-center gap-1.5 rounded-full px-[18px] text-[15px] font-bold transition-opacity hover:opacity-90", button.filled ? RED : "bg-[#FBECEB] text-primary")}>
             {button.label}

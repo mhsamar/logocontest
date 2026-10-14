@@ -3,7 +3,7 @@ import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { raceTally } from "@/lib/rewards/leaderboard";
-import { offersOn } from "@/lib/rewards/program";
+import { visibleOffers } from "@/lib/rewards/visible";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { monthKey, monthRange } from "@/lib/rewards/rules";
 
@@ -38,7 +38,7 @@ export const GiftBox = () => (
  */
 export async function PrizePanel({ kind, userId }: { kind: "smartphone" | "gift_box"; userId: string }) {
   const phone = kind === "smartphone";
-  const on = await offersOn();
+  const on = await visibleOffers();
   if (!(phone ? on.smartphone : on.giftBox)) return null;
   const now = new Date();
   const month = monthKey(now);

@@ -190,7 +190,8 @@ export function PackageStep({
   update: (patch: Partial<Order>) => void;
   config: PricingConfig;
 }) {
-  const { t, locale } = useI18n();
+  // The custom prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
+  const { t, locale, price: money } = useI18n();
   const taka = (n: number) => formatTaka(n, locale);
   const orderError = validateOrder(order, config);
   const [customTouched, setCustomTouched] = useState(false);
@@ -254,12 +255,12 @@ export function PackageStep({
                 </span>
               </span>
               <span className={cx("mt-1 block text-2xl font-semibold tabular-nums sm:text-[1.65rem]", AMOUNT)}>
-                {prize ? taka(prize) : t("wizard.packages.custom.price")}
+                {prize ? money(prize) : t("wizard.packages.custom.price")}
               </span>
               <span className="mt-1 block text-sm leading-snug text-ink">{t(`wizard.packages.${pkg}.line`)}</span>
               {prize && (
                 <span className="mt-auto block pt-2 text-xs text-muted">
-                  {t("wizard.packages.youPay", { total: taka(prizeWithFee(prize, config)) })}
+                  {t("wizard.packages.youPay", { total: money(prizeWithFee(prize, config)) })}
                 </span>
               )}
             </button>
@@ -373,7 +374,7 @@ export function PackageStep({
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-semibold text-ink">{t(`wizard.upgrades.${u}.name`)}</span>
                     <span className={cx("text-sm font-bold tabular-nums", included || free ? "text-success" : AMOUNT)}>
-                      {free ? t("wizard.c08.freeWithPrize") : included ? t("wizard.c08.included") : `+${taka(config.upgradePrices[u])}`}
+                      {free ? t("wizard.c08.freeWithPrize") : included ? t("wizard.c08.included") : `+${money(config.upgradePrices[u])}`}
                     </span>
                   </span>
                   <span className="mt-0.5 block text-sm leading-snug text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>

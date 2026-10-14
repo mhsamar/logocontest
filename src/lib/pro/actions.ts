@@ -3,7 +3,11 @@
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { getPaymentGateway, paymentsAvailable } from "@/lib/payments";
+import { getPaymentGateway } from "@/lib/payments";
+import { gatewayMethod, isManual, legacyMethod, proPriceWithCode } from "@/lib/payments/manual-rules";
+import { openMethod } from "@/lib/payments/methods";
+import { openStripeCheckout } from "@/lib/payments/stripe-api";
+import { lookupPromo, reservePromo, markPromoUsed } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isProActive, priceQuote } from "./rules";
 import { getProSettings } from "./settings";
@@ -23,20 +27,23 @@ async function designer() {
 /**
  * Upgrade to Pro (or renew): the price is worked out here from Admin › Pro plan (offer, promo code, free trial),
  * never taken from the browser. A free trial turns Pro on at once; otherwise a pending payment is made and the
- * designer goes to the gateway's secure page. Refused while the plan is not for sale.
+ * designer goes to the gateway's secure page, or for manual bKash (owner, 2026-10-14) to the pay page. A Pro
+ * discount code from Admin › Payments › Promo codes takes its percent off. Refused while the plan is not for sale.
  */
-export async function startProCheckout(input: { method: "bkash" | "card"; promo?: string; acceptedTerms: boolean }): Promise<{ ok: true; redirectUrl: string } | Fail> {
+export async function startProCheckout(input: { method: string; promo?: string; acceptedTerms: boolean }): Promise<{ ok: true; redirectUrl: string } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
   const { settings, ready } = await getProSettings();
   if (!ready || !settings.isForSale) return fail("pro.errors.notForSale");
   if (!input.acceptedTerms) return fail("pro.errors.terms");
-  if (input.method !== "bkash" && input.method !== "card") return fail("pro.errors.generic");
 
   const sub = await getSubscription(user.id);
   // Someone who had the free Pro Trial (owner, 2026-10-14) is not a first-time buyer.
   const quote = priceQuote(settings, { firstTime: !sub && !(await getTrial(user.id)), promo: input.promo ?? null });
-  if (input.promo && input.promo.trim() && quote.reason !== "promo") return fail("pro.errors.promo");
+  const typed = (input.promo ?? "").trim();
+  // Not the plan's own promo code: maybe a discount code (checked now, kept for this designer when they pay).
+  const discount = typed && quote.reason !== "promo" && quote.reason !== "trial" ? await lookupPromo(typed, user.id, "pro_discount") : null;
+  if (discount && !discount.ok) return fail(discount.error);
 
   if (quote.reason === "trial") {
     const granted = await grantPro(user.id, { days: quote.trialDays, method: "trial", priceBdt: settings.priceBdt });
@@ -47,27 +54,61 @@ export async function startProCheckout(input: { method: "bkash" | "card"; promo?
     return { ok: true, redirectUrl: "/pro/checkout?status=success&trial=1" };
   }
 
-  if (!paymentsAvailable()) return fail("pro.errors.paymentsClosed");
+  const open = await openMethod(legacyMethod(input.method));
+  if (!open) return fail("pro.errors.paymentsClosed");
+  const manual = isManual(open.key);
+  const stripe = open.key === "stripe";
+  const method = manual ? "bkash" : gatewayMethod(open.key as "bkash_api" | "sslcommerz" | "stripe");
+
+  let amount = quote.amount;
+  let reservedId: string | null = null;
+  if (discount?.ok) {
+    const res = await reservePromo(discount.code, user.id, ["pro_discount"]);
+    if (!res.ok) return fail(res.error);
+    reservedId = res.promo.redemptionId;
+    amount = Math.min(amount, proPriceWithCode(quote.amount, res.promo.value));
+    // 100% off: nothing to pay, Pro for a month at once.
+    if (amount === 0) {
+      const granted = await grantPro(user.id, { months: 1, method: "free", priceBdt: 0 });
+      if (!granted) return fail("pro.errors.generic");
+      await markPromoUsed(reservedId);
+      await logProActivity(null, "granted", user.id, null, { months: 1, promo: discount.code });
+      refresh();
+      return { ok: true, redirectUrl: "/pro/checkout?status=success" };
+    }
+  }
+
   const { data: payment, error } = await createAdminClient()
     .from("pro_payments")
     .insert({
       designer_id: user.id,
       subscription_id: sub?.id ?? null,
       kind: sub && isProActive(sub) ? "renewal" : "new",
-      amount_bdt: quote.amount,
-      method: input.method,
-      provider: getPaymentGateway().name,
-      promo_code: quote.reason === "promo" ? settings.promoCode : null,
+      amount_bdt: amount,
+      method,
+      provider: manual || stripe ? open.key : getPaymentGateway().name,
+      promo_code: quote.reason === "promo" ? settings.promoCode : discount?.ok ? discount.code : null,
     })
     .select("id")
     .single();
   if (error || !payment) return fail("pro.errors.generic");
-  await logFunnel("payment_started", { designerId: user.id, step: input.method });
+  if (reservedId) await createAdminClient().from("promo_redemptions").update({ payment_id: payment.id }).eq("id", reservedId);
+  await logFunnel("payment_started", { designerId: user.id, step: method });
+  if (manual) return { ok: true, redirectUrl: `/pay/pro/${payment.id}` };
+  // Stripe (owner, 2026-10-14): a card payment in US dollars on Stripe's page.
+  if (stripe) {
+    const url = await openStripeCheckout({ kind: "pro", paymentId: payment.id as string, bdt: amount, name: "logocontest.bd Pro · 1 month", email: user.email, cancelPath: "/pro/checkout" });
+    if (!url) {
+      await logFunnel("payment_failed", { designerId: user.id, step: "gateway" });
+      return fail("pro.errors.payment");
+    }
+    return { ok: true, redirectUrl: url };
+  }
   try {
     const { redirectUrl } = await getPaymentGateway().createCheckout({
       paymentId: payment.id as string,
-      amount: quote.amount,
-      method: input.method,
+      amount,
+      method,
       description: "logocontest.bd Pro · 1 month",
       customer: { name: user.name, mobile: user.mobile },
     });

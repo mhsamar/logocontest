@@ -866,6 +866,26 @@
   font-weight: 600;
   text-transform: uppercase;
 }
+.ck-apply {
+  flex: none;
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid #dcdee3;
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  color: #8b0000;
+  cursor: pointer;
+}
+.ck-apply:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ck-applied {
+  color: #14633c;
+  font-weight: 700;
+}
 .ck-agree {
   display: flex;
   align-items: flex-start;

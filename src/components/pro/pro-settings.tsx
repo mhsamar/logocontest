@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { PRO_FILES_BUCKET } from "@/lib/pro/chat";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
@@ -22,7 +22,7 @@ import { PrefToggle } from "./pref-toggles";
  * from the designer's own designs, portfolio uploads, logo checks used, the Pro switches, and the plan with cancel.
  */
 export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const db = createAdminClient();
   const [{ settings }, prefs, usage, sub, trial, kind, { data: entries }, { data: items }] = await Promise.all([
     getProSettings(),
@@ -130,7 +130,7 @@ export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
               <Icon name="crown" />
             </span>
             <div>
-              <b>{t("pro.settings.planLine", { price: formatTaka(settings.priceBdt, locale) })}</b>
+              <b>{t("pro.settings.planLine", { price: price(settings.priceBdt) })}</b>
               <em>{sub.status === "cancelled" ? t("pro.settings.cancelledLine", { date: until }) : sub.autoRenew ? t("pro.settings.renewsLine", { date: until }) : t("pro.settings.endsLine", { date: until })}</em>
             </div>
           </div>

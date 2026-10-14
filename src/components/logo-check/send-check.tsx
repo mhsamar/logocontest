@@ -9,7 +9,6 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { useI18n } from "@/lib/i18n/client";
 import type { ClosestResult, MatchLevel } from "@/lib/logo-check/entry-rules";
-import { formatTaka } from "@/lib/money";
 import { LEVEL_TONE, ScoreRing, ShieldIcon } from "./match";
 
 export type SendCheckSetup = {
@@ -48,7 +47,7 @@ export function SendCheckModal({
   onSend: (checkId: string | null) => void;
   onNewVersion: () => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, price: money } = useI18n();
   const [usage, setUsage] = useState(setup.usage);
   const [check, setCheck] = useState<Check | null>(null);
   const [checkedPath, setCheckedPath] = useState<string | null>(null);
@@ -285,7 +284,7 @@ export function SendCheckModal({
                   <span className="rounded-full bg-[#e2b13c] px-2 py-0.5 text-[11px] font-bold text-[#4a3700]">PRO</span>
                   <div>
                     <p className="m-0 font-bold">{t("entryCheck.send.upsell", { n: n(setup.proLogoChecks) })}</p>
-                    <p className="m-0 text-[13px] text-muted">{t("entryCheck.send.upsellPrice", { price: formatTaka(setup.priceBdt, locale) })}</p>
+                    <p className="m-0 text-[13px] text-muted">{t("entryCheck.send.upsellPrice", { price: money(setup.priceBdt) })}</p>
                   </div>
                 </div>
                 <Link href="/pro" className="mt-3 inline-flex min-h-11 items-center rounded-[12px] bg-surface px-4 text-[14px] font-bold text-ink ring-1 ring-line hover:ring-primary">

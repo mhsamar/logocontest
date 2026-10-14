@@ -15,6 +15,7 @@ import {
   recordBriefUpload,
   removeBriefFile,
   saveDraft,
+  previewPromo,
   startCheckout,
   type WizardResult,
 } from "@/lib/contests/actions";
@@ -24,7 +25,7 @@ import { normalizeEmail } from "@/lib/auth/identity";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { normalizeBdMobile } from "@/lib/phone";
-import { formatTaka } from "@/lib/money";
+import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { subscribeToPush } from "@/lib/push/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { deleteFile, getFile } from "./file-store";
@@ -33,7 +34,7 @@ import { initialState, loadState, saveState, type ServerFile, type WizardState }
 import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
-import { ReviewStep, type UploadState } from "./step-review";
+import { ReviewStep, type PromoPreview, type UploadState } from "./step-review";
 
 export type WizardProps = {
   user: { name: string; mobile: string } | null;
@@ -48,6 +49,8 @@ export type WizardProps = {
   choices: BriefChoices;
   /** Designer Pro plan (owner, 2026-10-13): after saving, the optional "Invite Pro designers" step comes before paying. */
   inviteFirst?: boolean;
+  /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
+  methods: PublicMethod[];
 };
 
 /** One id per browser tab visit, so a reload continues the same visit. */
@@ -65,7 +68,7 @@ const HEADINGS = ["c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09",
 const BUCKET = "contest-files";
 
 export function Wizard(props: WizardProps) {
-  const { t, locale } = useI18n();
+  const { t, price: money } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const steps = useMemo(() => (props.user ? [1, 2, 3, 4, 5, 6, 7, 8, 11] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]), [props.user]);
@@ -78,7 +81,8 @@ export function Wizard(props: WizardProps) {
   const [touchedAccount, setTouchedAccount] = useState(false);
   const [password, setPassword] = useState("");
   const [name, setName] = useState(props.user?.name ?? "");
-  const [method, setMethod] = useState<"bkash" | "card" | null>(null);
+  const [method, setMethod] = useState<string | null>(props.methods.length === 1 ? props.methods[0].key : null);
+  const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
   const [uploads, setUploads] = useState<UploadState[]>([]);
   const [busy, startBusy] = useTransition();
@@ -320,7 +324,7 @@ export function Wizard(props: WizardProps) {
     if (step === 11) {
       startBusy(async () => {
         void recordWizardStep(wizardVisitId(), 12, state.contestId);
-        const res = await startCheckout({ contestId: state.contestId!, method: method!, name, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
+        const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, name, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
         // On success the action redirects to the gateway, so we only get here on failure.
         if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
       });
@@ -357,9 +361,12 @@ export function Wizard(props: WizardProps) {
 
   const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch, choices: props.choices };
   const key = HEADINGS[step - 1];
+  // A promo code was checked against the total at that moment; after the order changes it no longer counts.
+  const promoNow = promo && price && promo.total + promo.saves === price.total ? promo : null;
+
   const showPrice = step >= 8 && price !== null;
   const nextLabel =
-    step === 11 && price ? t("wizard.c11.pay", { total: formatTaka(price.total, locale) }) : fromReview && step < 11 ? t("wizard.frame.backToReview") : t("wizard.frame.next");
+    step === 11 && price ? t("wizard.c11.pay", { total: money(promoNow ? promoNow.total : price.total) }) : fromReview && step < 11 ? t("wizard.frame.backToReview") : t("wizard.frame.next");
 
   return (
     <div ref={top} className="flex w-full flex-1 scroll-mt-32 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
@@ -483,8 +490,17 @@ export function Wizard(props: WizardProps) {
                   feePercent={price?.feePercent ?? props.pricing.serviceFeePercent}
                   name={name}
                   onName={setName}
+                  methods={props.methods}
                   method={method}
                   onMethod={setMethod}
+                  promo={promoNow}
+                  onApplyPromo={async (code) => {
+                    const res = await previewPromo({ contestId: state.contestId!, code });
+                    if (!res.ok) return { ok: false, error: t(res.error.key, res.error.params) };
+                    setPromo(res);
+                    return { ok: true };
+                  }}
+                  onRemovePromo={() => setPromo(null)}
                   terms={terms}
                   onTerms={setTerms}
                   uploads={uploads}

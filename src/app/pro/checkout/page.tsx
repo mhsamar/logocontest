@@ -3,6 +3,7 @@ import Link from "next/link";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { CheckoutForm } from "@/components/pro/checkout-form";
+import { openMethods } from "@/lib/payments/methods";
 import { Icon } from "@/components/pro/parts";
 import { PageShell } from "@/components/ui/panel";
 import "@/components/pro/pro.css";
@@ -11,7 +12,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { formatTaka } from "@/lib/money";
 import { isProActive, priceQuote, receiptCode } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSubscription, getTrial } from "@/lib/pro/status";
@@ -29,7 +29,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 // The gateway brings the designer back here with ?status=success|failed&payment=<id>.
 export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/checkout">) {
   const sp = await searchParams;
-  const [{ t, locale }, user, { settings: s, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
+  const [{ t, locale, currency, price: money }, user, { settings: s, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
   if (!user) redirect("/login?as=designer&next=%2Fpro%2Fcheckout");
   if (user.role !== "designer") redirect("/pro");
   const sub = await getSubscription(user.id);
@@ -38,7 +38,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
   const paymentId = typeof sp.payment === "string" && UUID.test(sp.payment) ? sp.payment : null;
   // Someone who had the free Pro Trial is not a first-time buyer (owner, 2026-10-14).
   const quote = priceQuote(s, { firstTime: !sub && !(await getTrial(user.id)) });
-  const price = formatTaka(s.priceBdt, locale);
+  const price = money(s.priceBdt);
   const n = (v: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(v);
   const features: { key: MessageKey; on: boolean }[] = [
     { key: "pro.checkout.inc.i1", on: true },
@@ -79,12 +79,12 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
         {quote.reason === "offer" && (
           <div>
             <span>{t("pro.checkout.offer")}</span>
-            <b>{formatTaka(quote.amount, locale)}</b>
+            <b>{money(quote.amount)}</b>
           </div>
         )}
         <div className="tt">
           <span>{t("pro.checkout.total")}</span>
-          <b>{formatTaka(quote.amount, locale)}</b>
+          <b>{money(quote.amount)}</b>
         </div>
       </div>
       <span className="ck-ren">{t("pro.checkout.renews")}</span>
@@ -110,7 +110,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
           </div>
           <div>
             <span>{t("pro.checkout.paid")}</span>
-            <b>{mine ? formatTaka(mine.amount_bdt as number, locale) : t("pro.checkout.trial")}</b>
+            <b>{mine ? money(mine.amount_bdt as number) : t("pro.checkout.trial")}</b>
           </div>
           <div>
             <span>{t("pro.checkout.next")}</span>
@@ -198,7 +198,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
     );
   } else {
     after(() => logFunnel("checkout_opened", { designerId: user.id, step: pro ? "renewal" : "new" }));
-    main = <CheckoutForm amountLabel={formatTaka(quote.amount, locale)} priceLabel={price} trialDays={quote.reason === "trial" ? quote.trialDays : 0} renew={pro} />;
+    main = <CheckoutForm amountLabel={money(quote.amount)} priceLabel={price} trialDays={quote.reason === "trial" ? quote.trialDays : 0} renew={pro} methods={await openMethods(locale, currency.code)} />;
   }
 
   return (

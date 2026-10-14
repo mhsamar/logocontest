@@ -3,14 +3,14 @@ import type { ContestDetail } from "@/lib/contests/browse";
 import { contestTimeline } from "@/lib/contests/browse-query";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { PRIZE_TEXT } from "./contest-bits";
 import { timeLeft } from "./countdown-pill";
 
 /** P-03 stats card: designs, prize, time left, then the three-step timeline. `footer` sits at the bottom of the card. */
 export async function ContestStats({ contest, judgingDays, now, action, footer }: { contest: ContestDetail; judgingDays: number; now: Date; action?: React.ReactNode; footer?: React.ReactNode }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const phases = contestTimeline(contest, judgingDays, now);
 
   let left = "—";
@@ -24,7 +24,7 @@ export async function ContestStats({ contest, judgingDays, now, action, footer }
 
   const stats = [
     { label: t("contest.stats.designs"), value: formatNumber(contest.entries, locale), prize: false },
-    { label: t("contest.stats.prize"), value: formatTaka(contest.prize, locale), prize: true },
+    { label: t("contest.stats.prize"), value: price(contest.prize), prize: true },
     { label: t("contest.stats.timeLeft"), value: left, prize: false },
   ];
 

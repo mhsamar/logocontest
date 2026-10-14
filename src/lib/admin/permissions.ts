@@ -15,7 +15,8 @@ export const ADMIN_AREAS = {
   copyright: { manage: false },
   users: { manage: true },
   unpaid: { manage: false },
-  payments: { manage: false },
+  /** Owner, 2026-10-14: manage = approve manual bKash payments, payment methods, promo codes. */
+  payments: { manage: true },
   withdrawals: { manage: true },
   agreements: { manage: true },
   monthly: { manage: true },

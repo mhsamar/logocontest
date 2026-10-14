@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("admin.settings.title"), robots: { index: false } };
 }
 
-const GROUPS = ["fees", "packages", "upgrades", "timers", "limits", "checker", "monthly", "live", "site", "auth"];
+const GROUPS = ["fees", "packages", "upgrades", "payments", "timers", "limits", "checker", "monthly", "live", "site", "auth"];
 
 // A-11 Settings (BLUEPRINT §13.8): every admin-changeable number, grouped; each save asks for a reason.
 export default async function AdminSettingsPage() {

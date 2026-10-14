@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { MethodPicker } from "@/components/payments/pay-bits";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -8,6 +9,7 @@ import { buyAddon } from "@/lib/contests/addon-actions";
 import type { AddonKey } from "@/lib/contests/addons";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import type { PublicMethod } from "@/lib/payments/manual-rules";
 
 type Item = AddonKey | "extend";
 
@@ -56,8 +58,11 @@ export function AddonsPanel({
   endsAt,
   locale,
   prize,
+  methods,
 }: {
   contestId: string;
+  /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
+  methods: PublicMethod[];
   open: boolean;
   active: Record<AddonKey, boolean>;
   prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number };
@@ -67,14 +72,14 @@ export function AddonsPanel({
   endsAt: string | null;
   locale: "en" | "bn";
 }) {
-  const { t } = useI18n();
+  const { t, price: taka } = useI18n();
   const [buying, setBuying] = useState<Item | null>(null);
   const [days, setDays] = useState(extensionDays[0] ?? 3);
-  const [method, setMethod] = useState<"bkash" | "card">("bkash");
+  const [method, setMethod] = useState<string | null>(methods[0]?.key ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const nf = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
-  const taka = (n: number) => `৳${nf.format(n)}`;
+  // In the visitor's currency (owner, 2026-10-14: US dollars for visitors from abroad).
   const date = (d: Date) =>
     new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", {
       day: "numeric",
@@ -88,7 +93,7 @@ export function AddonsPanel({
 
   const pay = () =>
     start(async () => {
-      if (!buying) return;
+      if (!buying || !method) return;
       setError(null);
       const res = await buyAddon(buying === "extend" ? { contestId, extensionDays: days, method } : { contestId, addon: buying, method });
       if (!res.ok) return setError(t(res.error));
@@ -171,7 +176,7 @@ export function AddonsPanel({
         footer={
           <div className="w-full space-y-2">
             {error && <Alert tone="danger">{error}</Alert>}
-            <Button block size="lg" onClick={pay} loading={busy}>
+            <Button block size="lg" onClick={pay} loading={busy} disabled={!method}>
               {buying ? t("manage.addons.pay", { amount: taka(price(buying)) }) : ""}
             </Button>
           </div>
@@ -198,22 +203,8 @@ export function AddonsPanel({
             })}
           </div>
         )}
-        <p className="mt-5 text-sm font-medium text-ink">{t("manage.addons.payWith")}</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {(["bkash", "card"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMethod(m)}
-              aria-pressed={method === m}
-              className={cx(
-                "min-h-12 rounded-[14px] text-sm font-semibold ring-1 transition-colors",
-                method === m ? "bg-ink text-white ring-ink" : "text-ink ring-line hover:bg-chip",
-              )}
-            >
-              {t(`wizard.c11.${m}`)}
-            </button>
-          ))}
+        <div className="mt-5">
+          <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("manage.addons.payWith")} />
         </div>
       </Modal>
     </>

@@ -16,6 +16,7 @@ import { GlideTrack } from "@/components/ui/glide-track";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { addonPrices } from "@/lib/contests/addon-payments";
+import { awaitingApproval } from "@/lib/payments/manual";
 import { countSaved } from "@/lib/contests/community";
 import { DASHBOARD_TABS, getClientDashboard, type DashboardTab } from "@/lib/contests/dashboard";
 import { designerById, designerContests } from "@/lib/designers/profile";
@@ -76,6 +77,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   if (user.role !== "client") notFound();
 
   const [data, addons, prizes] = await Promise.all([getClientDashboard(user.id), addonPrices(), myUnclaimedRewards(user.id)]);
+  // Contests whose bKash payment waits for approval (owner, 2026-10-14).
+  const awaiting = await awaitingApproval(data.contests.filter((c) => c.status === "draft" || c.status === "pending_payment").map((c) => c.id));
   const counts = Object.fromEntries(DASHBOARD_TABS.map((tab) => [tab, data.contests.filter((c) => c.tab === tab).length])) as Record<DashboardTab, number>;
   const asked = DASHBOARD_TABS.find((x) => x === sp.tab);
   // The first tab with contests opens by default.
@@ -86,7 +89,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const stats = [
     { label: t("dashboard.stats.contestsRun"), value: <CountUp value={data.stats.contestsRun} locale={locale} />, icon: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
-    { label: t("dashboard.stats.totalSpent"), value: <CountUp value={data.stats.totalSpent} locale={locale} taka />, gold: true, icon: "M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.6c0 4.9 10 2.4 10 7.6 0 2-2.2 3.3-5 3.3s-5-1.2-5-3.2" },
+    { label: t("dashboard.stats.totalSpent"), value: <CountUp value={data.stats.totalSpent} locale={locale} money />, gold: true, icon: "M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.6c0 4.9 10 2.4 10 7.6 0 2-2.2 3.3-5 3.3s-5-1.2-5-3.2" },
     { label: t("dashboard.stats.active"), value: <CountUp value={data.stats.active} locale={locale} />, icon: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" },
     { label: t("dashboard.stats.completed"), value: <CountUp value={data.stats.completed} locale={locale} />, icon: "M5 12.5l4.5 4.5L19 7.5" },
   ];
@@ -225,7 +228,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               <ul className="m-0 mt-5 list-none space-y-3.5 p-0">
                 {shown.map((c) => (
                   <li key={c.id} className="lc-rv-soft">
-                    <ClientContestCard contest={c} now={now} addons={addons} />
+                    <ClientContestCard contest={c} now={now} addons={addons} awaitingPayment={awaiting.get(c.id) ?? null} />
                   </li>
                 ))}
               </ul>

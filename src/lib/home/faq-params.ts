@@ -6,7 +6,7 @@ import { formatTaka } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 
 /** Numbers for the Q&A answers on the home and How It Works pages. Every one comes from settings. */
-export async function faqParams(t: Translate, locale: Locale) {
+export async function faqParams(t: Translate, locale: Locale, price?: (bdt: number) => string) {
   const [pricing, s] = await Promise.all([
     getPricingConfig(),
     getSettings([
@@ -18,7 +18,8 @@ export async function faqParams(t: Translate, locale: Locale) {
       "limits.withdrawal_min",
     ]),
   ]);
-  const taka = (n: number) => formatTaka(n, locale);
+  // In the visitor's currency on the home and How it works pages (owner, 2026-10-14); legal texts stay in taka.
+  const taka = price ?? ((n: number) => formatTaka(n, locale));
   const num = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
   const list = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(", ")} ${t("home.faq.or")} ${items.at(-1)}` : items[0]);
   const tiers = [...s["fees.designer_tiers"]].sort((a, b) => a.min_wins - b.min_wins);

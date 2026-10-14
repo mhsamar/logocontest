@@ -7,7 +7,7 @@ import { cx } from "@/lib/cx";
 import { timeLeft } from "@/lib/home/logo-pick";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { categoryLabel } from "@/lib/contests/browse-query";
 
 const PACKAGE_CHIP: Record<PackageKey, string> = {
@@ -45,7 +45,7 @@ function Cover({ c }: { c: ContestRow }) {
 const coverBg = (c: ContestRow) => (c.isPrivate || c.isNda || c.cover ? "bg-[var(--lc-tile)]" : c.brandName.trim().length <= 8 ? "bg-[#0B0B0C]" : "bg-[#F4EFE4]");
 
 /** One live contest (design file), from real data: badges, package, prize, designs so far and time left. */
-export function ContestTile({ c, now, t, locale }: { c: ContestRow; now: Date; t: Translate; locale: Locale }) {
+export function ContestTile({ c, now, t, locale, price }: { c: ContestRow; now: Date; t: Translate; locale: Locale; price: (bdt: number) => string }) {
   const left = timeLeft(c.endsAt, now);
   const badges = [
     c.isPromoted && { label: t("contest.featured"), cls: "bg-white border border-[var(--lc-line)]" },
@@ -76,7 +76,7 @@ export function ContestTile({ c, now, t, locale }: { c: ContestRow; now: Date; t
           <span className={cx("shrink-0 rounded-lg px-2.5 py-1 text-[13px] font-bold", PACKAGE_CHIP[c.package])}>{t(`wizard.packages.${c.package}.name`)}</span>
         </div>
         <div className="flex items-end justify-between gap-3 border-t border-[var(--lc-line-soft)] pt-3">
-          <span className="lc-d text-[32px] font-semibold leading-none tracking-[-0.04em] text-[var(--lc-red)]">{formatTaka(c.prize, locale)}</span>
+          <span className="lc-d text-[32px] font-semibold leading-none tracking-[-0.04em] text-[var(--lc-red)]">{price(c.prize)}</span>
           <span className="flex flex-col items-end gap-1.5">
             <span className="text-[15px] font-semibold text-[var(--lc-muted)]">{c.entries === 1 ? t("browse.oneDesign") : t("browse.designs", { count: formatNumber(c.entries, locale) })}</span>
             {left && (

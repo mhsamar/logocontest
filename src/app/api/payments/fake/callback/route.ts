@@ -4,6 +4,7 @@ import { announceForPayment } from "@/lib/contests/announce";
 import { contestService } from "@/lib/contests/services";
 import { getFakeGateway } from "@/lib/payments";
 import { isProPayment, settleProPayment } from "@/lib/pro/payments";
+import { markContestPromoUsed } from "@/lib/promos/promos";
 
 /** Callback from the development test checkout. Verified by FakeGateway's signature. */
 export async function POST(request: NextRequest) {
@@ -33,5 +34,7 @@ export async function POST(request: NextRequest) {
   }
   // Every designer hears about the new contest (owner, 2026-10-09). The real gateway callback must do the same.
   if (result.status === "paid") await announceForPayment(result.paymentId);
+  // A client fee code on the contest (owner, 2026-10-14) counts as used. The real gateway callback must do the same.
+  if (result.status === "paid") await markContestPromoUsed(result.paymentId);
   return NextResponse.redirect(new URL(`/start/result?payment=${result.paymentId}`, request.url), 303);
 }

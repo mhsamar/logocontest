@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { contestsByIdsMini, serviceNames } from "@/lib/pro/workspace";
 import { durationText, Icon } from "./parts";
@@ -11,7 +11,7 @@ import { ProWorkspace, WsHead } from "./workspace";
 
 /** Pro › Saved (owner, 2026-10-13; Design/pro/pro-saved.html): saved contests by end time, each with "Remind me". */
 export async function ProSaved({ user }: { user: CurrentUser }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const { data: favs } = await createAdminClient().from("contest_favorites").select("contest_id, remind").eq("user_id", user.id).limit(500);
   const remind = new Map((favs ?? []).map((f) => [f.contest_id as string, f.remind !== false]));
   const [contests, names] = await Promise.all([contestsByIdsMini([...remind.keys()]), serviceNames(locale)]);
@@ -39,7 +39,7 @@ export async function ProSaved({ user }: { user: CurrentUser }) {
               </span>
               <div>
                 <b>{c.brand ?? t("pro.contests.privateContest")}</b>
-                <em>{t(c.entries === 1 ? "pro.saved.lineOne" : "pro.saved.line", { type: contestTypeLabel(c, t, names), prize: formatTaka(c.prize, locale), n: n(c.entries) })}</em>
+                <em>{t(c.entries === 1 ? "pro.saved.lineOne" : "pro.saved.line", { type: contestTypeLabel(c, t, names), prize: price(c.prize), n: n(c.entries) })}</em>
               </div>
               <div className="when">
                 <span className={open && left! < 24 * 60 ? "hot" : undefined}>{open ? t("pro.saved.endsIn", { time: durationText(left!, t) }) : t("pro.saved.ended")}</span>

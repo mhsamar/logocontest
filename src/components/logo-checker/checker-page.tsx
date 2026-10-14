@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { getI18n } from "@/lib/i18n/server";
 import { HERO_SAMPLES, pctColour, RADAR_FIND_COUNT, RADAR_FINDS, radarRadius, radarSpot, SAMPLE_SCORES, sampleLogo, VERDICT_COLOURS, type SampleVerdict } from "@/lib/logo-checker/samples";
-import { formatNumber, formatTaka } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 
 /** perThousand: free checks for each ৳1,000 of prize (owner, 2026-10-14). */
 export type CheckerNumbers = { perThousand: number; freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number };
@@ -48,10 +48,10 @@ function Ring({ size, stroke, score, colour, children }: { size: number; stroke:
  * parts are radio buttons with CSS, so they work without JavaScript; all motion stops with reduced motion.
  */
 export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) {
-  const { t, locale } = await getI18n();
+  const { t, locale, price } = await getI18n();
   const num = (n: number) => formatNumber(n, locale);
   const pct = (n: number) => `${num(n)}%`;
-  const taka = (n: number) => formatTaka(n, locale);
+  const taka = price;
   const verdictLabel = (v: SampleVerdict) => t(`checker.verdicts.${v}`);
   const steps = ["choose", "check", "result", "certificate"] as const;
   const checks = [

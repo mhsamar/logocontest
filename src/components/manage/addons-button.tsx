@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import type { AddonKey } from "@/lib/contests/addons";
 import { useI18n } from "@/lib/i18n/client";
+import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { AddonsPanel } from "./addons-panel";
 
 /** Dashboard card: "Add-ons" opens this contest's add-ons in a pop-up (owner, 2026-10-08). */
@@ -15,6 +16,7 @@ export function AddonsButton({
   extensionDays,
   endsAt,
   prize,
+  methods,
 }: {
   contestId: string;
   brand: string;
@@ -23,6 +25,7 @@ export function AddonsButton({
   extensionDays: number[];
   endsAt: string | null;
   prize?: number;
+  methods: PublicMethod[];
 }) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
@@ -36,7 +39,7 @@ export function AddonsButton({
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={t("manage.addonsFor", { brand })} closeLabel={t("common.close")} size="wide">
         <p className="-mt-1 mb-4 text-sm text-muted">{t("manage.addons.subtitle")}</p>
-        <AddonsPanel contestId={contestId} open active={active} prices={prices} extensionDays={extensionDays} endsAt={endsAt} locale={locale} prize={prize} />
+        <AddonsPanel contestId={contestId} open active={active} prices={prices} extensionDays={extensionDays} endsAt={endsAt} locale={locale} prize={prize} methods={methods} />
       </Modal>
     </>
   );

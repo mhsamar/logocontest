@@ -44,6 +44,8 @@ import { CHAT_STATUSES } from "@/lib/handover/options";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
+import { awaitingApproval } from "@/lib/payments/manual";
+import { openMethods } from "@/lib/payments/methods";
 import { formatNumber } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 import { getService } from "@/lib/services/store";
@@ -60,11 +62,15 @@ type Filter = JudgingFilter;
 // C-13b Manage contest (owner, 2026-10-08): add-ons, and reviewing designs with stars, shortlist, reject and pick winner.
 export default async function ManageContestPage({ params, searchParams }: PageProps<"/dashboard/contests/[slug]">) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const [{ t, locale, currency }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/dashboard/contests/${slug}`)}`);
   const contest = await getContestBySlug(slug, user);
   if (!contest || !contest.isOwner) notFound();
-  if (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment") redirect(`/start?draft=${contest.id}`);
+  if (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment") {
+    // Its bKash payment is waiting for approval (owner, 2026-10-14).
+    const waiting = (await awaitingApproval([contest.id])).get(contest.id);
+    redirect(waiting ? `/pay/contest/${waiting}` : `/start?draft=${contest.id}`);
+  }
   // A contest service's designs keep their real shape (owner, 2026-10-13).
   const svc = isLogo(contest.service) ? null : await getService(contest.service);
   const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
@@ -173,7 +179,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           <div className="grid grid-cols-2 gap-3 sm:flex sm:items-stretch">
             <div className="col-span-2 flex min-h-[5.5rem] flex-col justify-center rounded-[20px] bg-[#fff6d6] px-5 py-3 sm:min-w-44">
               <p className="m-0 text-xs font-bold text-gold-ink">{t("contest.stats.prize")}</p>
-              <p className={cx("m-0 text-3xl font-semibold tabular-nums", PRIZE_TEXT)}><CountUp value={contest.prize} locale={locale} taka /></p>
+              <p className={cx("m-0 text-3xl font-semibold tabular-nums", PRIZE_TEXT)}><CountUp value={contest.prize} locale={locale} money /></p>
             </div>
             {contest.status === "open" && (
               <Link
@@ -447,6 +453,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                 endsAt={contest.endsAt ? contest.endsAt.toISOString() : null}
                 locale={locale}
                 prize={contest.prize}
+                methods={await openMethods(locale, currency.code)}
               />
             </div>
           </div>

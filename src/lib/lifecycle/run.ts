@@ -8,6 +8,7 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
 import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
+import { releaseStalePromos } from "@/lib/promos/promos";
 import { broadcastToDesigners } from "@/lib/notifications/broadcast";
 import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
@@ -330,6 +331,13 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     ]);
     if (views.error) fail("page_views", "-", views.error.message);
     if (online.error) fail("presence", "-", online.error.message);
+  }
+
+  // Promo codes (owner, 2026-10-14): a code kept at a checkout that was never paid goes back after a week.
+  try {
+    await releaseStalePromos(now);
+  } catch (e) {
+    fail("promos", "-", e);
   }
 
   // Designer Pro plan (owner, 2026-10-13): expiry, renewal and invite/saved reminders, quality scores.

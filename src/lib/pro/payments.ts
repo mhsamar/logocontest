@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { callbackMatches } from "./rules";
 import { getProSettings } from "./settings";
 import { logFunnel, logProActivity, grantPro, sendReceipt, tellDesigner } from "./subscription";
+import { markProPromoUsed } from "@/lib/promos/promos";
 import { markTrialUpgraded } from "./trial";
 
 const db = () => createAdminClient();
@@ -50,6 +51,8 @@ export async function settleProPayment(v: VerifiedCallback): Promise<{ status: "
   if (sub) await db().from("pro_payments").update({ subscription_id: sub.id }).eq("id", v.paymentId);
   // Paid during or after the free trial (owner, 2026-10-14): the trial counts as upgraded.
   if (sub) await markTrialUpgraded(designerId, v.paymentId);
+  // A Pro discount code on this payment (owner, 2026-10-14) counts as used.
+  await markProPromoUsed(v.paymentId);
   await logFunnel(p.kind === "renewal" ? "renewed" : "paid", { designerId, step: p.method as string });
   await logProActivity(null, p.kind === "renewal" ? "renewed" : "paid", designerId, null, { amount: p.amount_bdt, until: sub?.currentPeriodEnd.toISOString() ?? null });
   if (sub) await sendReceipt(designerId, p.receipt_no as number, p.amount_bdt as number, sub.currentPeriodEnd);

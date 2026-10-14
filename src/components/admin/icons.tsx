@@ -85,6 +85,24 @@ const PATHS = {
     </>
   ),
   withdrawals: <path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14" />,
+  approvals: (
+    <>
+      <rect x="3" y="6" width="18" height="13" rx="2.5" />
+      <path d="M8.5 12.5l2.5 2.5 4.5-5" />
+    </>
+  ),
+  methods: (
+    <>
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+      <path d="M10.5 18h3" />
+    </>
+  ),
+  promos: (
+    <>
+      <path d="M3 9V5a2 2 0 0 1 2-2h4l11 11-6 6L3 9Z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </>
+  ),
   support: (
     <>
       <path d="M4 13l2-8h12l2 8v6H4z" />

@@ -107,5 +107,11 @@ export const NOTIFICATION_TYPES = [
   "pro_trial_ending",
   "pro_trial_ended",
   "pro_trial_extended",
+  // Manual bKash payments (owner, 2026-10-14)
+  "payment_received",
+  "payment_approved_contest",
+  "payment_approved_addon",
+  "payment_rejected",
+  "payment_submitted_admin",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
