@@ -82,8 +82,8 @@ export function AddonsPanel({
       timeZone: "Asia/Dhaka",
     }).format(d);
   const price = (item: Item) => (item === "extend" ? prices.extensionPerDay * days : prices[item]);
-  // The AI copyright checker (add-on key logo_scan): shown free with bigger prizes, else bought here or in its box.
-  const items: Item[] = ["promote", "extend", "logo_scan", "private", "blind"];
+  // The AI logo checker is free on every logo contest (owner, 2026-10-14): no longer sold as an add-on.
+  const items: Item[] = ["promote", "extend", "private", "blind"];
   const checkerFree = prize !== undefined && prices.checkerFreeFrom !== undefined && prize >= prices.checkerFreeFrom;
 
   const pay = () =>

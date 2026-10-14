@@ -4,7 +4,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { HERO_SAMPLES, pctColour, RADAR_FIND_COUNT, RADAR_FINDS, radarRadius, radarSpot, SAMPLE_SCORES, sampleLogo, VERDICT_COLOURS, type SampleVerdict } from "@/lib/logo-checker/samples";
 import { formatNumber, formatTaka } from "@/lib/money";
 
-export type CheckerNumbers = { freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number };
+/** perThousand: free checks for each ৳1,000 of prize (owner, 2026-10-14). */
+export type CheckerNumbers = { perThousand: number; freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number };
 
 type Css = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -100,11 +101,11 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
           <div className="lk-tr3">
             <span>
               <Tick />
-              {t("checkerPage.hero.free", { amount: taka(numbers.freeFrom) })}
+              {t("checkerPage.hero.free")}
             </span>
             <span>
               <Tick />
-              {t("checkerPage.hero.upTo", { n: num(numbers.freeChecks) })}
+              {t("checkerPage.hero.upTo", { n: num(numbers.perThousand) })}
             </span>
             <span>
               <Tick />
@@ -542,26 +543,26 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
           <div className="lk-pl">
             <div className="lk-pc1 lk-fr">
               <em className="lk-rib">{t("checkerPage.price.best")}</em>
-              <span>{t("checkerPage.price.freeFor", { amount: taka(numbers.freeFrom) })}</span>
+              <span>{t("checkerPage.price.freeFor")}</span>
               <b>{t("checkerPage.price.free")}</b>
-              <small>{t("checkerPage.price.included", { n: num(numbers.freeChecks) })}</small>
+              <small>{t("checkerPage.price.included", { n: num(numbers.perThousand) })}</small>
               <i className="lk-pbig" aria-hidden>
-                {num(numbers.freeChecks)}
+                {num(numbers.perThousand)}
               </i>
             </div>
             <div className="lk-pc1 lk-pd">
-              <span>{t("checkerPage.price.paidFor", { amount: taka(numbers.freeFrom) })}</span>
-              <b>{taka(numbers.price)}</b>
-              <small>{t("checkerPage.price.addon", { n: num(numbers.paidChecks) })}</small>
+              <span>{t("checkerPage.price.paidFor", { amount: taka(3000) })}</span>
+              <b>{t("checkerPage.price.free")}</b>
+              <small>{t("checkerPage.price.addon", { n: num(numbers.perThousand * 3) })}</small>
               <i className="lk-pbig" aria-hidden>
-                {num(numbers.paidChecks)}
+                {num(numbers.perThousand * 3)}
               </i>
             </div>
           </div>
           <ul className="lk-rls">
             {[
               t("checkerPage.price.rule1"),
-              t("checkerPage.price.rule2", { free: num(numbers.freeChecks), amount: taka(numbers.freeFrom), paid: num(numbers.paidChecks), price: taka(numbers.price) }),
+              t("checkerPage.price.rule2", { n: num(numbers.perThousand) }),
               t("checkerPage.price.rule3"),
               t("checkerPage.price.rule4"),
             ].map((r) => (

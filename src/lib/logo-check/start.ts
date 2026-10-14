@@ -39,8 +39,10 @@ export async function startCheck(user: CurrentUser, input: StartInput): Promise<
   if (same) return same.requested_by === user.id ? { ok: true, id: same.id as string } : { ok: false, error: "invalid" };
 
   // Checks left: free and paid contests get different numbers.
-  const { data: contest } = await db.from("contests").select("client_id, prize_amount, logo_scan").eq("id", input.contestId).maybeSingle();
+  const { data: contest } = await db.from("contests").select("client_id, prize_amount, logo_scan, service").eq("id", input.contestId).maybeSingle();
   if (!contest || contest.client_id !== user.id) return { ok: false, error: "not_found" };
+  // Logo contests only (owner, 2026-10-14): thumbnails, posts, covers, banners, cards, flyers and T-shirts can't use it.
+  if (contest.service !== "logo") return { ok: false, error: "locked" };
   const limits = await checkLimits();
   const access = accessFor(contest.prize_amount as number, Boolean(contest.logo_scan), limits);
   if (access === "locked") return { ok: false, error: "locked" };
@@ -75,7 +77,7 @@ export async function startCheck(user: CurrentUser, input: StartInput): Promise<
   }
   // Designers' contest checks don't use up the client's checks.
   const { count: used } = await db.from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", input.contestId).neq("status", "failed").neq("source", "pre_submit");
-  if ((used ?? 0) >= limitFor(access, limits)) return { ok: false, error: "limit" };
+  if ((used ?? 0) >= limitFor(contest.prize_amount as number, Boolean(contest.logo_scan), limits)) return { ok: false, error: "limit" };
   const png = raw && (await normalizeLogo(raw));
   if (!png) return { ok: false, error: "bad_file" };
 

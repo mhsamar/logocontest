@@ -55,7 +55,7 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
   const contests = [...new Map(counted.map((r) => [r.contest.id, r.contest])).values()].map((c) => {
     const mine = counted.filter((r) => r.contest.id === c.id);
     const paid = mine.some((r) => r.paid);
-    return { ...c, used: mine.length, paid, limit: limitFor(paid ? "paid" : "free", limits) };
+    return { ...c, used: mine.length, paid, limit: limitFor(c.prize, c.logoScan, limits) };
   });
 
   const resultLine = (r: AdminCheckRow) =>
@@ -63,7 +63,15 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <AdminHead title={t("admin.copyright.title")} lead={t("admin.copyright.lead")} />
+      <AdminHead
+        title={t("admin.copyright.title")}
+        lead={t("admin.copyright.lead")}
+        actions={
+          <Link href="/admin/copyright/costs" className="inline-flex min-h-11 items-center gap-2 rounded-[12px] border border-adm-line bg-surface px-4 text-[15px] font-bold text-ink hover:bg-adm-bg">
+            {t("entryCheck.policy.costLink")}
+          </Link>
+        }
+      />
 
       <KpiGrid>
         <KpiTile label={t("admin.copyright.kpiRun")} value={num(counted.length)} hint={t("admin.copyright.inContests", { n: num(contests.length) })} accent />
@@ -122,10 +130,11 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
           }
         />
         <dl className="m-0 mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Owner, 2026-10-14: free on every logo contest, 15 checks per ৳1,000 of prize, logo contests only. */}
           {[
-            [t("admin.copyright.ruleFree"), t("admin.copyright.ruleFreeValue", { amount: formatTaka(limits.freeFrom, locale) }), t("admin.copyright.ruleFreeLine", { n: num(limits.freeChecks) })],
-            [t("admin.copyright.rulePrice", { amount: formatTaka(limits.freeFrom, locale) }), formatTaka(limits.price, locale), t("admin.copyright.rulePriceLine", { n: num(limits.paidChecks) })],
-            [t("admin.copyright.ruleLimit"), t("admin.copyright.ruleLimitValue", { free: num(limits.freeChecks), paid: num(limits.paidChecks) }), t("admin.copyright.ruleLimitLine")],
+            [t("entryCheck.policy.freeTitle"), t("entryCheck.policy.freeValue"), t("entryCheck.policy.freeLine")],
+            [t("entryCheck.policy.perTitle"), t("entryCheck.policy.perValue", { n: num(limits.perThousand) }), t("entryCheck.policy.perLine", { a: num(limits.perThousand), b: num(limits.perThousand * 3), c: num(limits.perThousand * 5) })],
+            [t("entryCheck.policy.onlyTitle"), t("entryCheck.policy.onlyValue"), t("entryCheck.policy.onlyLine")],
             [t("admin.copyright.ruleClose"), t("admin.copyright.ruleCloseValue", { close: num(limits.closeFrom), high: num(limits.highRiskFrom) }), t("admin.copyright.ruleCloseLine")],
           ].map(([k, v, line]) => (
             <div key={k} className="rounded-[12px] bg-adm-bg p-4">
@@ -199,7 +208,7 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
                         {r.status === "done" && r.verdict ? <Pill tone={TONE[r.verdict]}>{t(`checker.verdicts.${r.verdict}`)}</Pill> : <Pill tone="neutral">{t(r.status === "failed" ? "admin.copyright.failedPill" : "admin.copyright.runningPill")}</Pill>}
                         <span className="mt-1 block text-[13.5px] text-muted">
                           {resultLine(r)}
-                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limitFor(r.paid ? "paid" : "free", limits)) })}` : ""}
+                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limitFor(r.contest.prize, r.contest.logoScan, limits)) })}` : ""}
                         </span>
                       </td>
                     </tr>

@@ -223,6 +223,32 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(1), default: 5,
     description: "Below this many active entries, the client is prompted to buy an extension.",
   },
+  // Owner, 2026-10-14: the checker is free on every logo contest, 15 checks for each full ৳1,000 of prize.
+  "limits.logo_checks_per_1000": {
+    group: "limits", type: "int", schema: int(0, 1000), default: 15,
+    description: "Free AI logo checks a logo contest gets for each full ৳1,000 of prize (৳3,000 → 45). Failed checks do not count.",
+  },
+  // Logo checker cost report (owner, 2026-10-14): API prices and the taka rate. Each check keeps its own cost.
+  "checker.usd_to_bdt": {
+    group: "checker", type: "int", schema: int(1, 1000), default: 122,
+    description: "Taka per US dollar, used to show the logo checker's API cost in BDT.",
+  },
+  "checker.cost_lens_cents_per_1000": {
+    group: "checker", type: "int", schema: int(0, 1_000_000), default: 400,
+    description: "Google Lens image search (SearchAPI): price in US cents per 1,000 searches.",
+  },
+  "checker.cost_vision_cents_per_1000": {
+    group: "checker", type: "int", schema: int(0, 1_000_000), default: 350,
+    description: "Google Cloud Vision web detection: price in US cents per 1,000 images.",
+  },
+  "checker.cost_ai_in_cents_per_m": {
+    group: "checker", type: "int", schema: int(0, 1_000_000), default: 30,
+    description: "AI model: price in US cents per 1 million input tokens.",
+  },
+  "checker.cost_ai_out_cents_per_m": {
+    group: "checker", type: "int", schema: int(0, 1_000_000), default: 250,
+    description: "AI model: price in US cents per 1 million output tokens.",
+  },
   "limits.logo_checks_per_contest": {
     group: "limits", type: "int", schema: int(1), default: 20,
     description: "AI logo checks per contest when the checker is free (prize at or over the free limit). Failed checks do not count.",

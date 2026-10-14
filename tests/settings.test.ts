@@ -77,6 +77,7 @@ describe("BLUEPRINT defaults", () => {
     // "brand", "contact" and "notice" are edited in /admin/brand, "legal" in /admin/legal (owner, 2026-10-09),
     // "home" in /admin/hero, "rewards" in /admin/monthly; "live" (the live designers tag) is on A-11; "how" (How it works
     // videos) in /admin/homepage (owner, 2026-10-11).
-    expect([...groups].sort()).toEqual(["auth", "brand", "contact", "fees", "home", "how", "legal", "limits", "live", "notice", "packages", "rewards", "site", "timers", "upgrades"]);
+    // "checker" (logo checker API prices, owner 2026-10-14) is on A-11 too.
+    expect([...groups].sort()).toEqual(["auth", "brand", "checker", "contact", "fees", "home", "how", "legal", "limits", "live", "notice", "packages", "rewards", "site", "timers", "upgrades"]);
   });
 });

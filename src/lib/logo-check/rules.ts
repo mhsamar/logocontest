@@ -6,11 +6,16 @@
 export type CheckStatus = "queued" | "running" | "done" | "failed";
 export type Verdict = "no_match" | "similar" | "high_risk";
 export type MatchSource = "lens" | "vision" | "site";
-/** free: prize at or over the free limit; paid: the add-on is on the contest; locked: neither. */
+/**
+ * Owner, 2026-10-14: the checker is free on every logo contest ("free"); the ৳500 add-on is gone. "paid" is kept
+ * only to read older contests that bought it; "locked" is never given to a logo contest any more.
+ */
 export type CheckAccess = "free" | "paid" | "locked";
 
 export type CheckLimits = {
-  /** Checks per contest when the checker is free (owner, 2026-10-13: 20). */
+  /** Checks for each full ৳1,000 of prize (owner, 2026-10-14: 15, so ৳3,000 → 45). */
+  perThousand: number;
+  /** Checks per contest when the checker is free (owner, 2026-10-13: 20; not used since 2026-10-14). */
   freeChecks: number;
   /** Checks the paid add-on gives (owner, 2026-10-13: 10). */
   paidChecks: number;
@@ -29,13 +34,18 @@ export type CheckLimits = {
 export const CHECKABLE_STATUSES = ["open", "judging", "winner_selected", "handover"] as const;
 export const isCheckable = (status: string) => (CHECKABLE_STATUSES as readonly string[]).includes(status);
 
-export function accessFor(prize: number, addonBought: boolean, limits: Pick<CheckLimits, "freeFrom">): CheckAccess {
-  if (prize >= limits.freeFrom) return "free";
-  return addonBought ? "paid" : "locked";
+/** Every logo contest has the checker free (owner, 2026-10-14). */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function accessFor(_prize: number, _addonBought: boolean, _limits?: unknown): CheckAccess {
+  return "free";
 }
 
-/** Checks a contest gets: the free number, or the paid number (also shown before the add-on is bought). */
-export const limitFor = (access: CheckAccess, limits: Pick<CheckLimits, "freeChecks" | "paidChecks">) => (access === "free" ? limits.freeChecks : limits.paidChecks);
+/**
+ * Checks a logo contest gets (owner, 2026-10-14): 15 for each full ৳1,000 of prize (৳1,000 → 15, ৳3,000 → 45,
+ * ৳5,000 → 75). A contest that bought the old add-on keeps at least the checks it paid for.
+ */
+export const limitFor = (prize: number, addonBought: boolean, limits: Pick<CheckLimits, "perThousand" | "paidChecks">) =>
+  Math.max(Math.floor(Math.max(0, prize) / 1000) * limits.perThousand, addonBought ? limits.paidChecks : 0);
 
 export const checksLeft = (used: number, limit: number) => Math.max(0, limit - used);
 
