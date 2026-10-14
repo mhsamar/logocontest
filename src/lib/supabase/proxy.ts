@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { cityFrom, deviceFromUserAgent, ipFrom } from "@/lib/auth/device";
+import { endReasonOf, sessionIdOfToken } from "@/lib/auth/sessions";
 
 const SEEN_COOKIE = "lc_seen";
 /** When this login was last checked (owner, 2026-10-14: logins and devices): once a minute is enough. */
@@ -39,6 +40,18 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
   const secure = process.env.NODE_ENV === "production";
 
   let ended: string | null = null;
+  // A login removed a moment ago (device limit, an admin, idle…) no longer passes the check above; its cookie still
+  // says which login it was, so the person hears why. Once: the cookies are cleared here.
+  if (!userId && request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))) {
+    const { data: stale } = await supabase.auth.getSession();
+    const why = await endReasonOf(sessionIdOfToken(stale.session?.access_token)).catch(() => null);
+    if (why) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      response.cookies.delete("lc_as");
+      response.cookies.set("lc_ended", why, { path: "/", maxAge: 300, httpOnly: true, sameSite: "lax", secure });
+      return { response, userId: null, ended: why };
+    }
+  }
   if (userId && sessionId) {
     const now = Date.now();
     const [who, at] = (request.cookies.get(SESSION_COOKIE)?.value ?? "").split(":");
@@ -60,6 +73,8 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
         ended = state.split(":")[1] || "admin";
         await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
         response.cookies.delete("lc_as");
+        // For an open admin tab, whose next check-in then knows why (when this was a background request).
+        response.cookies.set("lc_ended", ended, { path: "/", maxAge: 300, httpOnly: true, sameSite: "lax", secure });
         return { response, userId: null, ended };
       }
       if (!error) response.cookies.set(SESSION_COOKIE, `${sessionId.slice(0, 8)}:${now}`, { path: "/", maxAge: 3600, httpOnly: true, sameSite: "lax", secure });

@@ -492,6 +492,7 @@ const en = {
       password_reset: "Your password was changed. Please log in with the new one.",
       deleted: "This account has been deleted.",
       time_up: "That session has ended.",
+      signed_out: "You were signed out. Please log in again.",
     },
     errors: {
       invalidPhone: "Enter a valid Bangladesh mobile number, like 01712‑345678.",

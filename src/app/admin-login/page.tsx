@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Admin sign-in (owner, 2026-10-10): its own full page, the picture on one side and the form on the other.
-const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up"] as const;
+const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up", "signed_out"] as const;
 
 export default async function AdminLoginPage({ searchParams }: PageProps<"/admin-login">) {
   const sp = await searchParams;

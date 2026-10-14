@@ -30,6 +30,7 @@ export function AdminPresence({ idleMinutes }: { idleMinutes: number }) {
         .then((r) => r.json() as Promise<{ state?: string }>)
         .catch(() => null);
       if (res?.state?.startsWith("ended")) signedOut(res.state.split(":")[1] || "idle");
+      else if (res?.state === "signed_out") signedOut("signed_out");
     };
     const onActivity = () => {
       last.current = Date.now();

@@ -46,7 +46,7 @@ function RoleIcon({ as }: { as: As }) {
   );
 }
 
-const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up"] as const;
+const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up", "signed_out"] as const;
 
 // P-11 (owner, 2026-10-08): first "I'm a client" / "I'm a designer", then the form.
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {

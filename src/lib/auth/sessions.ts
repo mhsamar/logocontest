@@ -86,3 +86,22 @@ export async function userSessions(userId: string, limit = 30): Promise<SessionR
   const rows = data.map((r) => toSessionRow(r as Record<string, unknown>));
   return [...rows.filter((r) => !r.endedAt), ...rows.filter((r) => r.endedAt)];
 }
+
+/** The login id inside an access token, without checking it (only to look up why a login stopped working). */
+export function sessionIdOfToken(token: string | null | undefined): string | null {
+  try {
+    const part = (token ?? "").split(".")[1];
+    if (!part) return null;
+    const id = (JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as { session_id?: unknown }).session_id;
+    return typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Why this login was signed out, or null when it wasn't (or isn't one of ours). */
+export async function endReasonOf(sessionId: string | null): Promise<EndReason | null> {
+  if (!sessionId) return null;
+  const { data } = await createAdminClient().from("user_sessions").select("end_reason").eq("id", sessionId).not("ended_at", "is", null).maybeSingle();
+  return (data?.end_reason as EndReason | undefined) ?? null;
+}

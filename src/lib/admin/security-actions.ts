@@ -1,6 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { cityFrom, deviceFromUserAgent, ipFrom } from "@/lib/auth/device";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { sendPasswordResetEmail } from "@/lib/auth/email-service";
@@ -111,7 +112,24 @@ export async function impersonateUser(userId: string): Promise<Result> {
   if (error || !verified.session) return fail("auth.errors.generic");
   const claims = JSON.parse(Buffer.from(verified.session.access_token.split(".")[1], "base64url").toString("utf8")) as { session_id?: string };
   if (claims.session_id) {
-    await db.from("user_sessions").upsert({ id: claims.session_id, user_id: u.id, impersonated_by: owner.id, device: null }, { onConflict: "id" });
+    const h = await headers();
+    const ua = h.get("user-agent");
+    const info = deviceFromUserAgent(ua);
+    await db.from("user_sessions").upsert(
+      {
+        id: claims.session_id,
+        user_id: u.id,
+        impersonated_by: owner.id,
+        device: info.device,
+        browser: info.browser,
+        os: info.os,
+        user_agent: ua ? ua.slice(0, 400) : null,
+        ip: ipFrom(h.get("x-forwarded-for"), h.get("x-real-ip")),
+        country: h.get("x-vercel-ip-country"),
+        city: cityFrom(h.get("x-vercel-ip-city")),
+      },
+      { onConflict: "id" },
+    );
   }
   (await cookies()).set(IMPERSONATE_COOKIE, `${u.id}|${u.name.slice(0, 60)}`, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 4 });
   redirect(homeForRole(u.role));

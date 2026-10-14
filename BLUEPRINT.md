@@ -459,6 +459,15 @@ Sign-up (client wizard, service wizard, designer sign-up) and Profile › Mobile
 
 Admin › Settings › Ads: **on/off** and the **Google AdSense publisher ID** (ca-pub-…). When on, AdSense Auto ads load on public pages only (never the admin, dashboards, sign-up, checkout or payment pages) and `/ads.txt` is filled automatically. Off by default.
 
+### Logins and devices (owner, 2026-10-14; migration `0055_login_sessions`)
+
+- Every login is recorded once a minute while used: device (phone, tablet, computer), browser, system, IP address and place (city, country from the host). Kept 180 days after the login ends.
+- **Device limits** (Settings › Logins and devices): clients and designers `security.max_devices` (3), staff `security.admin_max_devices` (2), the **Super admin one device** (`security.super_admin_one_device`). A new login beyond the limit signs the oldest out (the login itself is removed, so it stops working at once).
+- **Staff sign-out:** after `security.admin_idle_minutes` (30) without clicking, typing, scrolling or touching (a warning a minute before; another admin tab in use keeps it alive), and when every admin tab is closed (`security.admin_close_tab_signout`, within about a minute). The lifecycle job also signs such staff logins out if they never come back.
+- The login pages say why someone was signed out.
+- **Admin › Sign-ins & devices** (Audit · view): every login with device, place and status. **Admin › Staff activity** (Super admin only): each staff member's logins, the time they really worked and everything they did (the audit log). Both are tabs beside the Audit log.
+- **User page:** Devices (sign out one or all), Password (send a reset email, or set a new one; never readable, never logged), and **Log in as this user** (Super admin only): the admin's own login ends, a bar says whose account it is with "Back to admin", it never counts toward the person's devices, ends after `security.impersonate_minutes` (60) and is in the audit log.
+
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 
 - **Before sending:** Send opens Upload → Check → Send for the cover image. "Check originality" runs the existing Logo Checker on the exact uploaded file and uses one of the designer's monthly checks (Basic 2, Pro 100, shared with their own Logo Checker checks; they start again on the 1st, Bangladesh time). The designer can skip ("Not checked"). High → "Upload a new version" or "Send anyway". Logo contests only.
