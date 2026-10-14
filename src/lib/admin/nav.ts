@@ -74,6 +74,9 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/settings", icon: "settings", label: "admin.nav.settings", perm: "settings.view" },
       { href: "/admin/audit", icon: "audit", label: "admin.nav.audit", perm: "audit.view" },
+      // Logins and devices; staff activity for the Super admin (owner, 2026-10-14).
+      { href: "/admin/sign-ins", icon: "signins", label: "admin.nav.signIns", perm: "audit.view" },
+      { href: "/admin/staff-activity", icon: "staff", label: "admin.nav.staffActivity", perm: "super" },
       // Deleted contests and users (owner, 2026-10-14).
       { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "contests.view" },
     ],

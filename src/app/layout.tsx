@@ -13,6 +13,8 @@ import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot"
 import { SupportSlot } from "@/components/support/support-slot";
 import { FloatingProCardSlot } from "@/components/pro/floating-card-slot";
 import { AdsScript } from "@/components/ads/ads-script";
+import { AdminPresence } from "@/components/admin/admin-presence";
+import { ImpersonationBar } from "@/components/admin/impersonation-bar";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -57,7 +59,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { t, locale, currency } = await getI18n();
-  const [messages, notice, user, ads] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser(), getSettings(["ads.enabled", "ads.adsense_client"])]);
+  const [messages, notice, user, ads] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser(), getSettings(["ads.enabled", "ads.adsense_client", "security.admin_idle_minutes"])]);
   // Ads (owner, 2026-10-14): only once switched on with a publisher ID in Admin › Settings › Ads.
   const adsClient = ads["ads.enabled"] && ads["ads.adsense_client"] ? ads["ads.adsense_client"] : null;
   // Guests and admins get the designed home page, whose hero holds the nav (owner, 2026-10-10).
@@ -69,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} messages={messages} currency={currency}>
           <ToastProvider>
+            <ImpersonationBar />
             {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero.
                 It stays in one place, so the bars come after it (owner, 2026-10-10: the menu bar never moves). */}
             <SiteChrome hideOnHome={guestHome}>
@@ -98,6 +101,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <FloatingProCardSlot />
             </SiteChrome>
             {adsClient && <AdsScript client={adsClient} />}
+            {/* Staff: idle and closed-tab sign-out (owner, 2026-10-14). */}
+            {user?.role === "admin" && <AdminPresence idleMinutes={ads["security.admin_idle_minutes"]} />}
             <PointerFx />
             <MotionFx />
             <ScrollReveal />

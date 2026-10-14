@@ -554,6 +554,32 @@ export const SETTINGS = {
     description: "Google AdSense publisher ID (ca-pub-…). Google places the ads itself (Auto ads); choose where in your AdSense account. Also fills /ads.txt.",
   },
 
+  // ---- Logins and devices (owner, 2026-10-14; migration 0055) --------------------------------------------------------
+  "security.max_devices": {
+    group: "security", type: "int", schema: int(1, 10), default: 3,
+    description: "Most devices one client or designer can be logged in on at the same time. A login on one more signs the oldest out.",
+  },
+  "security.admin_max_devices": {
+    group: "security", type: "int", schema: int(1, 10), default: 2,
+    description: "Most devices one staff member (admin, moderator, support) can be logged in on at the same time.",
+  },
+  "security.super_admin_one_device": {
+    group: "security", type: "bool", schema: z.boolean(), default: true,
+    description: "The Super admin can be logged in on one device only: logging in on another signs the first out.",
+  },
+  "security.admin_idle_minutes": {
+    group: "security", type: "int", schema: int(10, 480), default: 30,
+    description: "Staff are signed out after this many minutes without using the site (for example 30, 40, 50 or 60).",
+  },
+  "security.admin_close_tab_signout": {
+    group: "security", type: "bool", schema: z.boolean(), default: true,
+    description: "Staff are signed out when every admin tab is closed (within about a minute).",
+  },
+  "security.impersonate_minutes": {
+    group: "security", type: "int", schema: int(5, 240), default: 60,
+    description: "\"Log in as this user\" ends on its own after this many minutes.",
+  },
+
   // ---- Trash (owner, 2026-10-14) -------------------------------------------------------------------------------------
   "trash.keep_days": {
     group: "trash", type: "int", schema: int(1, 365), default: 90,

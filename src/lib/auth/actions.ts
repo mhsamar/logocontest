@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { parseLoginIdentifier } from "./identity";
 import { clientIp } from "./services";
 import { homeForRole } from "./home";
+import { markLoggedOut } from "./sessions";
 import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, safeNext, signIn, type AuthFormState } from "./sign-in";
 
 export type { AuthFormState, FormMessage } from "./sign-in";
@@ -44,6 +45,7 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
 
 export async function logout() {
   if (isSupabaseConfigured()) {
+    await markLoggedOut();
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
@@ -53,6 +55,7 @@ export async function logout() {
 /** Sign out from the admin panel: the "You're signed out" page with Sign in again (owner, 2026-10-10). */
 export async function adminLogout() {
   if (isSupabaseConfigured()) {
+    await markLoggedOut();
     const supabase = await createClient();
     await supabase.auth.signOut();
   }

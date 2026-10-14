@@ -355,6 +355,13 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     fail("trash", "-", e);
   }
 
+  // Logins (owner, 2026-10-14): staff who went idle or closed every admin tab are signed out even if they never come
+  // back; "Log in as" ends after its time; old login records go after 180 days. Before migration 0055 this does nothing.
+  {
+    const { error } = await db.rpc("end_stale_sessions");
+    if (error && !/function|schema cache/i.test(error.message)) fail("sessions", "-", error);
+  }
+
   // Designer Pro plan (owner, 2026-10-13): expiry, renewal and invite/saved reminders, quality scores.
   report.pro = await runProJobs(now);
   for (const e of report.pro.errors) report.errors.push(`pro ${e}`);

@@ -16,6 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Admin sign-in (owner, 2026-10-10): its own full page, the picture on one side and the form on the other.
+const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up"] as const;
+
 export default async function AdminLoginPage({ searchParams }: PageProps<"/admin-login">) {
   const sp = await searchParams;
   const asked = typeof sp.next === "string" ? sp.next : "";
@@ -23,6 +25,8 @@ export default async function AdminLoginPage({ searchParams }: PageProps<"/admin
   const next = asked === "/admin" || asked.startsWith("/admin/") ? asked : "/admin";
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (can(user, "admin.access")) redirect(next);
+  // Why this login was signed out (owner, 2026-10-14).
+  const ended = ENDED.find((r) => r === sp.ended);
 
   return (
     <div className="flex min-h-dvh bg-surface text-ink">
@@ -59,6 +63,11 @@ export default async function AdminLoginPage({ searchParams }: PageProps<"/admin
           </h1>
           <p className="m-0 mt-2 text-[17px] text-muted">{t("admin.doors.welcomeLead")}</p>
 
+          {ended && !user && (
+            <div className="mt-5">
+              <Alert tone="info">{t(`auth.ended.${ended}`)}</Alert>
+            </div>
+          )}
           {user && (
             <div className="mt-5">
               <Alert tone="warning">{t("admin.doors.notAdmin", { name: user.name })}</Alert>

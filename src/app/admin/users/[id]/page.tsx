@@ -9,6 +9,9 @@ import { adminUser, requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
 import { deleteUser, eraseUserNow, restoreUserFromTrash } from "@/lib/admin/trash-actions";
+import { impersonateUser, sendResetEmail, setUserPassword, signOutEverywhere, signOutOneDevice } from "@/lib/admin/security-actions";
+import { deviceText, placeText, SessionStatus, whenText } from "@/components/admin/session-bits";
+import { userSessions } from "@/lib/auth/sessions";
 import { getSettings } from "@/lib/settings";
 import { getUser } from "@/lib/admin/users";
 import { cx } from "@/lib/cx";
@@ -33,10 +36,14 @@ const ENTRY_TONE: Record<string, PillTone> = { winner: "gold", active: "good", r
 export default async function AdminUserPage({ params, searchParams }: PageProps<"/admin/users/[id]">) {
   await requirePermission("users.view");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [{ t, locale }, u, me] = await Promise.all([getI18n(), getUser(id), adminUser()]);
+  const [{ t, locale }, u, me, sessions] = await Promise.all([getI18n(), getUser(id), adminUser(), userSessions(id, 20)]);
   if (!u) notFound();
   const self = me?.id === u.id;
-  const keepDays = (await getSettings(["trash.keep_days"]))["trash.keep_days"];
+  const { "trash.keep_days": keepDays, "security.impersonate_minutes": impersonateMinutes } = await getSettings(["trash.keep_days", "security.impersonate_minutes"]);
+  const now = new Date();
+  const openSessions = sessions.filter((x) => !x.endedAt);
+  // Logins, password and "Log in as" (owner, 2026-10-14): clients and designers only.
+  const person = u.role !== "admin" && !u.trash;
   const canManage = Boolean(me && hasPermission(me, "users.manage"));
   const d = u.designer;
   const tabs = TABS.filter((x) => x !== "withdrawals" || d);
@@ -214,6 +221,63 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               </div>
             )}
           </AdmCard>
+
+          {/* Devices, password and "Log in as" (owner, 2026-10-14) */}
+          {person && (
+            <AdmCard className="flex flex-col gap-[18px] p-[22px] text-[15px]">
+              <div className="flex flex-col gap-2">
+                <h2 className="m-0 text-[17px] font-semibold">{t("admin.security.devicesTitle")}</h2>
+                {sessions.length === 0 ? (
+                  <p className="m-0 text-sm text-muted">{t("admin.security.noDevices")}</p>
+                ) : (
+                  <ul className="m-0 list-none divide-y divide-adm-line-soft p-0">
+                    {sessions.slice(0, 8).map((x) => (
+                      <li key={x.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5 text-sm">
+                        <span className="min-w-0 flex-[1_1_180px]">
+                          <span className="block font-semibold text-ink">{deviceText(x, t)}</span>
+                          <span className="block text-muted">{[placeText(x, locale), x.ip].filter(Boolean).join(" · ") || t("admin.security.noPlace")}</span>
+                          <span className="block text-muted">{t("admin.security.loggedIn", { when: whenText(x.createdAt, locale) })}</span>
+                          {x.impersonatedBy && <span className="block text-[13px] text-adm-sample">{t("admin.security.openedBy", { name: x.impersonatedBy })}</span>}
+                          <SessionStatus r={x} t={t} locale={locale} now={now} />
+                        </span>
+                        {!x.endedAt && canManage && <AdminAction label={t("admin.security.signOutOne")} tone="ghost" fields={[]} run={signOutOneDevice.bind(null, u.id, x.id)} done={t("admin.security.signedOut")} />}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {canManage && openSessions.length > 1 && (
+                  <div>
+                    <AdminAction label={t("admin.security.signOutAll")} body={t("admin.security.signOutAllBody")} tone="secondary" fields={[]} run={signOutEverywhere.bind(null, u.id)} done={t("admin.security.signedOut")} />
+                  </div>
+                )}
+              </div>
+              {canManage && (
+                <div className="flex flex-col gap-2 border-t border-adm-line-soft pt-[18px]">
+                  <h2 className="m-0 text-[17px] font-semibold">{t("admin.security.passwordTitle")}</h2>
+                  <p className="m-0 text-[13.5px] text-muted">{t("admin.security.passwordNote")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <AdminAction label={t("admin.security.sendReset")} body={t("admin.security.sendResetBody", { email: u.email ?? "—" })} tone="secondary" fields={[]} run={sendResetEmail.bind(null, u.id)} done={t("admin.security.resetSent")} />
+                    <AdminAction
+                      label={t("admin.security.setPassword")}
+                      body={t("admin.security.setPasswordBody")}
+                      tone="secondary"
+                      fields={[
+                        { name: "password", kind: "text", label: t("admin.security.newPassword"), hint: t("admin.security.newPasswordHint") },
+                        { name: "reason", kind: "reason" },
+                      ]}
+                      run={setUserPassword.bind(null, u.id)}
+                      done={t("admin.security.passwordSet")}
+                    />
+                  </div>
+                </div>
+              )}
+              {me?.isSuperAdmin && (
+                <div className="flex flex-col gap-2 border-t border-adm-line-soft pt-[18px]">
+                  <AdminAction label={t("admin.security.impersonate")} body={t("admin.security.impersonateBody", { minutes: String(impersonateMinutes) })} tone="primary" fields={[]} run={impersonateUser.bind(null, u.id)} />
+                </div>
+              )}
+            </AdmCard>
+          )}
         </div>
 
         {/* Right: their work and money */}

@@ -155,6 +155,20 @@ const PATHS = {
       <path d="M9 8h6M9 12h6" />
     </>
   ),
+  signins: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2.5" />
+      <path d="M10 18h4" />
+      <circle cx="12" cy="10" r="2.6" />
+    </>
+  ),
+  staff: (
+    <>
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M17.5 4.5l1.5 1.5 3-3" />
+    </>
+  ),
   trash: (
     <>
       <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
