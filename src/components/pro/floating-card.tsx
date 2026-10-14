@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
-import { setProCardMinimised } from "@/lib/pro/actions";
+import { proCardWanted, setProCardMinimised } from "@/lib/pro/actions";
 import { Icon } from "./parts";
 import { StartTrialButton } from "./trial-buttons";
 import { proEvent, UpgradeLink } from "./upgrade-link";
@@ -18,11 +18,22 @@ export function FloatingProCard({ price, checks, minimised: initial, trialDays =
   const { t, locale } = useI18n();
   const path = usePathname();
   const [min, setMin] = useState(initial);
+  // Gone for good once the designer is Pro or has paid for it (owner, 2026-10-14), without reloading the site.
+  const [gone, setGone] = useState(false);
   // Not while paying either (owner, 2026-10-14: the bKash pay page).
-  const hidden = path.startsWith("/pro") || path.startsWith("/admin") || path.startsWith("/dev") || path.startsWith("/pay");
+  const hidden = gone || path.startsWith("/pro") || path.startsWith("/admin") || path.startsWith("/dev") || path.startsWith("/pay");
 
   useEffect(() => {
-    if (!hidden) proEvent("card_seen", min ? "pill" : "card");
+    if (gone) return;
+    let live = true;
+    void proCardWanted().then((wanted) => {
+      if (!live) return;
+      if (!wanted) setGone(true);
+      else if (!hidden) proEvent("card_seen", min ? "pill" : "card");
+    });
+    return () => {
+      live = false;
+    };
     // Once per page view is enough; the server counts one a day.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
