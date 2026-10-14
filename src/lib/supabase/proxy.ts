@@ -1,10 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { cityFrom, deviceFromUserAgent, ipFrom } from "@/lib/auth/device";
+import { endReasonOf, sessionIdOfToken } from "@/lib/auth/sessions";
 
 const SEEN_COOKIE = "lc_seen";
+/** When this login was last checked (owner, 2026-10-14: logins and devices): once a minute is enough. */
+const SESSION_COOKIE = "lc_sess";
 
-/** Refreshes the Supabase session cookie and returns the signed-in user id, if any. */
-export async function updateSession(request: NextRequest) {
+/**
+ * Refreshes the Supabase session cookie and returns the signed-in user id, if any. Once a minute it also records this
+ * login (device, browser, IP, place) and asks whether it was signed out: by the device limit, an admin, or, for staff,
+ * being idle or closing every admin tab. Then `ended` says why and the cookies are cleared.
+ */
+export async function updateSession(request: NextRequest): Promise<{ response: NextResponse; userId: string | null; ended: string | null }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -28,6 +36,50 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const userId = (data?.claims?.sub as string | undefined) ?? null;
+  const sessionId = (data?.claims?.session_id as string | undefined) ?? null;
+  const secure = process.env.NODE_ENV === "production";
+
+  let ended: string | null = null;
+  // A login removed a moment ago (device limit, an admin, idle…) no longer passes the check above; its cookie still
+  // says which login it was, so the person hears why. Once: the cookies are cleared here.
+  if (!userId && request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))) {
+    const { data: stale } = await supabase.auth.getSession();
+    const why = await endReasonOf(sessionIdOfToken(stale.session?.access_token)).catch(() => null);
+    if (why) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      response.cookies.delete("lc_as");
+      response.cookies.set("lc_ended", why, { path: "/", maxAge: 300, httpOnly: true, sameSite: "lax", secure });
+      return { response, userId: null, ended: why };
+    }
+  }
+  if (userId && sessionId) {
+    const now = Date.now();
+    const [who, at] = (request.cookies.get(SESSION_COOKIE)?.value ?? "").split(":");
+    if (who !== sessionId.slice(0, 8) || !(Number(at) > now - 60_000 && Number(at) <= now)) {
+      const ua = request.headers.get("user-agent");
+      const info = deviceFromUserAgent(ua);
+      const { data: state, error } = await supabase.rpc("session_touch", {
+        p_session: sessionId,
+        p_ip: ipFrom(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip")),
+        p_country: request.headers.get("x-vercel-ip-country"),
+        p_city: cityFrom(request.headers.get("x-vercel-ip-city")),
+        p_device: info.device,
+        p_browser: info.browser,
+        p_os: info.os,
+        p_ua: ua ? ua.slice(0, 400) : null,
+      });
+      // Before migration 0055 the function doesn't exist: nothing changes.
+      if (!error && typeof state === "string" && state.startsWith("ended")) {
+        ended = state.split(":")[1] || "admin";
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+        response.cookies.delete("lc_as");
+        // For an open admin tab, whose next check-in then knows why (when this was a background request).
+        response.cookies.set("lc_ended", ended, { path: "/", maxAge: 300, httpOnly: true, sameSite: "lax", secure });
+        return { response, userId: null, ended };
+      }
+      if (!error) response.cookies.set(SESSION_COOKIE, `${sessionId.slice(0, 8)}:${now}`, { path: "/", maxAge: 3600, httpOnly: true, sameSite: "lax", secure });
+    }
+  }
 
   // "Last seen" for the home page's online count (migration 0037): at most once a minute per signed-in user. The
   // cookie keeps the time of the last mark so most requests skip the database; touch_last_seen checks the minute too.
@@ -39,9 +91,9 @@ export async function updateSession(request: NextRequest) {
         () => {},
         () => {},
       );
-      response.cookies.set(SEEN_COOKIE, `${userId.slice(0, 8)}:${now}`, { path: "/", maxAge: 3600, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+      response.cookies.set(SEEN_COOKIE, `${userId.slice(0, 8)}:${now}`, { path: "/", maxAge: 3600, httpOnly: true, sameSite: "lax", secure });
     }
   }
 
-  return { response, userId };
+  return { response, userId, ended };
 }

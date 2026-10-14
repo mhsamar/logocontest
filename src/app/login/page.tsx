@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { homeForRole } from "@/lib/auth/home";
 import { AuthCard } from "@/components/auth/auth-card";
+import { Alert } from "@/components/ui/alert";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
@@ -45,6 +46,8 @@ function RoleIcon({ as }: { as: As }) {
   );
 }
 
+const ENDED = ["device_limit", "one_device", "admin", "idle", "tab_closed", "password_reset", "deleted", "time_up", "signed_out"] as const;
+
 // P-11 (owner, 2026-10-08): first "I'm a client" / "I'm a designer", then the form.
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
@@ -53,6 +56,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { t } = await getI18n();
   const nextPath = typeof sp.next === "string" ? sp.next : undefined;
   const as: As | null = sp.as === "client" || sp.as === "designer" ? sp.as : null;
+  // Why this login was signed out (owner, 2026-10-14).
+  const ended = ENDED.find((r) => r === sp.ended);
+  const endedNote = ended ? (
+    <div className="mb-4">
+      <Alert tone="info">{t(`auth.ended.${ended}`)}</Alert>
+    </div>
+  ) : null;
 
   // Admin links go to the admin sign-in page (owner, 2026-10-10): an admin is neither client nor designer.
   if (!as && (nextPath === "/admin" || nextPath?.startsWith("/admin/"))) redirect(`/admin-login?next=${encodeURIComponent(nextPath)}`);
@@ -60,6 +70,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   if (!as) {
     return (
       <AuthCard title={t("auth.login.title")} subtitle={t("auth.login.chooseSubtitle")}>
+        {endedNote}
         <ul className="m-0 list-none space-y-3 p-0">
           {(["client", "designer"] as const).map((role) => (
             <li key={role}>
@@ -104,6 +115,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
       }
     >
+      {endedNote}
       <LoginForm next={nextPath} as={as} />
     </AuthCard>
   );

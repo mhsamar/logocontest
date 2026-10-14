@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminHead } from "@/components/admin/page-head";
+import { AuditTabs } from "@/components/admin/session-bits";
 import { FILTER_INPUT, FilterBar, pageNum, Pager, qs, str } from "@/components/admin/table-bits";
 import { listAudit } from "@/lib/admin/misc";
 import { getI18n } from "@/lib/i18n/server";
@@ -44,7 +45,7 @@ function actionLabel(t: (key: MessageKey) => string, action: string): string {
 
 // A-12 Audit log (BLUEPRINT §13.12): read-only, newest first.
 export default async function AdminAuditPage({ searchParams }: PageProps<"/admin/audit">) {
-  await requirePermission("audit.view");
+  const me = await requirePermission("audit.view");
   const sp = await searchParams;
   const q = { action: str(sp.action), page: pageNum(sp.page) };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAudit(q)]);
@@ -52,6 +53,7 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
   return (
     <div className="space-y-4">
       <AdminHead title={t("admin.audit.title")} lead={t("admin.audit.lead")} />
+      <AuditTabs current="actions" t={t} staff={me.isSuperAdmin} />
       <FilterBar action="/admin/audit">
         <select name="action" defaultValue={q.action} className={FILTER_INPUT} aria-label={t("admin.audit.action")}>
           <option value="">{t("admin.audit.allActions")}</option>

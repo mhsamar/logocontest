@@ -7,8 +7,21 @@ const SIGNED_IN_ONLY = ["/admin"];
 export async function proxy(request: NextRequest) {
   if (!isSupabaseConfigured()) return NextResponse.next();
 
-  const { response, userId } = await updateSession(request);
+  const { response, userId, ended } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
+
+  // This login was signed out (owner, 2026-10-14): a page goes to the sign-in page with the reason; anything else just
+  // carries on signed out.
+  const isPage = request.method === "GET" && !pathname.startsWith("/api/") && (request.headers.get("accept") ?? "").includes("text/html");
+  if (ended && isPage) {
+    const url = request.nextUrl.clone();
+    const admin = pathname === "/admin" || pathname.startsWith("/admin/");
+    url.pathname = admin ? "/admin-login" : "/login";
+    url.search = `?ended=${encodeURIComponent(ended)}&next=${encodeURIComponent(pathname + search)}`;
+    const redirect = NextResponse.redirect(url);
+    for (const c of response.cookies.getAll()) redirect.cookies.set(c);
+    return redirect;
+  }
 
   // Optimistic check only. Real authorization happens in each page via policies.
   if (!userId && SIGNED_IN_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
