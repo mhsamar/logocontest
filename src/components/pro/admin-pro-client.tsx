@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { adminCancelTrial, adminExtendTrial, adminStartTrial, grantProByUsername, manageProMember, remindProClicker, saveProSettings, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
+import { adminCancelTrial, adminExtendTrial, adminRemoveInvite, adminStartTrial, grantProByUsername, manageProMember, remindProClicker, saveProSettings, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
 import type { ProFeature } from "@/lib/pro/rules";
 
 /** "Pro plan for sale" — the master switch, saved at once. */
@@ -447,5 +447,32 @@ export function GiveTrial({ canManage }: { canManage: boolean }) {
         {t("pro.trial.admin.give")}
       </button>
     </form>
+  );
+}
+
+/** Admin › Pro plan › Invitations (owner, 2026-10-14): take one invitation back. */
+export function RemoveInvite({ contestId, designerId, canManage }: { contestId: string; designerId: string; canManage: boolean }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  if (!canManage) return null;
+  return (
+    <button
+      type="button"
+      className="ap-btn sm ghost"
+      style={{ color: "#A3121B" }}
+      disabled={busy}
+      onClick={() =>
+        start(async () => {
+          const res = await adminRemoveInvite(contestId, designerId);
+          if (!res.ok) return toast(t(res.error), "danger");
+          toast(t("pro.invitesAdmin.removedToast"));
+          router.refresh();
+        })
+      }
+    >
+      {t("pro.invitesAdmin.remove")}
+    </button>
   );
 }

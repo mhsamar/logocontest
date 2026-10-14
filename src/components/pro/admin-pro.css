@@ -427,6 +427,11 @@
   grid-template-columns: 40px minmax(170px, 1.4fr) 120px 90px 130px 80px 90px 70px auto;
   min-width: 960px;
 }
+/* Pro invitations (owner, 2026-10-14) */
+.ap-r.iv {
+  grid-template-columns: minmax(170px, 1.3fr) minmax(120px, 1fr) minmax(150px, 1.1fr) 130px 120px auto;
+  min-width: 900px;
+}
 /* Pro Trials (owner, 2026-10-14) */
 .ap-k.four {
   grid-template-columns: repeat(4, minmax(0, 1fr));

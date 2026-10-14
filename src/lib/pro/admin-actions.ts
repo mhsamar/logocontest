@@ -267,3 +267,21 @@ export async function adminCancelTrial(designerId: string): Promise<Result> {
   refresh();
   return { ok: true };
 }
+
+/** Admin › Pro plan › Invitations (owner, 2026-10-14): take an invitation back. The designer no longer sees it. */
+export async function adminRemoveInvite(contestId: string, designerId: string): Promise<Result> {
+  const admin = await adminUser("pro.manage");
+  if (!admin || !UUID.test(contestId) || !UUID.test(designerId)) return fail("auth.errors.generic");
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from("contest_invites")
+    .update({ status: "removed", removed_by: admin.id, removed_at: now })
+    .eq("contest_id", contestId)
+    .eq("designer_id", designerId)
+    .neq("status", "removed")
+    .select("status");
+  if (error || !data?.length) return fail("pro.trial.admin.errors.generic");
+  await logProActivity(admin.id, "admin_removed_invite", designerId, null, { contest: contestId });
+  refresh();
+  return { ok: true };
+}

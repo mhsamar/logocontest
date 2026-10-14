@@ -11,6 +11,7 @@ import { getProSettings } from "@/lib/pro/settings";
 import { earlyContests, myContestRows, myInvitations, profileStrength, serviceNames, weekNumbers, type MiniContest } from "@/lib/pro/workspace";
 import { durationText, Icon, Slot, type ProIconName } from "./parts";
 import { ProWorkspace, WsHead } from "./workspace";
+import { InviteResponse } from "./invite-response";
 
 const ICON_OF: Record<string, { icon: ProIconName; cls: string }> = {
   newContest: { icon: "bolt", cls: "g" },
@@ -133,7 +134,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
             <div>
               <h2 id="pr-inv">
                 {t("pro.dash.invTitle")}
-                {invitations.filter((i) => !i.joined).length > 0 && <span className="pr-new">{t("pro.dash.newN", { n: n(invitations.filter((i) => !i.joined).length) })}</span>}
+                {invitations.filter((i) => !i.joined && i.status === "pending").length > 0 && <span className="pr-new">{t("pro.dash.newN", { n: n(invitations.filter((i) => !i.joined && i.status === "pending").length) })}</span>}
               </h2>
               <p className="pr-hint" style={{ margin: "6px 0 0" }}>
                 {t("pro.dash.invLead")}
@@ -150,14 +151,28 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
                 <b>{i.contest.brand ?? t("pro.contests.privateContest")}</b>
                 <em>{t("pro.dash.invLine", { prize: formatTaka(i.contest.prize, locale), left: leftText(i.contest.endsAt, t) })}</em>
               </div>
-              <Link href={`/contest/${i.contest.slug}?tab=brief`} className="pr-out sm">
-                {t("pro.dash.viewBrief")}
+              {/* Accept or decline (owner, 2026-10-14); the full brief is on the invitations page. */}
+              <Link href={`/dashboard/invitations#${i.contest.id}`} className="pr-out sm">
+                {t("pro.invitations.see")}
               </Link>
-              <Link href={`/contest/${i.contest.slug}/submit`} className="pr-btn sm">
-                {t("pro.dash.join")}
-              </Link>
+              {i.joined ? (
+                <i className="pr-pill win">{t("pro.invitations.sent")}</i>
+              ) : i.status === "pending" ? (
+                <InviteResponse contestId={i.contest.id} status="pending" />
+              ) : i.status === "accepted" ? (
+                <Link href={`/contest/${i.contest.slug}/submit`} className="pr-btn sm">
+                  {t("pro.dash.join")}
+                </Link>
+              ) : (
+                <i className="pr-pill mu">{t("pro.invitations.status.declined")}</i>
+              )}
             </div>
           ))}
+          {invitations.length > 4 && (
+            <Link href="/dashboard/invitations" className="pr-link" style={{ marginTop: 8 }}>
+              {t("pro.invitations.all")}
+            </Link>
+          )}
           <div className="pr-ben">
             <span>
               <Icon name="check" size={14} strokeWidth={2.8} />

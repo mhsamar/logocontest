@@ -52,7 +52,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
   const describe = (a: (typeof o.activity)[number]) => {
     const vals = { designer: a.designer ?? "—", from: JSON.stringify(a.oldValue ?? "—"), to: JSON.stringify(a.newValue ?? "—"), field: a.action.replace(/^set_/, "") };
     const key = `pro.admin.actions.${a.action}`;
-    const known = ["set_is_for_sale", "set_price_bdt", "gave_free_month", "extended", "changed_end_date", "admin_cancelled", "member_cancelled", "paid", "renewed", "expired", "trial_started", "reminded", "renewal_reminders", "price_notice_sent", "chat_flagged", "admin_started_trial", "trial_cancelled", "admin_cancelled_trial", "admin_extended_trial", "trial_expired"];
+    const known = ["set_is_for_sale", "set_price_bdt", "gave_free_month", "extended", "changed_end_date", "admin_cancelled", "member_cancelled", "paid", "renewed", "expired", "trial_started", "reminded", "renewal_reminders", "price_notice_sent", "chat_flagged", "admin_started_trial", "trial_cancelled", "admin_cancelled_trial", "admin_extended_trial", "trial_expired", "admin_removed_invite"];
     if (a.action === "set_is_for_sale") return t("pro.admin.actions.set_is_for_sale", { to: a.newValue ? t("pro.admin.on") : t("pro.admin.off") });
     if (a.action === "set_price_bdt") return t("pro.admin.actions.set_price_bdt", { from: `৳${a.oldValue}`, to: `৳${a.newValue}` });
     return known.includes(a.action) ? t(key as MessageKey, vals) : t("pro.admin.actions.changed", vals);
@@ -65,6 +65,9 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
           <h1 className="lc-d m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-ink">{t("pro.admin.title")}</h1>
           <p className="m-0 text-[15.5px] text-muted">{t("pro.admin.lead")}</p>
         </div>
+        <Link href="/admin/pro/invitations" className="ap-btn ghost">
+          {t("pro.invitesAdmin.title")}
+        </Link>
         <Link href="/pro" target="_blank" className="ap-btn ghost">
           {t("pro.admin.preview")}
         </Link>
