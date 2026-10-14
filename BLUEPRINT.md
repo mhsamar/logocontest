@@ -443,6 +443,22 @@ No size limit for people to worry about: every picture is made light in the brow
 
 **Mockups per design:** Admin › Settings, separately for Basic (`limits.entry_max_images`) and Pro (`limits.entry_max_images_pro`), 1–20 each (default 8). Client reference files: `limits.brief_max_files`.
 
+### Trash: delete, restore, erase after 90 days (owner, 2026-10-14; migration `0054_trash_and_phone`)
+
+- **Delete contest** (Contests · manage) and **Delete user** (Users · manage), each with a reason, move it to **Admin › Trash** (status `deleted`, the old status kept). From there it can be **restored** exactly as it was. After `trash.keep_days` (90) the lifecycle job **erases everything for good**: the rows, their payments and bKash proofs, and the stored files. **Erase now** is for the Super admin only. Every step is in the audit log.
+- A contest still **unpaid `trash.unpaid_hours` (72) after it was started** goes to the Trash on its own, not while a bKash payment waits for approval.
+- A deleted contest is gone for everyone except staff. A deleted account can't log in (also blocked at the login itself) and its public profile is gone; its designs stay in contests until the account is erased.
+- A user can't be deleted while it still matters to others: a client with a live contest (open, judging, winner picked, handover), a designer with final files still to deliver, or with wallet money or a withdrawal waiting. Admin accounts are managed in Admins & roles.
+- Erasing never takes prize money away from designers: their wallet lines only lose the link to the erased contest.
+
+### Mobile numbers from any country, WhatsApp (owner, 2026-10-14; migration `0054_trash_and_phone`)
+
+Sign-up (client wizard, service wizard, designer sign-up) and Profile › Mobile have a **country picker** (flag and code, Bangladesh first and the default). Numbers are kept as +<code><number>; Bangladesh numbers follow the strict Bangladesh rule. Log in with a foreign number by typing it with its code (+44…). bKash numbers stay Bangladesh only. **"This number is on WhatsApp"** is a switch at sign-up and in Profile; admins see it on the user page and the contest page's client panel. Numbers show as 01712-345678 for Bangladesh and +44 7911123456 for others.
+
+### Ads (owner, 2026-10-14)
+
+Admin › Settings › Ads: **on/off** and the **Google AdSense publisher ID** (ca-pub-…). When on, AdSense Auto ads load on public pages only (never the admin, dashboards, sign-up, checkout or payment pages) and `/ads.txt` is filled automatically. Off by default.
+
 ### 9.8 Logo check inside contests (owner, 2026-10-14; `Design/logo-check/`, migration `0047_logo_check_entries`)
 
 - **Before sending:** Send opens Upload → Check → Send for the cover image. "Check originality" runs the existing Logo Checker on the exact uploaded file and uses one of the designer's monthly checks (Basic 2, Pro 100, shared with their own Logo Checker checks; they start again on the 1st, Bangladesh time). The designer can skip ("Not checked"). High → "Upload a new version" or "Send anyway". Logo contests only.

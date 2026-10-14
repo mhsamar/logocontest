@@ -155,6 +155,12 @@ const PATHS = {
       <path d="M9 8h6M9 12h6" />
     </>
   ),
+  trash: (
+    <>
+      <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </>
+  ),
   // Top bar, menus and tiles
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,

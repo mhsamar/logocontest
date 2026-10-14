@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
 import { wizardVisitId } from "@/components/wizard/visit-id";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import { saveWizardLead } from "@/lib/wizard-tracking";
 import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
@@ -70,6 +70,9 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const [mobile, setMobile] = useState("");
+  // Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14).
+  const [country, setCountry] = useState("BD");
+  const [whatsapp, setWhatsapp] = useState(false);
   const [email, setEmail] = useState("");
   const [accountError, setAccountError] = useState<{ field: "mobile" | "email"; message: string; taken: boolean } | null>(null);
   const [password, setPassword] = useState("");
@@ -111,7 +114,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const svc = { slug: service.slug, answers: d.answers };
 
   // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
-  const leadMobileOk = Boolean(user) || normalizeBdMobile(mobile) !== null;
+  const leadMobileOk = Boolean(user) || toE164(mobile, country) !== null;
   const valid =
     step === "brief" ? briefValid && leadMobileOk : step === "order" ? !orderError : step === "account" ? Boolean(mobile && email) : step === "password" ? password.length >= passwordMin : Boolean(method && terms && contentOk);
   const go = (s: Step) => {
@@ -124,7 +127,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const onNext = () => {
     if (!valid) return setTouched(true);
     if (step === "brief") {
-      if (!user) void saveWizardLead({ visitId: wizardVisitId(), mobile, brandName: d.title, service: service.slug });
+      if (!user) void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug });
       return go("order");
     }
     if (step === "order") {
@@ -139,12 +142,13 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
     }
     if (step === "account") {
       return start(async () => {
-        const res = await checkAccountDetails({ mobile, email });
+        const res = await checkAccountDetails({ mobile, country, email });
         if (!res.ok) {
           const k = res.error.key;
-          const isField = ["auth.errors.phoneTaken", "auth.errors.invalidPhone", "wizard.errors.emailTaken", "wizard.errors.email"].includes(k);
+          const phoneKeys = ["auth.errors.phoneTaken", "auth.errors.invalidPhone", "auth.errors.invalidPhoneIntl"];
+          const isField = [...phoneKeys, "wizard.errors.emailTaken", "wizard.errors.email", "auth.errors.emailFake", "auth.errors.emailDisposable", "auth.errors.emailNoMail", "auth.errors.emailTypo"].includes(k);
           if (!isField) return setError(t(k, res.error.params));
-          return setAccountError({ field: k === "auth.errors.phoneTaken" || k === "auth.errors.invalidPhone" ? "mobile" : "email", message: t(k, res.error.params), taken: k === "auth.errors.phoneTaken" || k === "wizard.errors.emailTaken" });
+          return setAccountError({ field: phoneKeys.includes(k) ? "mobile" : "email", message: t(k, res.error.params), taken: k === "auth.errors.phoneTaken" || k === "wizard.errors.emailTaken" });
         }
         go("password");
       });
@@ -152,7 +156,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
     if (step === "password") {
       return start(async () => {
         const push = await subscribeToPush();
-        const res = await createAccountAndDraft({ push, mobile, email, password, brief, order, service: svc });
+        const res = await createAccountAndDraft({ push, mobile, country, whatsapp, email, password, brief, order, service: svc });
         if (!res.ok) return setError(t(res.error.key, res.error.params));
         setD((cur) => ({ ...cur, contestId: res.contestId }));
         setPassword("");
@@ -206,10 +210,13 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                   <PhoneField
                     label={t("wizard.lead.label")}
                     hint={t("wizard.lead.hint")}
-                    placeholder={t("auth.phone.placeholder")}
+                    placeholder={country === "BD" ? t("auth.phone.placeholder") : undefined}
+                    country={country}
+                    onCountryChange={setCountry}
+                    countryLabel={t("auth.phone.country")}
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
-                    error={(touched || mobile.replace(/\D/g, "").length >= 11) && normalizeBdMobile(mobile) === null && (touched || mobile) ? t("wizard.lead.error") : undefined}
+                    error={(touched || mobile.replace(/\D/g, "").length >= (country === "BD" ? 11 : 8)) && toE164(mobile, country) === null && (touched || mobile) ? t("wizard.lead.error") : undefined}
                   />
                 )}
                 <TextField label={t("services.wizard.title")} hint={t("services.wizard.titleHint")} value={d.title} maxLength={LIMITS.title.max} onChange={(e) => setD({ ...d, title: e.target.value })} error={touched && titleError ? t("services.wizard.errors.title") : undefined} />
@@ -282,6 +289,13 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                 <AccountStep
                   mobile={mobile}
                   email={email}
+                  country={country}
+                  onCountry={(iso) => {
+                    setCountry(iso);
+                    setAccountError(null);
+                  }}
+                  whatsapp={whatsapp}
+                  onWhatsapp={setWhatsapp}
                   onMobile={(v) => {
                     setMobile(v);
                     setAccountError(null);

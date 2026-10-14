@@ -28,7 +28,7 @@ export async function listAdminContests(q: { search: string; status: string; pag
     .from("contests")
     .select("id, slug, contest_number, brand_name, status, prize_amount, total_amount, ends_at, created_at, client:profiles!client_id(id, name)", { count: "exact" });
   if ((ADMIN_CONTEST_STATUSES as readonly string[]).includes(q.status)) query = query.eq("status", q.status);
-  else query = query.not("status", "in", "(draft,pending_payment)");
+  else query = query.not("status", "in", "(draft,pending_payment,deleted)");
   const term = q.search.trim().replace(/[%,()#]/g, "");
   if (term) query = /^\d+$/.test(term) ? query.eq("contest_number", Number(term)) : query.or(`brand_name.ilike.%${term}%,slug.ilike.%${term}%`);
   const from = (q.page - 1) * PAGE;
@@ -79,7 +79,7 @@ export async function adminContestOverview(): Promise<{ rows: AdminContestOvervi
     db
       .from("contests")
       .select("id, slug, contest_number, brand_name, status, package, prize_amount, total_amount, ends_at, completed_at, created_at, is_promoted, is_urgent, is_highlighted, is_private, entries(count), client:profiles!client_id(id, name)")
-      .not("status", "in", "(draft,pending_payment)")
+      .not("status", "in", "(draft,pending_payment,deleted)")
       .order("created_at", { ascending: false })
       .limit(1000),
     db.from("contests").select("id", { count: "exact", head: true }).in("status", ["draft", "pending_payment"]),
@@ -122,6 +122,8 @@ export type AdminContestDetail = AdminContestRow & {
   entriesList: { id: string; number: number; status: string; rating: number | null; designer: { id: string; name: string; username: string | null } }[];
   payments: { id: string; purpose: string; amount: number; status: string; gateway: string; txnId: string | null; paidAt: Date | null; createdAt: Date }[];
   handover: { status: string; dueAt: Date; designer: string } | null;
+  /** In the Trash (owner, 2026-10-14). */
+  trash: { at: Date; reason: string | null; by: string | null } | null;
 };
 
 export async function getAdminContest(slug: string): Promise<AdminContestDetail | null> {
@@ -131,7 +133,7 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
     .from("contests")
     .select(
       "id, slug, contest_number, brand_name, status, prize_amount, total_amount, service_fee_amount, upgrades_amount, duration_days, starts_at, ends_at, judging_ends_at, created_at, cancel_reason, extensions_count, " +
-        "is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, logo_scan, admin_review, client:profiles!client_id(id, name)",
+        "is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, logo_scan, admin_review, client:profiles!client_id(id, name), deleted_at, delete_reason, deleter:profiles!deleted_by(name)",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -181,6 +183,10 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
     handover: handover.data
       ? { status: handover.data.status as string, dueAt: new Date(handover.data.due_at as string), designer: one(handover.data.designer as { name: string } | { name: string }[] | null)?.name ?? "—" }
       : null,
+    trash:
+      r.status === "deleted" && r.deleted_at
+        ? { at: new Date(r.deleted_at as string), reason: (r.delete_reason as string | null) ?? null, by: one(r.deleter as { name: string } | { name: string }[] | null)?.name ?? null }
+        : null,
   };
 }
 
@@ -190,7 +196,7 @@ export type ContestClient = {
   name: string;
   username: string | null;
   businessName: string | null;
-  status: "active" | "suspended" | "banned";
+  status: "active" | "suspended" | "banned" | "deleted";
   suspendedUntil: Date | null;
   isTest: boolean;
   strikes: number;
@@ -203,7 +209,7 @@ export type ContestClient = {
   picked: number;
   contests: { slug: string; brand: string; number: number | null; status: string; createdAt: Date }[];
   /** Only for Users · manage. */
-  contact: { mobile: string; email: string | null; bkash: string[] } | null;
+  contact: { mobile: string; email: string | null; bkash: string[]; whatsapp: boolean } | null;
 };
 
 const PICKED_STATUSES = ["winner_selected", "handover", "completed"];
@@ -212,7 +218,7 @@ export async function getContestClient(clientId: string, opts: { canSeeContact: 
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(clientId)) return null;
   const db = createAdminClient();
   const [{ data: p }, contests, pays, visit, senders] = await Promise.all([
-    db.from("profiles").select("id, name, username, business_name, status, suspended_until, is_test, strikes, created_at, last_seen_at, email_verified_at, mobile, email").eq("id", clientId).maybeSingle(),
+    db.from("profiles").select("id, name, username, business_name, status, suspended_until, is_test, strikes, created_at, last_seen_at, email_verified_at, mobile, email, whatsapp").eq("id", clientId).maybeSingle(),
     db.from("contests").select("slug, brand_name, contest_number, status, created_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(50),
     db.from("payments").select("amount").eq("client_id", clientId).eq("status", "paid").limit(5000),
     db.from("page_views").select("country").eq("user_id", clientId).not("country", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -240,6 +246,6 @@ export async function getContestClient(clientId: string, opts: { canSeeContact: 
     spent: ((pays.data ?? []) as { amount: number }[]).reduce((a, r) => a + (r.amount ?? 0), 0),
     picked: list.filter((c) => PICKED_STATUSES.includes(c.status)).length,
     contests: list.map((c) => ({ slug: c.slug, brand: c.brand_name, number: c.contest_number ?? null, status: c.status, createdAt: new Date(c.created_at) })),
-    contact: opts.canSeeContact ? { mobile: p.mobile as string, email: (p.email as string | null) ?? null, bkash } : null,
+    contact: opts.canSeeContact ? { mobile: p.mobile as string, email: (p.email as string | null) ?? null, bkash, whatsapp: p.whatsapp === true } : null,
   };
 }

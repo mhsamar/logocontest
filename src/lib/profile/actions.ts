@@ -15,7 +15,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { getImageModerator } from "@/lib/moderation/images";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import { getSetting } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -176,11 +176,13 @@ export async function removeAvatar(): Promise<boolean> {
 export async function changeMobile(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await me();
   if (!user) return fail("auth.errors.generic");
-  const mobile = normalizeBdMobile(String(formData.get("mobile") ?? ""));
-  if (!mobile) return fail("auth.errors.invalidPhone", "mobile");
-  if (mobile === user.mobile) return { status: "ok" };
-  if (await findProfileByPhone(mobile)) return fail("settings.mobile.taken", "mobile");
-  const { error } = await createAdminClient().from("profiles").update({ mobile }).eq("id", user.id);
+  // Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14).
+  const country = String(formData.get("country") ?? "BD");
+  const mobile = toE164(String(formData.get("mobile") ?? ""), country);
+  if (!mobile) return fail(country !== "BD" ? "auth.errors.invalidPhoneIntl" : "auth.errors.invalidPhone", "mobile");
+  const whatsapp = formData.get("whatsapp") === "1";
+  if (mobile !== user.mobile && (await findProfileByPhone(mobile))) return fail("settings.mobile.taken", "mobile");
+  const { error } = await createAdminClient().from("profiles").update({ mobile, whatsapp }).eq("id", user.id);
   if (error) return fail(/duplicate|unique/i.test(error.message) ? "settings.mobile.taken" : "auth.errors.generic", "mobile");
   refresh();
   return { status: "ok" };

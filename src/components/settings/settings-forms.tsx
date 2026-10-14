@@ -3,10 +3,10 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { PasswordField, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
+import { Checkbox, PasswordField, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
-import { formatBdMobile } from "@/lib/phone";
+import { formatBdMobile, nationalPart } from "@/lib/phone";
 import {
   changeEmail,
   changeMobile,
@@ -197,16 +197,20 @@ export function ProfileForm({
   );
 }
 
-export function MobileForm({ mobile }: { mobile: string }) {
+export function MobileForm({ mobile, whatsapp = false }: { mobile: string; whatsapp?: boolean }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(changeMobile, IDLE);
-  // Controlled, so a rejected number stays in the box (forms reset after an action).
-  const [value, setValue] = useState(mobile ? formatBdMobile(mobile) : "");
+  // Controlled, so a rejected number stays in the box (forms reset after an action). Any country (owner, 2026-10-14).
+  const start = nationalPart(mobile);
+  const [country, setCountry] = useState(start.country);
+  const [value, setValue] = useState(mobile ? (start.country === "BD" ? formatBdMobile(mobile) : start.number) : "");
+  const [onWhatsapp, setOnWhatsapp] = useState(whatsapp);
   useSavedToast(state, t("settings.mobile.saved"));
   const err = useFieldError(state);
   return (
     <form action={action} className="space-y-4">
-      <PhoneField mark name="mobile" label={t("designerSignup.mobile")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
+      <PhoneField mark name="mobile" label={t("designerSignup.mobile")} country={country} onCountryChange={setCountry} countryName="country" countryLabel={t("auth.phone.country")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
+      <Checkbox name="whatsapp" value="1" label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={onWhatsapp} onChange={(e) => setOnWhatsapp(e.target.checked)} />
       <div className="flex justify-end">
         <Button type="submit" variant="success" loading={pending}>
           {t("settings.mobile.save")}

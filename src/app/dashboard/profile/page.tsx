@@ -29,7 +29,7 @@ export default async function ProfileSettingsPage() {
   if (user.role !== "designer" && user.role !== "client") notFound();
 
   const [{ data: profile }, extrasRes, s] = await Promise.all([
-    createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years").eq("id", user.id).single(),
+    createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years, whatsapp").eq("id", user.id).single(),
     // Profile extras (migration 0042); before that SQL runs the query fails and the fields stay hidden.
     createAdminClient().from("profiles").select("languages, skill_levels, tool_years").eq("id", user.id).maybeSingle(),
     getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
@@ -111,7 +111,7 @@ export default async function ProfileSettingsPage() {
             </Section>
           )}
           <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
-            <MobileForm mobile={user.mobile} />
+            <MobileForm mobile={user.mobile} whatsapp={profile?.whatsapp === true} />
           </Section>
           <Section id="email" title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
             <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} />

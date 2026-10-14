@@ -1,7 +1,7 @@
 import { isActiveAdmin } from "@/lib/admin/permissions";
 
 export type Role = "client" | "designer" | "admin";
-export type UserStatus = "active" | "suspended" | "banned";
+export type UserStatus = "active" | "suspended" | "banned" | "deleted";
 
 export type CurrentUser = {
   id: string;

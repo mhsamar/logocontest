@@ -25,7 +25,7 @@ import { calculatePrice, defaultOrder, validateOrder, type PricingConfig } from 
 import { normalizeEmail } from "@/lib/auth/identity";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { subscribeToPush } from "@/lib/push/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -242,7 +242,8 @@ export function Wizard(props: WizardProps) {
   const briefErrors = serverErrorShown ? { [serverError.field]: serverError.key, ...stepErrors } : stepErrors;
   const uploading = uploads.some((u) => u.status === "uploading" || u.status === "waiting");
   // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
-  const leadMobileOk = Boolean(props.user) || normalizeBdMobile(state.mobile) !== null;
+  const country = state.mobileCountry ?? "BD";
+  const leadMobileOk = Boolean(props.user) || toE164(state.mobile, country) !== null;
   const valid =
     step <= 6
       ? Object.keys(briefErrors).length === 0 && (step !== 1 || leadMobileOk)
@@ -251,7 +252,7 @@ export function Wizard(props: WizardProps) {
         : step === 8
           ? price !== null
           : step === 9
-            ? normalizeBdMobile(state.mobile) !== null && normalizeEmail(state.email) !== null
+            ? toE164(state.mobile, country) !== null && normalizeEmail(state.email) !== null
             : step === 10
               ? password.length >= props.passwordMin
               : method !== null && terms && !uploading && !busy && price !== null && Boolean(state.contestId);
@@ -261,7 +262,7 @@ export function Wizard(props: WizardProps) {
 
   const onNext = () => {
     if (!valid) return;
-    if (step === 1 && !props.user) void saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, brandName: state.brief.brandName, service: "logo" });
+    if (step === 1 && !props.user) void saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, country, brandName: state.brief.brandName, service: "logo" });
     if (step === 8 && props.user) {
       startBusy(async () => {
         const saved = await persistDraft(state);
@@ -272,17 +273,18 @@ export function Wizard(props: WizardProps) {
     }
     if (step === 9) {
       startBusy(async () => {
-        const res = await checkAccountDetails({ mobile: state.mobile, email: state.email });
+        const res = await checkAccountDetails({ mobile: state.mobile, country, email: state.email });
         if (!res.ok) {
           const key = res.error.key;
-          const fieldError = ["auth.errors.phoneTaken", "auth.errors.invalidPhone", "wizard.errors.emailTaken", "wizard.errors.email"].includes(key);
+          const phoneKeys = ["auth.errors.phoneTaken", "auth.errors.invalidPhone", "auth.errors.invalidPhoneIntl"];
+          const fieldError = [...phoneKeys, "wizard.errors.emailTaken", "wizard.errors.email", "auth.errors.emailFake", "auth.errors.emailDisposable", "auth.errors.emailNoMail", "auth.errors.emailTypo"].includes(key);
           if (!fieldError) {
             // Not about either field (e.g. the database is down): show it in the general alert.
             setError(t(key, res.error.params));
             return;
           }
           setAccountError({
-            field: key === "auth.errors.phoneTaken" || key === "auth.errors.invalidPhone" ? "mobile" : "email",
+            field: phoneKeys.includes(key) ? "mobile" : "email",
             message: t(key, res.error.params),
             taken: key === "auth.errors.phoneTaken" || key === "wizard.errors.emailTaken",
           });
@@ -299,6 +301,8 @@ export function Wizard(props: WizardProps) {
         const res: WizardResult<{ contestId: string }> = await createAccountAndDraft({
           push,
           mobile: state.mobile,
+          country,
+          whatsapp: state.whatsapp === true,
           password,
           email: state.email,
           brief: state.brief,
@@ -431,10 +435,13 @@ export function Wizard(props: WizardProps) {
                   <PhoneField
                     label={t("wizard.lead.label")}
                     hint={t("wizard.lead.hint")}
-                    placeholder={t("auth.phone.placeholder")}
+                    placeholder={country === "BD" ? t("auth.phone.placeholder") : undefined}
+                    country={country}
+                    onCountryChange={(iso) => setState((cur) => (cur ? { ...cur, mobileCountry: iso } : cur))}
+                    countryLabel={t("auth.phone.country")}
                     value={state.mobile}
                     onChange={(e) => setState((cur) => (cur ? { ...cur, mobile: e.target.value } : cur))}
-                    error={state.mobile.replace(/\D/g, "").length >= 11 && normalizeBdMobile(state.mobile) === null ? t("wizard.lead.error") : undefined}
+                    error={state.mobile.replace(/\D/g, "").length >= (country === "BD" ? 11 : 8) && toE164(state.mobile, country) === null ? t("wizard.lead.error") : undefined}
                   />
                 </div>
               )}
@@ -462,6 +469,13 @@ export function Wizard(props: WizardProps) {
                 <AccountStep
                   mobile={state.mobile}
                   email={state.email}
+                  country={country}
+                  onCountry={(iso) => {
+                    setState({ ...state, mobileCountry: iso });
+                    setAccountError(null);
+                  }}
+                  whatsapp={state.whatsapp === true}
+                  onWhatsapp={(on) => setState({ ...state, whatsapp: on })}
                   onMobile={(mobile) => {
                     setState({ ...state, mobile });
                     setAccountError(null);
@@ -474,8 +488,8 @@ export function Wizard(props: WizardProps) {
                   mobileError={
                     accountError?.field === "mobile" && !accountError.taken
                       ? accountError.message
-                      : state.mobile.trim().length >= 11 && !normalizeBdMobile(state.mobile)
-                        ? t("auth.errors.invalidPhone")
+                      : state.mobile.trim().length >= (country === "BD" ? 11 : 8) && !toE164(state.mobile, country)
+                        ? t(country === "BD" ? "auth.errors.invalidPhone" : "auth.errors.invalidPhoneIntl")
                         : undefined
                   }
                   emailError={
@@ -550,7 +564,7 @@ function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: Pr
     if (st >= wanted) return steps.includes(wanted) ? wanted : st;
     const incomplete =
       st <= 6
-        ? Object.keys(validateBriefStep(st, s.brief)).length > 0 || (st === 1 && needMobile && normalizeBdMobile(s.mobile) === null)
+        ? Object.keys(validateBriefStep(st, s.brief)).length > 0 || (st === 1 && needMobile && toE164(s.mobile, s.mobileCountry ?? "BD") === null)
         : st === 8
           ? validateOrder(s.order, cfg) !== null
           : st === 9 || st === 10;

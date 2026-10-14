@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
 import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
 import { releaseStalePromos } from "@/lib/promos/promos";
+import { purgeExpiredTrash, trashUnpaidContests } from "@/lib/admin/trash";
 import { broadcastToDesigners } from "@/lib/notifications/broadcast";
 import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
@@ -19,7 +20,7 @@ import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endi
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; errors: string[] };
+export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; trashed?: number; erased?: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
@@ -340,6 +341,18 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     await releaseStalePromos(now);
   } catch (e) {
     fail("promos", "-", e);
+  }
+
+  // Trash (owner, 2026-10-14): a contest still unpaid 72 hours after it was started goes to the Trash; what has been
+  // in the Trash for 90 days is erased for good (Settings → Trash).
+  try {
+    const t = await getSettings(["trash.unpaid_hours", "trash.keep_days"]);
+    report.trashed = await trashUnpaidContests(now, t["trash.unpaid_hours"]);
+    const erased = await purgeExpiredTrash(now, t["trash.keep_days"]);
+    report.erased = erased.contests + erased.users;
+    for (const e of erased.errors) report.errors.push(`trash ${e}`);
+  } catch (e) {
+    fail("trash", "-", e);
   }
 
   // Designer Pro plan (owner, 2026-10-13): expiry, renewal and invite/saved reminders, quality scores.

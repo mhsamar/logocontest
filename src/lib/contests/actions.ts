@@ -10,7 +10,7 @@ import { normalizeEmail } from "@/lib/auth/identity";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import { personNameFrom } from "@/lib/profile/name-rules";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -168,10 +168,11 @@ async function accountTaken(mobile: string, email: string): Promise<"mobile" | "
 }
 
 /** C-09: checks the mobile number and email before asking for a password (no OTP). */
-export async function checkAccountDetails(input: { mobile: string; email: string }): Promise<WizardResult<{ mobile: string; email: string }>> {
+export async function checkAccountDetails(input: { mobile: string; email: string; country?: string }): Promise<WizardResult<{ mobile: string; email: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
-  const mobile = normalizeBdMobile(input.mobile);
-  if (!mobile) return err("auth.errors.invalidPhone");
+  // Any country, Bangladesh by default (owner, 2026-10-14).
+  const mobile = toE164(input.mobile, input.country);
+  if (!mobile) return err(input.country && input.country !== "BD" ? "auth.errors.invalidPhoneIntl" : "auth.errors.invalidPhone");
   const email = normalizeEmail(input.email);
   if (!email) return err("wizard.errors.email");
   // Real emails only, no temporary inboxes (owner, 2026-10-14).
@@ -188,6 +189,9 @@ export async function checkAccountDetails(input: { mobile: string; email: string
  */
 export async function createAccountAndDraft(input: {
   mobile: string;
+  country?: string;
+  /** "This number is on WhatsApp" (owner, 2026-10-14). */
+  whatsapp?: boolean;
   email: string;
   password: string;
   brief: unknown;
@@ -207,7 +211,7 @@ export async function createAccountAndDraft(input: {
   const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
   if (contact) return contact;
 
-  const mobile = normalizeBdMobile(input.mobile);
+  const mobile = toE164(input.mobile, input.country);
   const email = normalizeEmail(input.email);
   if (!mobile || !email) return err("wizard.errors.incomplete");
   const rejected = await emailRejection(email);
@@ -238,7 +242,7 @@ export async function createAccountAndDraft(input: {
 
   await admin
     .from("profiles")
-    .update({ business_name: brandName, username: makeSlug(brandName) })
+    .update({ business_name: brandName, username: makeSlug(brandName), whatsapp: input.whatsapp === true })
     .eq("id", created.data.user.id);
   // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
   await saveSignupSource(created.data.user.id, await takeSignupSource());

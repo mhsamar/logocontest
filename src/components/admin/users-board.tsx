@@ -14,6 +14,7 @@ import { cx } from "@/lib/cx";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { formatMobile } from "@/lib/phone";
 
 const ROLE_PILL = { client: "bg-[#E1ECFA] text-[#1F4E8C]", designer: "bg-[#FBECEB] text-primary", admin: "bg-[#111216] text-white" } as const;
 const STATUS_PILL = { active: "bg-[#E3F3EA] text-[#14633C]", suspended: "bg-[#FFEDD5] text-[#9A3412]", banned: "bg-[#FDE3E1] text-[#A3121B]" } as const;
@@ -253,7 +254,7 @@ function QuickView({ u, canManage, meId }: { u: UserCard; canManage: boolean; me
         </div>
       )}
       <div>
-        {u.contact && <Row label={t("admin.users.x.quick.mobile")}>{u.contact.mobile.replace(/^\+88/, "")}</Row>}
+        {u.contact && <Row label={t("admin.users.x.quick.mobile")}>{formatMobile(u.contact.mobile)}</Row>}
         {u.contact?.email && <Row label={t("admin.users.x.quick.email")}>{u.contact.email}</Row>}
         <Row label={t("admin.users.x.quick.joined")}>{formatDate(new Date(u.joinedAt), locale, "long")}</Row>
         {u.role !== "admin" && (

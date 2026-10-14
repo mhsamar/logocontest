@@ -74,6 +74,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/settings", icon: "settings", label: "admin.nav.settings", perm: "settings.view" },
       { href: "/admin/audit", icon: "audit", label: "admin.nav.audit", perm: "audit.view" },
+      // Deleted contests and users (owner, 2026-10-14).
+      { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "contests.view" },
     ],
   },
 ];

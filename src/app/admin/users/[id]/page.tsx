@@ -8,20 +8,22 @@ import { AdmCard, AdmEmpty, Pill, type PillTone } from "@/components/admin/ui";
 import { adminUser, requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
+import { deleteUser, eraseUserNow, restoreUserFromTrash } from "@/lib/admin/trash-actions";
+import { getSettings } from "@/lib/settings";
 import { getUser } from "@/lib/admin/users";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
-import { formatBdMobile } from "@/lib/phone";
+import { formatMobile } from "@/lib/phone";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
   return { title: t("admin.users.title"), robots: { index: false } };
 }
 
-const STATUS_DOT: Record<string, string> = { active: "bg-adm-pay", suspended: "bg-adm-warn", banned: "bg-adm-bad" };
+const STATUS_DOT: Record<string, string> = { active: "bg-adm-pay", suspended: "bg-adm-warn", banned: "bg-adm-bad", deleted: "bg-adm-bad" };
 const TABS = ["activity", "work", "withdrawals", "strikes"] as const;
 type Tab = (typeof TABS)[number];
 const ENTRY_TONE: Record<string, PillTone> = { winner: "gold", active: "good", removed: "bad" };
@@ -34,6 +36,8 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
   const [{ t, locale }, u, me] = await Promise.all([getI18n(), getUser(id), adminUser()]);
   if (!u) notFound();
   const self = me?.id === u.id;
+  const keepDays = (await getSettings(["trash.keep_days"]))["trash.keep_days"];
+  const canManage = Boolean(me && hasPermission(me, "users.manage"));
   const d = u.designer;
   const tabs = TABS.filter((x) => x !== "withdrawals" || d);
   const tab: Tab = tabs.find((x) => x === sp.tab) ?? "activity";
@@ -74,6 +78,19 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
   return (
     <div className="flex flex-col gap-5">
       <AdminHead title={t("admin.users.profile")} crumbs={[{ href: "/admin/users", label: t("admin.users.title") }]} />
+      {/* In the Trash (owner, 2026-10-14): Restore, or Erase now (Super admin). */}
+      {u.trash && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-danger/10 px-4 py-3 text-[15px] text-danger">
+          <span>
+            <b>{t("admin.trash.inTrash", { date: formatDate(u.trash.at, locale, "long"), erase: formatDate(new Date(u.trash.at.getTime() + keepDays * 86_400_000), locale, "long") })}</b>
+            {u.trash.reason && <span className="block">{t("admin.trash.reason", { reason: u.trash.reason })}</span>}
+          </span>
+          <span className="flex flex-wrap gap-2">
+            {canManage && <AdminAction label={t("admin.trash.restore")} body={t("admin.trash.restoreBody")} tone="primary" fields={[]} run={restoreUserFromTrash.bind(null, u.id)} done={t("admin.trash.restored")} />}
+            {me?.isSuperAdmin && <AdminAction label={t("admin.trash.eraseNow")} body={t("admin.trash.eraseBody")} tone="danger" fields={[]} run={eraseUserNow.bind(null, u.id)} done={t("admin.trash.erased")} />}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-start gap-4">
         {/* Left: who they are */}
@@ -164,12 +181,13 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               {fact(
                 t("admin.users.phone"),
                 <a href={`tel:${u.mobile}`} className="font-mono hover:text-primary">
-                  {formatBdMobile(u.mobile)}
+                  {formatMobile(u.mobile)}
                 </a>,
               )}
               {fact(t("admin.users.email"), u.email ?? "—")}
+              {fact(t("admin.users.whatsapp"), u.whatsapp ? <span className="text-adm-good">{t("admin.users.onWhatsapp")}</span> : <span className="text-muted">{t("admin.users.notOnWhatsapp")}</span>)}
             </div>
-            {!self && (
+            {!self && !u.trash && (
               <div className="flex flex-col gap-2.5 border-t border-adm-line-soft pt-[18px]">
                 <h2 className="m-0 text-[17px] font-semibold">{t("admin.users.actions")}</h2>
                 <div className="flex flex-wrap gap-2">
@@ -177,6 +195,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                   {u.status === "active" && (
                     <AdminAction label={t("admin.users.suspend")} body={t(u.strikes >= 2 ? "admin.users.x.actions.suspendBans" : "admin.users.strikeBody")} tone="secondary" run={giveStrike.bind(null, u.id)} done={t("admin.users.strikeGiven")} />
                   )}
+                  {u.role !== "admin" && canManage && <AdminAction label={t("admin.trash.deleteUser")} body={t("admin.trash.deleteUserBody", { days: String(keepDays) })} tone="danger" run={deleteUser.bind(null, u.id)} />}
                   {u.status !== "banned" && <AdminAction label={t("admin.users.ban")} body={t("admin.users.banBody")} tone="danger" run={setUserStatus.bind(null, u.id, "banned")} />}
                   {u.status !== "active" && <AdminAction label={t(u.status === "suspended" ? "admin.users.x.actions.unsuspend" : "admin.users.reactivate")} tone="primary" run={setUserStatus.bind(null, u.id, "active")} />}
                   {/* Owner, 2026-10-11: test accounts never take part in the monthly race */}

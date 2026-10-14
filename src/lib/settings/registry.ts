@@ -544,6 +544,26 @@ export const SETTINGS = {
     description: "Tawk.to widget ID (the second part of the widget link).",
   },
 
+  // ---- Ads (owner, 2026-10-14): off until the owner switches them on ---------------------------------------------
+  "ads.enabled": {
+    group: "ads", type: "bool", schema: z.boolean(), default: false,
+    description: "Show ads on the public pages (never in the admin, dashboards, sign-up, checkout or payment pages).",
+  },
+  "ads.adsense_client": {
+    group: "ads", type: "string", schema: z.string().regex(/^(ca-pub-\d{10,20})?$/, "Your AdSense publisher ID, like ca-pub-1234567890123456"), default: "",
+    description: "Google AdSense publisher ID (ca-pub-…). Google places the ads itself (Auto ads); choose where in your AdSense account. Also fills /ads.txt.",
+  },
+
+  // ---- Trash (owner, 2026-10-14) -------------------------------------------------------------------------------------
+  "trash.keep_days": {
+    group: "trash", type: "int", schema: int(1, 365), default: 90,
+    description: "Deleted contests and users stay in Admin › Trash this many days (they can be restored), then everything about them is erased for good.",
+  },
+  "trash.unpaid_hours": {
+    group: "trash", type: "int", schema: int(0, 2160), default: 72,
+    description: "A contest still unpaid this many hours after it was started goes to the Trash on its own (not while a bKash payment waits for approval). 0 = never.",
+  },
+
   // ---- Brand & notice (owner, 2026-10-09; BLUEPRINT §13.1, A-17) — edited in /admin/brand, not Settings ----
   "contact.phone": {
     group: "contact", type: "string", schema: z.string().regex(/^0\d{9,10}$/, "A Bangladesh phone number like 01712028511"), default: "01712028511",

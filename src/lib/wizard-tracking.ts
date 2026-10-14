@@ -1,7 +1,7 @@
 "use server";
 
 import { isSupabaseConfigured } from "@/lib/env";
-import { normalizeBdMobile } from "@/lib/phone";
+import { toE164 } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -22,9 +22,9 @@ export async function recordWizardStep(visitId: string, step: number, contestId:
  * A new client's mobile number from the first step of the wizard (owner, 2026-10-14), so the team can call someone
  * who started but didn't finish signing up. Kept 90 days. Never throws.
  */
-export async function saveWizardLead(input: { visitId: string; mobile: string; brandName?: string; service?: string }): Promise<void> {
+export async function saveWizardLead(input: { visitId: string; mobile: string; country?: string; brandName?: string; service?: string }): Promise<void> {
   if (!isSupabaseConfigured() || !UUID.test(input.visitId)) return;
-  const mobile = normalizeBdMobile(input.mobile ?? "");
+  const mobile = toE164(input.mobile ?? "", input.country);
   if (!mobile) return;
   const now = new Date().toISOString();
   const { error } = await createAdminClient()

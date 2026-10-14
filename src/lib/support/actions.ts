@@ -6,7 +6,7 @@ import { adminIdsWith } from "@/lib/admin/recipients";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
-import { formatBdMobile, normalizeBdMobile } from "@/lib/phone";
+import { formatMobile, normalizeBdMobile } from "@/lib/phone";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { myConversation, threadDetail, type SupportMessage, type SupportThread } from "./queries";
@@ -143,7 +143,7 @@ export async function searchPeople(query: string, role: "all" | "client" | "desi
     id: p.id as string,
     name: p.name as string,
     username: (p.username as string | null) ?? null,
-    mobile: p.mobile ? formatBdMobile(p.mobile as string) : null,
+    mobile: p.mobile ? formatMobile(p.mobile as string) : null,
     email: (p.email as string | null) ?? null,
     role: p.role as "client" | "designer",
     avatar: avatarUrl(p.avatar_path as string | null),

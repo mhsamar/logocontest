@@ -15,6 +15,10 @@ export type WizardState = {
   brief: Brief;
   order: Order;
   mobile: string;
+  /** The mobile's country, Bangladesh by default (owner, 2026-10-14). */
+  mobileCountry?: string;
+  /** "This number is on WhatsApp" (owner, 2026-10-14). */
+  whatsapp?: boolean;
   email: string;
   contestId: string | null;
   localFiles: LocalFile[];

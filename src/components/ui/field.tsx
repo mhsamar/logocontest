@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
+import { useI18n } from "@/lib/i18n/client";
+import { CALLING_CODES, flagOf } from "@/lib/phone";
 
 type FieldProps = {
   label: string;
@@ -80,15 +82,74 @@ export function TextField({
   );
 }
 
-export function PhoneField(props: FieldProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type">) {
-  const { label, hint, error, optionalLabel, className, mark, ...input } = props;
+const noSubscribe = () => () => {};
+
+/** Country names in the reader's language, Bangladesh first (owner, 2026-10-14). */
+function countryOptions(locale: string): { iso: string; label: string }[] {
+  let names: Intl.DisplayNames | null = null;
+  try {
+    names = new Intl.DisplayNames([locale === "bn" ? "bn" : "en"], { type: "region" });
+  } catch {
+    names = null;
+  }
+  const name = (iso: string) => names?.of(iso) ?? iso;
+  const rest = Object.keys(CALLING_CODES)
+    .filter((iso) => iso !== "BD")
+    .map((iso) => ({ iso, label: `${name(iso)} (+${CALLING_CODES[iso]})` }))
+    .sort((x, y) => x.label.localeCompare(y.label, locale === "bn" ? "bn" : "en"));
+  return [{ iso: "BD", label: `${name("BD")} (+880)` }, ...rest];
+}
+
+/**
+ * Mobile number. With `onCountryChange` (or `countryName` for a plain form) the flag becomes a country picker,
+ * Bangladesh by default (owner, 2026-10-14); without it the field is Bangladesh only (bKash numbers).
+ */
+export function PhoneField(
+  props: FieldProps & { country?: string; onCountryChange?: (iso: string) => void; countryName?: string; countryLabel?: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "type">,
+) {
+  const { label, hint, error, optionalLabel, className, mark, country: controlled, onCountryChange, countryName, countryLabel, ...input } = props;
   const id = useId();
+  const { locale } = useI18n();
+  const [own, setOwn] = useState(controlled ?? "BD");
+  const country = controlled ?? own;
+  const picker = Boolean(onCountryChange || countryName);
+  // Country names differ between the server and the browser, so the full list is made in the browser only.
+  const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
+  const options = useMemo(() => (picker && inBrowser ? countryOptions(locale) : [{ iso: country, label: `+${CALLING_CODES[country]}` }]), [picker, inBrowser, locale, country]);
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
       <div className={cx("flex rounded-[14px] ring-1 ring-inset ring-line focus-within:ring-2 focus-within:ring-primary bg-surface", error && "ring-2 ring-danger focus-within:ring-danger")}>
-        <span className="flex items-center border-r border-line pl-3.5 pr-3 text-lg leading-none" aria-hidden>
-          🇧🇩
-        </span>
+        {picker ? (
+          <label className="relative flex shrink-0 cursor-pointer items-center gap-1.5 border-r border-line pl-3.5 pr-2.5">
+            <span className="text-lg leading-none" aria-hidden>
+              {flagOf(country)}
+            </span>
+            <span className="text-[15px] font-semibold tabular-nums text-ink">+{CALLING_CODES[country]}</span>
+            <svg viewBox="0 0 24 24" className="size-3.5 text-muted" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <select
+              name={countryName}
+              value={country}
+              aria-label={countryLabel ?? "Country"}
+              onChange={(e) => {
+                setOwn(e.target.value);
+                onCountryChange?.(e.target.value);
+              }}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            >
+              {options.map((o) => (
+                <option key={o.iso} value={o.iso}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="flex items-center border-r border-line pl-3.5 pr-3 text-lg leading-none" aria-hidden>
+            🇧🇩
+          </span>
+        )}
         <input
           id={id}
           type="tel"

@@ -12,6 +12,7 @@ import { VisitTracker } from "@/components/layout/visit-tracker";
 import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot";
 import { SupportSlot } from "@/components/support/support-slot";
 import { FloatingProCardSlot } from "@/components/pro/floating-card-slot";
+import { AdsScript } from "@/components/ads/ads-script";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -23,6 +24,7 @@ import { suspendedError } from "@/lib/moderation/suspension";
 import { getCurrentUser } from "@/lib/auth/session";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
+import { getSettings } from "@/lib/settings";
 import { openGraphFor, searchIndexingOn, siteUrl } from "@/lib/seo";
 import { banglaDigits, landingBody, landingHeading } from "./fonts";
 import "./globals.css";
@@ -55,7 +57,9 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { t, locale, currency } = await getI18n();
-  const [messages, notice, user] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser()]);
+  const [messages, notice, user, ads] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser(), getSettings(["ads.enabled", "ads.adsense_client"])]);
+  // Ads (owner, 2026-10-14): only once switched on with a publisher ID in Admin › Settings › Ads.
+  const adsClient = ads["ads.enabled"] && ads["ads.adsense_client"] ? ads["ads.adsense_client"] : null;
   // Guests and admins get the designed home page, whose hero holds the nav (owner, 2026-10-10).
   const guestHome = showsLanding(user?.role);
   // Suspended for 48 hours (owner, 2026-10-12): a bar on every page says until when and what is on hold.
@@ -93,6 +97,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <VisitorPopupSlot signedIn={Boolean(user)} />
               <FloatingProCardSlot />
             </SiteChrome>
+            {adsClient && <AdsScript client={adsClient} />}
             <PointerFx />
             <MotionFx />
             <ScrollReveal />

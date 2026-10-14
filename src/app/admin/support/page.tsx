@@ -7,7 +7,7 @@ import { requirePermission } from "@/lib/admin/core";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { formatBdMobile } from "@/lib/phone";
+import { formatMobile } from "@/lib/phone";
 import { inbox, threadDetail, threadIdOf } from "@/lib/support/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -73,7 +73,7 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
                     {detail.user.name} <span className="ml-1 rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-muted">{t(`admin.live.roles.${detail.user.role}` as MessageKey)}</span>
                   </p>
                   <p className="truncate text-xs text-muted">
-                    {detail.user.mobile ? formatBdMobile(detail.user.mobile) : ""}
+                    {detail.user.mobile ? formatMobile(detail.user.mobile) : ""}
                     {detail.user.email ? ` · ${detail.user.email}` : ""}
                   </p>
                 </div>

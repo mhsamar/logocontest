@@ -83,6 +83,8 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
         "id, slug, status, brand_name, business_type, package, prize_amount, total_amount, is_blind, is_private, is_promoted, is_highlighted, is_urgent, is_nda, contest_number, logo_scan, created_at, starts_at, ends_at, judging_ends_at, completed_at",
       )
       .eq("client_id", userId)
+      // In the Trash (owner, 2026-10-14): gone from the client's lists.
+      .neq("status", "deleted")
       .order("created_at", { ascending: false }),
     db.from("payments").select("contest_id, purpose, amount").eq("client_id", userId).eq("status", "paid"),
   ]);
@@ -92,7 +94,9 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
   const paidByContest = new Map<string, number>();
   const contestsPaidFor = new Set<string>();
   let totalSpent = 0;
-  for (const p of payments ?? []) {
+  // A contest in the Trash (owner, 2026-10-14) leaves the totals too.
+  const shown = new Set((rows ?? []).map((r) => r.id as string));
+  for (const p of (payments ?? []).filter((x) => !x.contest_id || shown.has(x.contest_id as string))) {
     totalSpent += p.amount as number;
     paidByContest.set(p.contest_id as string, (paidByContest.get(p.contest_id as string) ?? 0) + (p.amount as number));
     if (p.purpose === "contest") contestsPaidFor.add(p.contest_id as string);

@@ -155,7 +155,7 @@ export async function designerByUsername(username: string): Promise<DesignerProf
     .select(COLUMNS)
     .eq("username", username.toLowerCase())
     .eq("role", "designer")
-    .neq("status", "banned")
+    .not("status", "in", "(banned,deleted)")
     .maybeSingle<Row>();
   return data ? toProfile(data, "public") : null;
 }

@@ -27,6 +27,8 @@ const TOTAL = 4;
 type Form = {
   name: string;
   mobile: string;
+  country: string;
+  whatsapp: boolean;
   email: string;
   password: string;
   username: string;
@@ -44,6 +46,8 @@ type Form = {
 const EMPTY: Form = {
   name: "",
   mobile: "",
+  country: "BD",
+  whatsapp: false,
   email: "",
   password: "",
   username: "",
@@ -130,7 +134,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
     start(async () => {
       const r =
         step === 1
-          ? await checkDesignerBasics({ name: form.name, mobile: form.mobile })
+          ? await checkDesignerBasics({ name: form.name, mobile: form.mobile, country: form.country })
           : step === 2
             ? await checkDesignerLogin({ email: form.email, password: form.password })
             : await checkDesignerProfile({ username: form.username, bio: form.bio });
@@ -173,11 +177,15 @@ export function DesignerSignupFlow({ passwordMin, bioMax }: { passwordMin: numbe
           <PhoneField
             mark
             label={t("designerSignup.mobile")}
-            placeholder="01XXX-XXXXXX"
+            placeholder={form.country === "BD" ? "01XXX-XXXXXX" : undefined}
+            country={form.country}
+            onCountryChange={(iso) => set("country", iso)}
+            countryLabel={t("auth.phone.country")}
             value={form.mobile}
             onChange={(e) => set("mobile", e.target.value)}
             error={fieldError("mobile")}
           />
+          <Checkbox label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={form.whatsapp} onChange={(e) => set("whatsapp", e.target.checked)} />
         </div>
       )}
 

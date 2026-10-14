@@ -352,6 +352,8 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
+  // In the Trash (owner, 2026-10-14): only staff can still open it.
+  if (data.status === "deleted" && viewer?.role !== "admin") return null;
 
   const isOwner = viewer?.id === data.client_id;
   const isAdmin = viewer?.role === "admin";
