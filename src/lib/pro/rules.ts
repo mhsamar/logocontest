@@ -97,11 +97,13 @@ export function addMonths(from: Date, months = 1): Date {
 export const periodEndAfterPayment = (currentEnd: Date | null, now: Date, months = 1): Date => addMonths(currentEnd && currentEnd > now ? currentEnd : now, months);
 
 /** Which renewal reminder is due: 7 days before the end, then 1 day before. Each is sent once. */
-export function renewalReminderDue(sub: SubLike & { autoRenew: boolean; reminded7dAt: Date | null; reminded1dAt: Date | null }, now: Date = new Date()): "7d" | "1d" | null {
+/** "7d" and "1d" are the first and second reminder; their days are set in Admin › Notifications (7 and 1 at first). */
+export function renewalReminderDue(sub: SubLike & { autoRenew: boolean; reminded7dAt: Date | null; reminded1dAt: Date | null }, now: Date = new Date(), days: readonly number[] = [7, 1]): "7d" | "1d" | null {
   if (!isProActive(sub, now) || sub.status === "cancelled" || !sub.autoRenew) return null;
   const left = sub.currentPeriodEnd.getTime() - now.getTime();
-  if (left <= DAY && !sub.reminded1dAt) return "1d";
-  if (left <= 7 * DAY && left > DAY && !sub.reminded7dAt) return "7d";
+  const [first, second] = [...days].sort((a, b) => b - a);
+  if (second !== undefined && left <= second * DAY && !sub.reminded1dAt) return "1d";
+  if (first !== undefined && left <= first * DAY && (second === undefined || left > second * DAY) && !sub.reminded7dAt) return "7d";
   return null;
 }
 

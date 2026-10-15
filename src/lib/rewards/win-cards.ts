@@ -137,7 +137,7 @@ export async function createWinCard(contestId: string, entryId: string, origin: 
     const { data: d } = await db.from("profiles").select("name, email, locale").eq("id", e.designer_id).maybeSingle();
     if (d?.email) {
       const t = await translatorFor(d.locale === "bn" ? "bn" : "en");
-      await emailText({ userId: e.designer_id as string, email: d.email as string, locale: d.locale === "bn" ? "bn" : "en", subject: t("winCard.email.subject"), body: t(hidden ? "winCard.email.bodyHidden" : "winCard.email.body", { name: (d.name as string) || "", brand: c.brand_name as string, link: `${origin}${link}` }) });
+      await emailText({ userId: e.designer_id as string, email: d.email as string, locale: d.locale === "bn" ? "bn" : "en", subject: t("winCard.email.subject"), body: t(hidden ? "winCard.email.bodyHidden" : "winCard.email.body", { name: (d.name as string) || "", brand: c.brand_name as string, link: `${origin}${link}` }), notice: "win_card_ready" });
     }
     return slug;
   } catch (err) {

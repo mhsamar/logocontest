@@ -233,6 +233,7 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
     message: body,
     path: toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
     thread: `files:${h.id}`,
+    notice: "handover_message",
   });
   refresh();
   return { ok: true };

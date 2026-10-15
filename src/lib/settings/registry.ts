@@ -195,9 +195,10 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 24,
     description: "Hours before the end when the 'contest ends soon' notice goes out.",
   },
+  // Owner, 2026-10-15: the new-designs email (client-new-entries) goes at most once in this many hours per contest.
   "timers.new_entry_digest_hours": {
-    group: "timers", type: "int", schema: int(1), default: 3,
-    description: "New-entry emails to the client are batched over this many hours.",
+    group: "timers", type: "int", schema: int(1, 168), default: 24,
+    description: "Hours between new-designs emails to a client (at most one per contest in this time; 24 = once a day).",
   },
   // Suspension and ban rules (owner, 2026-10-12; migrations 0039, 0041): every rule break is a 48-hour suspension
   // that ends on its own; 3 suspensions within 30 days = permanent ban.
@@ -584,6 +585,32 @@ export const SETTINGS = {
   "email.daily_limit": {
     group: "email", type: "int", schema: int(0, 100_000), default: 80,
     description: "Most emails a day other than codes and security emails (the rest of the email plan's daily limit is kept for codes; Resend's free plan sends 100 a day). 0 = no limit.",
+  },
+
+  // ---- Admin › Notifications (owner, 2026-10-15): set on that page, not in Settings ---------------------------------
+  "notifications.channels": {
+    group: "notifications", type: "json", schema: z.record(z.string(), z.array(z.enum(["bell", "push", "email"]))), default: {} as Record<string, ("bell" | "push" | "email")[]>,
+    description: "Notices turned off in Admin › Notifications: row → the ways (bell, push, email) turned off.",
+  },
+  "notify.chat_email_minutes": {
+    group: "notifications", type: "int", schema: int(1, 1440), default: 30,
+    description: "Chat emails: at most one per conversation in this many minutes.",
+  },
+  "notify.saved_reminder_hours": {
+    group: "notifications", type: "json", schema: z.array(z.number().int().min(1).max(168)).min(1).max(2), default: [24, 2],
+    description: "Pro: hours before a saved contest ends when its reminder goes (one or two numbers).",
+  },
+  "notify.invite_reminder_hours": {
+    group: "notifications", type: "int", schema: int(1, 168), default: 24,
+    description: "Pro: hours before an invited contest ends when the designer is reminded (if they haven't sent a design).",
+  },
+  "notify.pro_renewal_days": {
+    group: "notifications", type: "json", schema: z.array(z.number().int().min(1).max(30)).min(1).max(2), default: [7, 1],
+    description: "Pro: days before the plan ends when the renewal reminder goes (one or two numbers).",
+  },
+  "notify.upgrade_reminder_hours": {
+    group: "notifications", type: "json", schema: z.array(z.number().int().min(1).max(336)).min(1).max(2), default: [1, 72],
+    description: "Hours after a designer clicks Upgrade without paying when the reminder goes (one or two numbers).",
   },
 
   // ---- Trash (owner, 2026-10-14) -------------------------------------------------------------------------------------

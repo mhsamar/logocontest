@@ -24,6 +24,7 @@ import { checkExtraAnswers } from "@/lib/onboarding/config";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { emailWelcome } from "@/lib/email/events";
 import { after } from "next/server";
+import { noticeOn } from "@/lib/notifications/switches";
 
 /** D-01 designer sign-up (UI-JOURNEY). Each step is checked on the server before the next one opens. */
 
@@ -185,7 +186,8 @@ export async function createDesignerAccount(input: {
   await sendVerificationEmail({ userId, email, name, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
   // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
   after(() => emailWelcome(userId));
-  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent")))) {
+  // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
+  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent"))) && (await noticeOn("welcome", "push"))) {
     const t = await translatorFor(locale);
     await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
   }

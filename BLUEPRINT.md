@@ -563,7 +563,7 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 | Confirm your email: 6-digit code (also on **Resend code**) | New user | Email |
 | Password reset link | User | Email |
 | Contest live / payment received | Client | Yes |
-| New entry (batched every 3 hours) | Client | Email |
+| New entry (bell at once; email at most once a day per contest, Admin › Notifications) | Client | Email |
 | Contest ends in 24 hours (offers **Extend** when entries are low) | Client | Email |
 | New contest is live: "New logo contest: {brand}. Submit your logo and win {prize}" (owner, 2026-10-09) | Every active designer | Push |
 | Contest ends in 12 hours and in 6 hours: "Quickly submit your logo" (owner, 2026-10-09; replaces the 24-hour designer notice; hours are the setting `timers.designer_ending_notice_hours`) | Every active designer | Push |
@@ -621,6 +621,28 @@ Every email the site sends uses one of 14 designed templates (600px, tables, inl
 **Sending (`src/lib/email/send.ts`):** settings first, then the daily limit (Settings › Emails › `email.daily_limit`, 80: emails other than codes and security emails stop for the day at that number, so codes still go on Resend's 100-a-day free plan; 0 = no limit), then Resend with up to 3 retries (not when Resend refuses for good), and a row in `email_log` either way (user, template, what it was about, sent/failed/skipped and why, Resend's message id, tries).
 
 **Pictures:** the logo is `/brand/logo-icon-tile.png`. A contest's picture is `/api/email/contest/<slug>` (a 320×240 PNG tile with the brand's first letter; the logo for private and NDA contests). A design's picture is `/api/email/image/<token>`: the token is signed and runs out after 120 days, only design previews can be asked for, and it is sent as a JPEG at most 1200 px wide. Logos found by the checker are never in an email.
+
+### 12.2 Admin › Notifications (owner, 2026-10-15; `/admin/notifications`)
+
+One page for every notice the site sends, in tabs by who gets it (designers, Pro designers, clients, everyone, admins). Each row (`src/lib/notifications/admin-catalog.ts`, one row per notice, covering one or more notification types) shows what it is, when it goes, and a switch for each way it goes: **bell** (in the site), **push** (browser) and **email**. Codes, password reset, suspension/ban, ID check and late-files suspensions are always on. Where a notice has a timing, it is edited on the row:
+
+| Timing | Setting | At first |
+|---|---|---|
+| Designers: contest ending | `timers.designer_ending_notice_hours` | 12, 6 hours before the end |
+| Client: contest ends soon | `timers.ending_soon_notice_hours` | 24 hours before |
+| Pick-a-winner reminders | `timers.judging_reminder_days` | judging days 1, 3, 5 |
+| Send your final files | `timers.files_due_notice_hours` | 24 hours before the deadline |
+| Late files suspension (the rule itself) | `timers.files_strike_hours` | 24 hours after winning |
+| Prize in wallet (the hold itself) | `timers.payout_hold_days` | 3 days after approval |
+| New-designs email to the client | `timers.new_entry_digest_hours` | at most once in 24 hours per contest |
+| Monthly prize claim reminders | `rewards.claim_reminder_days`, `rewards.claim_reminders_max` | every 3 days, at most 3 |
+| Chat emails | `notify.chat_email_minutes` | at most one per chat in 30 minutes |
+| Pro: saved contest ends soon | `notify.saved_reminder_hours` | 24, 2 hours before |
+| Pro: invited contest ends soon | `notify.invite_reminder_hours` | 24 hours before |
+| Pro renewal | `notify.pro_renewal_days` | 7, 1 days before |
+| Upgrade reminder (clicked Upgrade, didn't pay) | `notify.upgrade_reminder_hours` | 1, 72 hours after |
+
+Pro early access (how long Pro designers hear first) and the upgrade reminder's on/off stay in Admin › Pro plan; the rows link there. The switches are kept in the setting `notifications.channels` (row → ways turned off). `notify()` checks the bell, `notifyWithPush`/`broadcastToDesigners` check push, and `sendEmail` checks the email (skipped as `admin_off` in `email_log`). A person's own Email settings still apply on top. Saving needs a reason and is written to the audit log (`update_notifications`). Needs `settings.view` to see and `settings.manage` to change.
 
 ## 13. Admin panel (`/admin`)
 

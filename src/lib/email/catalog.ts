@@ -68,16 +68,16 @@ export function parseEmailOff(raw: unknown): OptionalKey[] {
 /** Chat emails (owner, 2026-10-15): at most one per conversation every 30 minutes. */
 export const CHAT_EMAIL_GAP_MS = 30 * 60_000;
 
-/** The new-designs digest goes to a client at most once a day per contest, and only when there is something new. */
+/** The new-designs digest goes to a client at most once a day per contest (Admin › Notifications can change it), and only when there is something new. */
 export const DIGEST_GAP_MS = 24 * 3_600_000;
 
-export function digestDue(lastSentAt: Date | null, newCount: number, now: Date): boolean {
+export function digestDue(lastSentAt: Date | null, newCount: number, now: Date, gapMs: number = DIGEST_GAP_MS): boolean {
   if (newCount <= 0) return false;
-  return !lastSentAt || now.getTime() - lastSentAt.getTime() >= DIGEST_GAP_MS;
+  return !lastSentAt || now.getTime() - lastSentAt.getTime() >= gapMs;
 }
 
-/** True when nothing was sent for this conversation in the last 30 minutes. */
-export const chatEmailDue = (lastSentAt: Date | null, now: Date) => !lastSentAt || now.getTime() - lastSentAt.getTime() >= CHAT_EMAIL_GAP_MS;
+/** True when nothing was sent for this conversation within the gap (30 minutes unless Admin › Notifications says otherwise). */
+export const chatEmailDue = (lastSentAt: Date | null, now: Date, gapMs: number = CHAT_EMAIL_GAP_MS) => !lastSentAt || now.getTime() - lastSentAt.getTime() >= gapMs;
 
 /** "45 minutes", "2 hours", "1 day": for head starts and reminders. */
 export function spanText(minutes: number): string {

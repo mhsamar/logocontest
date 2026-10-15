@@ -1,5 +1,7 @@
 import "server-only";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
+import { twoSlots } from "@/lib/notifications/admin-catalog";
+import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { remindInvited } from "./invites";
 import { qualityScore } from "./rules";
@@ -13,15 +15,19 @@ import { expireTrials, sendTrialReminders } from "./trial";
 const db = () => createAdminClient();
 const HOUR = 3_600_000;
 
-/** Pro: "a contest you saved ends in 24 hours / 2 hours", once each, for saved contests with Remind me on. */
+/**
+ * Pro: "a contest you saved ends in 24 hours / 2 hours", once each, for saved contests with Remind me on. The hours
+ * are set in Admin › Notifications (one or two reminders; the columns keep their first and second slot).
+ */
 async function savedReminders(now: Date): Promise<number> {
   const pro = await allProIds();
   if (!pro.length) return 0;
-  const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", new Date(now.getTime() + 24 * HOUR).toISOString());
+  const [first, second] = twoSlots((await getSettings(["notify.saved_reminder_hours"]))["notify.saved_reminder_hours"]);
+  const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", new Date(now.getTime() + first * HOUR).toISOString());
   let n = 0;
   for (const c of contests ?? []) {
     const left = new Date(c.ends_at as string).getTime() - now.getTime();
-    const col = left <= 2 * HOUR ? "reminded_2_at" : "reminded_24_at";
+    const col = second !== null && left <= second * HOUR ? "reminded_2_at" : "reminded_24_at";
     const { data: rows } = await db().from("contest_favorites").update({ [col]: now.toISOString() }).eq("contest_id", c.id).eq("remind", true).in("user_id", pro).is(col, null).select("user_id");
     const ids = (rows ?? []).map((r) => r.user_id as string);
     if (!ids.length) continue;
@@ -36,7 +42,7 @@ async function savedReminders(now: Date): Promise<number> {
 async function clickReminders(now: Date): Promise<number> {
   const { settings } = await getProSettings();
   if (!settings.autoRemind || !settings.isForSale) return 0;
-  const { data: events } = await db().from("pro_funnel_events").select("designer_id, event, step, created_at").not("designer_id", "is", null).gte("created_at", new Date(now.getTime() - 5 * 24 * HOUR).toISOString()).order("created_at");
+  const { data: events } = await db().from("pro_funnel_events").select("designer_id, event, step, created_at").not("designer_id", "is", null).gte("created_at", new Date(now.getTime() - 16 * 24 * HOUR).toISOString()).order("created_at");
   const by = new Map<string, { clicked: number | null; paid: boolean; sent: Set<string> }>();
   for (const e of events ?? []) {
     const id = e.designer_id as string;
@@ -46,11 +52,15 @@ async function clickReminders(now: Date): Promise<number> {
     if (e.event === "reminded" && e.step) s.sent.add(e.step as string);
   }
   const pro = new Set(await allProIds());
+  // The hours after the click (Admin › Notifications): first and, if set, second reminder ("1h" and "3d" slots).
+  const [later, sooner] = twoSlots((await getSettings(["notify.upgrade_reminder_hours"]))["notify.upgrade_reminder_hours"]);
+  const firstAt = (sooner ?? later) * HOUR;
+  const secondAt = sooner === null ? null : later * HOUR;
   let n = 0;
   for (const [id, s] of by) {
     if (s.clicked === null || s.paid || pro.has(id)) continue;
     const age = now.getTime() - s.clicked;
-    const step = age >= 72 * HOUR && !s.sent.has("3d") ? "3d" : age >= HOUR && age < 72 * HOUR && !s.sent.has("1h") ? "1h" : null;
+    const step = secondAt !== null && age >= secondAt && !s.sent.has("3d") ? "3d" : age >= firstAt && (secondAt === null || age < secondAt) && !s.sent.has("1h") ? "1h" : null;
     if (!step) continue;
     await logFunnel("reminded", { designerId: id, step });
     await tellDesigner(id, "pro_checkout_reminder", { amount: settings.priceBdt }, "/pro/checkout");

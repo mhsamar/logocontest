@@ -94,7 +94,7 @@ export async function tellAdminsClaimed(reward: { id: string; month: string; kin
     const lang = a.locale === "bn" ? "bn" : "en";
     const t = await translatorFor(lang);
     const prize = t(reward.kind === "smartphone" ? "monthlyReward.page.smartphone" : "monthlyReward.page.giftBox");
-    await emailText({ userId: a.id as string, email: a.email as string, locale: lang, subject: t("monthlyReward.adminEmail.subject", { name: winnerName, prize }), body: t("monthlyReward.adminEmail.body", { name: winnerName, prize, month: monthLabel(reward.month, lang), number: reward.number, link: `${origin}/admin/monthly` }) });
+    await emailText({ notice: "admin_monthly", userId: a.id as string, email: a.email as string, locale: lang, subject: t("monthlyReward.adminEmail.subject", { name: winnerName, prize }), body: t("monthlyReward.adminEmail.body", { name: winnerName, prize, month: monthLabel(reward.month, lang), number: reward.number, link: `${origin}/admin/monthly` }) });
   }
 }
 
@@ -152,7 +152,7 @@ async function sendReminder(r: ReminderRow, origin: string, now: Date): Promise<
     const lang = w.locale === "bn" ? "bn" : "en";
     const t = await translatorFor(lang);
     const prize = t(kind === "smartphone" ? "monthlyReward.page.smartphone" : "monthlyReward.page.giftBox");
-    await emailText({ userId: w.id, email: w.email, locale: lang, subject: t("monthlyReward.reminderEmail.subject", { prize }), body: t("monthlyReward.reminderEmail.body", { name: (w.name ?? "").trim(), prize, month: monthLabel(r.month, lang), link: `${origin}${link}` }) });
+    await emailText({ notice: "monthly_claim_reminder", userId: w.id, email: w.email, locale: lang, subject: t("monthlyReward.reminderEmail.subject", { prize }), body: t("monthlyReward.reminderEmail.body", { name: (w.name ?? "").trim(), prize, month: monthLabel(r.month, lang), link: `${origin}${link}` }) });
   }
   return true;
 }

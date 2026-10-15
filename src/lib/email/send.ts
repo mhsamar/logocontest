@@ -3,6 +3,7 @@ import { isSupabaseConfigured, requireEnv } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
 import { siteUrl } from "@/lib/seo";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { noticeOn } from "@/lib/notifications/switches";
 import { getEmailSender, siteOrigin } from "./index";
 import { isOptionalKey, parseEmailOff, shouldSend, type EmailKey } from "./catalog";
 import { unsubscribeQuery } from "./links";
@@ -28,6 +29,22 @@ export type SendInput = {
   ref?: string;
   /** Password reset, account suspended…: always sent, no Unsubscribe. */
   security?: boolean;
+  /** Its row in Admin › Notifications, where the owner can turn its email off (owner, 2026-10-15). */
+  notice?: string;
+};
+
+/** The Admin › Notifications row of emails that belong to one row only. */
+const NOTICE_OF: Partial<Record<EmailKey, string>> = {
+  welcome: "welcome",
+  "contest-invite": "pro_invited",
+  "contest-ending": "contest_ending",
+  "entry-shortlisted": "entry_shortlisted",
+  "contest-won": "winner_picked",
+  "client-new-entries": "entry_new",
+  "client-pick-winner": "judging_started",
+  "logo-check-ready": "logo_check_ready",
+  "pro-receipt": "pro_activated",
+  "pro-renewal": "pro_renew",
 };
 
 const REPLY_TO = process.env.EMAIL_REPLY_TO || "support@logocontest.bd";
@@ -115,6 +132,7 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
     if (!p.email) return skip("no_email");
     if (p.gone && !security) return skip("deleted");
     if (!shouldSend(key, p.off, security)) return skip("off");
+    if (!security && !(await noticeOn(input.notice ?? NOTICE_OF[key], "email"))) return skip("admin_off");
     if (!security && isSupabaseConfigured()) {
       const limit = (await getSettings(["email.daily_limit"]))["email.daily_limit"];
       if (limit > 0 && (await sentToday(new Date())) >= limit) return skip("limit");
