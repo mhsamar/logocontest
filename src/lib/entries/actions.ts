@@ -303,10 +303,10 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const chat = { contestId: c.id, entryNo: data.number as number, message: body, thread: `comments:${entryId}` };
   if (user.id === c.client_id) {
     await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
-    await emailChat({ ...chat, to: data.designer_id as string, senderName: "The client", path: designerLink });
+    await emailChat({ ...chat, to: data.designer_id as string, senderName: "The client", path: designerLink, notice: "entry_comment_client" });
   } else if (user.id === data.designer_id) {
     await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
-    await emailChat({ ...chat, to: c.client_id, senderName: `The designer of #${data.number}`, path: clientLink });
+    await emailChat({ ...chat, to: c.client_id, senderName: `The designer of #${data.number}`, path: clientLink, notice: "entry_comment_designer" });
   }
   else {
     await notify([data.designer_id], "entry_comment_other", n, designerLink, user.id);

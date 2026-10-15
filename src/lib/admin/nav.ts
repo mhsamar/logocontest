@@ -55,6 +55,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/support", icon: "support", label: "admin.nav.support", perm: "support.view", badge: "support" },
       { href: "/admin/messages", icon: "send", label: "admin.nav.messages", perm: "messages.view" },
+      // Who gets which notice, how and when (owner, 2026-10-15).
+      { href: "/admin/notifications", icon: "bell", label: "admin.nav.notifications", perm: "settings.view" },
     ],
   },
   {

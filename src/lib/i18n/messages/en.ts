@@ -1644,6 +1644,7 @@ const en = {
       settings: "Settings",
       texts: "Texts",
       onboarding: "Onboarding",
+      notifications: "Notifications",
       lists: "Lists",
       legal: "Legal pages",
       brand: "Brand & notice",
@@ -3063,6 +3064,300 @@ const en = {
       stay: "Stay signed in",
       errors: { noEmail: "This account has no email address." },
     },
+    notices: {
+      title: "Notifications",
+      lead: "Who gets which notice, how (bell in the site, browser push, email) and when. Codes and security notices always go.",
+      save: "Save notifications",
+      saved: "Notifications saved.",
+      invalid: "Some timings are not right. Check the boxes in red.",
+      on: "On",
+      off: "Off",
+      always: "Always on",
+      offCount: "{n} off",
+      listHint: "Separate numbers with commas, like 12, 6.",
+      earlyAccess: "Pro designers get it {n} minutes before everyone else.",
+      earlyAccessOff: "Pro early access is off, so everyone hears at the same time.",
+      changeInPro: "Change in Pro plan",
+      alsoUser: "People can also turn this email off in their own Email settings.",
+      alsoProOn: "It also needs Auto reminder on in Admin › Pro plan (it is on now).",
+      alsoProOff: "Auto reminder is off in Admin › Pro plan, so this doesn't go out now.",
+      channels: {
+        bell: "Bell",
+        push: "Push",
+        email: "Email",
+      },
+      units: {
+        minutes: "minutes",
+        hours: "hours",
+        days: "days",
+        times: "times",
+      },
+      errors: {
+        number: "Type whole numbers only.",
+        one: "Type one number.",
+        range: "That number is outside what's allowed.",
+      },
+      audiences: {
+        designer: {
+          label: "Designers",
+          lead: "Every designer, Basic and Pro.",
+        },
+        pro: {
+          label: "Pro designers",
+          lead: "Only designers on the Pro plan, on top of the designer notices.",
+        },
+        client: {
+          label: "Clients",
+          lead: "People who start contests.",
+        },
+        everyone: {
+          label: "Everyone",
+          lead: "Clients and designers alike.",
+        },
+        admin: {
+          label: "Admins",
+          lead: "Staff with the right permission.",
+        },
+      },
+      timing: {
+        timers_designer_ending_notice_hours: "Hours before the end",
+        timers_ending_soon_notice_hours: "Hours before the end",
+        timers_judging_reminder_days: "Judging days",
+        timers_files_due_notice_hours: "Hours before the file deadline",
+        timers_files_strike_hours: "Hours after winning",
+        timers_payout_hold_days: "Days after the client approves",
+        timers_new_entry_digest_hours: "Email at most once every",
+        rewards_claim_reminder_days: "Remind every",
+        rewards_claim_reminders_max: "At most",
+        notify_chat_email_minutes: "Chat email gap",
+        notify_saved_reminder_hours: "Hours before the end",
+        notify_invite_reminder_hours: "Hours before the end",
+        notify_pro_renewal_days: "Days before the plan ends",
+        notify_upgrade_reminder_hours: "Hours after the click",
+      },
+      rows: {
+        contest_new: {
+          label: "New contest",
+          when: "When a contest opens to everyone. Bell and push to every designer; email to designers who keep it on.",
+        },
+        contest_ending: {
+          label: "Contest ending soon",
+          when: "Before a contest ends. Bell and push to every designer; email only to designers who joined or saved it.",
+        },
+        contest_ended_entered: {
+          label: "Contest ended",
+          when: "When a contest they sent a design to ends and the client is choosing.",
+        },
+        brief_updated: {
+          label: "Brief changed",
+          when: "When the client edits the brief of a contest they sent a design to.",
+        },
+        contest_extended: {
+          label: "Contest extended",
+          when: "When a contest they entered gets a new end date.",
+        },
+        entry_rated: {
+          label: "Design rated",
+          when: "When the client gives their design stars.",
+        },
+        entry_comment_client: {
+          label: "Client feedback",
+          when: "When the client comments on their design. At most one email per design within the chat email gap.",
+        },
+        entry_shortlisted: {
+          label: "Design shortlisted",
+          when: "When the client shortlists their design. Email only, once per design.",
+        },
+        entry_rejected: {
+          label: "Design rejected or removed",
+          when: "When the client rejects their design or an admin removes it.",
+        },
+        winner_picked: {
+          label: "You won",
+          when: "When their design wins: prize, fee and what they get.",
+        },
+        contest_closed: {
+          label: "A winner was picked",
+          when: "To the other designers of the contest when a winner is picked.",
+        },
+        win_card_ready: {
+          label: "Win card ready",
+          when: "When their win card picture is ready to share.",
+        },
+        files_due: {
+          label: "Send your final files",
+          when: "Before the winner's final files deadline.",
+        },
+        handover_updates: {
+          label: "Final files: change or approved",
+          when: "When the client asks for a change or approves the files.",
+        },
+        late_files: {
+          label: "Late final files: suspension",
+          when: "When the winner hasn't sent the first files in time. A security notice, always sent. Changing the hours changes the rule itself.",
+        },
+        prize_released: {
+          label: "Prize in wallet",
+          when: "When the prize (or a share of it) moves to their wallet. Changing the days changes the hold itself.",
+        },
+        withdrawals: {
+          label: "Withdrawal paid or rejected",
+          when: "When an admin pays or rejects a withdrawal.",
+        },
+        agreements: {
+          label: "ID check",
+          when: "When an admin asks for a new ID photo or rejects it. A security notice, always sent.",
+        },
+        pro_checkout_reminder: {
+          label: "Upgrade reminder",
+          when: "To a Basic designer who clicked Upgrade but didn't pay.",
+        },
+        contest_new_pro: {
+          label: "New contest, Pro first",
+          when: "When a contest opens, before other designers (early access). Pro designers can turn it off or pick design types on their Contests page.",
+        },
+        pro_invited: {
+          label: "Client invitation",
+          when: "When a client invites them to a contest.",
+        },
+        pro_invite_reminder: {
+          label: "Invited contest ends soon",
+          when: "Before an invited contest ends, if they haven't sent a design.",
+        },
+        pro_saved_reminder: {
+          label: "Saved contest ends soon",
+          when: "Before a contest they saved (with Remind me on) ends.",
+        },
+        pro_message: {
+          label: "Client and Pro designer messages",
+          when: "The Pro chat, both ways. At most one email per chat within the chat email gap.",
+        },
+        pro_activated: {
+          label: "Pro receipt",
+          when: "When a Pro payment is received.",
+        },
+        pro_renew: {
+          label: "Pro renewal reminder",
+          when: "Before the Pro plan ends.",
+        },
+        pro_expired: {
+          label: "Pro ended",
+          when: "When the Pro plan has ended.",
+        },
+        pro_account: {
+          label: "Pro plan changes",
+          when: "Plan cancelled, payment failed, free time given, new price.",
+        },
+        pro_trial: {
+          label: "Pro trial",
+          when: "Trial started, ending, ended or extended.",
+        },
+        pro_weekly: {
+          label: "Weekly report",
+          when: "Every week, if the designer turned it on.",
+        },
+        payments: {
+          label: "Payment updates",
+          when: "Payment received, approved or rejected.",
+        },
+        entry_new: {
+          label: "New designs",
+          when: "Bell at once for each new design. The email sums them up, at most once per contest in the time below.",
+        },
+        entry_comment_designer: {
+          label: "Designer reply",
+          when: "When a designer answers on their design. At most one email per design within the chat email gap.",
+        },
+        ending_soon: {
+          label: "Contest ends soon",
+          when: "Before their contest ends (with Extend when designs are few).",
+        },
+        judging_started: {
+          label: "Pick a winner",
+          when: "When their contest ends and judging starts.",
+        },
+        judging_reminder: {
+          label: "Pick-a-winner reminders",
+          when: "On these judging days while no winner is picked.",
+        },
+        handover_submitted: {
+          label: "Final files sent",
+          when: "When the winner sends the final files.",
+        },
+        winner_changes: {
+          label: "Pick again or no result",
+          when: "The winner missed the deadline, an admin picked the winner, or the contest ended with no result.",
+        },
+        welcome: {
+          label: "Welcome",
+          when: "When the account is made: a push if they allowed it, and the welcome email.",
+        },
+        email_code: {
+          label: "Email code",
+          when: "The 6-digit code to confirm an email. Always sent.",
+        },
+        password_reset: {
+          label: "Password reset",
+          when: "The link to choose a new password. Always sent.",
+        },
+        account_status: {
+          label: "Suspended, banned or active again",
+          when: "With the reason. Always sent.",
+        },
+        handover_message: {
+          label: "Final files chat",
+          when: "Messages between the client and the winner while files are delivered. At most one email per chat within the chat email gap.",
+        },
+        comments: {
+          label: "Other comments",
+          when: "Comments by other people on a design or a contest.",
+        },
+        contest_cancelled: {
+          label: "Contest cancelled",
+          when: "When an admin cancels a contest.",
+        },
+        logo_check_ready: {
+          label: "Logo check ready",
+          when: "When a logo check they ran is finished. Email only.",
+        },
+        copy_claims: {
+          label: "Copy claims",
+          when: "Updates on a copy claim: opened, rejected, correction, upheld, fine or ban.",
+        },
+        moderation: {
+          label: "Reports and warnings",
+          when: "Their report was upheld or dismissed, or a warning for false reports.",
+        },
+        monthly_won: {
+          label: "Monthly prize won",
+          when: "When they win the monthly smartphone or gift box.",
+        },
+        monthly_claim_reminder: {
+          label: "Monthly prize: claim reminder",
+          when: "To a winner who hasn't claimed the prize yet.",
+        },
+        support: {
+          label: "Support replies and team messages",
+          when: "Replies in the support chat and messages sent from Admin › Messages.",
+        },
+        admin_support: {
+          label: "New support message",
+          when: "When someone writes to support.",
+        },
+        admin_payments: {
+          label: "Payments and withdrawals to check",
+          when: "A bKash payment to approve or a withdrawal request.",
+        },
+        admin_monthly: {
+          label: "Monthly prizes",
+          when: "Prizes ready to approve, sent, no winner, or claimed.",
+        },
+        admin_safety: {
+          label: "Safety alerts",
+          when: "Copy claim opened, late final files, missed files, new ID photo.",
+        },
+      },
+    },
     onboarding: {
       title: "Onboarding",
       lead: "The questions a new client (starting a logo contest) and a new designer (signing up) answer. Hide the optional ones, change any wording, and add your own questions to any step.",
@@ -3106,6 +3401,7 @@ const en = {
       details: "Details",
       actions: {
         update_onboarding: "Changed the onboarding questions",
+        update_notifications: "Changed the notifications",
         sign_out_devices: "Signed a user out of devices",
         send_password_reset: "Sent a password reset email",
         set_password: "Set a new password for a user",

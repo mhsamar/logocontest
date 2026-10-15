@@ -2,8 +2,10 @@ import "server-only";
 import { translatorFor } from "@/lib/content/texts";
 import { siteOrigin } from "@/lib/email";
 import { emailProReceipt, emailProRenewal, emailText } from "@/lib/email/events";
+import { rowOfType } from "@/lib/notifications/admin-catalog";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
+import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addMonths, isProActive, periodEndAfterPayment, receiptCode, renewalReminderDue, shouldExpire, type FunnelEvent } from "./rules";
 import { getProSettings } from "./settings";
@@ -45,6 +47,7 @@ export async function tellDesigner(designerId: string, type: NotificationType, d
       locale,
       subject: t(mail.subject as never, mail.params),
       body: t(mail.body as never, { name: ((p.name as string | null) ?? "").trim(), link: url, ...mail.params }),
+      notice: rowOfType(type)?.id,
     });
   } catch (e) {
     console.error("[pro] tell designer:", e instanceof Error ? e.message : e);
@@ -138,21 +141,22 @@ export async function expireEndedPlans(now: Date = new Date()): Promise<number> 
 export async function sendRenewalReminders(now: Date = new Date()): Promise<number> {
   const { ready, settings } = await getProSettings();
   if (!ready) return 0;
-  const soon = new Date(now.getTime() + 7 * 86_400_000).toISOString();
+  const days = (await getSettings(["notify.pro_renewal_days"]))["notify.pro_renewal_days"];
+  const soon = new Date(now.getTime() + Math.max(...days) * 86_400_000).toISOString();
   const { data } = await db().from("pro_subscriptions").select(SUB_COLUMNS).in("status", ["active", "expiring", "payment_failed"]).gt("current_period_end", now.toISOString()).lte("current_period_end", soon);
   let n = 0;
   for (const r of data ?? []) {
     const sub = toSubscription(r as Record<string, unknown>);
-    const due = renewalReminderDue(sub, now);
+    const due = renewalReminderDue(sub, now, days);
     if (!due) continue;
     const col = due === "7d" ? "reminded_7d_at" : "reminded_1d_at";
     const { data: claimed } = await db().from("pro_subscriptions").update({ [col]: now.toISOString(), status: sub.status === "active" ? "expiring" : sub.status }).eq("id", sub.id).is(col, null).select("id");
     if (!claimed?.length) continue;
     n++;
-    const days = Math.max(1, Math.ceil((sub.currentPeriodEnd.getTime() - now.getTime()) / 86_400_000));
-    await tellDesigner(sub.designerId, due === "7d" ? "pro_renew_7d" : "pro_renew_1d", { days, amount: settings.priceBdt }, "/pro/checkout?renew=1");
-    // pro-renewal.html (owner, 2026-10-15): 7 days and 1 day before, with the price that applies from this renewal.
-    await emailProRenewal(sub.designerId, days, sub.currentPeriodEnd, settings.priceBdt);
+    const daysLeft = Math.max(1, Math.ceil((sub.currentPeriodEnd.getTime() - now.getTime()) / 86_400_000));
+    await tellDesigner(sub.designerId, due === "7d" ? "pro_renew_7d" : "pro_renew_1d", { days: daysLeft, amount: settings.priceBdt }, "/pro/checkout?renew=1");
+    // pro-renewal.html (owner, 2026-10-15): 7 days and 1 day before (Admin › Notifications), with the price that applies from this renewal.
+    await emailProRenewal(sub.designerId, daysLeft, sub.currentPeriodEnd, settings.priceBdt);
   }
   if (n) await logProActivity(null, "renewal_reminders", null, null, { sent: n });
   return n;

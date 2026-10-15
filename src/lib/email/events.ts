@@ -102,7 +102,8 @@ export async function emailContestNew(contestId: string, designerIds: string[], 
       const origin = await emailOrigin();
       const data = { ...cardData(origin, c), pro: Boolean(pro), head_start: pro ? spanText(pro.headStartMinutes) : "" };
       let sent = 0;
-      for (const id of [...new Set(designerIds)]) if ((await sendEmail({ key: "contest-new", to: { userId: id }, data, ref: `contest:${c.id}` })) === "sent") sent++;
+      const notice = pro ? "contest_new_pro" : "contest_new";
+      for (const id of [...new Set(designerIds)]) if ((await sendEmail({ key: "contest-new", to: { userId: id }, data, ref: `contest:${c.id}`, notice })) === "sent") sent++;
       return sent;
     })) ?? 0
   );
@@ -234,6 +235,8 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
   return (
     (await safe("client-new-entries", async () => {
       const { data: contests } = await db().from("contests").select("id, client_id, starts_at").in("status", ["open", "judging"]).is("deleted_at", null);
+      // At most one per contest in this many hours (Admin › Notifications; 24 = once a day).
+      const gapHours = (await getSettings(["timers.new_entry_digest_hours"]))["timers.new_entry_digest_hours"];
       let sent = 0;
       for (const row of contests ?? []) {
         const ref = `digest:${row.id}`;
@@ -246,7 +249,7 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
           .in("status", SHOWN_STATUSES)
           .gt("created_at", since.toISOString())
           .order("created_at", { ascending: false });
-        if (!digestDue(last, fresh?.length ?? 0, now)) continue;
+        if (!digestDue(last, fresh?.length ?? 0, now, gapHours * 3_600_000)) continue;
         const c = await contestCard(row.id as string);
         if (!c) continue;
         const [{ count: total }, { count: checked }] = await Promise.all([
@@ -284,9 +287,11 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
  * A new chat message between a client and a designer (Pro messages, comments on a design, the files chat): at most
  * one email per conversation every 30 minutes, so a quick back-and-forth is one email.
  */
-export async function emailChat(input: { to: string; senderName: string; contestId: string; entryNo: number | null; message: string; path: string; thread: string }): Promise<SendStatus | null> {
+export async function emailChat(input: { to: string; senderName: string; contestId: string; entryNo: number | null; message: string; path: string; thread: string; notice: string }): Promise<SendStatus | null> {
   return safe("chat-message", async () => {
-    if (!chatEmailDue(await lastSent(input.to, "chat-message", input.thread), new Date())) return "skipped";
+    // The gap is set in Admin › Notifications (30 minutes at first).
+    const minutes = (await getSettings(["notify.chat_email_minutes"]))["notify.chat_email_minutes"];
+    if (!chatEmailDue(await lastSent(input.to, "chat-message", input.thread), new Date(), minutes * 60_000)) return "skipped";
     const c = await contestCard(input.contestId);
     const origin = await emailOrigin();
     const text = input.message.replace(/\s+/g, " ").trim();
@@ -294,6 +299,7 @@ export async function emailChat(input: { to: string; senderName: string; contest
       key: "chat-message",
       to: { userId: input.to },
       ref: input.thread,
+      notice: input.notice,
       data: {
         sender_name: input.senderName,
         contest_title: c?.title ?? "your contest",
@@ -398,6 +404,8 @@ export async function emailNotification(input: {
   security?: boolean;
   ref?: string;
   greets?: boolean;
+  /** Its row in Admin › Notifications. */
+  notice?: string;
 }): Promise<SendStatus> {
   const origin = await emailOrigin().catch(() => "");
   // The first link to this site in the text becomes the button when none is given.
@@ -407,6 +415,7 @@ export async function emailNotification(input: {
     to: input.to,
     security: input.security,
     ref: input.ref,
+    notice: input.notice,
     data: {
       title: input.title,
       body: input.body,
@@ -428,6 +437,7 @@ export async function emailText(input: {
   buttonKey?: string;
   security?: boolean;
   ref?: string;
+  notice?: string;
 }): Promise<SendStatus> {
   const t = await translatorFor(input.locale);
   return emailNotification({
@@ -437,8 +447,7 @@ export async function emailText(input: {
     buttonText: t((input.buttonKey ?? "email.button.open") as never),
     security: input.security,
     ref: input.ref,
+    notice: input.notice,
   });
 }
 
-/** The pick-a-winner days, for callers that don't have the settings at hand. */
-export const judgingDays = async () => (await getSettings(["timers.judging_window_days"]))["timers.judging_window_days"];

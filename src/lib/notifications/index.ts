@@ -1,6 +1,7 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { typeChannelOn } from "./switches";
 
 /**
  * In-app notifications (BLUEPRINT §12, owner 2026-10-08). Texts are built when shown,
@@ -18,6 +19,8 @@ export type AppNotification = { id: string; type: NotificationType; data: Notifi
 export async function notify(userIds: (string | null | undefined)[], type: NotificationType, data: NotificationData, link: string | null, actorId?: string): Promise<void> {
   const ids = [...new Set(userIds.filter((id): id is string => Boolean(id) && id !== actorId))];
   if (ids.length === 0 || !isSupabaseConfigured()) return;
+  // Admin › Notifications: the bell can be turned off for this notice.
+  if (!(await typeChannelOn(type, "bell"))) return;
   const { error } = await createAdminClient()
     .from("notifications")
     .insert(ids.map((user_id) => ({ user_id, type, data, link })));

@@ -2,6 +2,7 @@ import "server-only";
 import { emailInvite } from "@/lib/email/events";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { avatarUrl } from "@/lib/profile/avatar";
+import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { matchScore } from "./rules";
 import { getProSettings } from "./settings";
@@ -137,7 +138,9 @@ export async function invitedPairs(contestIds: string[]): Promise<Set<string>> {
 export async function remindInvited(now: Date = new Date()): Promise<number> {
   const { ready, settings } = await getProSettings();
   if (!ready || !settings.features.invitations) return 0;
-  const until = new Date(now.getTime() + 24 * 3_600_000).toISOString();
+  // Hours before the end (Admin › Notifications; 24 at first).
+  const hoursBefore = (await getSettings(["notify.invite_reminder_hours"]))["notify.invite_reminder_hours"];
+  const until = new Date(now.getTime() + hoursBefore * 3_600_000).toISOString();
   const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", until);
   let n = 0;
   for (const c of contests ?? []) {

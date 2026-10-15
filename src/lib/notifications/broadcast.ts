@@ -5,6 +5,7 @@ import { notifyUser } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify, type NotificationData, type NotificationType } from "./index";
 import { renderNotification } from "./render";
+import { typeChannelOn } from "./switches";
 
 /**
  * Tells every active designer (owner, 2026-10-09): in-app for all, plus a browser push for those who allowed it,
@@ -17,6 +18,7 @@ export async function broadcastToDesigners(type: NotificationType, data: Notific
     const { data: designers } = await db.from("profiles").select("id, locale").eq("role", "designer").eq("status", "active");
     const list = (designers ?? []).filter((d) => !except.includes(d.id as string));
     await notify(list.map((d) => d.id as string), type, data, link);
+    if (!(await typeChannelOn(type, "push"))) return list.length;
 
     const { data: subs } = list.length ? await db.from("push_subscriptions").select("user_id").in("user_id", list.map((d) => d.id as string)) : { data: [] };
     const withPush = new Set((subs ?? []).map((s) => s.user_id as string));
@@ -41,6 +43,7 @@ export async function notifyWithPush(userIds: string[], type: NotificationType, 
   if (!ids.length || !isSupabaseConfigured()) return;
   try {
     await notify(ids, type, data, link, actorId);
+    if (!(await typeChannelOn(type, "push"))) return;
     const db = createAdminClient();
     const { data: subs } = await db.from("push_subscriptions").select("user_id").in("user_id", ids.slice(0, 5000));
     const withPush = [...new Set((subs ?? []).map((s) => s.user_id as string))];

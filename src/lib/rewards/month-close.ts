@@ -128,7 +128,7 @@ export async function sendMonthRewards(month: string, isTest: boolean, origin: s
     if (w.email) {
       const lang = w.locale === "bn" ? "bn" : "en";
       const t = await translatorFor(lang);
-      await emailText({ userId: w.id, email: w.email, locale: lang, subject: t(`monthlyReward.email.${kind}.subject`, { month: monthLabel(month, lang) }), body: t(`monthlyReward.email.${kind}.body`, { name: (w.name ?? "").trim(), month: monthLabel(month, lang), link: `${origin}${link}` }) });
+      await emailText({ userId: w.id, email: w.email, locale: lang, subject: t(`monthlyReward.email.${kind}.subject`, { month: monthLabel(month, lang) }), body: t(`monthlyReward.email.${kind}.body`, { name: (w.name ?? "").trim(), month: monthLabel(month, lang), link: `${origin}${link}` }), notice: "monthly_won" });
     }
     sent.push(mine.id as string);
   }
