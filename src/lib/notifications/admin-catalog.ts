@@ -60,7 +60,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("entry_rated", "designer", ["entry_rated"], ["bell"]),
   row("entry_comment_client", "designer", ["entry_comment_client"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("entry_shortlisted", "designer", [], ["email"], { email: "entry-shortlisted", alsoIn: "user" }),
-  row("entry_rejected", "designer", ["entry_rejected", "entry_removed"], ["bell"]),
+  row("entry_rejected", "designer", ["entry_rejected", "entry_removed", "entry_picture_removed"], ["bell"]),
   row("entry_approved", "designer", ["entry_approved"], ["bell"]),
   row("winner_picked", "designer", ["winner_picked"], ["bell", "email"], { email: "contest-won", alsoIn: "user" }),
   row("contest_closed", "designer", ["contest_closed"], ["bell"]),

@@ -73,6 +73,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   // Safety and moderation
   entry_rejected: "safety",
   entry_removed: "safety",
+  entry_picture_removed: "safety",
   entry_approved: "approved",
   entry_held_admin: "admin",
   win_cancelled: "safety",

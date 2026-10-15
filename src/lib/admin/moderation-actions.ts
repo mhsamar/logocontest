@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { tellUser } from "@/lib/moderation/suspension";
 import { notify } from "@/lib/notifications";
+import { removePicture } from "@/lib/entries/pictures";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, one, UUID } from "./core";
 
@@ -59,6 +60,28 @@ export async function approveEntry(entryId: string): Promise<Result> {
   await audit(admin.id, "approve_entry", "entry", e.id, { contest: e.slug, number: e.number });
   if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, `/dashboard/contests/${e.slug}?entry=${e.number}`, e.designerId);
   await notify([e.designerId], "entry_approved", { brand: e.brand, number: e.number }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * To approve (owner, 2026-10-16): the team takes off one doubted picture and keeps the rest. The designer is told.
+ * When no doubted picture is left the design is published, as with Approve.
+ */
+export async function removeHeldPicture(entryId: string, imageId: string): Promise<Result> {
+  const admin = await adminUser("designs.manage");
+  if (!admin || !UUID.test(entryId) || !UUID.test(imageId)) return fail("auth.errors.generic");
+  const e = await entryInfo(entryId);
+  if (!e) return fail("auth.errors.generic");
+  if (e.status !== "held") return fail("admin.entries.held.notHeld");
+  const res = await removePicture(e.id, imageId);
+  if (!res.ok) return fail(res.why === "last" ? "admin.entries.held.lastPicture" : "admin.errors.generic");
+  await audit(admin.id, "remove_picture", "entry", e.id, { contest: e.slug, number: e.number, picture: res.picture, published: res.published || undefined });
+  await notify([e.designerId], "entry_picture_removed", { brand: e.brand, number: e.number, picture: res.picture }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
+  if (res.published) {
+    if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, `/dashboard/contests/${e.slug}?entry=${e.number}`, e.designerId);
+    await notify([e.designerId], "entry_approved", { brand: e.brand, number: e.number }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
+  }
   refresh();
   return { ok: true };
 }

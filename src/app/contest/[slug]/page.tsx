@@ -139,6 +139,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     entry?.mine && user ? isPro(user.id) : Promise.resolve(false),
   ]);
   const canHideDesigns = proSet.features.hidden_entries && viewerIsPro;
+  // Its designer takes the open design back, whole or one picture at a time, while the contest is open (owner, 2026-10-16).
+  const entryRemovable = entry ? canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) : false;
   const proMark = (e: { designerId: string; designer: unknown }) => ({
     badge: Boolean(e.designer) && badges.has(e.designerId),
     highlight: proSet.features.highlighted_entries && Boolean(e.designer) && badges.has(e.designerId),
@@ -495,7 +497,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
 
       </section>
 
-      {/* P-04: one design, every mockup and its comments */}
+      {/* P-04: one design, every mockup and its comments. Its designer may take it, or one picture, back while open. */}
       {entry && (
         <EntryViewer
           square={ratio === 1}
@@ -506,6 +508,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           closeHref={entriesHref}
           locked={entry.locked}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
+          held={entry.status === "held" ? (entry.mine ? "mine" : "team") : null}
+          doubted={entry.doubted}
+          removable={entryRemovable ? { entryId: entry.id, pictureIds: entry.pictureIds } : null}
         >
           <EntryViewBeacon entryId={entry.id} />
           {/* Contest chat (owner, 2026-10-13): the client and a Pro designer, about this design only. */}
@@ -557,7 +562,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             </div>
           )}
           {/* The designer removes their own design while the contest is open (owner, 2026-10-11) */}
-          {canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) && (
+          {entryRemovable && (
             <div className="mt-5 border-t border-line pt-2">
               <WithdrawButton entryId={entry.id} number={entry.number} afterHref={entriesHref} />
             </div>

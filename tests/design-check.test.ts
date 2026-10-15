@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { canSeeEntry, entryScope, SHOWN_STATUSES, type ContestForEntries } from "@/lib/entries/rules";
-import { readRelevance, RELEVANCE_TOOL, relevancePrompt } from "@/lib/entries/relevance-rules";
+import { heldAfterRemoval, readRelevance, RELEVANCE_TOOL, relevancePrompt } from "@/lib/entries/relevance-rules";
 import { NOTICE_ROWS } from "@/lib/notifications/admin-catalog";
 import { SETTINGS } from "@/lib/settings/registry";
 
@@ -66,5 +66,33 @@ describe("design check (owner, 2026-10-15)", () => {
     expect(sql).toContain("alter type public.entry_status add value if not exists 'held';");
     expect(sql.indexOf("-- Block 2")).toBeGreaterThan(sql.indexOf("add value if not exists 'held'"));
     expect(sql).toContain("held_positions smallint[]");
+  });
+});
+
+describe("heldAfterRemoval (owner, 2026-10-16: remove only the doubted picture, keep the rest)", () => {
+  const held = { positions: [2, 3, 4], reason: "Picture 3: User profile interface screenshot; Picture 4: Resume or biodata form screenshot; Picture 5: Website screenshot showing furniture items" };
+
+  it("drops the removed doubted picture and renumbers the rest", () => {
+    // Picture 4 (position 3) removed: positions 0, 1, 2, 4 stay and become 0, 1, 2, 3.
+    const out = heldAfterRemoval(held, [0, 1, 2, 4]);
+    expect(out.positions).toEqual([2, 3]);
+    expect(out.reason).toBe("Picture 3: User profile interface screenshot; Picture 4: Website screenshot showing furniture items");
+    expect(out.clear).toBe(false);
+  });
+
+  it("moves the doubts up when a good picture before them goes", () => {
+    const out = heldAfterRemoval(held, [1, 2, 3, 4]);
+    expect(out.positions).toEqual([1, 2, 3]);
+    expect(out.reason).toBe("Picture 2: User profile interface screenshot; Picture 3: Resume or biodata form screenshot; Picture 4: Website screenshot showing furniture items");
+  });
+
+  it("is clear once no doubted picture is left: the design is published", () => {
+    const one = { positions: [1], reason: "Picture 2: Chat screenshot" };
+    expect(heldAfterRemoval(one, [0, 2])).toEqual({ positions: [], reason: "", clear: true });
+  });
+
+  it("keeps a reason with semicolons in it whole", () => {
+    const odd = { positions: [0, 1], reason: "Picture 1: a form; with a note; Picture 2: a selfie" };
+    expect(heldAfterRemoval(odd, [0, 2]).reason).toBe("Picture 1: a form; with a note");
   });
 });

@@ -17,6 +17,9 @@ export const SHOWN_STATUSES: EntryStatus[] = ["active", "winner", "forfeited"];
  */
 export const GONE_STATUSES: EntryStatus[] = ["removed", "withdrawn"];
 
+/** Designs their designer may still take back, whole or picture by picture, while the contest is open. */
+export const WITHDRAWABLE: EntryStatus[] = ["active", "rejected", "held"];
+
 export type EntryViewer = { id: string; role: "client" | "designer" | "admin" } | null;
 
 export type ContestForEntries = {
@@ -104,10 +107,12 @@ export function isPublicDesign(entry: { status: EntryStatus; isHidden?: boolean 
 /**
  * A designer may remove (withdraw) their own design while the contest still takes designs (owner, 2026-10-11:
  * uploaded by mistake, or they think it isn't good). A rejected design can go too; a winner never.
+ * The same rule lets them remove single pictures (owner, 2026-10-16), also from a design waiting for approval.
+ * Once the contest stops taking designs, its designs stay: they are the designer's portfolio.
  */
 export function canWithdraw(entry: { status: EntryStatus; designerId: string }, contest: { status: string; endsAt: Date | null }, viewerId: string | null | undefined, now = new Date()): boolean {
   if (!viewerId || entry.designerId !== viewerId) return false;
-  if (entry.status !== "active" && entry.status !== "rejected") return false;
+  if (!WITHDRAWABLE.includes(entry.status)) return false;
   return contest.status === "open" && (!contest.endsAt || contest.endsAt > now);
 }
 

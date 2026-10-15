@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { DesignerMoneyCard } from "@/components/admin/designer-money";
 import { BarBlock, BarRow, DayBarChart, SplitBar } from "@/components/admin/charts";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
@@ -7,11 +9,13 @@ import { PopupCard } from "@/components/admin/popup-card";
 import { AdmCard, AdmEmpty, CardTitle } from "@/components/admin/ui";
 import { traffic } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
+import { periodMoney } from "@/lib/admin/dashboard";
+import { hasPermission } from "@/lib/admin/permissions";
 import { brandsForPaths, pageName } from "@/lib/admin/page-names";
 import { readPeriod, type PeriodKey } from "@/lib/admin/period";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
-import { formatNumber } from "@/lib/money";
+import { formatNumber, formatTaka } from "@/lib/money";
 import { popupStats, readPopupRange, type PopupRange } from "@/lib/visitor-popup/stats";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,13 +51,19 @@ function Highlight({ icon, label, title, hint, tone = "brand" }: { icon: AdminIc
 
 // A-20 Analytics (BLUEPRINT §13.2 item 3; design/admin/analytics.html, owner 2026-10-10).
 export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
-  await requirePermission("dashboard.view");
+  const me = await requirePermission("dashboard.view");
   const sp = await searchParams;
   const { range, from, to, period, effective } = readPeriod(sp, KEYS, "7");
   const now = new Date();
   // The visitor pop-up card has its own 7 / 30 / 90-day range (?pop=), kept apart from the page's period.
   const popRange = readPopupRange(sp.pop);
-  const [{ t, locale }, s, pop] = await Promise.all([getI18n(), traffic({ since: effective.since ?? now, until: effective.until }, now), popupStats(popRange, now)]);
+  const seesMoney = hasPermission(me, "payments.view");
+  const [{ t, locale }, s, pop, money] = await Promise.all([
+    getI18n(),
+    traffic({ since: effective.since ?? now, until: effective.until }, now),
+    popupStats(popRange, now),
+    seesMoney ? periodMoney({ since: effective.since ?? now, until: effective.until }) : null,
+  ]);
   const popHref = (r: PopupRange) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "pop") q.set(k, v);
@@ -116,6 +126,44 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/a
         ))}
       </div>
       {s.capped && <p className="m-0 text-sm text-muted">{t("admin.analytics.capped")}</p>}
+
+      {/* Money in this period (owner, 2026-10-16): what clients paid, our part, and the designers' money. */}
+      {(money || hasPermission(me, "withdrawals.view")) && (
+        <div className="flex flex-wrap items-stretch gap-4">
+          {money && (
+            <AdmCard className="flex min-w-0 flex-[1_1_320px] flex-col gap-3 p-5 sm:p-6" data-money-in>
+              <CardTitle
+                title={t("admin.money.inTitle")}
+                sub={t("admin.money.inLead")}
+                action={
+                  <Link href="/admin/payments" className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary">
+                    {t("admin.nav.payments")}
+                    <AdminIcon name="arrow" size={16} />
+                  </Link>
+                }
+              />
+              <dl className="m-0 flex flex-col text-[15.5px]">
+                {[
+                  { k: t("admin.money.clients"), v: money.clientPayments, sub: t("admin.money.clientsHint", { n: num(money.paymentsCount) }) },
+                  { k: t("admin.money.revenue"), v: money.serviceFees + money.addons + money.designerFees, sub: t("admin.money.revenueHint"), strong: true },
+                  { k: t("admin.dashboard.parts.serviceFees"), v: money.serviceFees },
+                  { k: t("admin.dashboard.parts.addons"), v: money.addons },
+                  { k: t("admin.dashboard.parts.designerFees"), v: money.designerFees },
+                ].map((r, i, all) => (
+                  <div key={r.k} className={cx("flex items-center gap-2.5 py-2.5", i < all.length - 1 && "border-b border-adm-line-soft", !r.sub && "pl-5")}>
+                    <dt className="flex min-w-0 flex-1 flex-col">
+                      <span className={r.sub ? "font-semibold" : "text-muted"}>{r.k}</span>
+                      {r.sub && <span className="text-sm text-muted">{r.sub}</span>}
+                    </dt>
+                    <dd className={cx("m-0 font-bold tabular-nums", r.strong && "text-[18px] text-primary")}>{formatTaka(r.v, locale)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </AdmCard>
+          )}
+          {hasPermission(me, "withdrawals.view") && <DesignerMoneyCard period={{ since: effective.since ?? now, until: effective.until }} className="min-w-0 flex-[1_1_380px]" />}
+        </div>
+      )}
 
       {s.views === 0 ? (
         <AdmCard className="p-5">
