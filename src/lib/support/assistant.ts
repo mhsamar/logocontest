@@ -8,7 +8,7 @@ import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ASSISTANT_TOOL, conversationText, dhakaMidnight, readAnswer, systemPrompt, wantsHuman, type ChatLine } from "./ai-rules";
+import { ASSISTANT_TOOL, conversationText, dhakaMidnight, readAnswer, replyInstruction, systemPrompt, wantsHuman, type ChatLine } from "./ai-rules";
 import { pageList, personInfo, siteInfo } from "./knowledge";
 import { preview } from "./rules";
 
@@ -85,7 +85,7 @@ export async function answerWithAi(threadId: string, user: ChatUser): Promise<vo
 
     const [site, person, base] = await Promise.all([cachedSiteInfo(), personInfo(user), origin()]);
     const system = systemPrompt({ role: user.role, siteInfo: site, person, pages: pageList(base) });
-    const res = await callTool<unknown>(system, [textBlock(`CONVERSATION:\n${conversationText(chat)}\n\nWrite the assistant's next message to the person.`)], ASSISTANT_TOOL, 1200);
+    const res = await callTool<unknown>(system, [textBlock(replyInstruction(conversationText(chat), last))], ASSISTANT_TOOL, 1200);
     const answer = readAnswer(res.data);
     if (!answer) throw new Error("The AI gave no usable answer");
     if (answer.handover) return handOver(threadId, user, answer.reason, answer.reply);

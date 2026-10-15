@@ -65,7 +65,7 @@ export function SupportThreadPanel({ thread, messages, staff, meId }: { thread: 
                 const name = staff.find((s) => s.id === to)?.name ?? "";
                 if (to) act(() => assignThread(threadId, to), t("admin.support.assigned", { name }));
               }}
-              className={`${ADM_INPUT} !min-h-10 w-auto`}
+              className={`${ADM_INPUT} !min-h-10 !w-auto max-w-[14rem]`}
             >
               <option value="">{t("admin.support.assignTo")}</option>
               {staff

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanReply, conversationText, dhakaMidnight, isThreadMode, readAnswer, systemPrompt, wantsHuman } from "@/lib/support/ai-rules";
+import { cleanReply, conversationText, dhakaMidnight, isThreadMode, readAnswer, replyInstruction, systemPrompt, wantsHuman } from "@/lib/support/ai-rules";
 
 describe("AI support assistant (owner, 2026-10-15)", () => {
   it("asking for a person always goes to the team, in English, Bangla and Banglish", () => {
@@ -41,6 +41,11 @@ describe("AI support assistant (owner, 2026-10-15)", () => {
     expect(p).toContain("SITE INFORMATION:\nQ: How much?");
     expect(p).toContain("PERSON:\nName: Rahim");
     expect(p).toContain("https://logocontest.bd/start");
+  });
+
+  it("the reply follows the script of the person's last message", () => {
+    expect(replyInstruction("Person: আমার কনটেস্ট?", "আমার কনটেস্ট?")).toContain("reply in Bangla script");
+    expect(replyInstruction("Person: kemon acho", "I paid with bKash")).toContain("reply in English, or in Banglish");
   });
 
   it("modes and the daily reset", () => {
