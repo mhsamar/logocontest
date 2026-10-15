@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { CurrencyCode } from "@/lib/currency/rules";
 import { paymentsAvailable } from "./index";
 import { isManual, isMethodKey, METHOD_KEYS, methodCurrency, type MethodKey, type PublicMethod } from "./manual-rules";
+import { banglaQrReady } from "./bangla-qr";
 import { stripeReady } from "./stripe-config";
 
 /**
@@ -40,8 +41,11 @@ export const methodRows = cache(async (): Promise<MethodRow[]> => {
     }));
 });
 
-/** The gateway for an automatic method is set up on this server: Stripe needs its two keys (owner, 2026-10-14). */
-export const gatewayReady = (key: MethodKey) => (key === "stripe" ? stripeReady() : !isManual(key) && paymentsAvailable());
+/**
+ * The gateway for an automatic method is set up on this server: Stripe needs its two keys (owner, 2026-10-14); Bangla
+ * QR its API connection and keys (owner, 2026-10-15).
+ */
+export const gatewayReady = (key: MethodKey) => (key === "stripe" ? stripeReady() : key === "bangla_qr" ? banglaQrReady() : !isManual(key) && paymentsAvailable());
 
 /** Is this method open for paying right now? */
 export function isOpen(r: MethodRow): boolean {

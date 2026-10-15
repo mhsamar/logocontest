@@ -103,3 +103,18 @@ describe("promo codes (owner, 2026-10-14)", () => {
     expect(PROMO_CODE.test(randomPromoCode(b, "LONGPREFIX99"))).toBe(true);
   });
 });
+
+describe("Bangla QR (owner, 2026-10-15)", () => {
+  it("is a taka method that opens only once connected and its keys are set", async () => {
+    const { banglaQrReady } = await import("@/lib/payments/bangla-qr");
+    const { METHOD_KEYS, isManual, methodCurrency } = await import("@/lib/payments/manual-rules");
+    expect(METHOD_KEYS).toContain("bangla_qr");
+    expect(isManual("bangla_qr")).toBe(false);
+    expect(methodCurrency("bangla_qr")).toBe("BDT");
+    const keys = { BANGLA_QR_BASE_URL: "https://x", BANGLA_QR_MERCHANT_ID: "m", BANGLA_QR_API_KEY: "k", BANGLA_QR_API_SECRET: "s" };
+    expect(banglaQrReady(keys)).toBe(false);
+    expect(banglaQrReady(keys, true)).toBe(true);
+    expect(banglaQrReady({ ...keys, BANGLA_QR_API_SECRET: " " }, true)).toBe(false);
+    expect(banglaQrReady({}, true)).toBe(false);
+  });
+});

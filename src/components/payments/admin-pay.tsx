@@ -156,7 +156,7 @@ export function MethodCard({ m, canManage }: { m: MethodCardData; canManage: boo
         </button>
       </div>
 
-      {!m.manual && <p className={cx("m-0 rounded-[12px] px-3.5 py-2.5 text-[14px]", m.ready ? "bg-[#e7f8f0] text-[#0f6b45]" : "bg-[#f4f5f7] text-[#3a3c45]")}>{m.ready ? t("pay.admin.methods.ready") : t("pay.admin.methods.notReady")}</p>}
+      {!m.manual && <p className={cx("m-0 rounded-[12px] px-3.5 py-2.5 text-[14px]", m.ready ? "bg-[#e7f8f0] text-[#0f6b45]" : "bg-[#f4f5f7] text-[#3a3c45]")}>{m.ready ? t("pay.admin.methods.ready") : m.key === "bangla_qr" ? t("pay.admin.methods.notReadyBanglaQr") : t("pay.admin.methods.notReady")}</p>}
       {m.key === "stripe" && <p className="m-0 text-sm text-muted">{t("pay.admin.methods.usdOnly")}</p>}
 
       {m.manual && (
