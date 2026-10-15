@@ -938,13 +938,13 @@ const en = {
     title: "Join as a logo designer",
     subtitle: "Win contests and get paid in bKash.",
     steps: { s1: "About you", s2: "Log in details", s3: "Your designer profile", s4: "Payout and rules" },
-    name: { label: "Full name", hint: "Use your real name. Payouts go to this name." },
+    name: { label: "Full name", hint: "Use your real name. Payouts go to this name. Check it carefully: it can't be changed later." },
     mobile: "Mobile number",
     email: "Email",
     password: "Password",
     username: {
       label: "Username",
-      hint: "3–20 lowercase letters, numbers or _ , starting with a letter. Choose carefully: it can't be changed later (Pro designers can change it once every 60 days). You can log in with it too.",
+      hint: "3–20 lowercase letters, numbers or _ , starting with a letter. You can change it once every 60 days, and log in with it too.",
       preview: "Your profile: logocontest.bd/d/{username}",
       checking: "Checking…",
       available: "{username} is available",
@@ -1397,15 +1397,14 @@ const en = {
     },
   },
   settings: {
+    nameFixed: "Your name can't be changed. If it is wrong, write to us in Support and we will correct it.",
     username: {
-      fixed: "Your username can't be changed. You can log in with it, your email or your mobile number.",
-      proNote: "As a Pro designer you can change it below, once every 60 days. Your old profile link keeps working.",
+      note: "You can log in with it, your email or your mobile number. You can change it once every 60 days; your old profile link keeps working.",
       newLabel: "Change username",
       proHint: "Letters, numbers and _ only. After a change, the next one is possible in 60 days.",
       wait: "You can change it again on {date}.",
       save: "Change username",
       saved: "Username changed.",
-      proOnly: "Only Pro designers can change their username.",
     },
     meta: { title: "Profile settings" },
     title: "Profile settings",
@@ -2454,6 +2453,10 @@ const en = {
       parts: { serviceFees: "Service fees", addons: "Add-ons", designerFees: "Designer fees" },
     },
     users: {
+      correctName: "Correct name",
+      correctNameBody: "People can't change their own name, because it is checked against payments and payouts. Correct it only when it is wrong, for example a typo.",
+      correctNameLabel: "Full name",
+      correctNameDone: "Name corrected.",
       // List redesign (owner, 2026-10-12; Design/users)
       x: {
         lead: "Every client, designer and admin account. Point at a row for a quick look, click a name to open the full profile.",
@@ -3564,6 +3567,7 @@ const en = {
         force_award: "Picked a winner",
         edit_brief: "Edited a brief",
         remove_entry: "Removed a design",
+        correct_name: "Corrected a person's name",
         approve_entry: "Approved a held design",
         clear_duplicate: "Cleared a duplicate flag",
         update_settings: "Changed settings",
@@ -4508,7 +4512,7 @@ const en = {
       heading: "Tell us about you",
       helper: "Your name and how to reach you. We send contest updates to your mobile and email.",
       nameLabel: "Your full name",
-      nameHint: "Use your real name, as on your bKash or bank account: we check it against your payment.",
+      nameHint: "Use your real name, as on your bKash or bank account: we check it against your payment. Check it carefully: it can't be changed later.",
       nameError: "Use letters only, like Rahim Uddin.",
     },
     links: {

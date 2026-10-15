@@ -7,7 +7,7 @@ import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, Pill, type PillTone } from "@/components/admin/ui";
 import { adminUser, requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
-import { giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
+import { correctUserName, giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
 import { deleteUser, eraseUserNow, restoreUserFromTrash } from "@/lib/admin/trash-actions";
 import { impersonateUser, sendResetEmail, setUserPassword, signOutEverywhere, signOutOneDevice } from "@/lib/admin/security-actions";
 import { deviceText, placeText, SessionStatus, whenText } from "@/components/admin/session-bits";
@@ -214,6 +214,20 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                   {u.role !== "admin" && canManage && <AdminAction label={t("admin.trash.deleteUser")} body={t("admin.trash.deleteUserBody", { days: String(keepDays) })} tone="danger" run={deleteUser.bind(null, u.id)} />}
                   {u.status !== "banned" && <AdminAction label={t("admin.users.ban")} body={t("admin.users.banBody")} tone="danger" run={setUserStatus.bind(null, u.id, "banned")} />}
                   {u.status !== "active" && <AdminAction label={t(u.status === "suspended" ? "admin.users.x.actions.unsuspend" : "admin.users.reactivate")} tone="primary" run={setUserStatus.bind(null, u.id, "active")} />}
+                  {/* Owner, 2026-10-16: people can't change their own name; the team corrects a mistake here. */}
+                  {u.role !== "admin" && canManage && (
+                    <AdminAction
+                      label={t("admin.users.correctName")}
+                      body={t("admin.users.correctNameBody")}
+                      tone="ghost"
+                      fields={[
+                        { name: "name", kind: "text", label: t("admin.users.correctNameLabel"), defaultValue: u.name },
+                        { name: "reason", kind: "reason" },
+                      ]}
+                      run={correctUserName.bind(null, u.id)}
+                      done={t("admin.users.correctNameDone")}
+                    />
+                  )}
                   {/* Owner, 2026-10-11: test accounts never take part in the monthly race */}
                   {u.role !== "admin" && (
                     <AdminAction

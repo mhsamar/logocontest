@@ -159,7 +159,6 @@ export function ProfileForm({
   const { t, locale } = useI18n();
   const [state, action, pending] = useActionState(updateProfile, IDLE);
   // Controlled, so nothing typed is lost when the form resets after a save (owner, 2026-10-15).
-  const [nameText, setNameText] = useState(name);
   const [bioText, setBioText] = useState(bio);
   const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.saved"));
@@ -167,7 +166,12 @@ export function ProfileForm({
   const count = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
   return (
     <form action={action} onChange={changed} className="space-y-4">
-      <TextField name="name" label={t("designerSignup.name.label")} value={nameText} onChange={(e) => setNameText(e.target.value)} maxLength={60} autoComplete="name" error={err("name")} />
+      {/* The name can't be changed (owner, 2026-10-16): it is checked against payments and payouts. */}
+      <div>
+        <p className="text-[15px] font-semibold text-ink">{t("designerSignup.name.label")}</p>
+        <p className="mt-1.5 flex min-h-[52px] items-center rounded-[14px] bg-chip px-4 text-[17px] font-medium text-ink ring-1 ring-inset ring-line">{name}</p>
+        <p className="m-0 mt-1.5 text-sm text-muted">{t("settings.nameFixed")}</p>
+      </div>
       {role === "designer" && (
         <TextAreaField
           name="bio"
@@ -194,16 +198,19 @@ export function ProfileForm({
           {usernameNote && <p className="m-0 mt-1.5 text-sm text-muted">{usernameNote}</p>}
         </div>
       )}
-      <div className="flex justify-end">
-        <SaveButton unsaved={unsaved} loading={pending}>
-          {t("settings.save")}
-        </SaveButton>
-      </div>
+      {/* Only the bio can be saved here; a client has nothing to save. */}
+      {role === "designer" && (
+        <div className="flex justify-end">
+          <SaveButton unsaved={unsaved} loading={pending}>
+            {t("settings.save")}
+          </SaveButton>
+        </div>
+      )}
     </form>
   );
 }
 
-/** Pro designers change their username (owner, 2026-10-15): once every 60 days; the old link keeps working. */
+/** Anyone changes their username (owner, 2026-10-15): once every 60 days; the old link keeps working. */
 export function UsernameForm({ username, nextChange }: { username: string; /** When it can change again; null = now. */ nextChange: string | null }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(changeUsername, IDLE);

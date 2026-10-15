@@ -8,7 +8,7 @@ import { listNotifications } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
-import { earlyContests, myContestRows, myInvitations, profileStrength, serviceNames, weekNumbers, type MiniContest } from "@/lib/pro/workspace";
+import { earlyContests, newContests, myContestRows, myInvitations, profileStrength, serviceNames, weekNumbers, type MiniContest } from "@/lib/pro/workspace";
 import { durationText, Icon, Slot, type ProIconName } from "./parts";
 import { ProWorkspace, WsHead } from "./workspace";
 import { InviteResponse } from "./invite-response";
@@ -40,9 +40,10 @@ export function leftText(end: Date | null, t: Translate): string {
  */
 export async function ProDashboard({ user }: { user: CurrentUser }) {
   const { t, locale, price } = await getI18n();
-  const [{ settings }, early, notes, invitations, week, usage, mine, strength, names] = await Promise.all([
+  const [{ settings }, earlyList, fresh, notes, invitations, week, usage, mine, strength, names] = await Promise.all([
     getProSettings(),
     earlyContests(),
+    newContests(),
     listNotifications(user.id, 4),
     myInvitations(user.id),
     weekNumbers(user.id, user.username),
@@ -52,6 +53,9 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
     serviceNames(locale),
   ]);
   const now = new Date();
+  // Owner, 2026-10-16: with Pro early access off, the panel shows the newest contests instead.
+  const earlyOn = settings.features.early_access && settings.earlyAccessMinutes > 0;
+  const early = earlyOn ? earlyList : fresh;
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Dhaka" }).format(now));
   const greet = hour < 12 ? "pro.dash.morning" : hour < 17 ? "pro.dash.afternoon" : "pro.dash.evening";
   const first = user.name.trim().split(/\s+/)[0] ?? user.name;
@@ -78,12 +82,22 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
             <div>
               <span className="pr-kick">
                 <Icon name="bolt" size={14} />
-                {t("pro.dash.earlyKicker")}
+                {t(earlyOn ? "pro.dash.earlyKicker" : "pro.dash.newKicker")}
               </span>
-              <h2 id="pr-early">{early.length === 0 ? t("pro.dash.earlyNone") : early.length === 1 ? t("pro.dash.earlyOne") : t("pro.dash.earlyTitle", { n: n(early.length) })}</h2>
-              <p>{t("pro.dash.earlyLead")}</p>
+              <h2 id="pr-early">
+                {earlyOn
+                  ? early.length === 0
+                    ? t("pro.dash.earlyNone")
+                    : early.length === 1
+                      ? t("pro.dash.earlyOne")
+                      : t("pro.dash.earlyTitle", { n: n(early.length) })
+                  : early.length === 0
+                    ? t("pro.dash.newNone")
+                    : t("pro.dash.newTitle", { n: n(early.length) })}
+              </h2>
+              <p>{t(earlyOn ? "pro.dash.earlyLead" : "pro.dash.newLead")}</p>
             </div>
-            <Link href="/dashboard/contests?f=early" className="pr-white">
+            <Link href={earlyOn ? "/dashboard/contests?f=early" : "/dashboard/contests"} className="pr-white">
               {t("pro.dash.seeAll")}
             </Link>
           </div>
@@ -180,7 +194,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
             </span>
             <span>
               <Icon name="check" size={14} strokeWidth={2.8} />
-              {t("pro.dash.ben2")}
+              {t(earlyOn ? "pro.dash.ben2" : "pro.dash.ben2Off")}
             </span>
             <span>
               <Icon name="check" size={14} strokeWidth={2.8} />

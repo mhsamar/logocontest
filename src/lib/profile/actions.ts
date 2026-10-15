@@ -2,10 +2,8 @@
 
 import { checkUsernameFormat } from "@/lib/designers/signup";
 import { formatDate } from "@/lib/dates";
-import { isPro } from "@/lib/pro/status";
 import { canChangeUsername, nextUsernameChange } from "./username-rules";
 import { usernameTaken } from "./usernames";
-import { isPersonName } from "@/lib/profile/name-rules";
 import { randomUUID } from "node:crypto";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { refresh } from "next/cache";
@@ -40,15 +38,11 @@ async function me() {
   return user && user.status !== "banned" ? user : null;
 }
 
-/** Name, bio (designers) and business name (clients). */
+/** A designer's bio. The name can't be changed by its owner (owner, 2026-10-16); an admin can correct it. */
 export async function updateProfile(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await me();
   if (!user) return fail("auth.errors.generic");
-  const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
-  if (name.length < 2 || name.length > 60) return fail("designerSignup.errors.name", "name");
-  // Letters only (owner, 2026-10-14): no digits or signs like . / ,
-  if (!isPersonName(name)) return fail("designerSignup.errors.nameLetters", "name");
-  const update: Record<string, string | null> = { name };
+  const update: Record<string, string | null> = {};
 
   if (user.role === "designer") {
     const bio = String(formData.get("bio") ?? "").trim();
@@ -58,6 +52,7 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
     update.bio = bio || null;
   }
   // Clients have no business name on their profile any more (owner, 2026-10-15): each contest has its own brand.
+  if (Object.keys(update).length === 0) return { status: "ok" };
 
   const { error } = await createAdminClient().from("profiles").update(update).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
@@ -66,13 +61,12 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
 }
 
 /**
- * Pro designers change their username (owner, 2026-10-15): once every 60 days. The old name keeps leading to the
- * profile and stays reserved (migration 0063). Everyone else's username is fixed.
+ * Changing a username (owner, 2026-10-16: clients and every designer, not only Pro): once every 60 days. The old name
+ * keeps leading to the profile and stays reserved (migration 0063).
  */
 export async function changeUsername(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await me();
-  if (!user || user.role !== "designer") return fail("auth.errors.generic");
-  if (!(await isPro(user.id))) return fail("settings.username.proOnly", "username");
+  if (!user || (user.role !== "designer" && user.role !== "client")) return fail("auth.errors.generic");
   const format = checkUsernameFormat(String(formData.get("username") ?? "").replace(/^@/, ""));
   if (!format.ok) return fail(`designerSignup.username.${format.error}`, "username");
   const db = createAdminClient();

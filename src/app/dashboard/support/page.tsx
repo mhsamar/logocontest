@@ -38,7 +38,8 @@ export default async function PrioritySupportPage() {
   const thread = chat.thread;
   const status = !thread ? null : thread.status === "closed" ? "closed" : thread.unreadByUser > 0 || chat.messages.at(-1)?.fromAdmin ? "answered" : "open";
   const quick: [string, string][] = [
-    ["pro.support.q1", "/pro"],
+    // "How Pro early access works" only while early access is on (owner, 2026-10-16: it is off).
+    ...(settings.features.early_access && settings.earlyAccessMinutes > 0 ? ([["pro.support.q1", "/pro"]] as [string, string][]) : []),
     ["pro.support.q2", "/dashboard/logo-checks"],
     ["pro.support.q3", "/pro"],
     ["pro.support.q4", "/dashboard/profile#subscription"],
