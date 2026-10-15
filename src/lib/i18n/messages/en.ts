@@ -43,7 +43,7 @@ const en = {
   support: {
     metaTitle: "Support",
     title: "Support",
-    lead: "Write to the logocontest.bd team. We usually reply within a few hours.",
+    lead: "Ask anything. Our AI assistant answers right away, and a team member takes over when you need a person.",
     open: "Chat with support",
     close: "Close chat",
     team: "logocontest.bd team",
@@ -54,6 +54,18 @@ const en = {
     fromTeam: "Message from the team",
     fullPage: "Open full page",
     signIn: "Log in to chat with our support team.",
+    // AI support assistant (owner, 2026-10-15)
+    ai: {
+      assistant: "AI assistant",
+      hello: "Hi! I'm the logocontest.bd assistant. Ask me anything about contests, designs, payments or your account. Need a person? Tap “Talk to a person”.",
+      typing: "Typing…",
+      talkToPerson: "Talk to a person",
+      waiting: "Waiting for a team member. We usually reply within a few hours.",
+      withTeam: "You're chatting with the logocontest.bd team.",
+      handedOver: "Sure! I've passed your chat to our team. A team member will reply right here soon, usually within a few hours. Meanwhile you can add any details, like the contest name or the bKash transaction ID. Please never share your password or codes.",
+      limit: "You've asked me a lot today, so I've passed your chat to our team. A team member will reply right here soon.",
+      unavailable: "Sorry, I can't answer right now. I've passed your chat to our team, and a team member will reply right here soon.",
+    },
     errors: {
       signIn: "Please log in to use support chat.",
       empty: "Write a message (up to 2,000 characters).",
@@ -1066,6 +1078,7 @@ const en = {
       support_reply: "Support team: {reason}",
       admin_message: "Message from logocontest.bd: {reason}",
       support_message_admin: "New support message from {name}: {reason}",
+      support_assigned_admin: "{name}'s support chat was given to you: {reason}",
       entry_new: "New design #{number} for {brand}",
       entry_comment: "New comment on design #{number} ({brand})",
       contest_comment: "New comment on the {brand} contest",
@@ -1671,6 +1684,18 @@ const en = {
       unread: "{n} new",
       broadcastTag: "Message to many",
       noAccess: "You can read this conversation but not reply.",
+      // AI support assistant and assigning (owner, 2026-10-15)
+      needs: "Needs a person",
+      mine: "Mine",
+      modes: { ai: "AI", waiting: "Needs a person", human: "With {name}" },
+      aiLabel: "AI assistant",
+      why: "Why: {reason}",
+      aiHas: "The AI assistant is answering this chat. Reply yourself to take it over.",
+      assignToMe: "Assign to me",
+      assignTo: "Assign to…",
+      backToAi: "Give back to AI",
+      assigned: "Assigned to {name}.",
+      errors: { staff: "Pick a staff member who handles support." },
     },
     messages: {
       title: "Send message",
@@ -2761,7 +2786,7 @@ const en = {
     settings: {
       title: "Settings",
       lead: "Every number an admin can change. Each save needs a reason and is written to the audit log.",
-      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", payments: "Dollar prices (Stripe)", timers: "Timers", limits: "Limits", checker: "Logo checker costs", monthly: "Monthly prize", site: "Site", ads: "Ads", trash: "Trash", email: "Emails", security: "Logins and devices", auth: "Login and codes", live: "Home page: live designers" },
+      groups: { fees: "Fees and tiers", packages: "Packages", upgrades: "Add-ons", payments: "Dollar prices (Stripe)", timers: "Timers", limits: "Limits", checker: "Logo checker costs", monthly: "Monthly prize", site: "Site", ads: "Ads", trash: "Trash", email: "Emails", security: "Logins and devices", support: "Support chat", auth: "Login and codes", live: "Home page: live designers" },
       liveNote: "Right now: {joined} designers joined, {online} online.",
       on: "On",
       off: "Off",
@@ -3402,6 +3427,8 @@ const en = {
       actions: {
         update_onboarding: "Changed the onboarding questions",
         update_notifications: "Changed the notifications",
+        support_assign: "Assigned a support chat",
+        support_to_ai: "Gave a support chat back to the AI assistant",
         sign_out_devices: "Signed a user out of devices",
         send_password_reset: "Sent a password reset email",
         set_password: "Set a new password for a user",

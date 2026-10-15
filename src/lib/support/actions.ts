@@ -9,6 +9,9 @@ import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { formatMobile, normalizeBdMobile } from "@/lib/phone";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { translatorFor } from "@/lib/content/texts";
+import { isThreadMode, type ThreadMode } from "./ai-rules";
+import { answerWithAi, assistantOn, handOver, type ChatUser } from "./assistant";
 import { myConversation, threadDetail, type SupportMessage, type SupportThread } from "./queries";
 import { cleanMessage, isAudience, preview } from "./rules";
 
@@ -23,29 +26,80 @@ async function chatUser() {
 
 // ---- S-01 the user's side ------------------------------------------------------------------------
 
-/** Sends a message to the support team; staff who handle support get a bell + push for the first unread one. */
+/** The chat's mode and who has it (before migration 0058: every chat is with the team). */
+async function threadState(userId: string): Promise<{ unread: number; mode: ThreadMode; assignedTo: string | null } | null> {
+  const db = createAdminClient();
+  let { data, error } = await db.from("support_threads").select("unread_by_admin, mode, assigned_to").eq("user_id", userId).maybeSingle();
+  if (error) ({ data, error } = await db.from("support_threads").select("unread_by_admin").eq("user_id", userId).maybeSingle());
+  if (!data) return null;
+  const row = data as Record<string, unknown>;
+  return { unread: (row.unread_by_admin as number) ?? 0, mode: isThreadMode(row.mode) ? row.mode : "human", assignedTo: (row.assigned_to as string | null) ?? null };
+}
+
+const asChatUser = (user: NonNullable<Awaited<ReturnType<typeof chatUser>>>): ChatUser => ({
+  id: user.id,
+  name: user.name,
+  role: user.role as "client" | "designer",
+  locale: user.locale === "bn" ? "bn" : "en",
+  emailVerifiedAt: user.emailVerifiedAt,
+});
+
+/**
+ * Sends a message to support. While the AI assistant has the chat (owner, 2026-10-15) it answers at once, or hands the
+ * chat to the team. Otherwise staff get a bell + push for the first unread message: the assigned staff member only,
+ * or everyone who handles support when nobody has it yet.
+ */
 export async function sendSupportMessage(body: string): Promise<{ ok: true } | Fail> {
   const user = await chatUser();
   if (!user) return fail("support.errors.signIn");
   const text = cleanMessage(body);
   if (!text) return fail("support.errors.empty");
   const db = createAdminClient();
-  const { data: before } = await db.from("support_threads").select("unread_by_admin").eq("user_id", user.id).maybeSingle();
+  const before = await threadState(user.id);
   const { data: threadId, error } = await db.rpc("post_support_message", { p_user: user.id, p_sender: user.id, p_from_admin: false, p_body: text });
   if (error) return fail("support.errors.generic");
-  if (!before || (before.unread_by_admin as number) === 0) {
-    await notifyWithPush(await adminIdsWith("support.view"), "support_message_admin", { name: user.name, reason: preview(text) }, `/admin/support?thread=${threadId as string}`, user.id);
+  // A new chat starts with the assistant (the column's default); a closed one comes back to it too.
+  const mode: ThreadMode = before ? before.mode : "ai";
+  if (mode === "ai" && (await assistantOn())) {
+    await answerWithAi(threadId as string, asChatUser(user));
+    return { ok: true };
+  }
+  if (!before || before.unread === 0 || mode === "ai") {
+    const to = before?.mode === "human" && before.assignedTo ? [before.assignedTo] : await adminIdsWith("support.view");
+    await notifyWithPush(to, "support_message_admin", { name: user.name, reason: preview(text) }, `/admin/support?thread=${threadId as string}`, user.id);
   }
   return { ok: true };
 }
 
-/** The chat as the user sees it, and marks the team's messages read (used when the chat is open). */
-export async function loadMyChat(): Promise<{ ok: true; thread: SupportThread | null; messages: SupportMessage[] } | Fail> {
+/** "Talk to a person": the chat goes to the team at once. */
+export async function askForPerson(): Promise<{ ok: true } | Fail> {
   const user = await chatUser();
   if (!user) return fail("support.errors.signIn");
-  const chat = await myConversation(user.id);
+  const db = createAdminClient();
+  const before = await threadState(user.id);
+  if (before && before.mode !== "ai") return { ok: true };
+  let threadId: string | null = null;
+  if (!before) {
+    // No chat yet: start one, so the team has somewhere to answer.
+    const { data } = await db.from("support_threads").upsert({ user_id: user.id }, { onConflict: "user_id" }).select("id").single();
+    threadId = (data?.id as string | undefined) ?? null;
+  } else {
+    const { data } = await db.from("support_threads").select("id").eq("user_id", user.id).single();
+    threadId = (data?.id as string | undefined) ?? null;
+  }
+  if (!threadId) return fail("support.errors.generic");
+  const t = await translatorFor(user.locale === "bn" ? "bn" : "en");
+  await handOver(threadId, asChatUser(user), "Asked to talk to a person.", t("support.ai.handedOver"));
+  return { ok: true };
+}
+
+/** The chat as the user sees it, and marks the team's messages read (used when the chat is open). */
+export async function loadMyChat(): Promise<{ ok: true; thread: SupportThread | null; messages: SupportMessage[]; assistant: boolean } | Fail> {
+  const user = await chatUser();
+  if (!user) return fail("support.errors.signIn");
+  const [chat, assistant] = await Promise.all([myConversation(user.id), assistantOn()]);
   if (chat.thread && chat.thread.unreadByUser > 0) await createAdminClient().from("support_threads").update({ unread_by_user: 0 }).eq("id", chat.thread.id);
-  return { ok: true, ...chat };
+  return { ok: true, ...chat, assistant };
 }
 
 /** Unread team messages, for the chat button's badge. */
@@ -58,7 +112,7 @@ export async function myUnreadCount(): Promise<number> {
 
 // ---- A-24 the support inbox -----------------------------------------------------------------------
 
-/** A staff reply; the user gets a bell + push. */
+/** A staff reply; the user gets a bell + push. Replying takes the chat (from the assistant, or when nobody has it). */
 export async function replySupport(threadId: string, body: string): Promise<{ ok: true } | Fail> {
   const admin = await adminUser("support.manage");
   if (!admin || !UUID.test(threadId)) return fail("auth.errors.generic");
@@ -70,6 +124,11 @@ export async function replySupport(threadId: string, body: string): Promise<{ ok
   const { error } = await db.rpc("post_support_message", { p_user: thread.user_id as string, p_sender: admin.id, p_from_admin: true, p_body: text });
   if (error) return fail("admin.errors.generic");
   await db.from("support_threads").update({ unread_by_admin: 0 }).eq("id", threadId);
+  // Before migration 0058 there are no such columns; nothing to do then.
+  const { data: state } = await db.from("support_threads").select("mode, assigned_to").eq("id", threadId).maybeSingle();
+  if (state && (state.mode !== "human" || !state.assigned_to)) {
+    await db.from("support_threads").update({ mode: "human", assigned_to: state.assigned_to ?? admin.id, assigned_at: new Date().toISOString() }).eq("id", threadId);
+  }
   await notifyWithPush([thread.user_id as string], "support_reply", { reason: preview(text) }, "/support");
   await audit(admin.id, "support_reply", "support_thread", threadId);
   refresh();
@@ -86,8 +145,45 @@ export async function markThreadRead(threadId: string): Promise<void> {
 export async function setThreadStatus(threadId: string, status: "open" | "closed"): Promise<{ ok: true } | Fail> {
   const admin = await adminUser("support.manage");
   if (!admin || !UUID.test(threadId) || (status !== "open" && status !== "closed")) return fail("auth.errors.generic");
-  const { error } = await createAdminClient().from("support_threads").update({ status, ...(status === "closed" ? { unread_by_admin: 0 } : {}) }).eq("id", threadId);
+  const db = createAdminClient();
+  const { error } = await db.from("support_threads").update({ status, ...(status === "closed" ? { unread_by_admin: 0 } : {}) }).eq("id", threadId);
   if (error) return fail("admin.errors.generic");
+  // A closed chat goes back to the assistant: the person's next message starts fresh (owner, 2026-10-15).
+  if (status === "closed") await db.from("support_threads").update({ mode: "ai", assigned_to: null, assigned_at: null, handover_reason: null }).eq("id", threadId);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Gives a chat to a staff member (owner, 2026-10-15): "Assign to me", or a colleague who handles support. That person
+ * chats from now on and gets the bell + push for new messages.
+ */
+export async function assignThread(threadId: string, staffId: string | "me"): Promise<{ ok: true } | Fail> {
+  const admin = await adminUser("support.manage");
+  if (!admin || !UUID.test(threadId)) return fail("auth.errors.generic");
+  const to = staffId === "me" ? admin.id : staffId;
+  if (!UUID.test(to) || !(await adminIdsWith("support.manage")).includes(to)) return fail("admin.support.errors.staff");
+  const db = createAdminClient();
+  const { data: thread } = await db.from("support_threads").select("user_id, handover_reason").eq("id", threadId).maybeSingle();
+  if (!thread) return fail("auth.errors.generic");
+  const { error } = await db.from("support_threads").update({ mode: "human", assigned_to: to, assigned_at: new Date().toISOString(), status: "open" }).eq("id", threadId);
+  if (error) return fail("admin.errors.generic");
+  if (to !== admin.id) {
+    const { data: u } = await db.from("profiles").select("name").eq("id", thread.user_id as string).maybeSingle();
+    await notifyWithPush([to], "support_assigned_admin", { name: (u?.name as string | undefined) ?? "", reason: preview((thread.handover_reason as string | null) ?? "") }, `/admin/support?thread=${threadId}`, admin.id);
+  }
+  await audit(admin.id, "support_assign", "support_thread", threadId, { to });
+  refresh();
+  return { ok: true };
+}
+
+/** Gives the chat back to the AI assistant: it answers the person's next message again. */
+export async function backToAssistant(threadId: string): Promise<{ ok: true } | Fail> {
+  const admin = await adminUser("support.manage");
+  if (!admin || !UUID.test(threadId)) return fail("auth.errors.generic");
+  const { error } = await createAdminClient().from("support_threads").update({ mode: "ai", assigned_to: null, assigned_at: null, handover_reason: null, unread_by_admin: 0 }).eq("id", threadId);
+  if (error) return fail("admin.errors.generic");
+  await audit(admin.id, "support_to_ai", "support_thread", threadId);
   refresh();
   return { ok: true };
 }

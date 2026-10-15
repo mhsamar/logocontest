@@ -587,6 +587,16 @@ export const SETTINGS = {
     description: "Most emails a day other than codes and security emails (the rest of the email plan's daily limit is kept for codes; Resend's free plan sends 100 a day). 0 = no limit.",
   },
 
+  // ---- Support chat (owner, 2026-10-15) ------------------------------------------------------------------------------
+  "support.ai_enabled": {
+    group: "support", type: "bool", schema: z.boolean(), default: true,
+    description: "The AI assistant answers support chats first and passes a chat to the team when a person is needed. Off = every chat goes to the team.",
+  },
+  "support.ai_daily_limit": {
+    group: "support", type: "int", schema: int(1, 500), default: 40,
+    description: "Most AI answers one person gets in a day; after that their chat goes to the team.",
+  },
+
   // ---- Admin › Notifications (owner, 2026-10-15): set on that page, not in Settings ---------------------------------
   "notifications.channels": {
     group: "notifications", type: "json", schema: z.record(z.string(), z.array(z.enum(["bell", "push", "email"]))), default: {} as Record<string, ("bell" | "push" | "email")[]>,
