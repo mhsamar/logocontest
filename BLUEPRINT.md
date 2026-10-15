@@ -645,6 +645,10 @@ One page for every notice the site sends, in tabs by who gets it (designers, Pro
 
 Pro early access (how long Pro designers hear first) and the upgrade reminder's on/off stay in Admin › Pro plan; the rows link there. The switches are kept in the setting `notifications.channels` (row → ways turned off). `notify()` checks the bell, `notifyWithPush`/`broadcastToDesigners` check push, and `sendEmail` checks the email (skipped as `admin_off` in `email_log`). A person's own Email settings still apply on top. Saving needs a reason and is written to the audit log (`update_notifications`). Needs `settings.view` to see and `settings.manage` to change.
 
+### 12.3 Site text check (owner, 2026-10-15)
+
+Every public text was checked against how the site works now and fixed in English and Bangla: the logo checker is for clients (every logo contest, from opening until the files are delivered) and designers (their own logos: Basic and Pro checks a month, from Admin › Pro plan); Basic designers send a set number of designs per contest, Pro without limit (`designsRule`, `designsShort` from Admin › Pro plan); taka payments are bKash (send money and the transaction ID) and cards only in US dollars from abroad; Pro designers can chat with clients; the prize reaches the wallet `hold` days after approval; reminder times and deadlines come from Settings, not typed into the text. The contest wizard's style examples are our own drawings (no other companies' logos; `public/style-examples/` removed), and the logo checker's samples are called "wave", not "swoosh". The legal pages (version 2026-10-15) cover the logo checker, the Pro plan, the AI support assistant, unpaid contests (`{unpaidHours}`), the trash (`{trashDays}`), login records, the services in use (Vercel, Supabase, bKash, Stripe, Resend, Google, SearchAPI) and Google AdSense cookies when ads are on.
+
 ## 13. Admin panel (`/admin`)
 
 1. Dashboard: contests posted/paid/completed, total client payments, platform revenue, average entries per contest, wizard drop-off by step, pending withdrawals

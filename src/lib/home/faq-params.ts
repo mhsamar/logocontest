@@ -3,12 +3,14 @@ import { getPricingConfig } from "@/lib/contests/pricing-config";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
+import { getProSettings } from "@/lib/pro/settings";
 import { getSettings } from "@/lib/settings";
 
 /** Numbers for the Q&A answers on the home and How It Works pages. Every one comes from settings. */
 export async function faqParams(t: Translate, locale: Locale, price?: (bdt: number) => string) {
-  const [pricing, s] = await Promise.all([
+  const [pricing, pro, s] = await Promise.all([
     getPricingConfig(),
+    getProSettings(),
     getSettings([
       "upgrades.extension_price_per_day",
       "timers.judging_window_days",
@@ -16,6 +18,7 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       "timers.client_response_days",
       "fees.designer_tiers",
       "limits.withdrawal_min",
+      "timers.payout_hold_days",
     ]),
   ]);
   // In the visitor's currency on the home and How it works pages (owner, 2026-10-14); legal texts stay in taka.
@@ -23,6 +26,7 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
   const num = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
   const list = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(", ")} ${t("home.faq.or")} ${items.at(-1)}` : items[0]);
   const tiers = [...s["fees.designer_tiers"]].sort((a, b) => a.min_wins - b.min_wins);
+  const basicLimit = pro.ready && pro.settings.basicEntriesPerContest ? pro.settings.basicEntriesPerContest : 0;
 
   return {
     pricing,
@@ -56,6 +60,11 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
         })
         .join(", "),
       withdrawMin: taka(s["limits.withdrawal_min"]),
+      // Days after the client approves until the prize is in the wallet (owner, 2026-10-15).
+      hold: num.format(s["timers.payout_hold_days"]),
+      // How many designs a designer may send to one contest: Basic is limited, Pro is not (owner, 2026-10-15).
+      designsRule: basicLimit ? t("home.faq.designsLimited", { n: num.format(basicLimit) }) : t("home.faq.designsUnlimited"),
+      designsShort: basicLimit ? t("home.faq.designsShortLimited", { n: num.format(basicLimit) }) : t("home.faq.designsShortUnlimited"),
     },
   };
 }

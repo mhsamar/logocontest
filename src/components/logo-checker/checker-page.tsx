@@ -5,7 +5,8 @@ import { HERO_SAMPLES, pctColour, RADAR_FIND_COUNT, RADAR_FINDS, radarRadius, ra
 import { formatNumber } from "@/lib/money";
 
 /** perThousand: free checks for each ৳1,000 of prize (owner, 2026-10-14). */
-export type CheckerNumbers = { perThousand: number; freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number };
+/** basicChecks / proChecks: a designer's own logo checks a month (owner, 2026-10-15: the checker is for designers too). */
+export type CheckerNumbers = { perThousand: number; freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number; basicChecks: number; proChecks: number };
 
 type Css = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -561,7 +562,7 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
           </div>
           <ul className="lk-rls">
             {[
-              t("checkerPage.price.rule1"),
+              t("checkerPage.price.rule1", { basic: num(numbers.basicChecks), pro: num(numbers.proChecks) }),
               t("checkerPage.price.rule2", { n: num(numbers.perThousand) }),
               t("checkerPage.price.rule3"),
               t("checkerPage.price.rule4"),
@@ -611,7 +612,7 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
                 {t(`checkerPage.faq.${k}.q`)}
                 <i aria-hidden />
               </summary>
-              <p>{t(`checkerPage.faq.${k}.a`, { n: num(numbers.closeFrom) })}</p>
+              <p>{t(`checkerPage.faq.${k}.a`, { n: num(numbers.closeFrom), basic: num(numbers.basicChecks), pro: num(numbers.proChecks) })}</p>
             </details>
           ))}
         </div>

@@ -8,7 +8,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     title: "Terms of Use",
     description: "The rules for using logocontest.bd as a client or a designer.",
     summary: [
-      "logocontest.bd runs logo design contests: a client pays a prize, designers send designs, the client picks a winner and gets the files and the copyright.",
+      "logocontest.bd runs design contests (logos and other designs): a client pays a prize, designers send designs, the client picks a winner and gets the files and the copyright.",
       "Payments are non-refundable (see the Payment & No-Refund Policy).",
       "Designers must send only their own original work. Copying leads to a fine or a ban, and logocontest.bd will take legal action.",
       "No contact details and no dealing outside the site.",
@@ -31,6 +31,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "You must be at least 18 years old, or have a parent or guardian's permission, to use the site.",
               "Give true information and keep your mobile number and email up to date. One person, one account.",
               "Keep your password secret. You are responsible for what happens in your account.",
+              "Confirm your email address. Designers must confirm it before sending a design.",
               "Some rule breaks suspend an account for {suspendHours} hours: it can't send designs, comment or like until then, and the suspension ends on its own. {ban} suspensions within {strikeDays} days mean a permanent ban (see the Designer Rules).",
               "We ban an account permanently when it breaks these terms, the Designer Rules or the law in a serious way: for example a nude or sexual contest or design, or no final files within {upload} days of winning.",
             ],
@@ -43,8 +44,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           {
             list: [
-              "The client writes a brief, chooses a prize and a length ({minDays} to {maxDays} days), and pays. The contest goes live only after the payment is confirmed.",
-              "Designers send designs while the contest is open. The client can rate, comment on and reject designs.",
+              "The client writes a brief, chooses a prize and a length ({minDays} to {maxDays} days), and pays. The contest goes live only after the payment is confirmed. A contest still unpaid {unpaidHours} hours after it was started is removed.",
+              "Designers send designs while the contest is open ({designsRule}). The client can rate, comment on and reject designs.",
               "After the contest ends, the client has {judging} days to pick one winner.",
               "The winner uploads the final files within {upload} days. The client then approves the files or asks for a change within {response} days; changes go on until the client approves.",
               "If the client does not pick a winner, or does not respond to the final files in time, the contest ends with no result and the prize is shared equally among the designers who took part. In that case no files are delivered and no copyright moves to the client.",
@@ -66,6 +67,33 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         heading: "Copied designs",
         blocks: [
           "Within {claimDays} days of picking the winner, the client can tell us the winning design is copied or breaks someone else's copyright. We look at the evidence, talk with the designer and decide. If the claim is proven, the client may pick another design and the designer may have to correct the design, pay a fine or lose their account. This is explained in the Payment & No-Refund Policy and the Designer Rules.",
+        ],
+      },
+      {
+        id: "logo-checker",
+        heading: "The AI logo checker",
+        blocks: [
+          "The logo checker uses AI and image search to look for similar logos on the web and on this site. Its report and certificate are research made on the date shown. They are not a legal guarantee, a trademark search or legal advice, and they cannot see logos that are not online.",
+        ],
+      },
+      {
+        id: "pro",
+        heading: "Designer Pro plan",
+        blocks: [
+          {
+            list: [
+              "Pro is a paid plan for designers, one month at a time. The Pro page shows its price and what it includes.",
+              "Pro does not renew by itself: we remind you before it ends, and you can renew with one tap. If you cancel, Pro stays on until the end of the month you paid for.",
+              "Pro payments are not refunded (see the Payment & No-Refund Policy).",
+            ],
+          },
+        ],
+      },
+      {
+        id: "support",
+        heading: "Support chat",
+        blocks: [
+          "Our support chat is answered first by an AI assistant. Its answers are general help and can be wrong; a team member takes over when you ask for one or when it is needed. If the assistant says something different from these terms or our policies, the terms and policies apply.",
         ],
       },
       {
@@ -113,6 +141,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     summary: [
       "We collect only what we need to run contests, take payments and pay designers.",
       "Designers' ID numbers (NID, passport or birth certificate) are seen only by our admins, shown masked, and used only for copy and fraud cases.",
+      "Some features use trusted services, such as Google's AI for the logo checker and the support assistant.",
       "We never sell your information.",
     ],
     sections: [
@@ -126,7 +155,9 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "Clients: business name, the contest brief and files you upload, payments.",
               "Designers: bio, portfolio details, designs and final files, payout details (bKash number or bank account), and the originality agreement (full name, mobile, address, ID type and ID number, typed signature).",
               "Activity: comments, ratings, reports, notifications, and the date, time, IP address and browser when you accept declarations or sign the agreement.",
-              "Payments: amount, status and the payment provider's transaction ID. Card and bKash PINs are entered with the payment provider, never on our site.",
+              "Payments: amount, status and the transaction ID. Card details and bKash PINs are never entered on our site.",
+              "Logins: the device, browser, IP address and approximate city of each login, to keep your account safe.",
+              "Support chats and logo checks: your messages to support and the replies, and the logos you check with their results.",
             ],
           },
         ],
@@ -139,7 +170,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
             list: [
               "To run your account, contests, handovers and wallet.",
               "To take payments and send payouts.",
-              "To send notifications, emails and SMS about your contests and account.",
+              "To send notifications and emails about your contests and account. You can turn off emails you don't need in Email settings or with the Unsubscribe link in each email; codes and security emails always come.",
+              "To answer support chats (first with our AI assistant) and to run logo checks.",
               "To keep the site safe: the no-contact filter, copy checks, reports, and preventing fraud.",
               "To follow the law and, when needed, to take legal action about copied designs or fraud.",
             ],
@@ -158,36 +190,37 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "public",
         heading: "What others can see",
         blocks: [
-          "Your username, name, photo and public profile (for designers: bio, portfolio details, wins, total earned and public designs; for clients: total spent) are public. Mobile numbers, emails, addresses, payout details and ID numbers are never shown to other users.",
+          "Your username, name, photo and public profile (for designers: bio, portfolio details, wins and public designs; for clients: total spent) are public. Mobile numbers, emails, addresses, payout details and ID numbers are never shown to other users.",
         ],
       },
       {
         id: "sharing",
         heading: "Who we share it with",
         blocks: [
-          "Only the services that help us run the site, and only what they need: our hosting and database provider, payment providers (such as SSLCommerz and bKash), email and SMS providers, and the live chat provider if you use live chat. We share information with the authorities only when the law requires it. We never sell personal information.",
+          "Only the services that help us run the site, and only what they need: Vercel (hosting), Supabase (database and file storage), bKash (payments in taka), Stripe (card payments in US dollars), Resend (emails), Google (Gemini AI and Cloud Vision) and SearchAPI (image search) for the logo checker and the support assistant, and your browser's notification service if you allow notifications. We share information with the authorities only when the law requires it. We never sell personal information.",
         ],
       },
       {
         id: "cookies",
         heading: "Cookies",
         blocks: [
-          "We use cookies to keep you logged in and remember your language. We do not use advertising cookies.",
-          "To see how the site is used, we count page visits with an anonymous visitor cookie: the page, the site you came from, your device type and your country. If you are logged in, the visit is linked to your account so our team can help you. We do not store your IP address, and visit records are deleted after 180 days.",
+          "We use cookies to keep you logged in and to remember your language and currency.",
+          "To see how the site is used, we count page visits with an anonymous visitor cookie: the page, the site you came from, your device type and your country. If you are logged in, the visit is linked to your account so our team can help you. We do not store your IP address with these visit records, and they are deleted after 180 days.",
+          "When ads are shown on the site, they come from Google AdSense. Third-party vendors, including Google, use cookies to serve ads based on your earlier visits to this website or other websites. Google's use of advertising cookies lets it and its partners show you ads based on your visits to this site and other sites on the internet. You can turn off personalised ads in Google's Ads Settings (adssettings.google.com), or turn off some other vendors' cookies at www.aboutads.info.",
         ],
       },
       {
         id: "keep",
         heading: "How long we keep it",
         blocks: [
-          "We keep account information while your account is open. Contest, payment, wallet and agreement records are kept after that for as long as the law and possible disputes require, because they are needed to prove payments and copyright transfers.",
+          "We keep account information while your account is open. A deleted account stays in our trash for {trashDays} days so it can be restored, then it is erased. Contest, payment, wallet and agreement records are kept for as long as the law and possible disputes require, because they are needed to prove payments and copyright transfers. Login records are deleted after 180 days.",
         ],
       },
       {
         id: "rights",
         heading: "Your choices",
         blocks: [
-          "You can change most of your details in your profile settings. To see the information we hold about you, correct something you cannot change yourself (such as your signed agreement), or close your account, contact us through the Help page.",
+          "You can change most of your details, and which emails you get, in your profile settings. To see the information we hold about you, correct something you cannot change yourself (such as your signed agreement), or close your account, contact us through the Help page.",
         ],
       },
       {
@@ -206,6 +239,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
       "Payments are not refunded.",
       "One exception, which is not a money refund: if the winning design is proven to be copied, the client may pick another design.",
       "The designer is paid {holdDays} days after the client approves the files, if no copy claim is open.",
+      "Designer Pro plan payments are for one month and are not refunded.",
     ],
     sections: [
       {
@@ -216,7 +250,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
             list: [
               "The prize for the designer, plus a service fee of {fee}% of the prize ({largeFee}% when the prize is above {largeFrom}).",
               "Any upgrades chosen (for example Featured, Blind, Private, NDA), and any extension bought later ({perDay} per day added).",
-              "Payment is made through our payment provider (bKash or card). The contest goes live only after the payment is confirmed. We hold the prize until the files are approved.",
+              "You pay with bKash: send the amount to our bKash number and enter the transaction ID. Our team checks it, and the contest goes live once the payment is confirmed. Visitors from abroad can pay by card in US dollars through Stripe. We hold the prize until the files are approved.",
             ],
           },
         ],
@@ -260,6 +294,19 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         ],
       },
       {
+        id: "pro",
+        heading: "Designer Pro plan",
+        blocks: [
+          {
+            list: [
+              "Pro is paid one month at a time, with bKash or by card. It starts when the payment is confirmed.",
+              "Pro does not renew by itself: we remind you before it ends.",
+              "If you cancel, Pro stays on until the end of the month you paid for. Pro payments are not refunded.",
+            ],
+          },
+        ],
+      },
+      {
         id: "payment-errors",
         heading: "Payment problems",
         blocks: [
@@ -275,7 +322,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "The winner's prize reaches their wallet {holdDays} days after the client approves the files, with no copy claim open.",
               "Our designer fee is taken from the prize: {tiers}. The rate is fixed when the winner is picked.",
               "No-result shares reach the wallet right away, after the same fee.",
-              "Designers can withdraw from {withdrawMin} to bKash or a bank account. A rejected withdrawal goes back to the wallet.",
+              "Designers can withdraw from {withdrawMin} to bKash or a bank account. Our team sends each withdrawal (bKash withdrawals can also be sent automatically when that is switched on). A rejected withdrawal goes back to the wallet.",
             ],
           },
         ],
@@ -310,6 +357,8 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "No AI-generated logos. AI may be used only for mockup backgrounds.",
               "No trademarks or famous brand elements.",
               "Fonts and images you use must be ones you are allowed to use commercially.",
+              "How many designs you can send to one contest: {designsRule}.",
+              "Confirm your email before you send your first design.",
             ],
           },
         ],
@@ -325,7 +374,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "contact",
         heading: "No contact outside the site",
         blocks: [
-          "Never share or ask for phone numbers, emails, social media, websites or other contact details, in designs, comments or files. Talk to clients only through the comment boxes. Our filter blocks messages with contact details.",
+          "Never share or ask for phone numbers, emails, social media, websites or other contact details, in designs, comments or files. Talk to clients only on the site: in the comments on your designs, in the files chat if you win, and in the client chat if you are a Pro designer. Our filter blocks messages with contact details.",
         ],
       },
       {
@@ -334,7 +383,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         blocks: [
           {
             list: [
-              "Upload the AI, EPS, SVG, PDF, transparent PNG and JPG files, the font names, and any extras the client asked for. Send them within {strikeHours} hours of winning, or you are suspended for {suspendHours} hours (you can still send the files). If you send nothing within {upload} days, the win is cancelled, you get no prize and your account is banned permanently.",
+              "Upload the final files the contest asks for (for a logo: AI, EPS, SVG, PDF, transparent PNG and JPG), the font names, and any extras the client asked for. Send them within {strikeHours} hours of winning, or you are suspended for {suspendHours} hours (you can still send the files). If you send nothing within {upload} days, the win is cancelled, you get no prize and your account is banned permanently.",
               "Accept the copyright transfer: once the client approves, the design belongs to the client.",
               "If the client asks for changes, answer in the messages on the files page and send the files again, as many times as needed, until the client approves.",
               "Your prize reaches your wallet {holdDays} days after the client approves the files, with no copy claim open. Then you can withdraw it to bKash or a bank account.",
