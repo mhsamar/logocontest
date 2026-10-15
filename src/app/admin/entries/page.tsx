@@ -8,8 +8,9 @@ import { AdminHead } from "@/components/admin/page-head";
 import { str } from "@/components/admin/table-bits";
 import { AdmCard, ADM_INPUT, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
 import { requirePermission } from "@/lib/admin/core";
-import { duplicatePairs, recentEntries, type AdminEntry } from "@/lib/admin/moderation";
-import { clearDuplicate, removeEntry } from "@/lib/admin/moderation-actions";
+import { duplicatePairs, heldEntries, recentEntries, type AdminEntry, type HeldEntry } from "@/lib/admin/moderation";
+import { approveEntry, clearDuplicate, removeEntry } from "@/lib/admin/moderation-actions";
+import { getSetting } from "@/lib/settings";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -21,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("admin.entries.title"), robots: { index: false } };
 }
 
-const TABS = ["recent", "duplicates", "winners"] as const;
+const TABS = ["recent", "held", "duplicates", "winners"] as const;
 type Tab = (typeof TABS)[number];
 const SORTS = ["newest", "oldest", "comments"] as const;
 /** How many of the newest designs the page reads. */
@@ -38,7 +39,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
   const sort = SORTS.find((x) => x === sp.sort) ?? "newest";
   const contest = str(sp.contest);
   const q = str(sp.q).trim().toLowerCase().replace(/^lc-?0*/, "");
-  const [{ t, locale }, all, pairs] = await Promise.all([getI18n(), recentEntries(READ), duplicatePairs()]);
+  const [{ t, locale }, all, pairs, held, checkOn] = await Promise.all([getI18n(), recentEntries(READ), duplicatePairs(), heldEntries(), getSetting("designs.relevance_check").catch(() => true)]);
   const num = (n: number) => formatNumber(n, locale);
   const now = new Date();
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
@@ -84,6 +85,10 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
           <Pill tone="gold" className="absolute right-3 top-3">
             {t("admin.entries.statuses.winner" as MessageKey)}
           </Pill>
+        ) : e.status === "held" ? (
+          <Pill tone="warn" className="absolute right-3 top-3">
+            {t("admin.entries.held.pill")}
+          </Pill>
         ) : e.status === "removed" ? (
           <Pill tone="bad" className="absolute right-3 top-3">
             {t("admin.entries.statuses.removed" as MessageKey)}
@@ -127,6 +132,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
 
       <KpiGrid>
         <KpiTile label={t("admin.entries.kpi.recent", { n: num(DAYS) })} value={num(recent.length)} hint={dayHint || undefined} icon="designs" />
+        <KpiTile label={t("admin.entries.held.kpi")} value={num(held.length)} hint={held.length ? t("admin.entries.kpi.toCheck") : t("admin.entries.kpi.nothing")} icon="checker" href="/admin/entries?tab=held" accent={held.length > 0} />
         <KpiTile label={t("admin.entries.duplicates")} value={num(pairs.length)} hint={pairs.length ? t("admin.entries.kpi.toCheck") : t("admin.entries.kpi.nothing")} icon="claims" href="/admin/entries?tab=duplicates" accent={pairs.length > 0} />
         <KpiTile label={t("admin.entries.kpi.designers")} value={num(byDesigner.size)} hint={topDesigner ? t("admin.entries.kpi.most", { name: topDesigner.name, n: num(topDesigner.n) }) : undefined} icon="users" />
         <KpiTile label={t("admin.entries.kpi.contest")} value={topContest ? topContest.brand : "—"} hint={topContest ? t("admin.entries.kpi.contestHint", { n: num(topContest.n) }) : undefined} icon="contests" />
@@ -144,14 +150,14 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
                 >
                   {t(`admin.entries.tabs.${x}`)}
                   <span className={cx("min-w-6 rounded-[7px] px-1.5 text-center text-[12.5px] font-bold tabular-nums", x === tab ? "bg-surface" : "bg-[#f0f1f4]")}>
-                    {num(x === "recent" ? all.length : x === "duplicates" ? pairs.length : winners.length)}
+                    {num(x === "recent" ? all.length : x === "held" ? held.length : x === "duplicates" ? pairs.length : winners.length)}
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
-        {tab !== "duplicates" && (
+        {tab !== "duplicates" && tab !== "held" && (
           <form action="/admin/entries" className="flex flex-wrap gap-2">
             {tab !== "recent" && <input type="hidden" name="tab" value={tab} />}
             <label className="relative min-w-0 flex-[1_1_260px]">
@@ -189,7 +195,68 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
         )}
       </AdmCard>
 
-      {tab === "duplicates" ? (
+      {tab === "held" ? (
+        <>
+          <p className={cx("m-0 rounded-[12px] px-4 py-3 text-[14.5px] font-semibold", checkOn ? "bg-adm-good-bg text-adm-good" : "bg-adm-sample-bg text-adm-sample")}>
+            {t(checkOn ? "admin.entries.held.on" : "admin.entries.held.off")}{" "}
+            <Link href="/admin/settings#limits" className="underline">
+              {t("admin.entries.held.settings")}
+            </Link>
+          </p>
+          {held.length === 0 ? (
+            <AdmCard className="p-5">
+              <p className="m-0 rounded-[12px] bg-adm-bg px-4 py-8 text-center text-[15px] text-muted">{t("admin.entries.held.none")}</p>
+            </AdmCard>
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-4 p-0">
+              {held.map((e: HeldEntry) => (
+                <AdmCard key={e.id} as="li" className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                  <div className="flex min-w-0 flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Pill tone="dark">{t("admin.entries.designNo", { n: num(e.number) })}</Pill>
+                      <Link href={`/admin/contests/${e.contest.slug}`} className="text-[17px] font-bold hover:text-primary">
+                        {e.contest.brand}
+                      </Link>
+                      <IdChip prefix="LC" n={e.contest.number} />
+                      <span className="text-[14px] text-muted">
+                        ·{" "}
+                        <Link href={`/admin/users/${e.designer.id}`} className="font-semibold text-ink hover:text-primary">
+                          {e.designer.name}
+                        </Link>{" "}
+                        · {when(e.heldAt)}
+                      </span>
+                    </div>
+                    <ul className="m-0 grid list-none grid-cols-2 gap-2.5 p-0 sm:grid-cols-4">
+                      {e.pictures.map((p, i) => (
+                        <li key={i} className={cx("relative overflow-hidden rounded-[12px] bg-[#eeeff2] ring-2", p.doubted ? "ring-adm-bad" : "ring-transparent")}>
+                          {p.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.url} alt={p.label ?? ""} loading="lazy" className="aspect-square w-full object-contain" />
+                          ) : (
+                            <span className="flex aspect-square items-center justify-center text-[13px] text-muted">{t("admin.entries.noImage")}</span>
+                          )}
+                          <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11.5px] font-bold text-white">{num(i + 1)}</span>
+                          {p.doubted && <Pill tone="bad" className="absolute right-1.5 top-1.5">{t("admin.entries.held.doubted")}</Pill>}
+                        </li>
+                      ))}
+                    </ul>
+                    {e.reason && (
+                      <p className="m-0 rounded-[12px] bg-adm-sample-bg px-3.5 py-2.5 text-[14px] text-adm-sample">
+                        <strong>{t("admin.entries.held.why")}</strong> {e.reason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="m-0 text-[14px] text-muted">{t("admin.entries.held.lead")}</p>
+                    <AdminAction label={t("admin.entries.held.approve")} title={t("admin.entries.held.approveTitle", { n: num(e.number) })} body={t("admin.entries.held.approveBody")} confirm={t("admin.entries.held.approve")} done={t("admin.entries.held.approved")} tone="primary" fields={[]} run={approveEntry.bind(null, e.id)} />
+                    <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="danger" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.entries.adult.label"), options: [{ value: "0", label: t("admin.entries.adult.no") }, { value: "1", label: t("admin.entries.adult.yes") }] }]} run={removeEntry.bind(null, e.id)} />
+                  </div>
+                </AdmCard>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : tab === "duplicates" ? (
         pairs.length === 0 ? null : (
           <ul className="m-0 flex list-none flex-col gap-4 p-0">
             {pairs.map(({ entry, original }) => (

@@ -373,6 +373,13 @@ Required checkboxes (store with timestamp and IP):
 7. I will not share or ask for any contact details.
 8. I understand that a copied or AI-generated logo means removal and a permanent ban.
 
+### 9.2.1 Design check (owner, 2026-10-15; migration `0061_design_check`)
+
+- When a logo design is sent, the AI looks at small copies of its pictures (no brand name is sent). If any picture clearly isn't a design for the contest (an app or website screenshot, a chat, a document, a random photo or selfie, a meme, a blank or test picture), the design gets the status `held`: only its designer (badge "Waiting for approval") and the admin team see it, and the client is not told yet. The designer's other designs publish as usual.
+- The team gets a bell and push ("Design waiting for approval") and decides in **Admin › Designs › To approve**: every picture is shown, the doubted ones outlined, with the AI's reason. **Approve and publish** makes it `active` (the client gets the usual "new design" notice, the designer "approved"); **Remove** works as for any design (reason; adult content bans).
+- When unsure, the AI counts a picture as a design. If the check can't run (switched off, no AI key, an error, or no answer within 25 seconds) the design is published. Switch: Settings › Limits `designs.relevance_check` (on by default). Non-logo contest services are not checked yet.
+- A held design counts toward the designer's design limit and can't win or share a no-result prize until it is approved.
+
 ### 9.6 Originality agreement (owner, 2026-10-09)
 
 **Switch (owner, 2026-10-13):** Admin → Agreements has **Agreement before the first design**, **off** by default (setting `legal.agreement_required`): while it is off designers send designs without signing or adding an ID photo, and the submit page and the upload actions don't ask for it. Agreements already signed stay and can still be reviewed. Turning it on brings back everything below. Each change is in the Audit log, old → new.

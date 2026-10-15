@@ -12,10 +12,10 @@ type Fields = Record<string, string>;
 const fail = (error: MessageKey): Result => ({ ok: false, error });
 
 async function entryInfo(entryId: string) {
-  const { data } = await createAdminClient().from("entries").select("id, number, status, designer_id, contest:contests!contest_id(slug, brand_name)").eq("id", entryId).maybeSingle();
+  const { data } = await createAdminClient().from("entries").select("id, number, status, designer_id, contest:contests!contest_id(slug, brand_name, client_id)").eq("id", entryId).maybeSingle();
   if (!data) return null;
-  const c = one(data.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);
-  return { id: data.id as string, number: data.number as number, status: data.status as string, designerId: data.designer_id as string, slug: c?.slug ?? "", brand: c?.brand_name ?? "" };
+  const c = one(data.contest as { slug: string; brand_name: string; client_id: string } | { slug: string; brand_name: string; client_id: string }[] | null);
+  return { id: data.id as string, number: data.number as number, status: data.status as string, designerId: data.designer_id as string, slug: c?.slug ?? "", brand: c?.brand_name ?? "", clientId: c?.client_id ?? "" };
 }
 
 /** A-03 Remove a design (reason required). The winning design can't be removed here; use a copy claim. */
@@ -28,7 +28,7 @@ export async function removeEntry(entryId: string, f: Fields): Promise<Result> {
   if (!e) return fail("auth.errors.generic");
   if (e.status === "winner") return fail("admin.entries.isWinner");
   const db = createAdminClient();
-  const { error } = await db.from("entries").update({ status: "removed" }).eq("id", e.id).in("status", ["active", "rejected", "withdrawn"]);
+  const { error } = await db.from("entries").update({ status: "removed" }).eq("id", e.id).in("status", ["active", "rejected", "withdrawn", "held"]);
   if (error) return fail("admin.errors.generic");
   // A nude or sexual design: removed, and the designer is banned for good (owner, 2026-10-12).
   const adult = f.adult === "1";
@@ -40,6 +40,25 @@ export async function removeEntry(entryId: string, f: Fields): Promise<Result> {
     await audit(admin.id, "ban_user", "user", e.designerId, { reason, adult: true });
     await tellUser(e.designerId, "banned", reason, null, admin.id);
   }
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Design check (owner, 2026-10-15): the team approves a held design. It is published, the client hears about the
+ * new design and the designer that it was approved. (Removing one uses removeEntry, with a reason.)
+ */
+export async function approveEntry(entryId: string): Promise<Result> {
+  const admin = await adminUser("designs.manage");
+  if (!admin || !UUID.test(entryId)) return fail("auth.errors.generic");
+  const e = await entryInfo(entryId);
+  if (!e) return fail("auth.errors.generic");
+  const { data, error } = await createAdminClient().from("entries").update({ status: "active" }).eq("id", e.id).eq("status", "held").select("id").maybeSingle();
+  if (error) return fail("admin.errors.generic");
+  if (!data) return fail("admin.entries.held.notHeld");
+  await audit(admin.id, "approve_entry", "entry", e.id, { contest: e.slug, number: e.number });
+  if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, `/dashboard/contests/${e.slug}?entry=${e.number}`, e.designerId);
+  await notify([e.designerId], "entry_approved", { brand: e.brand, number: e.number }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
   refresh();
   return { ok: true };
 }

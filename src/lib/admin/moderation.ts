@@ -82,6 +82,31 @@ export async function recentEntries(limit = 40): Promise<AdminEntry[]> {
   return toEntries((data ?? []) as unknown as EntryRow[]);
 }
 
+/** Design check (owner, 2026-10-15): a held design with every picture, which ones the check doubted, and why. */
+export type HeldEntry = AdminEntry & { pictures: { url: string | null; doubted: boolean; label: string | null }[]; reason: string; heldAt: Date };
+
+/** Designs waiting in Admin › Designs › To approve, oldest first. [] before migration 0061. */
+export async function heldEntries(): Promise<HeldEntry[]> {
+  if (!isSupabaseConfigured()) return [];
+  const db = createAdminClient();
+  const { data, error } = await db.from("entries").select(`${ENTRY_SELECT}, held_at, held_reason, held_positions`).eq("status", "held").order("held_at", { ascending: true }).limit(100);
+  if (error || !data?.length) return [];
+  const rows = data as unknown as (EntryRow & { held_at: string | null; held_reason: string | null; held_positions: number[] | null })[];
+  const { data: pics } = await db.from("entry_images").select("entry_id, position, preview_path, label").in("entry_id", rows.map((r) => r.id)).order("position");
+  const urls = await getFileStorage()
+    .createReadUrls(ENTRY_FILES_BUCKET, (pics ?? []).map((p) => p.preview_path as string), 3600)
+    .catch(() => new Map<string, string>());
+  const base = new Map((await toEntries(rows)).map((e) => [e.id, e]));
+  return rows.map((r) => ({
+    ...base.get(r.id)!,
+    pictures: (pics ?? [])
+      .filter((p) => p.entry_id === r.id)
+      .map((p) => ({ url: urls.get(p.preview_path as string) ?? null, doubted: (r.held_positions ?? []).includes(p.position as number), label: (p.label as string | null) ?? null })),
+    reason: r.held_reason ?? "",
+    heldAt: new Date(r.held_at ?? r.created_at),
+  }));
+}
+
 export type AdminReport = {
   id: string;
   reason: string;

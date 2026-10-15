@@ -61,6 +61,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("entry_comment_client", "designer", ["entry_comment_client"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("entry_shortlisted", "designer", [], ["email"], { email: "entry-shortlisted", alsoIn: "user" }),
   row("entry_rejected", "designer", ["entry_rejected", "entry_removed"], ["bell"]),
+  row("entry_approved", "designer", ["entry_approved"], ["bell"]),
   row("winner_picked", "designer", ["winner_picked"], ["bell", "email"], { email: "contest-won", alsoIn: "user" }),
   row("contest_closed", "designer", ["contest_closed"], ["bell"]),
   row("win_card_ready", "designer", ["win_card_ready"], ["bell", "email"], { email: "notification", alsoIn: "user" }),
@@ -112,6 +113,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
 
   // ---- Admins ----
   row("admin_support", "admin", ["support_message_admin", "support_assigned_admin"], ["bell", "push"]),
+  row("admin_designs", "admin", ["entry_held_admin"], ["bell", "push"]),
   row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell"]),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),
