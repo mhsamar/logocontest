@@ -4,7 +4,7 @@ import { AdminHead } from "@/components/admin/page-head";
 import { requirePermission } from "@/lib/admin/core";
 import { getI18n } from "@/lib/i18n/server";
 import { NOTICE_ROWS, type TimingKey } from "@/lib/notifications/admin-catalog";
-import { channelsOff } from "@/lib/notifications/switches";
+import { channelsOff, designerEmailsOff } from "@/lib/notifications/switches";
 import { timingText } from "@/lib/notifications/timing";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSettings } from "@/lib/settings";
@@ -18,13 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdminNotificationsPage() {
   await requirePermission("settings.view");
   const keys = [...new Set(NOTICE_ROWS.flatMap((r) => r.timing ?? []))] as TimingKey[];
-  const [{ t }, off, values, pro] = await Promise.all([getI18n(), channelsOff(), getSettings(keys), getProSettings()]);
+  const [{ t }, off, tierOff, values, pro] = await Promise.all([getI18n(), channelsOff(), designerEmailsOff(), getSettings(keys), getProSettings()]);
   const timings = Object.fromEntries(keys.map((k) => [k, timingText(values[k])]));
   return (
     <div className="flex flex-col gap-4">
       <AdminHead title={t("admin.notices.title")} lead={t("admin.notices.lead")} />
       <NoticesEditor
         off={off}
+        tierOff={tierOff}
         timings={timings}
         earlyAccess={{ on: pro.ready && pro.settings.features.early_access && pro.settings.earlyAccessMinutes > 0, minutes: pro.settings.earlyAccessMinutes }}
         autoRemind={pro.settings.autoRemind}

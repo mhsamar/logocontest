@@ -170,7 +170,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
             list: [
               "To run your account, contests, handovers and wallet.",
               "To take payments and send payouts.",
-              "To send notifications and emails about your contests and account. You can turn off emails you don't need in Email settings or with the Unsubscribe link in each email; codes and security emails always come.",
+              "To send notifications and emails about your contests and account. You can stop emails you don't need with the Unsubscribe link in each email; codes and security emails always come.",
               "To answer support chats (first with our AI assistant) and to run logo checks.",
               "To keep the site safe: the no-contact filter, copy checks, reports, and preventing fraud.",
               "To follow the law and, when needed, to take legal action about copied designs or fraud.",

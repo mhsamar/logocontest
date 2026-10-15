@@ -3,9 +3,10 @@ import { isSupabaseConfigured, requireEnv } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
 import { siteUrl } from "@/lib/seo";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { noticeOn } from "@/lib/notifications/switches";
+import { designerEmailsOff, noticeOn } from "@/lib/notifications/switches";
+import { isPro } from "@/lib/pro/status";
 import { getEmailSender, siteOrigin } from "./index";
-import { isOptionalKey, parseEmailOff, shouldSend, type EmailKey } from "./catalog";
+import { isDesignerEmail, isOptionalKey, parseEmailOff, shouldSend, tierAllows, type EmailKey } from "./catalog";
 import { unsubscribeQuery } from "./links";
 import { render, type EmailData } from "./render";
 import { EmailSendError } from "./types";
@@ -65,18 +66,18 @@ export async function emailOrigin(): Promise<string> {
 /** Midnight in Dhaka today: the daily limit starts again then. */
 export const dhakaDayStart = (now: Date) => new Date(Math.floor((now.getTime() + DHAKA) / DAY) * DAY - DHAKA);
 
-type Person = { id: string | null; email: string; name: string; off: string[]; gone: boolean };
+type Person = { id: string | null; email: string; name: string; off: string[]; gone: boolean; role: string | null };
 
 async function person(to: EmailTo): Promise<Person | null> {
-  if (!to.userId || !isSupabaseConfigured()) return to.email ? { id: to.userId ?? null, email: to.email, name: (to.name ?? "").trim(), off: [], gone: false } : null;
+  if (!to.userId || !isSupabaseConfigured()) return to.email ? { id: to.userId ?? null, email: to.email, name: (to.name ?? "").trim(), off: [], gone: false, role: null } : null;
   const db = createAdminClient();
-  const cols = "id, email, name, status, deleted_at";
+  const cols = "id, email, name, role, status, deleted_at";
   // email_off comes with migration 0057; before it, nobody has turned anything off.
   let { data, error } = await db.from("profiles").select(`${cols}, email_off`).eq("id", to.userId).maybeSingle();
   if (error) ({ data, error } = await db.from("profiles").select(cols).eq("id", to.userId).maybeSingle());
   if (!data) return null;
   const row = data as Record<string, unknown>;
-  return { id: row.id as string, email: to.email ?? ((row.email as string | null) ?? ""), name: ((to.name ?? (row.name as string | null)) ?? "").trim(), off: parseEmailOff(row.email_off), gone: Boolean(row.deleted_at) };
+  return { id: row.id as string, email: to.email ?? ((row.email as string | null) ?? ""), name: ((to.name ?? (row.name as string | null)) ?? "").trim(), off: parseEmailOff(row.email_off), gone: Boolean(row.deleted_at), role: (row.role as string | null) ?? null };
 }
 
 async function log(row: { user_id: string | null; template: EmailKey; ref: string | null; security: boolean; status: SendStatus; reason?: string | null; provider_id?: string | null; attempts?: number }) {
@@ -111,7 +112,7 @@ async function shared(origin: string): Promise<EmailData> {
   return {
     site_url: origin,
     logo_url: `${origin}/brand/logo-icon-tile.png`,
-    settings_url: `${origin}/dashboard/profile#emails`,
+    settings_url: `${origin}/help`,
     help_url: `${origin}/help`,
     company_address: s["contact.address_en"]?.trim() || "Dhaka, Bangladesh",
   };
@@ -132,6 +133,14 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
     if (!p.email) return skip("no_email");
     if (p.gone && !security) return skip("deleted");
     if (!shouldSend(key, p.off, security)) return skip("off");
+    // Designer emails by plan (owner, 2026-10-15): Admin › Notifications sets which go to Basic and to Pro designers.
+    if (!security && p.role === "designer" && p.id && isDesignerEmail(key)) {
+      const tiers = await designerEmailsOff();
+      if (tiers.basic.length || tiers.pro.length) {
+        const tier = (await isPro(p.id)) ? "pro" : "basic";
+        if (!tierAllows(tiers, tier, key)) return skip(`${tier}_off`);
+      }
+    }
     if (!security && !(await noticeOn(input.notice ?? NOTICE_OF[key], "email"))) return skip("admin_off");
     if (!security && isSupabaseConfigured()) {
       const limit = (await getSettings(["email.daily_limit"]))["email.daily_limit"];
@@ -145,6 +154,9 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
       email: p.email,
       first_name: firstName(p.name),
       unsubscribe_url: unsub ? `${origin}/email/unsubscribe?${unsub}` : "",
+      // "Email settings" in the footer (owner, 2026-10-15): people have no settings page now; it opens this email's
+      // own page to stop it (or start it again), and Help for emails that can't be stopped.
+      ...(unsub ? { settings_url: `${origin}/email/unsubscribe?${unsub}` } : {}),
       ...input.data,
     };
     const mail = render(key, data);

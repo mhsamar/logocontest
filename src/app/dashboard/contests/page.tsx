@@ -83,7 +83,7 @@ export default async function ProContestsPage({ searchParams }: PageProps<"/dash
             {t("pro.contests.alertsTo")}
           </p>
           <PrefToggle pref="alert_app" on={prefs.alertApp} label={t("pro.contests.app")} />
-          <PrefToggle pref="alert_email" on={prefs.alertEmail} label={t("pro.contests.email")} />
+          {/* No email switch (owner, 2026-10-15): which emails designers get is set in Admin › Notifications. */}
         </aside>
       </div>
     </ProWorkspace>

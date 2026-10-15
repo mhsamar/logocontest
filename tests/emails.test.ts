@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { EmailVerificationService, type VerificationRecord, type VerificationRepository } from "@/lib/auth/email-verification";
-import { CATALOG, chatEmailDue, digestDue, EMAIL_KEYS, parseEmailOff, SETTINGS_KEYS, shouldSend, spanText, type EmailKey } from "@/lib/email/catalog";
+import { CATALOG, chatEmailDue, digestDue, EMAIL_KEYS, parseEmailOff, parseTierOff, SETTINGS_KEYS, shouldSend, spanText, tierAllows, type EmailKey } from "@/lib/email/catalog";
 import { imageToken, readImageToken, unsubscribeOk, unsubscribeQuery, unsubscribeSig } from "@/lib/email/links";
 import { bodyHtml, escapeHtml, htmlToText, previewOf, render, type EmailData } from "@/lib/email/render";
 import { TEMPLATES } from "@/lib/email/templates";
@@ -246,5 +246,25 @@ describe("email codes with the default settings", () => {
     for (let i = 0; i < 5; i++) await service.verify("u1", wrong);
     expect(await service.verify("u1", issued.code)).toEqual({ ok: false, error: "too_many_attempts" });
     expect(await service.issue("u1", "a@b.com")).toMatchObject({ ok: false, error: "cooldown" });
+  });
+});
+
+describe("designer emails by plan (owner, 2026-10-15)", () => {
+  it("the owner's switches are cleaned: designer emails only, no repeats", () => {
+    expect(parseTierOff({ basic: ["contest-invite", "contest-invite", "otp", "client-new-entries", "nope"], pro: "x" })).toEqual({ basic: ["contest-invite"], pro: [] });
+    expect(parseTierOff(null)).toEqual({ basic: [], pro: [] });
+    expect(SETTINGS["notifications.designer_emails"].default).toEqual({ basic: [], pro: [] });
+  });
+
+  it("each plan gets only the emails that are on for it; other emails are not touched", () => {
+    const off = parseTierOff({ basic: ["contest-invite", "pro-renewal"], pro: ["contest-new"] });
+    expect(tierAllows(off, "basic", "contest-invite")).toBe(false);
+    expect(tierAllows(off, "pro", "contest-invite")).toBe(true);
+    expect(tierAllows(off, "pro", "contest-new")).toBe(false);
+    expect(tierAllows(off, "basic", "contest-new")).toBe(true);
+    // Not designer emails: never stopped by these switches.
+    expect(tierAllows(off, "basic", "otp")).toBe(true);
+    expect(tierAllows(off, "basic", "welcome")).toBe(true);
+    expect(tierAllows(off, "basic", "client-new-entries")).toBe(true);
   });
 });

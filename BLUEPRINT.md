@@ -217,6 +217,7 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 
 ### 7.3 Wallet
 
+- **bKash number type (owner, 2026-10-15):** a bKash payout number is marked Personal or Agent (`designer_payout_methods.bkash_kind`), because the team sends money differently to each. Designers must choose at sign-up and in Profile › Payout method; the withdraw form asks too. Admin › Withdrawals and Admin › Users show it.
 - The wallet is a ledger. Never store a balance without a matching `wallet_transactions` row.
 - Credit happens once, inside a database transaction, when the handover becomes approved (or, for a no-result contest, once per designer share, §7.5).
 - **After a contest (owner, 2026-10-12; migration 0039):**
@@ -617,7 +618,7 @@ Every email the site sends uses one of 14 designed templates (600px, tables, inl
 | `pro-renewal` | 7 days and 1 day before the Pro plan ends | Designer |
 | `notification` | Everything else that emails: password reset, suspension/ban/reactivation, ID check, Pro trial and expiry, Pro weekly report, monthly prizes and claims, win cards | The person |
 
-**Email settings:** `profiles.email_off` lists the emails a person turned off (Profile › Email settings, `/dashboard/profile#emails`). Every email except codes and security emails (password reset, suspension, ban, reactivation, ID check) has an Unsubscribe link for its own kind (`/email/unsubscribe`, signed with `OTP_SECRET`, asks before changing anything) and a one-click `List-Unsubscribe` header (`POST /api/email/unsubscribe`). A Pro designer's "email alerts" switch on the Contests page still applies to new-contest emails.
+**Email settings:** people have no email settings page (owner, 2026-10-15): which designer emails go out is set per plan in Admin › Notifications ("Designer emails by plan", Basic and Pro, setting `notifications.designer_emails`; `sendEmail` skips them as `basic_off` / `pro_off`). `profiles.email_off` lists the emails a person stopped with an Unsubscribe link (and keeps what people turned off before). Every email except codes and security emails (password reset, suspension, ban, reactivation, ID check) has an Unsubscribe link for its own kind (`/email/unsubscribe`, signed with `OTP_SECRET`, asks before changing anything) and a one-click `List-Unsubscribe` header (`POST /api/email/unsubscribe`). Pro designers' Contests page has no email switch any more (owner, 2026-10-15); its design-type filter applies to app alerts only.
 
 **Sending (`src/lib/email/send.ts`):** settings first, then the daily limit (Settings › Emails › `email.daily_limit`, 80: emails other than codes and security emails stop for the day at that number, so codes still go on Resend's 100-a-day free plan; 0 = no limit), then Resend with up to 3 retries (not when Resend refuses for good), and a row in `email_log` either way (user, template, what it was about, sent/failed/skipped and why, Resend's message id, tries).
 
@@ -643,7 +644,7 @@ One page for every notice the site sends, in tabs by who gets it (designers, Pro
 | Pro renewal | `notify.pro_renewal_days` | 7, 1 days before |
 | Upgrade reminder (clicked Upgrade, didn't pay) | `notify.upgrade_reminder_hours` | 1, 72 hours after |
 
-Pro early access (how long Pro designers hear first) and the upgrade reminder's on/off stay in Admin › Pro plan; the rows link there. The switches are kept in the setting `notifications.channels` (row → ways turned off). `notify()` checks the bell, `notifyWithPush`/`broadcastToDesigners` check push, and `sendEmail` checks the email (skipped as `admin_off` in `email_log`). A person's own Email settings still apply on top. Saving needs a reason and is written to the audit log (`update_notifications`). Needs `settings.view` to see and `settings.manage` to change.
+Pro early access (how long Pro designers hear first) and the upgrade reminder's on/off stay in Admin › Pro plan; the rows link there. The switches are kept in the setting `notifications.channels` (row → ways turned off). `notify()` checks the bell, `notifyWithPush`/`broadcastToDesigners` check push, and `sendEmail` checks the email (skipped as `admin_off` in `email_log`). A person's Unsubscribe choices and the designer plan switches apply on top. Saving needs a reason and is written to the audit log (`update_notifications`). Needs `settings.view` to see and `settings.manage` to change.
 
 ### 12.3 Site text check (owner, 2026-10-15)
 
@@ -742,13 +743,28 @@ Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`,
 - **Site address:** `SITE_URL` (for example `https://logocontest.bd`) is the base for canonical links, the sitemap and share previews. A staging copy sets `SEO_NOINDEX=true` so search engines skip it.
 - **Titles and descriptions:** every page has its own title (`Page · logocontest.bd`) and the public ones a description, in the visitor's language. Pages behind a login, admin pages, the wizard result and the auth pages are `noindex`.
 - **Hidden from search:** private contests, NDA contests, contests not yet live, dashboards, admin, `/api`, `/dev`. They are left out of the sitemap too.
-- **`/sitemap.xml`:** home, Browse, Design Studio, How It Works (both tabs), Help, designer sign-up, the four legal pages, every public live or finished contest and every active designer profile with at least one public design. **`/robots.txt`** points to it and blocks the private areas.
+- **`/sitemap.xml`:** home, Browse, Design Studio, How It Works (both tabs), Help, designer sign-up, the four legal pages, the guides (§15.2), every public live or finished contest and every active designer profile with at least one public design. **`/robots.txt`** points to it and blocks the private areas.
 - **Canonical links** on contest pages (without `?tab=` / `?entry=`), designer profiles, Browse and the legal pages, so one address is indexed per page.
 - **Share previews (Open Graph):** a site card for every page, and a contest card (brand name, prize in BDT, status) so links shared on Facebook and WhatsApp look right. Contests hidden from search get the site card only.
 - **Structured data:** Organization and WebSite on the home page.
 - **One address for both languages:** English and Bangla share each URL (the language is a cookie), so search engines index the English version; there are no separate language URLs for now.
 - **Performance:** Bangla fonts load only the Bengali characters, and the Bangla display font loads only when used; images are lazy-loaded; a production build is checked for oversized pages.
 - **Backups:** see §18.4.
+
+### 15.2 Guides (owner, 2026-10-15)
+
+- **What:** articles for clients and designers, written by the owner's team in **Admin › Guides** (`content.view` to read, `content.manage` to change). Table `guides` (migration 0060), read by the server only.
+- **Pages:** `/guides` (all, with For clients / For designers; "For everyone" guides show in both) and `/guides/<address>`: title, summary, date, reading time, cover, the text, a next step (Start a contest / Browse or Join / Logo checker) and three more guides. Article and breadcrumb structured data, a canonical link and a share preview with the cover.
+- **Writing:** English is needed to publish (a title, a summary of at least 50 characters, at least 150 words); Bangla is optional and Bangla readers see English where it is empty. The text uses a few simple marks (headings, bold, lists, links, pictures), never HTML. Links go to this site's pages or `https` addresses (outside links get `nofollow`); pictures must be uploaded in the editor (site bucket, `guides/`).
+- **Search:** published guides are in the sitemap; `/guides` joins it once one guide is published (until then it is `noindex`). Up to five guides marked "Show in the footer" appear in a Guides column with "All guides".
+- **Google's rules:** no hidden pages or hidden text, no near-copies made for keywords, own words and own pictures only. Admin › Guides shows these rules next to the list.
+
+### 15.3 Profile settings (owner, 2026-10-15)
+
+- **Order:** photo, name and bio; payout method (designers); mobile; email (with the code box while it isn't confirmed); password; then the portfolio (designers). No email settings: see §12 "Email settings".
+- **Save buttons:** in the brand colour while nothing has changed, green as soon as something is changed, back to the brand colour once the save worked (a failed save stays green).
+- **Fields keep what was typed:** every field is controlled, so a save that is refused (or the form resetting after a save) never blanks a field that the next save would then wipe.
+- **Profile photo:** a real photo of the person; avatars, cartoons, logos and other pictures are not allowed.
 
 ## 16. Build milestones
 

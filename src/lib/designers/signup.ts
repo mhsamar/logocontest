@@ -34,21 +34,27 @@ export function suggestUsername(name: string): string {
   return base.length >= USERNAME_MIN ? base : "";
 }
 
+export type BkashKind = "personal" | "agent";
+export const isBkashKind = (v: unknown): v is BkashKind => v === "personal" || v === "agent";
+
 export type PayoutInput =
-  | { type: "bkash"; bkashNumber: string }
+  // Personal or agent number (owner, 2026-10-15): the team needs to know how to send the money.
+  | { type: "bkash"; bkashNumber: string; bkashKind: string }
   | { type: "bank"; bankName: string; branch: string; accountName: string; accountNumber: string; routingNumber: string };
 
-export type PayoutField = "bkashNumber" | "bankName" | "accountName" | "accountNumber" | "routingNumber";
+export type PayoutField = "bkashNumber" | "bkashKind" | "bankName" | "accountName" | "accountNumber" | "routingNumber";
 
 export type CleanPayout =
-  | { type: "bkash"; bkash_number: string }
+  | { type: "bkash"; bkash_number: string; bkash_kind: BkashKind }
   | { type: "bank"; bank_name: string; branch: string | null; account_name: string; account_number: string; routing_number: string | null };
 
 /** Checks the payout step. Returns the row to store, or the first field that is wrong. */
 export function checkPayout(input: PayoutInput): { ok: true; payout: CleanPayout } | { ok: false; field: PayoutField } {
   if (input.type === "bkash") {
     const number = normalizeBdMobile(input.bkashNumber);
-    return number ? { ok: true, payout: { type: "bkash", bkash_number: number } } : { ok: false, field: "bkashNumber" };
+    if (!number) return { ok: false, field: "bkashNumber" };
+    if (!isBkashKind(input.bkashKind)) return { ok: false, field: "bkashKind" };
+    return { ok: true, payout: { type: "bkash", bkash_number: number, bkash_kind: input.bkashKind } };
   }
   const text = (v: string, max: number) => v.trim().replace(/\s+/g, " ").slice(0, max);
   const bankName = text(input.bankName, 80);

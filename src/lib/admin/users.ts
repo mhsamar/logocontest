@@ -77,6 +77,8 @@ export type AdminUserDetail = AdminUserRow & {
     wins: number;
     ratings: Record<1 | 2 | 3 | 4 | 5, number>;
     payoutType: "bkash" | "bank" | null;
+    /** For bKash: a personal or an agent number (owner, 2026-10-15); null when the designer has not said. */
+    bkashKind: "personal" | "agent" | null;
     agreedAt: Date | null;
     withdrawals: { amount: number; status: string; method: string; createdAt: Date }[];
     waiting: number;
@@ -102,7 +104,7 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
     isDesigner ? db.from("entries").select("id", head).eq("designer_id", id) : none,
     isDesigner ? db.from("entries").select("id", head).eq("designer_id", id).eq("status", "winner") : none,
     isDesigner ? db.from("entries").select("rating").eq("designer_id", id).not("rating", "is", null).limit(1000) : none,
-    isDesigner ? db.from("designer_payout_methods").select("type").eq("user_id", id).eq("is_default", true).maybeSingle() : none,
+    isDesigner ? db.from("designer_payout_methods").select("type, bkash_kind").eq("user_id", id).eq("is_default", true).maybeSingle() : none,
     isDesigner ? db.from("designer_agreements").select("signed_at").eq("designer_id", id).maybeSingle() : none,
     isDesigner ? db.from("withdrawals").select("amount, status, method_type, created_at").eq("designer_id", id).order("created_at", { ascending: false }).limit(50) : none,
   ]);
@@ -121,6 +123,10 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
           wins: winCount.count ?? 0,
           ratings: ratingCounts,
           payoutType: ((payout.data as { type: string } | null)?.type as "bkash" | "bank" | undefined) ?? null,
+          bkashKind: (() => {
+            const k = (payout.data as { bkash_kind?: string | null } | null)?.bkash_kind;
+            return k === "personal" || k === "agent" ? k : null;
+          })(),
           agreedAt: (agreement.data as { signed_at: string } | null)?.signed_at ? new Date((agreement.data as { signed_at: string }).signed_at) : null,
           withdrawals: wd,
           waiting: wd.filter((w) => w.status === "requested").reduce((a, w) => a + w.amount, 0),

@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { adminUser, audit, cleanReason } from "@/lib/admin/core";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
+import { parseTierOff } from "@/lib/email/catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NOTICE_ROWS, parseChannelsOff, type TimingKey } from "./admin-catalog";
 import { parseTiming } from "./timing";
@@ -16,7 +17,7 @@ const TIMING_KEYS = new Set<TimingKey>(NOTICE_ROWS.flatMap((r) => r.timing ?? []
  * Admin › Notifications (owner, 2026-10-15): saves which ways each notice goes and its timings. Like Settings, every
  * save needs a reason and goes to the audit log.
  */
-export async function saveNotifications(input: { off: unknown; timings: Record<string, string> }, reasonText: string): Promise<Result> {
+export async function saveNotifications(input: { off: unknown; tierOff?: unknown; timings: Record<string, string> }, reasonText: string): Promise<Result> {
   const admin = await adminUser("settings.manage");
   if (!admin) return { ok: false, error: "auth.errors.generic" };
   const reason = cleanReason(reasonText);
@@ -26,6 +27,7 @@ export async function saveNotifications(input: { off: unknown; timings: Record<s
   const errors: Record<string, string> = {};
   const values = new Map<SettingKey, unknown>();
   values.set("notifications.channels", off);
+  if (input.tierOff !== undefined) values.set("notifications.designer_emails", parseTierOff(input.tierOff));
   for (const [key, raw] of Object.entries(input.timings ?? {})) {
     if (!TIMING_KEYS.has(key as TimingKey)) continue;
     const parsed = parseTiming(key as TimingKey, raw);

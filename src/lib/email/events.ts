@@ -113,11 +113,8 @@ export async function emailContestNew(contestId: string, designerIds: string[], 
 export async function designersForAlert(except: string[]): Promise<string[]> {
   const { data } = await db().from("profiles").select("id").eq("role", "designer").eq("status", "active").is("deleted_at", null);
   const ids = (data ?? []).map((r) => r.id as string).filter((id) => !except.includes(id));
-  if (!ids.length) return [];
-  // A Pro designer who turned off email alerts on the Contests page keeps them off here too.
-  const { data: prefs } = await db().from("pro_preferences").select("designer_id, alert_email").in("designer_id", ids).eq("alert_email", false);
-  const off = new Set((prefs ?? []).map((r) => r.designer_id as string));
-  return ids.filter((id) => !off.has(id));
+  // Which designers get it by email is set only in Admin › Notifications (owner, 2026-10-15).
+  return ids;
 }
 
 /** A client invited these Pro designers. */

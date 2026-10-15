@@ -608,6 +608,10 @@ export const SETTINGS = {
     group: "notifications", type: "json", schema: z.record(z.string(), z.array(z.enum(["bell", "push", "email"]))), default: {} as Record<string, ("bell" | "push" | "email")[]>,
     description: "Notices turned off in Admin › Notifications: row → the ways (bell, push, email) turned off.",
   },
+  "notifications.designer_emails": {
+    group: "notifications", type: "json", schema: z.object({ basic: z.array(z.string()), pro: z.array(z.string()) }), default: { basic: [], pro: [] } as { basic: string[]; pro: string[] },
+    description: "Designer emails turned off in Admin › Notifications, for Basic and for Pro designers (owner, 2026-10-15).",
+  },
   "notify.chat_email_minutes": {
     group: "notifications", type: "int", schema: int(1, 1440), default: 30,
     description: "Chat emails: at most one per conversation in this many minutes.",

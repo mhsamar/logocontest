@@ -24,7 +24,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
         <div className="lc-card w-full max-w-lg space-y-4 p-6 sm:p-8">
           <h1 className="m-0 text-[24px] font-semibold tracking-[-0.02em] text-ink">{t("email.unsub.title")}</h1>
           {who ? <UnsubscribeBox link={link} type={t(`email.prefs.types.${who.key}.label` as MessageKey)} /> : <p className="m-0 text-[16px] text-ink">{t("email.unsub.invalid")}</p>}
-          <Link href="/dashboard/profile#emails" className="inline-block text-[15px] font-semibold text-primary hover:underline">
+          <Link href="/help" className="inline-block text-[15px] font-semibold text-primary hover:underline">
             {t("email.unsub.settings")}
           </Link>
         </div>

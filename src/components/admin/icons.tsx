@@ -121,6 +121,7 @@ const PATHS = {
   texts: <path d="M5 6V4h14v2M12 4v16M9 20h6" />,
   lists: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
   legal: <path d="M12 4v16M6 20h12M5 8l7-3 7 3M5 8l-2 6a3 3 0 0 0 4 0zM19 8l-2 6a3 3 0 0 0 4 0z" />,
+  guides: <path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2zM12 6.5v13" />,
   brand: <path d="M4 10v4h3l6 4V6l-6 4zM17 9a4 4 0 0 1 0 6" />,
   homepage: (
     <>

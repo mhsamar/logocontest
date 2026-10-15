@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { isSupabaseConfigured } from "@/lib/env";
+import { publishedGuides } from "@/lib/guides/queries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { offersOn } from "@/lib/rewards/program";
 import { searchIndexingOn, siteUrl } from "@/lib/seo";
@@ -10,7 +11,7 @@ export const revalidate = 3600;
 
 const PUBLIC_CONTEST_STATUSES = ["open", "judging", "winner_selected", "handover", "completed", "no_result"];
 
-/** /sitemap.xml (BLUEPRINT §15.1): public pages, public contests and designer profiles. */
+/** /sitemap.xml (BLUEPRINT §15.1): public pages, guides, public contests and designer profiles. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!searchIndexingOn()) return [];
   const base = siteUrl();
@@ -28,6 +29,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/help`, changeFrequency: "monthly", priority: 0.5 },
     ...LEGAL_SLUGS.map((slug) => ({ url: `${base}/legal/${slug}`, changeFrequency: "yearly" as const, priority: 0.3 })),
   ];
+  // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide.
+  const guides = await publishedGuides();
+  if (guides.length) {
+    pages.push({ url: `${base}/guides`, lastModified: new Date(guides[0].published_at), changeFrequency: "weekly", priority: 0.6 });
+    for (const g of guides) pages.push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
+  }
   if (!isSupabaseConfigured()) return pages;
 
   const db = createAdminClient();

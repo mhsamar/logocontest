@@ -9,9 +9,10 @@ import { getProSettings } from "@/lib/pro/settings";
 import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Pro "Instant alerts" (Contests page): app and email on or off, and which design types (empty = all).
+// Pro "Instant alerts" (Contests page): app alerts on or off, and which design types (empty = all). Emails go to every
+// Pro designer; which emails go out is set only in Admin › Notifications (owner, 2026-10-15).
 async function proAlertIds(pro: string[], service: string): Promise<{ app: string[]; email: string[] }> {
-  const { data } = await createAdminClient().from("pro_preferences").select("designer_id, alert_app, alert_email, alert_services").in("designer_id", pro);
+  const { data } = await createAdminClient().from("pro_preferences").select("designer_id, alert_app, alert_services").in("designer_id", pro);
   const prefs = new Map((data ?? []).map((r) => [r.designer_id as string, r]));
   const wants = (id: string) => {
     const types = (prefs.get(id)?.alert_services as string[] | null) ?? [];
@@ -19,7 +20,7 @@ async function proAlertIds(pro: string[], service: string): Promise<{ app: strin
   };
   return {
     app: pro.filter((id) => wants(id) && prefs.get(id)?.alert_app !== false),
-    email: pro.filter((id) => wants(id) && prefs.get(id)?.alert_email !== false),
+    email: pro,
   };
 }
 

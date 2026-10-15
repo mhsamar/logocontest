@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { DESIGNER_TIERS, SETTINGS_KEYS, type DesignerTier, type OptionalKey, type TierOff } from "@/lib/email/catalog";
 import { saveNotifications } from "@/lib/notifications/admin-actions";
 import { AUDIENCES, NOTICE_ROWS, type Audience, type Channel, type ChannelsOff, type NoticeRow, type TimingKey } from "@/lib/notifications/admin-catalog";
 import { TIMING_INFO, timingLabelKey } from "@/lib/notifications/timing";
@@ -20,7 +21,19 @@ const ICON: Record<Channel, string> = { bell: "🔔", push: "📲", email: "✉�
  * Admin › Notifications (owner, 2026-10-15): every notice, by who gets it, with a switch for each way it goes and its
  * timings. Saved together, with a reason, like Settings.
  */
-export function NoticesEditor({ off: startOff, timings: startTimings, earlyAccess, autoRemind }: { off: ChannelsOff; timings: Record<string, string>; earlyAccess: { on: boolean; minutes: number }; autoRemind: boolean }) {
+export function NoticesEditor({
+  off: startOff,
+  tierOff: startTierOff,
+  timings: startTimings,
+  earlyAccess,
+  autoRemind,
+}: {
+  off: ChannelsOff;
+  tierOff: TierOff;
+  timings: Record<string, string>;
+  earlyAccess: { on: boolean; minutes: number };
+  autoRemind: boolean;
+}) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
@@ -28,12 +41,16 @@ export function NoticesEditor({ off: startOff, timings: startTimings, earlyAcces
   const [tab, setTab] = useState<Audience>("designer");
   const [off, setOff] = useState<ChannelsOff>(startOff);
   const [timings, setTimings] = useState<Record<string, string>>(startTimings);
+  const [tierOff, setTierOff] = useState<TierOff>(startTierOff);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, run] = useTransition();
   const norm = (o: ChannelsOff) => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([, v]) => v.length).map(([k, v]) => [k, [...v].sort()]).sort()));
-  const dirty = norm(off) !== norm(startOff) || Object.keys(timings).some((k) => timings[k] !== startTimings[k]);
+  const normTier = (o: TierOff) => JSON.stringify(DESIGNER_TIERS.map((x) => [...o[x]].sort()));
+  const dirty = norm(off) !== norm(startOff) || normTier(tierOff) !== normTier(startTierOff) || Object.keys(timings).some((k) => timings[k] !== startTimings[k]);
+  const tierOn = (tier: DesignerTier, k: OptionalKey) => !tierOff[tier].includes(k);
+  const toggleTier = (tier: DesignerTier, k: OptionalKey) => setTierOff((cur) => ({ ...cur, [tier]: cur[tier].includes(k) ? cur[tier].filter((x) => x !== k) : [...cur[tier], k] }));
   const isOn = (r: NoticeRow, c: Channel) => r.locked || !(off[r.id] ?? []).includes(c);
   const toggle = (r: NoticeRow, c: Channel) =>
     setOff((cur) => {
@@ -46,7 +63,7 @@ export function NoticesEditor({ off: startOff, timings: startTimings, earlyAcces
       setError(null);
       setErrors({});
       const changed = Object.fromEntries(Object.keys(timings).filter((k) => timings[k] !== startTimings[k]).map((k) => [k, timings[k]]));
-      const res = await saveNotifications({ off, timings: changed }, reason);
+      const res = await saveNotifications({ off, tierOff, timings: changed }, reason);
       if (!res.ok) {
         setErrors(res.errors ?? {});
         return setError(t(res.error));
@@ -57,6 +74,7 @@ export function NoticesEditor({ off: startOff, timings: startTimings, earlyAcces
     });
   const cancel = () => {
     setOff(startOff);
+    setTierOff(startTierOff);
     setTimings(startTimings);
     setErrors({});
     setError(null);
@@ -82,6 +100,52 @@ export function NoticesEditor({ off: startOff, timings: startTimings, earlyAcces
         ))}
       </nav>
       <p className="m-0 text-[14.5px] text-muted">{t(`admin.notices.audiences.${tab}.lead` as MessageKey)}</p>
+
+      {/* Designer emails by plan (owner, 2026-10-15): Basic and Pro side by side; only the ones on are sent. */}
+      {(tab === "designer" || tab === "pro") && (
+        <section aria-labelledby="tier-emails" className="rounded-[16px] border border-adm-line bg-surface p-4 sm:p-5">
+          <h3 id="tier-emails" className="m-0 text-[17px] font-semibold text-ink">
+            ✉️ {t("admin.notices.tiers.title")}
+          </h3>
+          <p className="m-0 mt-1 text-[14px] text-muted">{t("admin.notices.tiers.lead")}</p>
+          <div className="mt-3 hidden grid-cols-[minmax(0,1fr)_7.5rem_7.5rem] gap-2 px-1 text-[13px] font-bold uppercase tracking-wide text-adm-soft sm:grid">
+            <span>{t("admin.notices.tiers.email")}</span>
+            {DESIGNER_TIERS.map((tier) => (
+              <span key={tier} className="text-center">
+                {t(`admin.notices.tiers.${tier}`)}
+              </span>
+            ))}
+          </div>
+          <ul className="m-0 mt-1 flex list-none flex-col p-0">
+            {SETTINGS_KEYS.designer.map((k) => (
+              <li key={k} className="grid grid-cols-2 gap-2 border-t border-adm-line px-1 py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem] sm:items-center">
+                <span className="col-span-2 min-w-0 sm:col-span-1">
+                  <span className="block text-[15px] font-semibold text-ink">{t(`email.prefs.types.${k}.label` as MessageKey)}</span>
+                  <span className="block text-[13.5px] text-muted">{t(`email.prefs.types.${k}.hint` as MessageKey)}</span>
+                </span>
+                {DESIGNER_TIERS.map((tier) => (
+                  <button
+                    key={tier}
+                    type="button"
+                    role="switch"
+                    aria-checked={tierOn(tier, k)}
+                    aria-label={`${t(`admin.notices.tiers.${tier}`)}: ${t(`email.prefs.types.${k}.label` as MessageKey)}`}
+                    disabled={readOnly}
+                    onClick={() => toggleTier(tier, k)}
+                    className={cx(
+                      "inline-flex min-h-9 items-center justify-center gap-1 rounded-full px-3 text-[13.5px] font-bold ring-1 disabled:cursor-default",
+                      tierOn(tier, k) ? "bg-[#E8F5EE] text-[#1F7A4D] ring-[#BFE3CE]" : "bg-surface text-muted line-through ring-[#dcdee3]",
+                    )}
+                  >
+                    <span className="sm:hidden">{t(`admin.notices.tiers.${tier}`)} ·</span> {tierOn(tier, k) ? t("admin.notices.on") : t("admin.notices.off")}
+                  </button>
+                ))}
+              </li>
+            ))}
+          </ul>
+          <p className="m-0 mt-2 text-[12.5px] text-muted">{t("admin.notices.tiers.note")}</p>
+        </section>
+      )}
 
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {rows.map((r) => (
