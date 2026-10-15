@@ -100,6 +100,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   admin_message: "support",
   // Admins
   support_message_admin: "admin",
+  support_assigned_admin: "admin",
   claim_opened_admin: "admin",
   monthly_proposed: "admin",
   monthly_review: "admin",

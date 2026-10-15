@@ -9,9 +9,9 @@
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
-  gap: 36px;
+  gap: 28px;
   align-items: center;
-  padding: 48px;
+  padding: 34px 44px;
   border-radius: 32px;
   background: radial-gradient(70% 90% at 0% 0%, #b3201b 0%, #8b0000 45%, #4a0709 100%);
   color: #fff;
@@ -32,7 +32,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
 }
 .gp-k {
   display: inline-flex;
@@ -47,7 +47,7 @@
   font-weight: 800;
 }
 .gp-hero h1 {
-  font-size: clamp(38px, 4.6vw, 62px);
+  font-size: clamp(34px, 3.8vw, 52px);
   line-height: 1.02;
   letter-spacing: -0.045em;
   font-weight: 700;
@@ -62,7 +62,7 @@
 }
 .gp-hero p.lead {
   max-width: 480px;
-  font-size: 18.5px;
+  font-size: 17px;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.82);
 }
@@ -204,10 +204,27 @@
   font-weight: 700;
   text-align: center;
 }
-/* The example screen on the right */
+/* The hero is kept short (owner, 2026-10-15): a smaller price card and button. */
+.gp-hero .gp-price {
+  gap: 10px;
+  margin-top: 4px;
+  padding: 16px;
+}
+.gp-hero .gp-pp b {
+  font-size: 46px;
+}
+.gp-hero .gp-up {
+  min-height: 54px;
+  font-size: 18px;
+}
+/* The example screen on the right. The card is centred by the box, not by translate, because its float animation
+   moves it with translate (owner, 2026-10-15: it was pushed down and cut off on the right). */
 .gp-v {
   position: relative;
-  height: 440px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .gp-glowv {
   position: absolute;
@@ -217,11 +234,9 @@
   filter: blur(10px);
 }
 .gp-pc2 {
-  position: absolute;
-  left: 50%;
-  top: 50%;
+  position: relative;
   width: 340px;
-  translate: -50% -50%;
+  max-width: calc(100% - 40px);
   rotate: -3deg;
   display: flex;
   flex-direction: column;
@@ -351,17 +366,17 @@
 }
 .gp-fq.q1 {
   left: -14px;
-  top: 4px;
+  top: 0;
   animation-delay: -1.5s;
 }
 .gp-fq.q2 {
-  right: -14px;
-  bottom: 14px;
+  right: -8px;
+  bottom: 0;
   animation-delay: -3s;
 }
 .gp-fq.q3 {
   left: -14px;
-  bottom: 70px;
+  bottom: 28px;
   animation-delay: -4.2s;
 }
 .gp-note {

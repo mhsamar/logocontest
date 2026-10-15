@@ -64,6 +64,8 @@ export const NOTIFICATION_TYPES = [
   "support_reply",
   "admin_message",
   "support_message_admin",
+  // AI support assistant (owner, 2026-10-15): a support chat was given to this staff member.
+  "support_assigned_admin",
   // Owner, 2026-10-11: the designer's contest win card is ready.
   "win_card_ready",
   "monthly_smartphone_won",

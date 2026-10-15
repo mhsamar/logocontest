@@ -111,7 +111,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("support", "everyone", ["support_reply", "admin_message"], ["bell", "push"]),
 
   // ---- Admins ----
-  row("admin_support", "admin", ["support_message_admin"], ["bell", "push"]),
+  row("admin_support", "admin", ["support_message_admin", "support_assigned_admin"], ["bell", "push"]),
   row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell"]),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),

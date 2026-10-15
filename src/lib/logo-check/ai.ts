@@ -42,9 +42,10 @@ export const imageBlock = (png: Uint8Array): Block => ({ type: "image", source: 
 
 /** costUsd from the built-in prices; tokens let the cost report use the admin's prices (owner, 2026-10-14). */
 export type AiResult<T> = { data: T; costUsd: number; tokens: { in: number; out: number } };
-type Tool = { name: string; description: string; input_schema: object };
+export type Tool = { name: string; description: string; input_schema: object };
 
-async function callTool<T>(system: string, content: Block[], tool: Tool, maxTokens: number, fetcher: typeof fetch = fetch): Promise<AiResult<T>> {
+/** One structured answer from the AI (also used by the support assistant, owner 2026-10-15). */
+export async function callTool<T>(system: string, content: Block[], tool: Tool, maxTokens: number, fetcher: typeof fetch = fetch): Promise<AiResult<T>> {
   const p = provider();
   if (p === "gemini") return callGemini<T>(system, content, tool, fetcher);
   if (p === "claude") return callClaude<T>(system, content, tool, maxTokens, fetcher);

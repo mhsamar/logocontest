@@ -8,7 +8,7 @@ import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatMobile } from "@/lib/phone";
-import { inbox, threadDetail, threadIdOf } from "@/lib/support/queries";
+import { inbox, supportStaff, threadDetail, threadIdOf, type InboxView } from "@/lib/support/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -17,11 +17,20 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // A-24 Support inbox (BLUEPRINT §13.2 item 5): conversation list and the open chat; refreshes every 8 s.
 export default async function AdminSupportPage({ searchParams }: PageProps<"/admin/support">) {
-  await requirePermission("support.view");
+  const me = await requirePermission("support.view");
   const sp = await searchParams;
-  const status = sp.status === "closed" ? "closed" : "open";
+  // Lists (owner, 2026-10-15): open, waiting for a person (the AI handed them over), mine, closed.
+  const status: InboxView = sp.status === "closed" || sp.status === "needs" || sp.status === "mine" ? sp.status : "open";
   const threadParam = typeof sp.thread === "string" ? sp.thread : typeof sp.user === "string" ? await threadIdOf(sp.user) : null;
-  const [{ t, locale }, list, detail] = await Promise.all([getI18n(), inbox(status), threadParam ? threadDetail(threadParam) : null]);
+  const [{ t, locale }, list, detail, staff] = await Promise.all([getI18n(), inbox(status, me.id), threadParam ? threadDetail(threadParam) : null, supportStaff()]);
+  const modeTag = (r: { mode: "ai" | "waiting" | "human"; assignedName: string | null }) =>
+    r.mode === "ai" ? (
+      <span className="shrink-0 rounded-full bg-[#F1EAFE] px-2 py-0.5 text-[10.5px] font-extrabold text-[#6D28D9]">✨ {t("admin.support.modes.ai")}</span>
+    ) : r.mode === "waiting" ? (
+      <span className="shrink-0 rounded-full bg-[#FFF1E6] px-2 py-0.5 text-[10.5px] font-extrabold text-[#B45309]">{t("admin.support.modes.waiting")}</span>
+    ) : r.assignedName ? (
+      <span className="max-w-[9rem] shrink-0 truncate rounded-full bg-canvas px-2 py-0.5 text-[10.5px] font-bold text-muted">{t("admin.support.modes.human", { name: r.assignedName })}</span>
+    ) : null;
   const when = (iso: string) => new Date(iso).toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" });
   const href = (p: { status?: string; thread?: string }) => `/admin/support?${new URLSearchParams({ ...(p.status && p.status !== "open" ? { status: p.status } : {}), ...(p.thread ? { thread: p.thread } : {}) })}`;
 
@@ -32,8 +41,8 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
       <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <section className={cx("overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line", detail && "hidden lg:block")}>
           <div className="flex gap-1 border-b border-line p-2">
-            {(["open", "closed"] as const).map((s) => (
-              <Link key={s} href={href({ status: s })} aria-current={s === status ? "page" : undefined} className={cx("inline-flex min-h-9 flex-1 items-center justify-center rounded-full text-sm font-semibold", s === status ? "bg-ink text-white" : "text-ink hover:bg-canvas")}>
+            {(["open", "needs", "mine", "closed"] as const).map((s) => (
+              <Link key={s} href={href({ status: s })} aria-current={s === status ? "page" : undefined} className={cx("inline-flex min-h-9 flex-1 items-center justify-center rounded-full px-2 text-[13px] font-semibold", s === status ? "bg-ink text-white" : "text-ink hover:bg-canvas")}>
                 {t(`admin.support.${s}`)}
               </Link>
             ))}
@@ -48,6 +57,7 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
                     <div className="flex items-center justify-between gap-2">
                       <span className={cx("truncate text-sm", r.unreadByAdmin > 0 ? "font-bold text-ink" : "font-semibold text-ink")}>{r.user?.name ?? "—"}</span>
                       {r.pro && <span className="shrink-0 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.05em] text-white">PRO</span>}
+                      {r.status === "open" && modeTag(r)}
                       <span className="shrink-0 text-xs text-muted">{when(r.lastMessageAt)}</span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-2">
@@ -81,7 +91,7 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
                   {t("admin.support.profile")} →
                 </Link>
               </div>
-              <SupportThreadPanel key={detail.thread.id} threadId={detail.thread.id} status={detail.thread.status} messages={detail.messages} />
+              <SupportThreadPanel key={detail.thread.id} thread={detail.thread} messages={detail.messages} staff={staff} meId={me.id} />
             </>
           ) : (
             <p className="m-auto text-sm text-muted">{t("admin.support.pick")}</p>

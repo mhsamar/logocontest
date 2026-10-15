@@ -55,15 +55,15 @@ export default async function HelpPage() {
     {
       key: "chat",
       title: t("help.chat.title"),
-      body: chat.driver === "tawk" ? t("help.chat.body") : t("help.chat.soon"),
+      // The site's own support chat, with the AI assistant first (owner, 2026-10-15); Tawk.to only when chosen in Settings.
+      body: t("help.chat.body"),
       action:
         chat.driver === "tawk" ? (
           <LiveChatButton src={chat.src} label={t("help.chat.start")} loadingLabel={t("help.chat.loading")} />
         ) : (
-          <span className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-chip px-6 font-bold text-muted ring-1 ring-inset ring-line">
-            <span className="size-2 animate-pulse rounded-full bg-primary/60" aria-hidden />
-            {t("help.chat.comingSoon")}
-          </span>
+          <Link href="/support" className={cx(CTA, "bg-[image:var(--gradient-red)] text-white hover:brightness-110")}>
+            {t("help.chat.start")}
+          </Link>
         ),
     },
     {
