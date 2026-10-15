@@ -2,8 +2,8 @@
 import { cx } from "@/lib/cx";
 
 /**
- * The owner's logo pack (owner, 2026-10-08), files in public/brand/:
- * logo-full(-white).png is the "lc LOGO CONTEST.bd" lockup, logo-icon(-white).png the
+ * The owner's logo pack (owner, 2026-10-08; new logo with the star, 2026-10-15), files in public/brand/:
+ * logo-full(-white).png is the lockup (the tile and "Logocontest.bd"), logo-icon(-white).png the
  * "lc" mark, and logo-icon-tile.png the white mark on a maroon square (app icon).
  * logo-wordmark(-white).png is the lockup cropped to its edges, for the header and footer.
  * "inverted" picks the white files for dark backgrounds.
@@ -21,8 +21,8 @@ export function Wordmark({ inverted = false, className, src }: { inverted?: bool
     <img
       src={inverted ? "/brand/logo-wordmark-white.png" : "/brand/logo-wordmark.png"}
       alt="logocontest.bd"
-      width={405}
-      height={47}
+      width={455}
+      height={70}
       className={cx("h-[18px] w-auto sm:h-[23px]", className)}
     />
   );

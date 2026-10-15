@@ -6,9 +6,9 @@ import path from "node:path";
 export const OG_SIZE = { width: 1200, height: 630 };
 
 let logo: Promise<string> | null = null;
-/** The full logo as a data URL (read once). */
+/** The logo (cropped to its edges) as a data URL (read once). */
 export function logoDataUrl(): Promise<string> {
-  logo ??= readFile(path.join(process.cwd(), "public/brand/logo-full.png")).then((b) => `data:image/png;base64,${b.toString("base64")}`);
+  logo ??= readFile(path.join(process.cwd(), "public/brand/logo-wordmark.png")).then((b) => `data:image/png;base64,${b.toString("base64")}`);
   return logo;
 }
 
@@ -21,7 +21,8 @@ export function OgFrame({ logoSrc, children }: { logoSrc: string; children: Reac
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: BG, padding: "64px 72px", color: "#200e01", fontFamily: "Geist" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={logoSrc} width={420} height={62} alt="" />
+      {/* The logo cropped to its edges, 455×70, so it lines up with the text (owner, 2026-10-15: new logo with the star). */}
+      <img src={logoSrc} width={390} height={60} alt="" />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>{children}</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: "#5c4a3d" }}>
         <span>logocontest.bd</span>

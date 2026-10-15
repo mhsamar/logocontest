@@ -79,7 +79,7 @@ export async function portfolioPdf(designer: DesignerProfile, designs: PublicDes
 
   // ---- Header band ----
   page.drawRectangle({ x: 0, y: A4.h - 150, width: A4.w, height: 150, color: MAROON });
-  const logo = await doc.embedPng(await readFile(path.join(process.cwd(), "public/brand/logo-full-white.png")));
+  const logo = await doc.embedPng(await readFile(path.join(process.cwd(), "public/brand/logo-wordmark-white.png")));
   const logoW = 150;
   page.drawImage(logo, { x: A4.w - M - logoW, y: A4.h - 44, width: logoW, height: (logo.height / logo.width) * logoW });
 
