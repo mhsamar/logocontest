@@ -359,6 +359,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "Fonts and images you use must be ones you are allowed to use commercially.",
               "How many designs you can send to one contest: {designsRule}.",
               "Confirm your email before you send your first design.",
+              "Send only your design and its mockups. A design with a picture that isn't a design (a screenshot, a random photo) may be held for a check by our team before it is shown.",
             ],
           },
         ],

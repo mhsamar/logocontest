@@ -3,7 +3,7 @@ import type { AdminIconName } from "@/components/admin/icons";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { ADMIN_AREAS, hasPermission, type AdminArea, type AdminIdentity, type Permission } from "./permissions";
 
-export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals";
+export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals" | "designs";
 export type AdminNavItem = { href: string; icon: AdminIconName; label: MessageKey; perm: Permission | "super"; badge?: AdminBadge };
 export type AdminNavGroup = { label: MessageKey; items: AdminNavItem[] };
 
@@ -23,7 +23,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/contests", icon: "contests", label: "admin.nav.contests", perm: "contests.view" },
       { href: "/admin/services", icon: "services", label: "admin.nav.services", perm: "settings.view" },
       { href: "/admin/pro", icon: "pro", label: "admin.nav.pro", perm: "pro.view" },
-      { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view" },
+      { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view", badge: "designs" },
       { href: "/admin/reports", icon: "reports", label: "admin.nav.reports", perm: "reports.view", badge: "reports" },
       { href: "/admin/claims", icon: "claims", label: "admin.nav.claims", perm: "claims.view", badge: "claims" },
       { href: "/admin/copyright", icon: "checker", label: "admin.nav.copyright", perm: "copyright.view" },

@@ -81,6 +81,8 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
   const [hide, setHide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  // The design check held it for the team (owner, 2026-10-15).
+  const [held, setHeld] = useState(false);
   const [over, setOver] = useState(false);
   const [busy, start] = useTransition();
   const [sending, setSending] = useState(false);
@@ -165,6 +167,7 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
       const res = await submitEntry({ contestId, paths: ready.map((i) => i.path!), labels: ready.map((i) => i.label.trim()), declarations: [...ticked], checkId, hidden: canHide && hide });
       setSending(false);
       if (!res.ok) return setError(t(res.error.key, res.error.params));
+      setHeld(res.held);
       setDone(res.number);
     });
 
@@ -369,7 +372,7 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
       <Modal
         open={done !== null}
         onClose={startNew}
-        title={t("submit.done.title")}
+        title={t(held ? "submit.done.heldTitle" : "submit.done.title")}
         closeLabel={t("common.close")}
         footer={
           <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -388,8 +391,8 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
               <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <p className="mt-4 text-lg font-semibold text-ink">{done !== null && t("submit.done.body", { n: fmt(done) })}</p>
-          <p className="mt-1 text-sm text-muted">{t("submit.done.next")}</p>
+          <p className="mt-4 text-lg font-semibold text-ink">{done !== null && t(held ? "submit.done.heldBody" : "submit.done.body", { n: fmt(done) })}</p>
+          {!held && <p className="mt-1 text-sm text-muted">{t("submit.done.next")}</p>}
         </div>
       </Modal>
     </div>

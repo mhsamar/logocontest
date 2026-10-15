@@ -301,6 +301,10 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(), default: 0,
     description: "Entries one designer can submit to one contest. 0 = unlimited.",
   },
+  "designs.relevance_check": {
+    group: "limits", type: "bool", schema: z.boolean(), default: true,
+    description: "Design check (owner, 2026-10-15): the AI looks at each new logo design; one that isn't a design (a screenshot, a random photo) waits in Admin › Designs › To approve.",
+  },
   "limits.entry_min_images": {
     group: "limits", type: "int", schema: int(1), default: 1,
     description: "Minimum mockups per design.",

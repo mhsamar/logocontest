@@ -36,9 +36,11 @@ export const aiConfigured = () => provider() !== null;
 /** The AI can't be used right now (no credit or quota, a wrong key, or the service is down): not worth retrying. */
 export class AiUnavailableError extends Error {}
 
-type Block = { type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: "image/png"; data: string } };
+type Block = { type: "text"; text: string } | { type: "image"; source: { type: "base64"; media_type: "image/png" | "image/jpeg"; data: string } };
 export const textBlock = (text: string): Block => ({ type: "text", text });
 export const imageBlock = (png: Uint8Array): Block => ({ type: "image", source: { type: "base64", media_type: "image/png", data: Buffer.from(png).toString("base64") } });
+/** A small JPEG (the design check sends up to 8 at once, owner 2026-10-15). */
+export const jpegBlock = (jpeg: Uint8Array): Block => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: Buffer.from(jpeg).toString("base64") } });
 
 /** costUsd from the built-in prices; tokens let the cost report use the admin's prices (owner, 2026-10-14). */
 export type AiResult<T> = { data: T; costUsd: number; tokens: { in: number; out: number } };

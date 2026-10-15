@@ -32,6 +32,9 @@ import { mockupLimit } from "./limits";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES } from "./rules";
 import { emailChat } from "@/lib/email/events";
+import { adminIdsWith } from "@/lib/admin/recipients";
+import { notifyWithPush } from "@/lib/notifications/broadcast";
+import { checkDesignPictures } from "./relevance";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -108,7 +111,7 @@ const MOCKUP_LABEL_MAX = 60;
  * D-04 step 2: checks every mockup again on the server (exactly N×N, not nude),
  * numbers the design, makes clean previews and flags near-duplicates.
  */
-export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string } | Fail> {
+export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string; held: boolean } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
   const held = suspendedError(user);
@@ -180,25 +183,37 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     files.push({ path, bytes, hash: await differenceHash(bytes) });
   }
 
+  // Design check (owner, 2026-10-15): a logo design whose pictures aren't designs (a screenshot, a random photo)
+  // waits in Admin › Designs › To approve; the designer's other designs publish as usual. No brand name is sent.
+  const check = rules ? null : await checkDesignPictures({ brand: null, files: files.map((f) => f.bytes) });
+
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null;
   const now = new Date().toISOString();
   // Hidden only for a Pro designer while the feature is on (owner, 2026-10-14).
   const hide = input.hidden === true && (await proFeatureOn("hidden_entries")) && (await isPro(user!.id));
-  const { data: entry, error } = await db
+  const row = {
+    contest_id: contest.id,
+    designer_id: user!.id,
+    ...(hide ? { is_hidden: true } : {}),
+    number: 0, // set by the entries_set_number trigger
+    declarations: { version: 1, accepted: [...DECLARATION_KEYS] },
+    declared_ip: ip,
+    declared_at: now,
+  };
+  const heldFields = check?.held ? { status: "held", held_at: now, held_reason: check.reason, held_positions: check.positions } : null;
+  let { data: entry, error } = await db
     .from("entries")
-    .insert({
-      contest_id: contest.id,
-      designer_id: user!.id,
-      ...(hide ? { is_hidden: true } : {}),
-      number: 0, // set by the entries_set_number trigger
-      declarations: { version: 1, accepted: [...DECLARATION_KEYS] },
-      declared_ip: ip,
-      declared_at: now,
-    })
-    .select("id, number")
+    .insert({ ...row, ...heldFields })
+    .select("id, number, status")
     .single();
+  // Before migration 0061 the database can't hold a design: it is published as before.
+  if (error && heldFields) {
+    console.error("[design-check] could not hold the design:", error.message);
+    ({ data: entry, error } = await db.from("entries").insert(row).select("id, number, status").single());
+  }
   if (error || !entry) return fail("auth.errors.generic");
+  const waits = entry.status === "held";
 
   // Near-duplicates of other designers' mockups in this contest, for admins.
   const { data: others } = await db
@@ -235,9 +250,14 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   // Logo check (owner, 2026-10-14): the fingerprint of the cover file, and the designer's check if it is about this file.
   await linkEntryCheck({ entryId: entry.id, designerId: user!.id, contestId: contest.id, fileSha256: sha256Hex(files[0].bytes), checkId: input.checkId ?? null });
 
-  await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, `/dashboard/contests/${contest.slug}?entry=${entry.number}`, user!.id);
+  if (waits) {
+    // The client hears about it once the team approves it; the team gets a bell and a push now.
+    await notifyWithPush(await adminIdsWith("designs.manage"), "entry_held_admin", { brand: contest.brand, number: entry.number, name: user!.name }, "/admin/entries?tab=held", user!.id);
+  } else {
+    await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, `/dashboard/contests/${contest.slug}?entry=${entry.number}`, user!.id);
+  }
   refresh();
-  return { ok: true, number: entry.number, slug: contest.slug };
+  return { ok: true, number: entry.number, slug: contest.slug, held: waits };
 }
 
 // ---------------------------------------------------------------------------

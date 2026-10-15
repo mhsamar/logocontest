@@ -5,7 +5,8 @@
 
 import { PUBLIC_STATUSES } from "@/lib/contests/public-statuses";
 
-export type EntryStatus = "active" | "rejected" | "withdrawn" | "removed" | "winner" | "forfeited";
+/** "held" (owner, 2026-10-15; migration 0061): the design check thinks it isn't a design; it waits for Admin › Designs. */
+export type EntryStatus = "active" | "rejected" | "withdrawn" | "removed" | "winner" | "forfeited" | "held";
 
 /** Statuses everyone who can see the contest's entries sees. */
 export const SHOWN_STATUSES: EntryStatus[] = ["active", "winner", "forfeited"];
@@ -27,8 +28,8 @@ export type ContestForEntries = {
 };
 
 export type EntryScope =
-  /** Every design, including rejected ones (the contest's client and admins). */
-  | { kind: "all" }
+  /** Every design, including rejected ones (the contest's client and admins; only admins see held ones). */
+  | { kind: "all"; admin?: boolean }
   /** Active and winning designs, plus the viewer's own in any visible state. */
   | { kind: "public"; ownerDesignerId: string | null }
   /** Blind contest: only the viewer's own designs, plus the winner once the client made it public. */
@@ -37,7 +38,7 @@ export type EntryScope =
 
 export function entryScope(contest: ContestForEntries, viewer: EntryViewer): EntryScope {
   if (!contest.canSeeBrief) return { kind: "none" };
-  if (viewer && (viewer.id === contest.ownerId || viewer.role === "admin")) return { kind: "all" };
+  if (viewer && (viewer.id === contest.ownerId || viewer.role === "admin")) return { kind: "all", admin: viewer.role === "admin" };
   if (!contest.isBlind) return { kind: "public", ownerDesignerId: viewer?.role === "designer" ? viewer.id : null };
   const winnerOnly = contest.status === "completed" && contest.winnerIsPublic;
   if (viewer?.role === "designer") return { kind: "own", designerId: viewer.id, winnerOnly };
@@ -46,6 +47,13 @@ export function entryScope(contest: ContestForEntries, viewer: EntryViewer): Ent
 
 /** Whether this viewer sees one design with this status and designer. */
 export function canSeeEntry(scope: EntryScope, entry: { status: EntryStatus; designerId: string }): boolean {
+  // A held design: only its own designer and the admin team, until it is approved (owner, 2026-10-15).
+  if (entry.status === "held") {
+    if (scope.kind === "all") return scope.admin === true;
+    if (scope.kind === "public") return entry.designerId === scope.ownerDesignerId;
+    if (scope.kind === "own") return Boolean(scope.designerId) && entry.designerId === scope.designerId;
+    return false;
+  }
   switch (scope.kind) {
     case "all":
       return !GONE_STATUSES.includes(entry.status);

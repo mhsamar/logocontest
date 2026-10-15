@@ -90,6 +90,8 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entr
         {!winner && entry.mine && <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.yours")}</span>}
         {!winner && !entry.mine && pro?.invited && <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("pro.invite.badge")}</span>}
         {entry.status === "rejected" && <span className="absolute right-2 top-2 rounded-full bg-danger px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">{t("entry.rejected")}</span>}
+        {/* Design check (owner, 2026-10-15): only its own designer (and the team) sees a held design. */}
+        {entry.status === "held" && <span className="absolute right-2 top-2 rounded-full bg-warning px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-ink">{t("entry.held")}</span>}
       </div>
       <div className="px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">

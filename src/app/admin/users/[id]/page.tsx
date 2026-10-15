@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const STATUS_DOT: Record<string, string> = { active: "bg-adm-pay", suspended: "bg-adm-warn", banned: "bg-adm-bad", deleted: "bg-adm-bad" };
 const TABS = ["activity", "work", "withdrawals", "strikes"] as const;
 type Tab = (typeof TABS)[number];
-const ENTRY_TONE: Record<string, PillTone> = { winner: "gold", active: "good", removed: "bad" };
+const ENTRY_TONE: Record<string, PillTone> = { winner: "gold", active: "good", removed: "bad", held: "warn" };
 
 // A-05 User profile (BLUEPRINT §13; design/admin/user-profile.html, owner 2026-10-10): who they are, their work and
 // money, strikes, and the admin actions.
