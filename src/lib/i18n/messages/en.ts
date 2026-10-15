@@ -3428,6 +3428,8 @@ const en = {
         update_onboarding: "Changed the onboarding questions",
         update_notifications: "Changed the notifications",
         support_assign: "Assigned a support chat",
+        payouts_auto_on: "Turned automatic withdrawals on",
+        payouts_auto_off: "Turned automatic withdrawals off",
         support_to_ai: "Gave a support chat back to the AI assistant",
         sign_out_devices: "Signed a user out of devices",
         send_password_reset: "Sent a password reset email",
@@ -3675,6 +3677,18 @@ const en = {
       confirmReject: "Reject and return the money",
       paid: "Marked as paid.",
       rejected: "Rejected. The money is back in the designer's wallet.",
+      // Automatic bKash withdrawals (owner, 2026-10-15)
+      auto: {
+        title: "Automatic withdrawals (bKash)",
+        desc: "When on, a designer's bKash withdrawal is sent at once through bKash's payout API, with no work for you. Bank withdrawals, and any bKash payout that fails, still wait here to be paid by hand.",
+        on: "On",
+        off: "Off",
+        ready: "bKash payouts are connected. You can turn this on or off any time.",
+        notReady: "Waiting for the bKash payout API. When bKash approves your payout (disbursement) account and gives the API keys, it gets connected, then you can switch it on here.",
+        savedOn: "Automatic withdrawals are on.",
+        savedOff: "Automatic withdrawals are off. Every withdrawal now waits here.",
+        errors: { notReady: "The bKash payout API isn't connected yet." },
+      },
     },
     claims: {
       photo: "Open picture {n}",

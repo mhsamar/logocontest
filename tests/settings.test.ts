@@ -78,6 +78,6 @@ describe("BLUEPRINT defaults", () => {
     // "home" in /admin/hero, "rewards" in /admin/monthly; "live" (the live designers tag) is on A-11; "how" (How it works
     // videos) in /admin/homepage (owner, 2026-10-11).
     // "checker" (logo checker API prices, owner 2026-10-14) is on A-11 too, and so are "ads" and "trash" (2026-10-14) and "email" (2026-10-15).
-    expect([...groups].sort()).toEqual(["ads", "auth", "brand", "checker", "contact", "email", "fees", "home", "how", "legal", "limits", "live", "notice", "notifications", "packages", "payments", "rewards", "security", "site", "support", "timers", "trash", "upgrades"]);
+    expect([...groups].sort()).toEqual(["ads", "auth", "brand", "checker", "contact", "email", "fees", "home", "how", "legal", "limits", "live", "notice", "notifications", "packages", "payments", "payouts", "rewards", "security", "site", "support", "timers", "trash", "upgrades"]);
   });
 });

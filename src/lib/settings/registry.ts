@@ -587,6 +587,12 @@ export const SETTINGS = {
     description: "Most emails a day other than codes and security emails (the rest of the email plan's daily limit is kept for codes; Resend's free plan sends 100 a day). 0 = no limit.",
   },
 
+  // ---- Withdrawals (owner, 2026-10-15): set in Admin › Withdrawals, not in Settings -----------------------------------
+  "payouts.auto_bkash": {
+    group: "payouts", type: "bool", schema: z.boolean(), default: false,
+    description: "Automatic withdrawals: bKash withdrawals are sent by bKash's payout API at once. Bank withdrawals always wait for an admin.",
+  },
+
   // ---- Support chat (owner, 2026-10-15) ------------------------------------------------------------------------------
   "support.ai_enabled": {
     group: "support", type: "bool", schema: z.boolean(), default: true,

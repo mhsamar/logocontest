@@ -9,7 +9,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
-import { getPayoutGateway } from "@/lib/payouts";
+import { payoutGateway } from "@/lib/payouts";
+import { bkashPayoutsReady } from "@/lib/payouts/ready";
+import { SETTINGS } from "@/lib/settings/registry";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -55,7 +57,7 @@ export async function requestWithdrawal(input: {
   const withdrawal = w as { id: string; method_type: string; destination: { bkash_number?: string } };
 
   if (withdrawal.method_type === "bkash" && withdrawal.destination.bkash_number) {
-    const gateway = getPayoutGateway();
+    const gateway = await payoutGateway();
     if (gateway.sendsBkash) {
       const sent = await gateway.sendBkash({ withdrawalId: withdrawal.id, amount: input.amount, bkashNumber: withdrawal.destination.bkash_number });
       if (sent.ok) {
@@ -76,6 +78,23 @@ export async function requestWithdrawal(input: {
 /** Admins with the Withdrawals "manage" permission (BLUEPRINT §13.2). */
 async function admin() {
   return adminUser("withdrawals.manage");
+}
+
+/**
+ * Admin › Withdrawals (owner, 2026-10-15): automatic bKash withdrawals on or off. It can only be switched on once the
+ * bKash payout API is connected on this server.
+ */
+export async function setAutoWithdrawals(on: boolean): Promise<{ ok: true } | Fail> {
+  const user = await admin();
+  if (!user || typeof on !== "boolean") return fail("auth.errors.generic");
+  if (on && !bkashPayoutsReady()) return fail("admin.withdrawals.auto.errors.notReady");
+  const { error } = await createAdminClient()
+    .from("settings")
+    .upsert({ key: "payouts.auto_bkash", value: on, type: "bool", group: "payouts", description: SETTINGS["payouts.auto_bkash"].description, updated_by: user.id, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) return fail("auth.errors.generic");
+  await audit(user.id, on ? "payouts.auto_on" : "payouts.auto_off", "settings", "payouts.auto_bkash");
+  refresh();
+  return { ok: true };
 }
 
 /** Admin: the money was sent by hand; records the transaction ID. */
