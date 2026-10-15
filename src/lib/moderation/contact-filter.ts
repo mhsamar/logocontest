@@ -8,6 +8,10 @@ import { toAsciiDigits } from "@/lib/phone";
  * ("who shop on Facebook", "it looks like Instagram's logo"), ages, prices and
  * years are fine; "contact me on my Facebook ID", a number, an email, a link or
  * an @handle are not.
+ *
+ * Owner, 2026-10-15: a domain name on its own ("Be Healthy.bd", "shop.com.au") is fine, since many brands are named
+ * after one; only a real link (http, www, m.me, wa.me) is blocked. And nothing a client writes is checked (their
+ * contest only goes live after they pay), so this runs on designers' text only.
  */
 export type ContactKind = "phone" | "number_words" | "email" | "handle" | "link" | "term";
 
@@ -39,9 +43,10 @@ const OWN_SITE = /\blogocontest\s*\.\s*bd\b/g;
 const LINK_PATTERNS = [
   /https?:/,
   /\bwww\b/,
-  /\b[a-z0-9][a-z0-9-]*\s*\.\s*(com|net|org|bd|me|io|co|xyz|info|shop|store|app|site|online|link)\b/,
-  /\bdot\s*(com|net|org|bd)\b/,
-  /\b(m|wa)\s*\.\s*me\b/,
+  // Links to a person on a social or chat app are contact details, unlike a brand's own domain name.
+  /\b(m|wa|t|fb)\s*\.\s*me\b/,
+  /\b(facebook|fb|instagram|instagr|tiktok|linkedin|behance|dribbble|twitter|telegram|whatsapp|viber)\s*\.\s*(com|net|am|me)\b/,
+  /\bimo\s*\.\s*im\b/,
 ];
 
 export function findContactDetails(text: string, extraTerms: readonly string[] = []): ContactKind | null {

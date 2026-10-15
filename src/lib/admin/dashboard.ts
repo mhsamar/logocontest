@@ -15,7 +15,7 @@ export type DashboardStats = {
   pendingWithdrawals: { count: number; amount: number };
   openReports: number;
   openClaims: number;
-  /** Visits that reached each wizard step (1–11), went to payment (12) and paid (13). */
+  /** Visits that reached each wizard step (1–8), went to payment (9) and paid (10). Owner, 2026-10-15: 8 steps. */
   funnel: { step: number; visits: number }[];
   recent: { action: string; subjectType: string; admin: string | null; createdAt: Date }[];
 };
@@ -75,8 +75,8 @@ export async function dashboardStats(period: StatsPeriod): Promise<DashboardStat
     const { data } = await db.from("contests").select("id").in("id", draftIds).in("status", LIVE_OR_LATER);
     for (const c of data ?? []) paid.add(c.id as string);
   }
-  const funnel = Array.from({ length: 12 }, (_, i) => ({ step: i + 1, visits: rows.filter((v) => (v.furthest_step as number) >= i + 1).length }));
-  funnel.push({ step: 13, visits: rows.filter((v) => v.contest_id && paid.has(v.contest_id as string)).length });
+  const funnel = Array.from({ length: 9 }, (_, i) => ({ step: i + 1, visits: rows.filter((v) => (v.furthest_step as number) >= i + 1).length }));
+  funnel.push({ step: 10, visits: rows.filter((v) => v.contest_id && paid.has(v.contest_id as string)).length });
 
   return {
     contestsPosted: posted.count ?? 0,

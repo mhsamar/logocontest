@@ -96,7 +96,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                   <li key={f.step} className="flex items-center gap-3.5">
                     <span className="w-[92px] shrink-0 truncate text-[13px] font-semibold text-adm-strong sm:w-32 sm:text-[14.5px]">{t(`admin.dashboard.steps.s${f.step}` as MessageKey)}</span>
                     <span className="h-3 flex-1 overflow-hidden rounded-full bg-[#f0f1f4]">
-                      <span className={cx("block h-full rounded-full", f.step >= 12 ? "bg-adm-pay" : "bg-primary")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
+                      <span className={cx("block h-full rounded-full", f.step >= 9 ? "bg-adm-pay" : "bg-primary")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
                     </span>
                     <span className="w-[72px] shrink-0 text-right tabular-nums">
                       <strong>{num(f.visits)}</strong> <span className="text-muted">{num(pct)}%</span>

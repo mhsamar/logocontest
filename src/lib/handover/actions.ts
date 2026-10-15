@@ -158,7 +158,6 @@ export async function requestHandoverRevision(input: { handoverId: string; note:
   if (!own) return fail("auth.errors.generic");
   const note = input.note.replace(/\r\n/g, "\n").trim();
   if (note.length < 10 || note.length > 1000) return fail("handover.errors.note");
-  if (findContactDetails(note, await blockedTerms())) return fail("contest.comments.contact");
   // 0 = no limit (owner, 2026-10-12: changes go on until the client approves).
   const max = (await getSetting("limits.max_revision_requests")) || 2_147_483_647;
   const db = createAdminClient();
@@ -180,7 +179,6 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
   const feedback = input.feedback.replace(/\r\n/g, "\n").trim();
   const words = countWords(feedback);
   if (words === 0 || words > s["limits.approval_feedback_max_words"]) return fail("handover.errors.feedback", { max: s["limits.approval_feedback_max_words"] });
-  if (findContactDetails(feedback, await blockedTerms())) return fail("contest.comments.contact");
   const { data, error } = await createAdminClient().rpc("approve_handover", {
     p_handover_id: own.h.id,
     p_client_id: own.user.id,
@@ -212,7 +210,8 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
   if (!CHAT_STATUSES.includes(h.status)) return fail("handover.chat.closed");
   const body = input.body.replace(/\r\n/g, "\n").trim();
   if (body.length < 1 || body.length > 1000) return fail("handover.chat.length");
-  if (findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
+  // Contact details: the designer's messages only (owner, 2026-10-15: clients are never checked).
+  if (user.id === h.designer_id && findContactDetails(body, await blockedTerms())) return fail("contest.comments.contact");
   // Bad words are blocked here too; the files chat never suspends, so a winner can always deliver (owner, 2026-10-12).
   if (findBadWord(body)) return fail("contest.comments.abuse");
   const { error } = await createAdminClient().from("handover_messages").insert({ handover_id: h.id, author_id: user.id, body });

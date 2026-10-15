@@ -4,7 +4,7 @@ import { recordWizardStep, saveWizardLead } from "@/lib/wizard-tracking";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
-import { PhoneField } from "@/components/ui/field";
+import { TextField } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Stepper } from "@/components/ui/stepper";
@@ -20,7 +20,8 @@ import {
   startCheckout,
   type WizardResult,
 } from "@/lib/contests/actions";
-import { CONTACT_CHECKED_FIELDS, LIMITS, validateBriefStep, type Brief, type ContactCheckedField, type Order } from "@/lib/contests/brief";
+import { BRIEF_STEPS, LIMITS, validateBriefStep, WIZARD_STEPS, type Brief, type Order } from "@/lib/contests/brief";
+import { isPersonName } from "@/lib/profile/name-rules";
 import { calculatePrice, defaultOrder, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { useI18n } from "@/lib/i18n/client";
@@ -34,7 +35,7 @@ import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadState, saveState, type ServerFile, type WizardState } from "./state";
 import { wizardVisitId } from "./visit-id";
 import { AccountStep, PasswordStep } from "./steps-account";
-import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep, type BriefChoices, type BriefStepProps } from "./steps-brief";
+import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep, Part, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
 import { ReviewStep, type PromoPreview, type UploadState } from "./step-review";
 import { FieldInput } from "@/components/services/field-input";
@@ -61,7 +62,10 @@ export type WizardProps = {
 };
 
 
-const HEADINGS = ["c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09", "c10", "c11"] as const;
+/** The texts (heading and helper) of each of the 8 steps (owner, 2026-10-15). */
+const HEADINGS: Record<number, string> = { 1: "you", 2: "c01", 3: "c02", 4: "links", 5: "look", 6: "needs", 7: "c08", 8: "c11" };
+const S = WIZARD_STEPS;
+const NAME_MAX = 60;
 const BUCKET = "contest-files";
 
 export function Wizard(props: WizardProps) {
@@ -71,8 +75,9 @@ export function Wizard(props: WizardProps) {
   const onboarding = props.onboarding ?? EMPTY_ONBOARDING;
   const hidden = useMemo(() => new Set(onboarding.hidden), [onboarding]);
   // A brief step whose every question the owner hid is skipped (Admin › Onboarding, owner 2026-10-14).
+  // Owner, 2026-10-15: 8 steps. A signed-in client skips "About you" (and the password on the prize step).
   const steps = useMemo(
-    () => (props.user ? [1, 2, 3, 4, 5, 6, 7, 8, 11] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).filter((s) => s > 7 || clientStepShown(onboarding, s)),
+    () => (props.user ? [2, 3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8]).filter((s) => !(BRIEF_STEPS as readonly number[]).includes(s) || clientStepShown(onboarding, s)),
     [props.user, onboarding],
   );
 
@@ -90,8 +95,6 @@ export function Wizard(props: WizardProps) {
   const [busy, startBusy] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fromReview, setFromReview] = useState(false);
-  // A brief error only the server can find (the no-contact filter). Shown on its field until that text changes.
-  const [serverError, setServerError] = useState<{ field: ContactCheckedField; key: MessageKey; value: string } | null>(null);
   const top = useRef<HTMLDivElement>(null);
 
   // ---- load + autosave ------------------------------------------------------
@@ -111,9 +114,9 @@ export function Wizard(props: WizardProps) {
     if (fromHero) next = { ...next, brief: { ...next.brief, brandName: heroName } };
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount
     setState(next);
-    // Coming from the home page with a name: C-01 is already answered, start at C-02.
-    const wanted = props.initialStep ?? (fromHero ? 2 : 1);
-    const first = firstReachable(wanted, next, steps, props.pricing, !props.user, onboarding);
+    // Coming from the home page with a brand name: a signed-in client starts at the business step.
+    const wanted = props.initialStep ?? (fromHero && props.user ? S.business : 1);
+    const first = firstReachable(wanted, next, steps, props.pricing, onboarding);
     setStep(first);
     // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry.
     window.history.replaceState({ step: first }, "", `?step=${first}`);
@@ -155,21 +158,6 @@ export function Wizard(props: WizardProps) {
   const updateOrder = useCallback((patch: Partial<Order>) => setState((s) => (s ? { ...s, order: { ...s.order, ...patch } } : s)), []);
   const touch = useCallback((f: string) => setTouched((t) => (t.has(f) ? t : new Set(t).add(f))), []);
 
-  /** Shows a server error on its brief field and goes to that step. False when it belongs in the general alert. */
-  const showFieldError = useCallback(
-    (e: { key: MessageKey; field?: ContactCheckedField }, s: WizardState) => {
-      const field = inlineField(e);
-      if (!field) return false;
-      setServerError({ field, key: e.key, value: s.brief[field] });
-      touch(field);
-      // Signed in: the rest is already saved, so Next can return straight to the review.
-      if (props.user) setFromReview(true);
-      go(CONTACT_CHECKED_FIELDS[field]);
-      return true;
-    },
-    [props.user, go, touch],
-  );
-
   const price = useMemo(() => {
     if (!state || validateOrder(state.order, props.pricing)) return null;
     return calculatePrice(state.order, props.pricing);
@@ -184,14 +172,14 @@ export function Wizard(props: WizardProps) {
         result = await saveDraft({ brief: s.brief, order: s.order, contestId: null });
       }
       if (!result.ok) {
-        if (!showFieldError(result.error, s)) setError(t(result.error.key, result.error.params));
+        setError(t(result.error.key, result.error.params));
         return result;
       }
       const { contestId } = result;
       setState((cur) => (cur ? { ...cur, contestId } : cur));
       return result;
     },
-    [t, showFieldError],
+    [t],
   );
 
   const uploadPending = useCallback(
@@ -224,10 +212,10 @@ export function Wizard(props: WizardProps) {
     [],
   );
 
-  // Entering C-11: make sure the server draft is current, then upload any files.
+  // Entering the review: make sure the server draft is current, then upload any files.
   const enteredReview = useRef(false);
   useEffect(() => {
-    if (step !== 11 || !state || enteredReview.current) return;
+    if (step !== S.review || !state || enteredReview.current) return;
     enteredReview.current = true;
     startBusy(async () => {
       const saved = await persistDraft(state);
@@ -235,7 +223,7 @@ export function Wizard(props: WizardProps) {
     });
   }, [step, state, persistDraft, uploadPending]);
   useEffect(() => {
-    if (step !== 11) enteredReview.current = false;
+    if (step !== S.review) enteredReview.current = false;
   }, [step]);
 
   if (!state) {
@@ -247,46 +235,36 @@ export function Wizard(props: WizardProps) {
   }
 
   // ---- validity per step -----------------------------------------------------
-  const stepErrors = step <= 6 ? validateBriefStep(step, state.brief, hidden) : {};
+  const isBriefStep = (BRIEF_STEPS as readonly number[]).includes(step);
+  const briefErrors = isBriefStep ? validateBriefStep(step, state.brief, hidden) : {};
   // The owner's own questions on this step.
-  const extraHere = step <= 7 ? extraOn(onboarding, step) : [];
+  const extraHere = isBriefStep ? extraOn(onboarding, step) : [];
   const extraErrors = extraHere.length ? checkExtraAnswers(onboarding, state.brief.extra, [step]).errors : {};
   const extraOk = Object.keys(extraErrors).length === 0;
-  const serverErrorShown =
-    serverError && CONTACT_CHECKED_FIELDS[serverError.field] === step && state.brief[serverError.field] === serverError.value;
-  const briefErrors = serverErrorShown ? { [serverError.field]: serverError.key, ...stepErrors } : stepErrors;
   const uploading = uploads.some((u) => u.status === "uploading" || u.status === "waiting");
-  // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
   const country = state.mobileCountry ?? "BD";
-  const leadMobileOk = Boolean(props.user) || toE164(state.mobile, country) !== null;
+  // Step 1 (owner, 2026-10-15): the client's real name, mobile and email, so payments can be checked against the name.
+  const personName = (state.name ?? "").trim().replace(/\s+/g, " ");
+  const nameOk = isPersonName(personName) && personName.length >= 2 && personName.length <= NAME_MAX;
+  const aboutOk = nameOk && toE164(state.mobile, country) !== null && normalizeEmail(state.email) !== null;
   const valid =
-    step <= 6
-      ? Object.keys(briefErrors).length === 0 && extraOk && (step !== 1 || leadMobileOk)
-      : step === 7
-        ? extraOk
-        : step === 8
-          ? price !== null
-          : step === 9
-            ? toE164(state.mobile, country) !== null && normalizeEmail(state.email) !== null
-            : step === 10
-              ? password.length >= props.passwordMin
-              : method !== null && terms && !uploading && !busy && price !== null && Boolean(state.contestId);
+    step === S.you
+      ? aboutOk
+      : isBriefStep
+        ? Object.keys(briefErrors).length === 0 && extraOk
+        : step === S.prize
+          ? price !== null && (Boolean(props.user) || password.length >= props.passwordMin)
+          : method !== null && terms && !uploading && !busy && price !== null && Boolean(state.contestId);
 
   const index = steps.indexOf(step);
-  const nextStep = fromReview && step < 11 ? 11 : steps[index + 1];
+  const nextStep = fromReview && step < S.review ? S.review : steps[index + 1];
 
   const onNext = () => {
     if (!valid) return;
-    if (step === 1 && !props.user) void saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, country, brandName: state.brief.brandName, service: "logo" });
-    if (step === 8 && props.user) {
-      startBusy(async () => {
-        const saved = await persistDraft(state);
-        if (saved.ok && props.inviteFirst) return router.push(`/start/invite?draft=${saved.contestId}`);
-        if (saved.ok) go(11);
-      });
-      return;
-    }
-    if (step === 9) {
+    // A new client's mobile for the team (owner, 2026-10-14): saved once step 1 is checked, then with the brand name.
+    const lead = () => saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, country, brandName: state.brief.brandName, service: "logo" });
+    if (!props.user && step === S.logo) void lead();
+    if (step === S.you) {
       startBusy(async () => {
         const res = await checkAccountDetails({ mobile: state.mobile, country, email: state.email });
         if (!res.ok) {
@@ -305,16 +283,26 @@ export function Wizard(props: WizardProps) {
           });
           return;
         }
-        go(10);
+        void lead();
+        go(nextStep);
       });
       return;
     }
-    if (step === 10) {
+    if (step === S.prize && props.user) {
+      startBusy(async () => {
+        const saved = await persistDraft(state);
+        if (saved.ok && props.inviteFirst) return router.push(`/start/invite?draft=${saved.contestId}`);
+        if (saved.ok) go(S.review);
+      });
+      return;
+    }
+    if (step === S.prize) {
       startBusy(async () => {
         // Asks for notification permission while we still have the click (BLUEPRINT §12: welcome push).
         const push = await subscribeToPush();
         const res: WizardResult<{ contestId: string }> = await createAccountAndDraft({
           push,
+          name: personName,
           mobile: state.mobile,
           country,
           whatsapp: state.whatsapp === true,
@@ -324,27 +312,34 @@ export function Wizard(props: WizardProps) {
           order: state.order,
         });
         if (!res.ok) {
-          if (!showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
+          // The mobile or email was taken in the meantime: back to step 1 to change it.
+          if (res.error.key === "auth.errors.phoneTaken" || res.error.key === "wizard.errors.emailTaken") {
+            setAccountError({ field: res.error.key === "auth.errors.phoneTaken" ? "mobile" : "email", message: t(res.error.key), taken: true });
+            go(S.you);
+            return;
+          }
+          setError(t(res.error.key, res.error.params));
           return;
         }
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
         setPassword("");
         router.refresh(); // header and server props now see the signed-in client
         if (props.inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
-        go(11);
+        go(S.review);
       });
       return;
     }
-    if (step === 11) {
+    if (step === S.review) {
       startBusy(async () => {
-        void recordWizardStep(wizardVisitId(), 12, state.contestId);
+        // 9 = went to payment, on the drop-off chart (Admin › Dashboard).
+        void recordWizardStep(wizardVisitId(), S.review + 1, state.contestId);
         const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
         // On success the action redirects to the gateway, so we only get here on failure.
-        if (res && !res.ok && !showFieldError(res.error, state)) setError(t(res.error.key, res.error.params));
+        if (res && !res.ok) setError(t(res.error.key, res.error.params));
       });
       return;
     }
-    if (nextStep === 11) setFromReview(false);
+    if (nextStep === S.review) setFromReview(false);
     go(nextStep);
   };
 
@@ -358,11 +353,7 @@ export function Wizard(props: WizardProps) {
 
   const onSaveExit = () => {
     startBusy(async () => {
-      if (props.user && Object.keys(validateBriefStep(1, state.brief)).length === 0) {
-        const saved = await persistDraft(state).catch(() => null);
-        // Stay so the client can fix the field the wizard just jumped to.
-        if (saved && !saved.ok && inlineField(saved.error)) return;
-      }
+      if (props.user && Object.keys(validateBriefStep(S.logo, state.brief)).length === 0) await persistDraft(state).catch(() => null);
       toast(t("wizard.frame.savedOnDevice"), "info");
       router.push("/");
     });
@@ -375,13 +366,27 @@ export function Wizard(props: WizardProps) {
 
   const briefProps: BriefStepProps = { brief: state.brief, update: updateBrief, errors: briefErrors, touched, touch, choices: props.choices, hidden };
   const lang = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en || x.bn);
-  const key = HEADINGS[step - 1];
+  const key = HEADINGS[step];
   // A promo code was checked against the total at that moment; after the order changes it no longer counts.
   const promoNow = promo && price && promo.total + promo.saves === price.total ? promo : null;
 
-  const showPrice = step >= 8 && price !== null;
+  const showPrice = step >= S.prize && price !== null;
   const nextLabel =
-    step === 11 && price ? t("wizard.c11.pay", { total: money(promoNow ? promoNow.total : price.total) }) : fromReview && step < 11 ? t("wizard.frame.backToReview") : t("wizard.frame.next");
+    step === S.review && price ? t("wizard.c11.pay", { total: money(promoNow ? promoNow.total : price.total) }) : fromReview && step < S.review ? t("wizard.frame.backToReview") : t("wizard.frame.next");
+  const accountErrors = {
+    mobile:
+      accountError?.field === "mobile" && !accountError.taken
+        ? accountError.message
+        : state.mobile.trim().length >= (country === "BD" ? 11 : 8) && !toE164(state.mobile, country)
+          ? t(country === "BD" ? "auth.errors.invalidPhone" : "auth.errors.invalidPhoneIntl")
+          : undefined,
+    email:
+      accountError?.field === "email" && !accountError.taken
+        ? accountError.message
+        : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
+          ? t("wizard.errors.email")
+          : undefined,
+  };
 
   return (
     <div ref={top} className="flex w-full flex-1 scroll-mt-32 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
@@ -438,47 +443,76 @@ export function Wizard(props: WizardProps) {
 
             {/* Each step slides in when it changes (UI-JOURNEY §1.5) */}
             <div key={step} className="animate-step-in">
-              <h1 className="m-0 text-[clamp(28px,3.4vw,40px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">{t(`wizard.${key}.heading`)}</h1>
-              <p className="mb-7 mt-2.5 text-[17px] leading-relaxed text-muted">{t(`wizard.${key}.helper`, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}</p>
+              <h1 className="m-0 text-[clamp(28px,3.4vw,40px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">{t(`wizard.${key}.heading` as MessageKey)}</h1>
+              <p className="mb-7 mt-2.5 text-[17px] leading-relaxed text-muted">{t(`wizard.${key}.helper` as MessageKey, { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}</p>
 
-              {step === 1 && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
+              {step === S.logo && props.user && props.previous.length > 0 && !state.brief.businessDescription && (
                 <PreviousBriefs previous={props.previous} onUse={(b) => updateBrief({ ...b })} />
               )}
 
-              {step === 1 && <BrandStep {...briefProps} />}
-              {step === 1 && !props.user && (
-                <div className="mt-6" data-lead-mobile>
-                  <PhoneField
-                    label={t("wizard.lead.label")}
-                    hint={t("wizard.lead.hint")}
-                    placeholder={country === "BD" ? t("auth.phone.placeholder") : undefined}
+              {/* 1. About you (new clients): real name for the payment check, mobile and email (owner, 2026-10-15) */}
+              {step === S.you && (
+                <div className="space-y-5">
+                  <TextField
+                    mark
+                    label={t("wizard.you.nameLabel")}
+                    hint={t("wizard.you.nameHint")}
+                    autoComplete="name"
+                    value={state.name ?? ""}
+                    maxLength={NAME_MAX}
+                    onChange={(e) => setState((cur) => (cur ? { ...cur, name: e.target.value } : cur))}
+                    onBlur={() => touch("name")}
+                    error={touched.has("name") && personName && !nameOk ? t("wizard.you.nameError") : undefined}
+                    autoFocus
+                  />
+                  <AccountStep
+                    mobile={state.mobile}
+                    email={state.email}
                     country={country}
-                    onCountryChange={(iso) => setState((cur) => (cur ? { ...cur, mobileCountry: iso } : cur))}
-                    countryLabel={t("auth.phone.country")}
-                    value={state.mobile}
-                    onChange={(e) => setState((cur) => (cur ? { ...cur, mobile: e.target.value } : cur))}
-                    error={state.mobile.replace(/\D/g, "").length >= (country === "BD" ? 11 : 8) && toE164(state.mobile, country) === null ? t("wizard.lead.error") : undefined}
+                    onCountry={(iso) => {
+                      setState({ ...state, mobileCountry: iso });
+                      setAccountError(null);
+                    }}
+                    whatsapp={state.whatsapp === true}
+                    onWhatsapp={hidden.has("whatsapp") ? undefined : (on) => setState({ ...state, whatsapp: on })}
+                    onMobile={(mobile) => {
+                      setState({ ...state, mobile });
+                      setAccountError(null);
+                    }}
+                    onEmail={(email) => {
+                      setState({ ...state, email });
+                      setAccountError(null);
+                      setTouchedAccount(true);
+                    }}
+                    mobileError={accountErrors.mobile}
+                    emailError={accountErrors.email}
+                    taken={Boolean(accountError?.taken)}
+                    autoFocus={false}
                   />
                 </div>
               )}
-              {step === 2 && <BusinessStep {...briefProps} />}
-              {step === 3 && <WebsiteStep {...briefProps} />}
-              {step === 4 && <StylesStep {...briefProps} />}
-              {step === 5 && <ColorsStep {...briefProps} />}
-              {step === 6 && <RequirementsStep {...briefProps} />}
-              {step === 7 && (
-                <FilesStep
-                  localFiles={state.localFiles}
-                  serverFiles={serverFiles}
-                  limits={props.fileLimits}
-                  onChange={(localFiles) => setState({ ...state, localFiles })}
-                  onRemoveServerFile={(id) =>
-                    startBusy(async () => {
-                      if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
-                      setServerFiles((f) => f.filter((x) => x.id !== id));
-                    })
-                  }
-                />
+              {step === S.logo && <BrandStep {...briefProps} />}
+              {step === S.business && <BusinessStep {...briefProps} />}
+              {step === S.links && <LinksStep {...briefProps} />}
+              {step === S.look && <LookStep {...briefProps} />}
+              {step === S.needs && <NeedsStep {...briefProps} />}
+              {step === S.needs && !hidden.has("files") && (
+                <div className="mt-10">
+                  <Part title={t("wizard.c07.heading")} sub={t("wizard.c07.helper", { max: props.fileLimits.maxFiles, mb: props.fileLimits.maxMb })}>
+                    <FilesStep
+                      localFiles={state.localFiles}
+                      serverFiles={serverFiles}
+                      limits={props.fileLimits}
+                      onChange={(localFiles) => setState({ ...state, localFiles })}
+                      onRemoveServerFile={(id) =>
+                        startBusy(async () => {
+                          if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });
+                          setServerFiles((f) => f.filter((x) => x.id !== id));
+                        })
+                      }
+                    />
+                  </Part>
+                </div>
               )}
               {/* The owner's own questions on this step (Admin › Onboarding, owner 2026-10-14) */}
               {extraHere.length > 0 && (
@@ -498,46 +532,16 @@ export function Wizard(props: WizardProps) {
                   ))}
                 </div>
               )}
-              {step === 8 && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
-              {step === 9 && (
-                <AccountStep
-                  mobile={state.mobile}
-                  email={state.email}
-                  country={country}
-                  onCountry={(iso) => {
-                    setState({ ...state, mobileCountry: iso });
-                    setAccountError(null);
-                  }}
-                  whatsapp={state.whatsapp === true}
-                  onWhatsapp={hidden.has("whatsapp") ? undefined : (on) => setState({ ...state, whatsapp: on })}
-                  onMobile={(mobile) => {
-                    setState({ ...state, mobile });
-                    setAccountError(null);
-                  }}
-                  onEmail={(email) => {
-                    setState({ ...state, email });
-                    setAccountError(null);
-                    setTouchedAccount(true);
-                  }}
-                  mobileError={
-                    accountError?.field === "mobile" && !accountError.taken
-                      ? accountError.message
-                      : state.mobile.trim().length >= (country === "BD" ? 11 : 8) && !toE164(state.mobile, country)
-                        ? t(country === "BD" ? "auth.errors.invalidPhone" : "auth.errors.invalidPhoneIntl")
-                        : undefined
-                  }
-                  emailError={
-                    accountError?.field === "email" && !accountError.taken
-                      ? accountError.message
-                      : touchedAccount && state.email.includes("@") && state.email.length > 5 && !normalizeEmail(state.email)
-                        ? t("wizard.errors.email")
-                        : undefined
-                  }
-                  taken={Boolean(accountError?.taken)}
-                />
+              {step === S.prize && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
+              {/* A new client sets a password with the prize (owner, 2026-10-15); the account is made on Next. */}
+              {step === S.prize && !props.user && (
+                <div className="mt-10">
+                  <Part title={t("wizard.c10.heading")} sub={t("wizard.c10.helper")}>
+                    <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} autoFocus={false} />
+                  </Part>
+                </div>
               )}
-              {step === 10 && <PasswordStep password={password} onPassword={setPassword} min={props.passwordMin} />}
-              {step === 11 && price && (
+              {step === S.review && price && (
                 <ReviewStep
                   brief={state.brief}
                   order={state.order}
@@ -572,10 +576,10 @@ export function Wizard(props: WizardProps) {
             {/* Bottom bar: sticky on phones, inline on larger screens */}
             <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
               {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
-              <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy && step !== 9}>
+              <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy}>
                 {nextLabel}
               </Button>
-              {step === 11 && <p className="mt-2 text-center text-xs text-muted">{t("wizard.c11.secureNote")}</p>}
+              {step === S.review && <p className="mt-2 text-center text-xs text-muted">{t("wizard.c11.secureNote")}</p>}
               <p className="mt-2 text-center text-xs text-muted">{t("wizard.frame.savedOnDevice")}</p>
             </div>
           </div>
@@ -587,24 +591,19 @@ export function Wizard(props: WizardProps) {
   );
 }
 
-/** The brief field a server error should show on. Likes/dislikes have no input any more, so theirs go in the alert. */
-function inlineField(e: { field?: ContactCheckedField }): ContactCheckedField | null {
-  return e.field && e.field !== "likes" && e.field !== "dislikes" ? e.field : null;
-}
-
-/** Never land past the first unfinished step (e.g. a stale ?step=11 link). */
-function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig, needMobile = false, onboarding: OnboardingConfig = EMPTY_ONBOARDING): number {
+/** Never land past the first unfinished step (e.g. a stale ?step=8 link). */
+function firstReachable(wanted: number, s: WizardState, steps: number[], cfg: PricingConfig, onboarding: OnboardingConfig = EMPTY_ONBOARDING): number {
   const hidden = new Set(onboarding.hidden);
   for (const st of steps) {
     if (st >= wanted) return steps.includes(wanted) ? wanted : st;
     const incomplete =
-      st <= 6
-        ? Object.keys(validateBriefStep(st, s.brief, hidden)).length > 0 ||
-          Object.keys(checkExtraAnswers(onboarding, s.brief.extra, [st]).errors).length > 0 ||
-          (st === 1 && needMobile && toE164(s.mobile, s.mobileCountry ?? "BD") === null)
-        : st === 8
-          ? validateOrder(s.order, cfg) !== null
-          : st === 9 || st === 10;
+      st === S.you
+        ? true // the mobile and email are checked again on Next
+        : (BRIEF_STEPS as readonly number[]).includes(st)
+          ? Object.keys(validateBriefStep(st, s.brief, hidden)).length > 0 || Object.keys(checkExtraAnswers(onboarding, s.brief.extra, [st]).errors).length > 0
+          : st === S.prize
+            ? validateOrder(s.order, cfg) !== null || !s.contestId
+            : false;
     if (incomplete) return st;
   }
   return steps[steps.length - 1];

@@ -7,21 +7,25 @@ import { Modal } from "@/components/ui/modal";
 import {
   BUSINESS_TYPES,
   type BusinessType,
+  briefLinks,
   DELIVERABLES,
   LIMITS,
+  LINK_KINDS,
   LOGO_STYLES,
   MAX_COLORS,
+  MAX_LINKS,
   REQUIREMENTS,
   STYLE_SLIDERS,
   USED_ON,
   type Brief,
+  type BriefLink,
   type FieldErrors,
+  type LinkKind,
   type LogoStyle,
 } from "@/lib/contests/brief";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { StyleExamples } from "./style-art";
-import { Suggestions } from "./suggestions";
 import { audienceSuggestions, descriptionSuggestions, logoTextSuggestions, requirementSuggestions, shortNameSuggestions, sloganSuggestions } from "@/lib/contests/suggestions";
 
 export type BriefChoices = { businessTypes: string[]; swatches: string[] };
@@ -78,12 +82,24 @@ function AlwaysList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-// C-01
+/** One part of a grouped step (owner, 2026-10-15: the wizard has 8 steps, each with a few parts). */
+export function Part({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="m-0 text-[20px] font-semibold leading-tight tracking-[-0.02em] text-ink">{title}</h2>
+        {sub && <p className="m-0 mt-1 text-[15px] text-muted">{sub}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// Step 2: the logo's name, a short name, the text on the logo and the slogan.
 export function BrandStep(p: BriefStepProps) {
   const { t } = useI18n();
   const error = useError(p);
   const h = (k: string) => p.hidden?.has(k) ?? false;
-  const [extra, setExtra] = useState(Boolean(p.brief.logoText || p.brief.slogan));
   return (
     <div className="space-y-5">
       <TextField
@@ -96,63 +112,49 @@ export function BrandStep(p: BriefStepProps) {
         autoComplete="organization"
         autoFocus
       />
-      {!h("shortName") && (
-        <>
-      <TextField
-        label={t("wizard.c01.shortNameLabel")}
-        hint={t("wizard.c01.shortNameHint")}
-        optionalLabel={t("common.optional")}
-        value={p.brief.shortName}
-        onChange={(e) => p.update({ shortName: e.target.value })}
-        onBlur={() => p.touch("shortName")}
-        maxLength={LIMITS.shortName.max}
-        error={error("shortName")}
-      />
-      <Suggestions key={`short-${p.brief.brandName}`} items={shortNameSuggestions(p.brief)} value={p.brief.shortName} onPick={(text) => p.update({ shortName: text })} defaultOpen={false} />
-        </>
+      {!h("slogan") && (
+        <TextField
+          label={t("wizard.c01.sloganLabel")}
+          optionalLabel={t("common.optional")}
+          value={p.brief.slogan}
+          onChange={(e) => p.update({ slogan: e.target.value })}
+          onBlur={() => p.touch("slogan")}
+          maxLength={LIMITS.slogan.max}
+          error={error("slogan")}
+          ideas={{ items: sloganSuggestions(p.brief, t), onPick: (text) => p.update({ slogan: text }) }}
+        />
       )}
-      {h("logoText") && h("slogan") ? null : extra ? (
-        <>
-          {!h("logoText") && (
-            <>
-          <TextField
-            label={t("wizard.c01.logoTextLabel")}
-            hint={t("wizard.c01.logoTextHint")}
-            optionalLabel={t("common.optional")}
-            value={p.brief.logoText}
-            onChange={(e) => p.update({ logoText: e.target.value })}
-            onBlur={() => p.touch("logoText")}
-            maxLength={LIMITS.logoText.max}
-            error={error("logoText")}
-          />
-          <Suggestions items={logoTextSuggestions(p.brief)} value={p.brief.logoText} onPick={(text) => p.update({ logoText: text })} defaultOpen={false} />
-            </>
-          )}
-          {!h("slogan") && (
-            <>
-          <TextField
-            label={t("wizard.c01.sloganLabel")}
-            optionalLabel={t("common.optional")}
-            value={p.brief.slogan}
-            onChange={(e) => p.update({ slogan: e.target.value })}
-            onBlur={() => p.touch("slogan")}
-            maxLength={LIMITS.slogan.max}
-            error={error("slogan")}
-          />
-          <Suggestions items={sloganSuggestions(p.brief, t)} value={p.brief.slogan} onPick={(text) => p.update({ slogan: text })} defaultOpen={false} />
-            </>
-          )}
-        </>
-      ) : (
-        <Button variant="ghost" className="-ml-3" onClick={() => setExtra(true)}>
-          {t(h("slogan") ? "wizard.c01.addText" : h("logoText") ? "wizard.c01.addSlogan" : "wizard.c01.add")}
-        </Button>
+      {!h("logoText") && (
+        <TextField
+          label={t("wizard.c01.logoTextLabel")}
+          hint={t("wizard.c01.logoTextHint")}
+          optionalLabel={t("common.optional")}
+          value={p.brief.logoText}
+          onChange={(e) => p.update({ logoText: e.target.value })}
+          onBlur={() => p.touch("logoText")}
+          maxLength={LIMITS.logoText.max}
+          error={error("logoText")}
+          ideas={{ items: logoTextSuggestions(p.brief), onPick: (text) => p.update({ logoText: text }) }}
+        />
+      )}
+      {!h("shortName") && (
+        <TextField
+          label={t("wizard.c01.shortNameLabel")}
+          hint={t("wizard.c01.shortNameHint")}
+          optionalLabel={t("common.optional")}
+          value={p.brief.shortName}
+          onChange={(e) => p.update({ shortName: e.target.value })}
+          onBlur={() => p.touch("shortName")}
+          maxLength={LIMITS.shortName.max}
+          error={error("shortName")}
+          ideas={{ items: shortNameSuggestions(p.brief), onPick: (text) => p.update({ shortName: text }) }}
+        />
       )}
     </div>
   );
 }
 
-// C-02
+// Step 3: the business type ("Other" opens a box), what the business does and who its customers are.
 export function BusinessStep(p: BriefStepProps) {
   const { t, locale } = useI18n();
   const error = useError(p);
@@ -170,6 +172,18 @@ export function BusinessStep(p: BriefStepProps) {
         options={businessTypeOptions(p.choices.businessTypes, p.brief.businessType).map((v) => ({ value: v, label: t(`wizard.businessTypes.${v}`) }))}
         error={error("businessType")}
       />
+      {p.brief.businessType === "other" && (
+        <TextField
+          label={t("wizard.c02.otherLabel")}
+          placeholder={t("wizard.c02.otherPlaceholder")}
+          value={p.brief.businessTypeOther ?? ""}
+          onChange={(e) => p.update({ businessTypeOther: e.target.value })}
+          onBlur={() => p.touch("businessTypeOther")}
+          maxLength={LIMITS.businessTypeOther.max}
+          error={error("businessTypeOther")}
+          autoFocus
+        />
+      )}
       <TextAreaField
         label={t("wizard.c02.descLabel")}
         hint={t("wizard.c02.descHint")}
@@ -179,65 +193,133 @@ export function BusinessStep(p: BriefStepProps) {
         maxLength={LIMITS.description.max}
         counterLabel={counter(p.brief.businessDescription, LIMITS.description.max, locale)}
         error={error("businessDescription")}
-      />
-      <Suggestions
-        items={descriptionSuggestions(p.brief, t)}
-        value={p.brief.businessDescription}
-        onPick={(text) => {
-          p.update({ businessDescription: text });
-          p.touch("businessDescription");
+        ideas={{
+          items: descriptionSuggestions(p.brief, t),
+          onPick: (text) => {
+            p.update({ businessDescription: text });
+            p.touch("businessDescription");
+          },
         }}
       />
       {!h("targetAudience") && (
-        <>
-      <TextAreaField
-        label={t("wizard.c02.audienceLabel")}
-        hint={t("wizard.c02.audienceHint")}
-        rows={3}
-        value={p.brief.targetAudience}
-        onChange={(e) => p.update({ targetAudience: e.target.value })}
-        onBlur={() => p.touch("targetAudience")}
-        maxLength={LIMITS.targetAudience.max}
-        counterLabel={counter(p.brief.targetAudience, LIMITS.targetAudience.max, locale)}
-        error={error("targetAudience")}
-      />
-      <Suggestions
-        items={audienceSuggestions(p.brief, t)}
-        value={p.brief.targetAudience}
-        onPick={(text) => {
-          p.update({ targetAudience: text });
-          p.touch("targetAudience");
-        }}
-      />
-        </>
+        <TextAreaField
+          label={t("wizard.c02.audienceLabel")}
+          hint={t("wizard.c02.audienceHint")}
+          rows={3}
+          value={p.brief.targetAudience}
+          onChange={(e) => p.update({ targetAudience: e.target.value })}
+          onBlur={() => p.touch("targetAudience")}
+          maxLength={LIMITS.targetAudience.max}
+          counterLabel={counter(p.brief.targetAudience, LIMITS.targetAudience.max, locale)}
+          error={error("targetAudience")}
+          ideas={{
+            items: audienceSuggestions(p.brief, t),
+            onPick: (text) => {
+              p.update({ targetAudience: text });
+              p.touch("targetAudience");
+            },
+          }}
+        />
       )}
     </div>
   );
 }
 
-// C-03
-export function WebsiteStep(p: BriefStepProps) {
-  const { t } = useI18n();
+// Step 4: website & social links (a kind for each) and competitors, each with "I don't have one yet".
+export function LinksStep(p: BriefStepProps) {
+  const { t, locale } = useI18n();
   const error = useError(p);
+  const h = (k: string) => p.hidden?.has(k) ?? false;
+  // At least one row to type in, unless "I don't have one yet" is ticked.
+  const saved = briefLinks(p.brief);
+  const rows: BriefLink[] = saved.length ? saved : [{ kind: "website", url: "" }];
+  const setRows = (next: BriefLink[]) => {
+    p.update({ links: next, websiteUrl: "", noWebsite: false });
+    p.touch("links");
+  };
+  const placeholder: Record<LinkKind, string> = { website: "yourbusiness.com", facebook: "facebook.com/yourpage", instagram: "instagram.com/yourname", tiktok: "tiktok.com/@yourname" };
   return (
-    <div className="space-y-3">
-      <TextField
-        label={t("wizard.c03.urlLabel")}
-        type="url"
-        inputMode="url"
-        placeholder="facebook.com/yourpage"
-        value={p.brief.noWebsite ? "" : p.brief.websiteUrl}
-        disabled={p.brief.noWebsite}
-        onChange={(e) => p.update({ websiteUrl: e.target.value })}
-        onBlur={() => p.touch("websiteUrl")}
-        maxLength={LIMITS.url.max}
-        error={error("websiteUrl")}
-      />
-      <Checkbox
-        label={t("wizard.c03.none")}
-        checked={p.brief.noWebsite}
-        onChange={(e) => p.update({ noWebsite: e.target.checked })}
-      />
+    <div className="space-y-9">
+      {!h("links") && (
+        <Part title={t("wizard.links.linksTitle")} sub={t("wizard.links.linksSub")}>
+          {!p.brief.noLinks && (
+            <ul className="m-0 list-none space-y-2.5 p-0">
+              {rows.map((row, i) => (
+                <li key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                  <select
+                    aria-label={t("wizard.links.kind")}
+                    value={row.kind}
+                    onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, kind: e.target.value as LinkKind } : r)))}
+                    className="min-h-[52px] rounded-[14px] bg-surface px-3 text-[16px] font-semibold text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary sm:w-40"
+                  >
+                    {LINK_KINDS.map((k) => (
+                      <option key={k} value={k}>
+                        {t(`wizard.links.kinds.${k}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex flex-1 gap-2">
+                    <input
+                      type="url"
+                      inputMode="url"
+                      aria-label={t(`wizard.links.kinds.${row.kind}`)}
+                      placeholder={placeholder[row.kind]}
+                      value={row.url}
+                      maxLength={LIMITS.url.max}
+                      onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)))}
+                      onBlur={() => p.touch("links")}
+                      className={cx(
+                        "block min-h-[52px] w-full flex-1 rounded-[14px] bg-surface px-4 text-[17px] font-medium text-ink ring-1 ring-inset ring-line placeholder:font-normal placeholder:text-muted/80 focus:outline-none focus:ring-2 focus:ring-primary",
+                        error("links") && "ring-2 ring-danger",
+                      )}
+                    />
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setRows(rows.filter((_, j) => j !== i))}
+                        aria-label={t("wizard.links.remove")}
+                        className="flex min-h-[52px] w-12 shrink-0 items-center justify-center rounded-[14px] text-muted ring-1 ring-inset ring-line hover:text-danger"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!p.brief.noLinks && rows.length < MAX_LINKS && (
+            <Button variant="ghost" className="-ml-3" onClick={() => setRows([...rows, { kind: LINK_KINDS.find((k) => !rows.some((r) => r.kind === k)) ?? "website", url: "" }])}>
+              + {t("wizard.links.add")}
+            </Button>
+          )}
+          {error("links") && (
+            <p role="alert" className="m-0 text-sm text-danger">
+              {error("links")}
+            </p>
+          )}
+          <Checkbox label={t("wizard.links.none")} checked={Boolean(p.brief.noLinks)} onChange={(e) => p.update({ noLinks: e.target.checked })} />
+        </Part>
+      )}
+
+      {!h("competitors") && (
+        <Part title={t("wizard.links.competitorsTitle")} sub={t("wizard.links.competitorsSub")}>
+          {!p.brief.noCompetitors && (
+            <TextAreaField
+              label={t("wizard.links.competitorsLabel")}
+              optionalLabel={t("common.optional")}
+              rows={3}
+              value={p.brief.competitors ?? ""}
+              onChange={(e) => p.update({ competitors: e.target.value })}
+              onBlur={() => p.touch("competitors")}
+              maxLength={LIMITS.competitors.max}
+              counterLabel={counter(p.brief.competitors ?? "", LIMITS.competitors.max, locale)}
+              error={error("competitors")}
+            />
+          )}
+          <Checkbox label={t("wizard.links.noCompetitors")} checked={Boolean(p.brief.noCompetitors)} onChange={(e) => p.update({ noCompetitors: e.target.checked })} />
+        </Part>
+      )}
     </div>
   );
 }
@@ -310,7 +392,8 @@ export function StylesStep(p: BriefStepProps) {
 // C-05 (the admin's Colour choices list replaces these when set, A-15)
 const SUGGESTED = ["#0f766e", "#1d4ed8", "#dc2626", "#f59e0b", "#16a34a", "#7c3aed", "#db2777", "#111827", "#ffffff", "#a16207"];
 
-export function ColorsStep(p: BriefStepProps) {
+/** Colours (part "colours", step 5) or where the logo is used and the extras (part "needs", step 6). */
+export function ColorsStep(p: BriefStepProps & { part?: "colours" | "needs" }) {
   const { t } = useI18n();
   const error = useError(p);
   const h = (k: string) => p.hidden?.has(k) ?? false;
@@ -338,7 +421,7 @@ export function ColorsStep(p: BriefStepProps) {
 
   return (
     <div className="space-y-8">
-      {!h("colors") && (
+      {p.part !== "needs" && !h("colors") && (
         <>
       <div>
         <div className={cx("flex flex-wrap gap-3", p.brief.letDesignersChoose && "pointer-events-none opacity-40")}>
@@ -384,7 +467,7 @@ export function ColorsStep(p: BriefStepProps) {
         </>
       )}
 
-      {!h("usedOn") && (
+      {p.part !== "colours" && !h("usedOn") && (
         <>
       <fieldset>
         <legend className="mb-1 text-base font-semibold text-ink">{t("wizard.c05.usedOnTitle")}</legend>
@@ -404,7 +487,7 @@ export function ColorsStep(p: BriefStepProps) {
         </>
       )}
 
-      {!h("deliverables") && (
+      {p.part !== "colours" && !h("deliverables") && (
         <>
       {/* What you need (owner, 2026-10-08): always-included items, then extras to tick */}
       <fieldset>
@@ -495,7 +578,7 @@ export function ColorsStep(p: BriefStepProps) {
   );
 }
 
-// C-06 Requirements (owner, 2026-10-08: the like / don't like boxes were removed)
+// Requirements (owner, 2026-10-08: the like / don't like boxes were removed; design tick-boxes added 2026-10-15)
 export function RequirementsStep(p: BriefStepProps) {
   const { t, locale } = useI18n();
   const error = useError(p);
@@ -533,13 +616,45 @@ export function RequirementsStep(p: BriefStepProps) {
           maxLength={LIMITS.requirementsNote.max}
           counterLabel={counter(p.brief.requirementsNote, LIMITS.requirementsNote.max, locale)}
           error={error("requirementsNote")}
+          ideas={{ items: requirementSuggestions(p.brief, t), onPick: (text) => p.update({ requirementsNote: text }) }}
         />
-        <div className="mt-2">
-          <Suggestions items={requirementSuggestions(p.brief, t)} value={p.brief.requirementsNote} onPick={(text) => p.update({ requirementsNote: text })} defaultOpen={false} />
-        </div>
           </>
         )}
       </fieldset>
+    </div>
+  );
+}
+
+// Step 5: logo styles, the feel and the colours.
+export function LookStep(p: BriefStepProps) {
+  const { t } = useI18n();
+  const h = (k: string) => p.hidden?.has(k) ?? false;
+  return (
+    <div className="space-y-10">
+      <Part title={t("wizard.c04.heading")} sub={t("wizard.c04.helper")}>
+        <StylesStep {...p} />
+      </Part>
+      {!h("colors") && (
+        <Part title={t("wizard.c05.heading")} sub={t("wizard.c05.helper")}>
+          <ColorsStep {...p} part="colours" />
+        </Part>
+      )}
+    </div>
+  );
+}
+
+// Step 6: where the logo is used, what is needed and the requirements (the files come after, in the wizard).
+export function NeedsStep(p: BriefStepProps) {
+  const { t } = useI18n();
+  const h = (k: string) => p.hidden?.has(k) ?? false;
+  return (
+    <div className="space-y-10">
+      {!(h("usedOn") && h("deliverables")) && <ColorsStep {...p} part="needs" />}
+      {!(h("requirements") && h("requirementsNote")) && (
+        <Part title={t("wizard.c06.heading")} sub={t("wizard.c06.helper")}>
+          <RequirementsStep {...p} />
+        </Part>
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ describe("admin texts", () => {
     it(`${name}: every dynamic admin key has a text`, () => {
       const a = m.admin;
       for (const x of AUDIT_ACTIONS) expect(a.audit.actions[x as keyof typeof a.audit.actions], x).toBeTruthy();
-      for (let i = 1; i <= 13; i++) expect(a.dashboard.steps[`s${i}` as keyof typeof a.dashboard.steps]).toBeTruthy();
+      for (let i = 1; i <= 10; i++) expect(a.dashboard.steps[`s${i}` as keyof typeof a.dashboard.steps]).toBeTruthy();
       for (const x of ["active", "rejected", "withdrawn", "removed", "winner", "forfeited"]) expect(a.entries.statuses[x as keyof typeof a.entries.statuses]).toBeTruthy();
       for (const x of ["copied", "ai", "trademark", "contact_info", "inappropriate", "other"]) expect(a.reports.reasons[x as keyof typeof a.reports.reasons]).toBeTruthy();
       for (const x of ["fees", "packages", "upgrades", "timers", "limits", "monthly", "site", "auth"]) expect(a.settings.groups[x as keyof typeof a.settings.groups]).toBeTruthy();

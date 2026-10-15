@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emptyBrief, noUpgrades, type Brief, type Order } from "./brief";
+import { briefLinks, emptyBrief, noUpgrades, type Brief, type BriefLink, type Order } from "./brief";
 import {
   AmountMismatchError,
   type ContestRecord,
@@ -34,6 +34,10 @@ type ContestRow = {
   deliverables: Brief["deliverables"] | null;
   requirements: Brief["requirements"] | null;
   requirements_note: string | null;
+  /** Migration 0062 (owner, 2026-10-15). */
+  business_type_other?: string | null;
+  links?: BriefLink[] | null;
+  competitors?: string | null;
   package: Order["package"];
   prize_amount: number;
   service_fee_amount: number;
@@ -85,8 +89,13 @@ export function toContestRecord(r: ContestRow): ContestRecord {
       businessType: r.business_type as Brief["businessType"],
       businessDescription: r.business_description,
       targetAudience: r.target_audience ?? "",
+      businessTypeOther: r.business_type_other ?? "",
       websiteUrl: r.website_url ?? "",
       noWebsite: !r.website_url,
+      links: briefLinks({ links: r.links ?? [], websiteUrl: r.website_url ?? "", noWebsite: !r.website_url }),
+      noLinks: false,
+      competitors: r.competitors ?? "",
+      noCompetitors: false,
       styles: r.styles ?? [],
       sliders: { ...base.sliders, ...(r.style_sliders ?? {}) },
       colors: r.colors ?? [],
@@ -146,6 +155,10 @@ export function briefDetailColumns(brief: Brief) {
     deliverables: brief.deliverables,
     requirements: brief.requirements,
     requirements_note: brief.requirementsNote || null,
+    // Migration 0062 (owner, 2026-10-15).
+    business_type_other: brief.businessType === "other" ? brief.businessTypeOther || null : null,
+    links: brief.links ?? [],
+    competitors: brief.competitors || null,
   };
 }
 

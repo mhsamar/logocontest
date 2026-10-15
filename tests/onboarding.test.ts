@@ -37,13 +37,15 @@ describe("onboarding the owner controls (owner, 2026-10-14)", () => {
   });
 
   it("a step goes away when all its questions are hidden and it has none of the owner's", () => {
-    expect(clientStepShown(EMPTY_ONBOARDING, 3)).toBe(true);
-    expect(clientStepShown({ hidden: ["websiteUrl"], extra: [] }, 3)).toBe(false);
+    // Owner, 2026-10-15: 8 steps; step 4 is links and competitors, step 5 styles and colours.
+    expect(clientStepShown(EMPTY_ONBOARDING, 4)).toBe(true);
+    expect(clientStepShown({ hidden: ["links"], extra: [] }, 4)).toBe(true);
+    expect(clientStepShown({ hidden: ["links", "competitors"], extra: [] }, 4)).toBe(false);
     expect(clientStepShown({ hidden: ["colors"], extra: [] }, 5)).toBe(true);
-    expect(clientStepShown({ hidden: ["colors", "usedOn", "deliverables"], extra: [] }, 5)).toBe(false);
-    const q = { key: "q1", step: 3, type: "text" as const, label: { en: "Q", bn: "Q" }, help: { en: "", bn: "" }, required: true, options: [] };
-    expect(clientStepShown({ hidden: ["websiteUrl"], extra: [q] }, 3)).toBe(true);
-    expect(clientStepShown({ hidden: ["websiteUrl"], extra: [] }, 1)).toBe(true);
+    expect(clientStepShown({ hidden: ["styles", "colors"], extra: [] }, 5)).toBe(false);
+    const q = { key: "q1", step: 4, type: "text" as const, label: { en: "Q", bn: "Q" }, help: { en: "", bn: "" }, required: true, options: [] };
+    expect(clientStepShown({ hidden: ["links", "competitors"], extra: [q] }, 4)).toBe(true);
+    expect(clientStepShown({ hidden: ["links", "competitors"], extra: [] }, 2)).toBe(true);
   });
 
   it("answers to the owner's questions are checked step by step", () => {

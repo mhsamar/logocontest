@@ -1,7 +1,6 @@
 "use client";
 
 import { TextAreaField, TextField } from "@/components/ui/field";
-import { Suggestions } from "@/components/wizard/suggestions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { LIMITS, type BriefField, type Lang } from "@/lib/services/types";
@@ -18,24 +17,12 @@ export function FieldInput({ f, value, onChange, error, l }: { f: BriefField; va
   const str = typeof value === "string" ? value : "";
   const list = Array.isArray(value) ? value : [];
   // Ready answers to tap (owner, 2026-10-13), set per question in Admin → Services.
-  const ideas = (f.suggestions ?? []).map(l).filter(Boolean);
-  const tips = ideas.length > 0 && <Suggestions items={ideas} value={str} onPick={(text) => onChange(text)} defaultOpen={f.required} />;
+  const items = (f.suggestions ?? []).map(l).filter(Boolean);
+  const ideas = items.length > 0 ? { items, onPick: (text: string) => onChange(text) } : undefined;
   if (f.type === "link")
     return <TextField label={label} hint={hint} optionalLabel={optional} value={str} type="url" inputMode="url" maxLength={LIMITS.link} onChange={(e) => onChange(e.target.value)} error={error} />;
-  if (f.type === "text")
-    return (
-      <div className="space-y-2.5">
-        <TextField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.text} onChange={(e) => onChange(e.target.value)} error={error} />
-        {tips}
-      </div>
-    );
-  if (f.type === "long_text")
-    return (
-      <div className="space-y-2.5">
-        <TextAreaField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.longText} onChange={(e) => onChange(e.target.value)} error={error} />
-        {tips}
-      </div>
-    );
+  if (f.type === "text") return <TextField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.text} onChange={(e) => onChange(e.target.value)} error={error} ideas={ideas} />;
+  if (f.type === "long_text") return <TextAreaField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.longText} onChange={(e) => onChange(e.target.value)} error={error} ideas={ideas} />;
   if (f.type === "colours")
     return (
       <fieldset className="m-0 border-0 p-0">

@@ -14,6 +14,8 @@ export type WizardState = {
   v: 1;
   brief: Brief;
   order: Order;
+  /** The client's real name (owner, 2026-10-15: step 1, checked against the payment). */
+  name?: string;
   mobile: string;
   /** The mobile's country, Bangladesh by default (owner, 2026-10-14). */
   mobileCountry?: string;

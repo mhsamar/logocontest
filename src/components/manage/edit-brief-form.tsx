@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { BrandStep, BusinessStep, ColorsStep, RequirementsStep, StylesStep, WebsiteStep } from "@/components/wizard/steps-brief";
+import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep } from "@/components/wizard/steps-brief";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -10,13 +11,13 @@ import type { Brief, FieldErrors } from "@/lib/contests/brief";
 import { saveContestBrief } from "@/lib/contests/edit-actions";
 import { useI18n } from "@/lib/i18n/client";
 
+// The wizard's brief steps (owner, 2026-10-15: grouped like the 8-step wizard).
 const STEPS = [
   { key: "c01", Step: BrandStep },
   { key: "c02", Step: BusinessStep },
-  { key: "c03", Step: WebsiteStep },
-  { key: "c04", Step: StylesStep },
-  { key: "c05", Step: ColorsStep },
-  { key: "c06", Step: RequirementsStep },
+  { key: "links", Step: LinksStep },
+  { key: "look", Step: LookStep },
+  { key: "needs", Step: NeedsStep },
 ] as const;
 
 /** C-13b Edit details (owner, 2026-10-08): the wizard's brief fields on one page; saving tells the designers. */
@@ -55,7 +56,7 @@ export function EditBriefForm({ contestId, initial, backHref }: { contestId: str
     <div className="space-y-5">
       {STEPS.map(({ key, Step }) => (
         <section key={key} className="lc-card p-5 sm:p-7">
-          <h2 className="m-0 mb-5 text-[22px] font-semibold tracking-[-0.02em] text-ink">{t(`wizard.${key}.heading`)}</h2>
+          <h2 className="m-0 mb-5 text-[22px] font-semibold tracking-[-0.02em] text-ink">{t(`wizard.${key}.heading` as MessageKey)}</h2>
           {/* Editing a live brief offers every business type and the built-in colours. */}
           <Step brief={brief} update={update} errors={errors} touched={touched} touch={touch} choices={ALL_CHOICES} />
         </section>
