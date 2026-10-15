@@ -137,7 +137,8 @@ export function ContestCard({ c, t, locale, now, price, designer, facts, saved }
   return (
     <article
       className={cx(
-        "relative flex flex-col gap-3 rounded-[20px] border p-4",
+        // Fills its grid cell whatever the text length (owner, 2026-10-16: a short description left a gap).
+        "relative flex w-full min-w-0 flex-col gap-3 rounded-[20px] border p-4",
         c.isHighlighted ? "bg-[#FFFBEA]" : "bg-white",
         c.isPromoted ? "border-2 border-[#E2B13C] shadow-[0_10px_26px_rgba(208,138,30,.14)]" : c.isHighlighted ? "border-[#F1E3A8]" : "border-[#E9EAEE]",
       )}
@@ -218,7 +219,7 @@ export function FeaturedContestCard({ c, t, locale, now, price, designer }: Ctx 
   const hidden = isHidden(c);
   const label = designer ? t("browse.x.viewSubmit") : t("browse.x.view");
   return (
-    <article className="relative flex flex-col gap-3 rounded-[24px] border border-[#E9EAEE] bg-white p-2.5 pb-4 shadow-[0_10px_26px_rgba(17,18,22,.06)]">
+    <article className="relative flex w-full min-w-0 flex-col gap-3 rounded-[24px] border border-[#E9EAEE] bg-white p-2.5 pb-4 shadow-[0_10px_26px_rgba(17,18,22,.06)]">
       <div className="relative h-[150px] overflow-hidden rounded-2xl">
         <BrandTile name={hidden ? "" : c.brandName} isPrivate={hidden} cover={hidden ? null : c.cover} flat className="size-full text-[1.6rem]" />
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#111216]">

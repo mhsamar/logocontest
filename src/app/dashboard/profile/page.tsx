@@ -40,7 +40,7 @@ export default async function ProfileSettingsPage() {
     createAdminClient().from("profiles").select("username_changed_at").eq("id", user.id).maybeSingle(),
     user.role === "designer" ? isPro(user.id) : Promise.resolve(false),
   ]);
-  // Usernames (owner, 2026-10-15): fixed for everyone; a Pro designer may change theirs once every 60 days.
+  // Usernames (owner, 2026-10-16): anyone may change theirs once every 60 days.
   const lastChange = !changedRes.error && changedRes.data?.username_changed_at ? new Date(changedRes.data.username_changed_at as string) : null;
   const next = nextUsernameChange(lastChange);
   const nextChange = next && next > new Date() ? formatDate(next, locale, "long") : null;
@@ -94,10 +94,11 @@ export default async function ProfileSettingsPage() {
                 username={profile?.username ?? null}
                 profileUrl={profileUrl}
                 bioMax={s["limits.designer_bio_max_length"]}
-                usernameNote={t(pro ? "settings.username.proNote" : "settings.username.fixed")}
+                usernameNote={t("settings.username.note")}
               />
             </div>
-            {pro && profile?.username && (
+            {/* Anyone can change their username once every 60 days (owner, 2026-10-16). */}
+            {profile?.username && (
               <div className="mt-6 border-t border-line pt-6">
                 <UsernameForm username={profile.username as string} nextChange={nextChange} />
               </div>

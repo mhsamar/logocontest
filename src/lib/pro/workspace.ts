@@ -69,6 +69,13 @@ export async function earlyContests(): Promise<MiniContest[]> {
   return toMini((data ?? []) as Record<string, unknown>[]);
 }
 
+/** Open contests that started in the last 3 days, newest first (the dashboard's panel while early access is off). */
+export async function newContests(limit = 20): Promise<MiniContest[]> {
+  const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  const { data } = await db().from("contests").select(COLS).eq("status", "open").gt("starts_at", since).gt("ends_at", new Date().toISOString()).order("starts_at", { ascending: false }).limit(limit);
+  return toMini((data ?? []) as Record<string, unknown>[]);
+}
+
 /** Every open contest (Pro sees all of them, early ones included), newest first. */
 export async function openContests(limit = 60): Promise<MiniContest[]> {
   const { data } = await db().from("contests").select(COLS).eq("status", "open").gt("ends_at", new Date().toISOString()).order("starts_at", { ascending: false }).limit(limit);

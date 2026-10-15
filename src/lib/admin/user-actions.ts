@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { suspendUser, tellUser } from "@/lib/moderation/suspension";
+import { isPersonName } from "@/lib/profile/name-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
 
@@ -75,6 +76,30 @@ export async function setTestAccount(userId: string, on: boolean): Promise<Resul
   const { data, error } = await createAdminClient().from("profiles").update({ is_test: on }).eq("id", userId).neq("role", "admin").select("id").maybeSingle();
   if (error || !data) return fail("admin.errors.generic");
   await audit(admin.id, on ? "mark_test_account" : "unmark_test_account", "user", userId, {});
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Correct a person's name (owner, 2026-10-16): people can't change their own name, since it is checked against
+ * payments and payouts; the team corrects a mistake, with a reason, and it is written to the audit log.
+ */
+export async function correctUserName(userId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("users.manage");
+  if (!admin || !UUID.test(userId)) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const name = String(f.name ?? "").trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 60) return fail("designerSignup.errors.name");
+  if (!isPersonName(name)) return fail("designerSignup.errors.nameLetters");
+  const db = createAdminClient();
+  const { data: before } = await db.from("profiles").select("name").eq("id", userId).maybeSingle();
+  if (!before) return fail("auth.errors.generic");
+  const { error } = await db.from("profiles").update({ name }).eq("id", userId);
+  if (error) return fail("admin.errors.generic");
+  // The login account carries the name too (emails, the welcome screen).
+  await db.auth.admin.updateUserById(userId, { user_metadata: { name } }).catch(() => undefined);
+  await audit(admin.id, "correct_name", "user", userId, { reason, from: before.name, to: name });
   refresh();
   return { ok: true };
 }
