@@ -129,9 +129,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               <p className="m-0 text-[15px] font-semibold text-muted">{t("dashboard.welcome")}</p>
               <h1 className="m-0 truncate text-[clamp(30px,4vw,44px)] font-semibold leading-[1.1] tracking-[-0.04em] text-primary">{name}</h1>
               <p className="m-0 mt-0.5 flex flex-col text-[15px] text-muted sm:flex-row sm:gap-1.5">
-                {data.profile.businessName && (
+                {/* The client's username (owner, 2026-10-15: no business name on the profile any more). */}
+                {user.username && (
                   <span className="truncate">
-                    {data.profile.businessName}
+                    @{user.username}
                     <span className="hidden sm:inline"> ·</span>
                   </span>
                 )}

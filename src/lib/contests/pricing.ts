@@ -18,6 +18,8 @@ export type PricingConfig = {
   upgradePrices: Record<UpgradeKey, number>;
   /** The AI copyright checker (add-on key `logo_scan`) is free from this prize (owner, 2026-10-10). */
   checkerFreeFrom?: number;
+  /** "Best results from" note on the prize step (owner, 2026-10-16); 0 or missing = no note. */
+  bestResultsFrom?: number;
   /** Quick-pick chips; any whole number of days from durationMin to durationMax is allowed (owner, 2026-10-08). */
   durationOptions: number[];
   durationMin: number;

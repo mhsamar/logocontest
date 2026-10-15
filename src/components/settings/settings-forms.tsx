@@ -11,6 +11,7 @@ import {
   changeEmail,
   changeMobile,
   changePassword,
+  changeUsername,
   prepareAvatarUpload,
   removeAvatar,
   saveAvatar,
@@ -141,24 +142,24 @@ export function ProfileForm({
   role,
   name,
   bio,
-  businessName,
   username,
   profileUrl,
   bioMax,
+  usernameNote,
 }: {
   role: "client" | "designer";
   name: string;
   bio: string;
-  businessName: string;
   username: string | null;
   profileUrl: string | null;
   bioMax: number;
+  /** Under the username: it can't be changed, or (Pro) how often it can (owner, 2026-10-15). */
+  usernameNote?: string;
 }) {
   const { t, locale } = useI18n();
   const [state, action, pending] = useActionState(updateProfile, IDLE);
   // Controlled, so nothing typed is lost when the form resets after a save (owner, 2026-10-15).
   const [nameText, setNameText] = useState(name);
-  const [businessText, setBusinessText] = useState(businessName);
   const [bioText, setBioText] = useState(bio);
   const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.saved"));
@@ -167,16 +168,6 @@ export function ProfileForm({
   return (
     <form action={action} onChange={changed} className="space-y-4">
       <TextField name="name" label={t("designerSignup.name.label")} value={nameText} onChange={(e) => setNameText(e.target.value)} maxLength={60} autoComplete="name" error={err("name")} />
-      {role === "client" && (
-        <TextField
-          name="businessName"
-          label={t("settings.businessName")}
-          optionalLabel={t("common.optional")}
-          value={businessText}
-          onChange={(e) => setBusinessText(e.target.value)}
-          maxLength={80}
-        />
-      )}
       {role === "designer" && (
         <TextAreaField
           name="bio"
@@ -200,6 +191,7 @@ export function ProfileForm({
               </a>
             )}
           </p>
+          {usernameNote && <p className="m-0 mt-1.5 text-sm text-muted">{usernameNote}</p>}
         </div>
       )}
       <div className="flex justify-end">
@@ -207,6 +199,39 @@ export function ProfileForm({
           {t("settings.save")}
         </SaveButton>
       </div>
+    </form>
+  );
+}
+
+/** Pro designers change their username (owner, 2026-10-15): once every 60 days; the old link keeps working. */
+export function UsernameForm({ username, nextChange }: { username: string; /** When it can change again; null = now. */ nextChange: string | null }) {
+  const { t } = useI18n();
+  const [state, action, pending] = useActionState(changeUsername, IDLE);
+  const [value, setValue] = useState(username);
+  const { unsaved, changed } = useUnsaved(state);
+  useSavedToast(state, t("settings.username.saved"));
+  const err = useFieldError(state);
+  return (
+    <form action={action} onChange={changed} className="space-y-4">
+      <TextField
+        name="username"
+        label={t("settings.username.newLabel")}
+        value={value}
+        onChange={(e) => setValue(e.target.value.toLowerCase())}
+        maxLength={20}
+        autoComplete="off"
+        spellCheck={false}
+        disabled={Boolean(nextChange)}
+        error={err("username")}
+        hint={nextChange ? t("settings.username.wait", { date: nextChange }) : t("settings.username.proHint")}
+      />
+      {!nextChange && (
+        <div className="flex justify-end">
+          <SaveButton unsaved={unsaved} loading={pending}>
+            {t("settings.username.save")}
+          </SaveButton>
+        </div>
+      )}
     </form>
   );
 }

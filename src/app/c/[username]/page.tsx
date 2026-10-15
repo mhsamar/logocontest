@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { currentUsernameFor } from "@/lib/profile/usernames";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ContestCard } from "@/components/contests/contest-card";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -24,7 +25,12 @@ export async function generateMetadata({ params }: PageProps<"/c/[username]">): 
 export default async function ClientProfilePage({ params }: PageProps<"/c/[username]">) {
   const { username } = await params;
   const [{ t, locale, price }, client] = await Promise.all([getI18n(), clientByUsername(username)]);
-  if (!client) notFound();
+  if (!client) {
+    // An old username (a Pro designer changed theirs, or a client's was renewed): on to the new one (owner, 2026-10-15).
+    const moved = await currentUsernameFor(username);
+    if (moved) permanentRedirect(`/c/${moved}`);
+    notFound();
+  }
   const contests = await contestsByIds(client.publicContestIds);
   const display = client.businessName ?? client.name;
   const now = new Date();

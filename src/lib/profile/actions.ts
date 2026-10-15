@@ -1,5 +1,10 @@
 "use server";
 
+import { checkUsernameFormat } from "@/lib/designers/signup";
+import { formatDate } from "@/lib/dates";
+import { isPro } from "@/lib/pro/status";
+import { canChangeUsername, nextUsernameChange } from "./username-rules";
+import { usernameTaken } from "./usernames";
 import { isPersonName } from "@/lib/profile/name-rules";
 import { randomUUID } from "node:crypto";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
@@ -51,13 +56,43 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
     if (bio.length > max) return fail("designerSignup.errors.bioLong", "bio", { max });
     if (bio && findContactDetails(bio, await blockedTerms())) return fail("contest.comments.contact", "bio");
     update.bio = bio || null;
-  } else if (user.role === "client") {
-    const business = String(formData.get("businessName") ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
-    update.business_name = business || null;
   }
+  // Clients have no business name on their profile any more (owner, 2026-10-15): each contest has its own brand.
 
   const { error } = await createAdminClient().from("profiles").update(update).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
+  refresh();
+  return { status: "ok" };
+}
+
+/**
+ * Pro designers change their username (owner, 2026-10-15): once every 60 days. The old name keeps leading to the
+ * profile and stays reserved (migration 0063). Everyone else's username is fixed.
+ */
+export async function changeUsername(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  const user = await me();
+  if (!user || user.role !== "designer") return fail("auth.errors.generic");
+  if (!(await isPro(user.id))) return fail("settings.username.proOnly", "username");
+  const format = checkUsernameFormat(String(formData.get("username") ?? "").replace(/^@/, ""));
+  if (!format.ok) return fail(`designerSignup.username.${format.error}`, "username");
+  const db = createAdminClient();
+  const { data: p, error: readError } = await db.from("profiles").select("username, username_changed_at").eq("id", user.id).single();
+  if (readError || !p) return fail("auth.errors.generic");
+  if (p.username === format.username) return { status: "ok" };
+  const last = p.username_changed_at ? new Date(p.username_changed_at as string) : null;
+  if (!canChangeUsername(last, new Date())) {
+    const { locale } = await getI18n();
+    return fail("settings.username.wait", "username", { date: formatDate(nextUsernameChange(last)!, locale, "long") });
+  }
+  if (await usernameTaken(format.username, user.id)) return fail("designerSignup.username.taken", "username");
+  // The old name is kept for old links; going back to one of their own old names takes it out of the list.
+  if (p.username) {
+    const { error } = await db.from("username_history").upsert({ old_username: (p.username as string).toLowerCase(), profile_id: user.id, changed_at: new Date().toISOString() });
+    if (error) return fail("auth.errors.generic");
+  }
+  await db.from("username_history").delete().eq("old_username", format.username).eq("profile_id", user.id);
+  const { error } = await db.from("profiles").update({ username: format.username, username_changed_at: new Date().toISOString() }).eq("id", user.id);
+  if (error) return fail(/duplicate|unique/i.test(error.message) ? "designerSignup.username.taken" : "auth.errors.generic", "username");
   refresh();
   return { status: "ok" };
 }

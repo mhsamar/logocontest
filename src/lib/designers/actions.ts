@@ -1,5 +1,6 @@
 "use server";
 
+import { usernameTaken as usernameUsedBefore } from "@/lib/profile/usernames";
 import { headers } from "next/headers";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
 import { emailRejection } from "@/lib/auth/email-check";
@@ -77,11 +78,8 @@ export async function checkDesignerLogin(input: { email: string; password: strin
   return { ok: true };
 }
 
-async function usernameTaken(username: string): Promise<boolean> {
-  // Usernames are stored lower-case, so an exact match is enough (and LIKE would treat "_" as a wildcard).
-  const { data } = await createAdminClient().from("profiles").select("id").eq("username", username).maybeSingle();
-  return Boolean(data);
-}
+/** Taken now, or once used by someone (old usernames stay reserved for old links, owner 2026-10-15). */
+const usernameTaken = (username: string) => usernameUsedBefore(username);
 
 /** Step 3: live username check while typing. */
 export async function checkUsername(input: string): Promise<{ ok: true; username: string } | { ok: false; error: MessageKey }> {

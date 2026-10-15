@@ -1,5 +1,6 @@
 "use server";
 
+import { currentUsernameFor } from "@/lib/profile/usernames";
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
@@ -61,8 +62,10 @@ export async function findProDesigner(raw: string): Promise<{ ok: true; designer
   if (!user || user.role !== "client") return { ok: false, error: "auth.errors.generic" };
   const { settings, ready } = await getProSettings();
   if (!ready || !settings.features.invitations) return { ok: false, error: "pro.invite.errors.off" };
-  const name = String(raw ?? "").trim().replace(/^@/, "").toLowerCase();
-  if (!/^[a-z0-9_]{3,30}$/.test(name)) return { ok: false, error: "pro.invite.errors.idNotFound" };
+  const typed = String(raw ?? "").trim().replace(/^@/, "").toLowerCase();
+  if (!/^[a-z0-9_]{3,30}$/.test(typed)) return { ok: false, error: "pro.invite.errors.idNotFound" };
+  // A Pro designer may have changed their username (owner, 2026-10-15): an old ID still finds them.
+  const name = (await currentUsernameFor(typed)) ?? typed;
   const { data } = await createAdminClient().from("profiles").select("id, name, username, role, status").eq("username", name).maybeSingle();
   if (!data || data.role !== "designer" || data.status !== "active") return { ok: false, error: "pro.invite.errors.idNotFound" };
   if (!(await isPro(data.id as string))) return { ok: false, error: "pro.invite.errors.idNotPro" };

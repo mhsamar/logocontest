@@ -293,6 +293,10 @@ export const SETTINGS = {
     description: "Change requests a client can make during handover. 0 = no limit.",
   },
   // Browse Contests "Big prize" quick filter (owner, 2026-10-11; Design/contest-pages).
+  "packages.best_results_from": {
+    group: "packages", type: "int", schema: int(0), default: 8000,
+    description: "Prize step: a note tells clients that a prize of at least this many taka gets the best results (owner, 2026-10-16). 0 = no note.",
+  },
   "limits.big_prize_from": {
     group: "limits", type: "int", schema: int(1), default: 10000,
     description: "Browse Contests, \"Big prize\" filter: contests with a prize of at least this many taka.",

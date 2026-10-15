@@ -34,7 +34,7 @@ const proEn = {
   },
   go: {
     metaTitle: "Go Pro",
-    metaDescription: "Designer Pro on logocontest.bd: early access to new contests, client invitations, a Pro badge, highlighted entries, more logo checks and insights.",
+    metaDescription: "Designer Pro on logocontest.bd: client invitations, a Pro badge, highlighted entries, more logo checks and insights.",
     kicker: "For designers",
     title: "Go Pro.",
     accent: "Get More Opportunities.",

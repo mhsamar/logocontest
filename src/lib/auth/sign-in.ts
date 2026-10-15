@@ -55,6 +55,16 @@ export async function findProfileByEmail(email: string) {
   return data;
 }
 
+export async function findProfileByUsername(username: string) {
+  const { data, error } = await createAdminClient()
+    .from("profiles")
+    .select("id, email, role, status")
+    .eq("username", username.toLowerCase())
+    .maybeSingle<ProfileStatus>();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /** The address Supabase Auth knows this mobile number by (real email, or the legacy internal one). */
 export async function authEmailForMobile(mobile: string): Promise<string> {
   const profile = await findProfileByPhone(mobile);
