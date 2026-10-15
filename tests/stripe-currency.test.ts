@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { BDT, currencyForCountry, formatPrice, formatUsdCents, toUsdCents } from "@/lib/currency/rules";
+import { BDT, currencyFor, currencyForCountry, formatPrice, formatUsdCents, toUsdCents } from "@/lib/currency/rules";
 import { methodCurrency } from "@/lib/payments/manual-rules";
 import { sessionPaid, stripeForm, toSession, verifyStripeSignature } from "@/lib/payments/stripe-rules";
 
@@ -70,5 +70,16 @@ describe("Stripe webhook and checkout", () => {
     expect(sessionPaid(s, 4100)).toBe(false);
     expect(sessionPaid({ ...s, paymentStatus: "unpaid" }, 4098)).toBe(false);
     expect(sessionPaid({ ...s, currency: "eur" }, 4098)).toBe(false);
+  });
+});
+
+describe("Bangla pages are always in taka (owner, 2026-10-15)", () => {
+  it("ignores the dollar choice and the country on Bangla pages; English pages keep them", () => {
+    expect(currencyFor({ locale: "bn", chosen: "USD", country: "US" })).toBe("BDT");
+    expect(currencyFor({ locale: "bn", chosen: null, country: "GB" })).toBe("BDT");
+    expect(currencyFor({ locale: "en", chosen: "USD", country: "BD" })).toBe("USD");
+    expect(currencyFor({ locale: "en", chosen: "BDT", country: "US" })).toBe("BDT");
+    expect(currencyFor({ locale: "en", chosen: "nonsense", country: "US" })).toBe("USD");
+    expect(currencyFor({ locale: "en", country: "BD" })).toBe("BDT");
   });
 });

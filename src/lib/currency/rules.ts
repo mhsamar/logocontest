@@ -19,6 +19,15 @@ export const BDT: Currency = { code: "BDT", rate: 122, markup: 0 };
 /** Bangladesh (or unknown, as on a local computer) pays in taka; everywhere else sees dollars. */
 export const currencyForCountry = (country: string | null | undefined): CurrencyCode => (!country || country.toUpperCase() === "BD" || country.toUpperCase() === "XX" ? "BDT" : "USD");
 
+/**
+ * The currency a visitor sees. Bangla pages always show taka (owner, 2026-10-15: "$৪০.৯৮" on a Bangla page looked
+ * wrong); on English pages the footer choice wins, else the country decides.
+ */
+export function currencyFor(input: { locale: Locale; chosen?: string | null; country?: string | null }): CurrencyCode {
+  if (input.locale === "bn") return "BDT";
+  return isCurrency(input.chosen) ? input.chosen : currencyForCountry(input.country);
+}
+
 /** Taka → US cents at the rate, plus the markup. Never below Stripe's 50-cent minimum for a real amount. */
 export function toUsdCents(bdt: number, rate: number, markup = 0): number {
   if (!(bdt > 0) || !(rate > 0)) return 0;
