@@ -136,7 +136,9 @@ export async function SiteFooter() {
             <span aria-hidden>·</span>
             {languageButton("bn")}
           </form>
-          {/* Prices in taka or US dollars (owner, 2026-10-14): set from the visitor's country, changeable here. */}
+          {/* Prices in taka or US dollars (owner, 2026-10-14): set from the visitor's country, changeable here. Bangla
+              pages are always in taka (owner, 2026-10-15), so the switch is on English pages only. */}
+          {locale === "en" && (
           <form action={setCurrency} aria-label={t("pay.currency.label")} className="flex items-center gap-1.5" data-currency-switch>
             {(["BDT", "USD"] as const).map((c, i) => (
               <span key={c} className="flex items-center gap-1.5">
@@ -147,6 +149,7 @@ export async function SiteFooter() {
               </span>
             ))}
           </form>
+          )}
         </span>
         <span>{t("footer.madeIn")}</span>
       </div>
