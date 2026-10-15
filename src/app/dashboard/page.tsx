@@ -71,7 +71,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       emailVerified: Boolean(user.emailVerifiedAt),
     });
     const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardImage(c.slug, "square", c.squarePath) }));
-    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} balance={wallet.balance} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} />;
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} wallet={wallet} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} />;
   }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();

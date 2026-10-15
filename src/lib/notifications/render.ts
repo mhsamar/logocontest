@@ -26,6 +26,7 @@ export function renderNotification(n: AppNotification, t: Translate, locale: Loc
     reason: n.data.reason ?? "",
     name: n.data.name ?? "",
     month: n.data.month ? monthLabel(n.data.month, locale) : "",
+    picture: fmt(n.data.picture),
   });
   return { id: n.id, type: n.type, category: categoryOf(n.type), text, ago: timeAgo(n.createdAt, now, locale), link: n.link, read: n.read };
 }

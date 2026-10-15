@@ -30,7 +30,8 @@ import { ENTRY_FILES_BUCKET } from "./queries";
 import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
 import { mockupLimit } from "./limits";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
-import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES } from "./rules";
+import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES, WITHDRAWABLE } from "./rules";
+import { removePicture } from "./pictures";
 import { emailChat } from "@/lib/email/events";
 import { adminIdsWith } from "@/lib/admin/recipients";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
@@ -449,12 +450,35 @@ export async function withdrawEntry(entryId: string): Promise<{ ok: true } | Fai
     .update({ status: "withdrawn", withdrawn_at: new Date().toISOString(), is_shortlisted: false })
     .eq("id", entryId)
     .eq("designer_id", user.id)
-    .in("status", ["active", "rejected"])
+    .in("status", WITHDRAWABLE)
     .select("id")
     .maybeSingle();
   if (!done) return fail("entry.withdraw.notNow");
   refresh();
   return { ok: true };
+}
+
+/**
+ * One picture of their own design, uploaded by mistake (owner, 2026-10-16): only while the contest is open, like
+ * removing the whole design. When it was the last doubted picture of a design waiting for approval, the design is
+ * published and the client hears about it.
+ */
+export async function removeEntryPicture(entryId: string, imageId: string): Promise<{ ok: true; picture: number; published: boolean } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const user = await getCurrentUser();
+  if (!user || user.status === "banned" || !UUID.test(entryId) || !UUID.test(imageId)) return fail("auth.errors.generic");
+  const db = createAdminClient();
+  const { data } = await db.from("entries").select("id, number, status, designer_id, contest:contests!contest_id(slug, status, ends_at, client_id, brand_name)").eq("id", entryId).maybeSingle();
+  const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { slug: string; status: string; ends_at: string | null; client_id: string; brand_name: string } | null);
+  if (!data || !c) return fail("auth.errors.generic");
+  if (!canWithdraw({ status: data.status, designerId: data.designer_id }, { status: c.status, endsAt: c.ends_at ? new Date(c.ends_at) : null }, user.id)) return fail("entry.withdraw.notNow");
+  const res = await removePicture(entryId, imageId);
+  if (!res.ok) return fail(res.why === "last" ? "entry.picture.last" : "auth.errors.generic");
+  if (res.published) {
+    await notify([c.client_id], "entry_new", { brand: c.brand_name, number: data.number }, `/dashboard/contests/${c.slug}?entry=${data.number}`, user.id);
+  }
+  refresh();
+  return { ok: true, picture: res.picture, published: res.published };
 }
 
 /**

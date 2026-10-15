@@ -69,6 +69,8 @@ export const NOTIFICATION_TYPES = [
   // Design check (owner, 2026-10-15): a new design is waiting for the team; the team approved it.
   "entry_held_admin",
   "entry_approved",
+  // Owner, 2026-10-16: the team took one doubted picture off a design waiting for approval.
+  "entry_picture_removed",
   // Owner, 2026-10-11: the designer's contest win card is ready.
   "win_card_ready",
   "monthly_smartphone_won",

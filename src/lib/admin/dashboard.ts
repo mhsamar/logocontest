@@ -25,6 +25,34 @@ const LIVE_OR_LATER = ["open", "judging", "winner_selected", "handover", "comple
 /** The period the dashboard counts: from `since` (null = all time) up to `until` (null = now). */
 export type StatsPeriod = { since: Date | null; until: Date | null };
 
+export type PeriodMoney = { clientPayments: number; paymentsCount: number; serviceFees: number; addons: number; designerFees: number };
+
+/** Money in a period: what clients paid, and our part of it (service fees, add-ons, the designers' win fees). */
+export async function periodMoney(period: StatsPeriod): Promise<PeriodMoney> {
+  const out: PeriodMoney = { clientPayments: 0, paymentsCount: 0, serviceFees: 0, addons: 0, designerFees: 0 };
+  if (!isSupabaseConfigured()) return out;
+  const db = createAdminClient();
+  const since = period.since ? period.since.toISOString() : "1970-01-01T00:00:00Z";
+  const until = (period.until ?? new Date(Date.now() + 86_400_000)).toISOString();
+  const [payments, fees] = await Promise.all([
+    db.from("payments").select("amount, purpose, contest:contests!contest_id(service_fee_amount, upgrades_amount)").eq("status", "paid").gte("paid_at", since).lt("paid_at", until).limit(10000),
+    db.from("wallet_transactions").select("fee_amount").in("type", ["prize_credit", "split_share"]).gte("created_at", since).lt("created_at", until).limit(10000),
+  ]);
+  for (const p of payments.data ?? []) {
+    out.clientPayments += p.amount as number;
+    out.paymentsCount += 1;
+    if (p.purpose === "contest") {
+      const c = one(p.contest as { service_fee_amount: number; upgrades_amount: number } | { service_fee_amount: number; upgrades_amount: number }[] | null);
+      out.serviceFees += c?.service_fee_amount ?? 0;
+      out.addons += c?.upgrades_amount ?? 0;
+    } else {
+      out.addons += p.amount as number; // extensions and add-ons bought later go to the platform in full
+    }
+  }
+  out.designerFees = (fees.data ?? []).reduce((s, r) => s + ((r.fee_amount as number | null) ?? 0), 0);
+  return out;
+}
+
 export async function dashboardStats(period: StatsPeriod): Promise<DashboardStats | null> {
   if (!isSupabaseConfigured()) return null;
   const db = createAdminClient();
@@ -32,12 +60,11 @@ export async function dashboardStats(period: StatsPeriod): Promise<DashboardStat
   const until = (period.until ?? new Date(Date.now() + 86_400_000)).toISOString();
   const head = { count: "exact" as const, head: true };
 
-  const [posted, live, completed, payments, fees, finished, withdrawals, reports, claims, visits, recent] = await Promise.all([
+  const [posted, live, completed, money, finished, withdrawals, reports, claims, visits, recent] = await Promise.all([
     db.from("contests").select("id", head).in("status", LIVE_OR_LATER).gte("starts_at", since).lt("starts_at", until),
     db.from("contests").select("id", head).eq("status", "open"),
     db.from("contests").select("id", head).eq("status", "completed").gte("completed_at", since).lt("completed_at", until),
-    db.from("payments").select("amount, purpose, contest:contests!contest_id(service_fee_amount, upgrades_amount)").eq("status", "paid").gte("paid_at", since).lt("paid_at", until).limit(10000),
-    db.from("wallet_transactions").select("fee_amount").in("type", ["prize_credit", "split_share"]).gte("created_at", since).lt("created_at", until).limit(10000),
+    periodMoney(period),
     db.from("contests").select("id").in("status", ["judging", "winner_selected", "handover", "completed", "no_result"]).gte("starts_at", since).lt("starts_at", until).limit(5000),
     db.from("withdrawals").select("amount").eq("status", "requested"),
     db.from("reports").select("id", head).eq("status", "open"),
@@ -46,20 +73,7 @@ export async function dashboardStats(period: StatsPeriod): Promise<DashboardStat
     db.from("audit_logs").select("action, subject_type, created_at, admin:profiles!admin_id(name)").order("created_at", { ascending: false }).limit(8),
   ]);
 
-  let serviceFees = 0;
-  let addons = 0;
-  let clientPayments = 0;
-  for (const p of payments.data ?? []) {
-    clientPayments += p.amount as number;
-    if (p.purpose === "contest") {
-      const c = one(p.contest as { service_fee_amount: number; upgrades_amount: number } | { service_fee_amount: number; upgrades_amount: number }[] | null);
-      serviceFees += c?.service_fee_amount ?? 0;
-      addons += c?.upgrades_amount ?? 0;
-    } else {
-      addons += p.amount as number; // extensions and add-ons bought later go to the platform in full
-    }
-  }
-  const designerFees = (fees.data ?? []).reduce((s, r) => s + ((r.fee_amount as number | null) ?? 0), 0);
+  const { serviceFees, addons, designerFees, clientPayments, paymentsCount } = money;
 
   const finishedIds = (finished.data ?? []).map((c) => c.id as string);
   let avgEntries: number | null = null;
@@ -83,7 +97,7 @@ export async function dashboardStats(period: StatsPeriod): Promise<DashboardStat
     contestsLive: live.count ?? 0,
     contestsCompleted: completed.count ?? 0,
     clientPayments,
-    paymentsCount: payments.data?.length ?? 0,
+    paymentsCount,
     revenue: { serviceFees, addons, designerFees, total: serviceFees + addons + designerFees },
     avgEntries,
     pendingWithdrawals: { count: withdrawals.data?.length ?? 0, amount: (withdrawals.data ?? []).reduce((s, w) => s + (w.amount as number), 0) },

@@ -40,15 +40,18 @@ export type DesignerProfile = {
 // ---------------------------------------------------------------------------
 
 type EntryRow = {
+  id: string;
   number: number;
   status: EntryStatus;
   isHidden: boolean;
   rating: number | null;
   createdAt: string;
-  contest: { id: string; slug: string; brandName: string; status: string; isPrivate: boolean; isBlind: boolean; winnerIsPublic: boolean };
+  contest: { id: string; slug: string; brandName: string; status: string; endsAt: string | null; prize: number; isPrivate: boolean; isBlind: boolean; winnerIsPublic: boolean };
   /** Cover mockup (position 0) and how many mockups. */
   coverPath: string | null;
   imageCount: number;
+  /** Every picture in order (owner, 2026-10-16: the dashboard shows them all); doubted = the design check's doubt. */
+  pictures: { id: string; path: string; label: string | null; doubted: boolean }[];
 };
 
 const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> => {
@@ -56,7 +59,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   const { data, error } = await createAdminClient()
     .from("entries")
     .select(
-      "number, status, rating, is_hidden, created_at, contest:contests!contest_id(id, slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position, preview_path)",
+      "id, number, status, rating, is_hidden, held_positions, created_at, contest:contests!contest_id(id, slug, brand_name, status, ends_at, prize_amount, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(id, position, preview_path, label)",
     )
     .eq("designer_id", designerId)
     .not("status", "in", "(removed,withdrawn)")
@@ -65,21 +68,24 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   if (error) throw new Error(error.message);
   return (data ?? []).flatMap((r) => {
     const c = (Array.isArray(r.contest) ? r.contest[0] : r.contest) as
-      | { id: string; slug: string; brand_name: string; status: string; is_private: boolean; is_nda: boolean; is_blind: boolean; winner_is_public: boolean }
+      | { id: string; slug: string; brand_name: string; status: string; ends_at: string | null; prize_amount: number | null; is_private: boolean; is_nda: boolean; is_blind: boolean; winner_is_public: boolean }
       | null;
     if (!c) return [];
-    const images = ((r.images ?? []) as { position: number; preview_path: string }[]).sort((a, b) => a.position - b.position);
+    const images = ((r.images ?? []) as { id: string; position: number; preview_path: string; label: string | null }[]).sort((a, b) => a.position - b.position);
+    const doubtedAt = r.status === "held" ? ((r.held_positions as number[] | null) ?? []) : [];
     return [
       {
+        id: r.id as string,
         number: r.number as number,
         status: r.status as EntryStatus,
         // Pro "Hide my design" (owner, 2026-10-14): public only once the winner is picked.
         isHidden: Boolean(r.is_hidden),
         rating: r.rating as number | null,
         createdAt: r.created_at as string,
-        contest: { id: c.id, slug: c.slug, brandName: c.brand_name, status: c.status, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public },
+        contest: { id: c.id, slug: c.slug, brandName: c.brand_name, status: c.status, endsAt: c.ends_at, prize: c.prize_amount ?? 0, isPrivate: c.is_private || Boolean(c.is_nda), isBlind: c.is_blind, winnerIsPublic: c.winner_is_public },
         coverPath: images[0]?.preview_path ?? null,
         imageCount: images.length,
+        pictures: images.map((i) => ({ id: i.id, path: i.preview_path, label: i.label?.trim() || null, doubted: doubtedAt.includes(i.position) })),
       },
     ];
   });
@@ -176,24 +182,44 @@ export type DesignerContest = {
   winningLogoUrl: string | null;
   /** Cover of the designer's newest design in this contest. */
   latestCoverUrl: string | null;
+  /** Every design of theirs here with all its pictures, newest first (owner, 2026-10-16). */
+  designs: MyDesign[];
+  /** Still taking designs: a design, or one picture of it, can be removed (owner, 2026-10-16). Never after. */
+  open: boolean;
+  /** The contest's prize, for the Wins tiles. */
+  prize: number;
 };
+
+export type MyDesign = { id: string; number: number; status: EntryStatus; pictures: { id: string; url: string; label: string | null; doubted: boolean }[] };
+
+/** The dashboard signs at most this many pictures, newest contests first; older ones show their cover only. */
+const DASHBOARD_PICTURES = 400;
 
 /** D-02 "My contests": every contest the designer submitted to, newest design first. */
 export async function designerContests(userId: string): Promise<DesignerContest[]> {
   const rows = await designerEntries(userId);
   const byContest = new Map<string, EntryRow[]>();
   for (const e of rows) byContest.set(e.contest.id, [...(byContest.get(e.contest.id) ?? []), e]);
-  const urls = await coverUrls(rows.map((e) => e.coverPath));
+  const pictures = [...byContest.values()].flatMap((list) => list.flatMap((e) => e.pictures.map((p) => p.path))).slice(0, DASHBOARD_PICTURES);
+  const urls = await coverUrls([...rows.map((e) => e.coverPath), ...pictures]);
+  const now = new Date();
   return [...byContest.values()].map((list) => {
     const winner = list.find((e) => e.status === "winner");
+    const c = list[0].contest;
     return {
-      slug: list[0].contest.slug,
-      brandName: list[0].contest.brandName,
-      status: list[0].contest.status,
+      slug: c.slug,
+      brandName: c.brandName,
+      status: c.status,
       myEntries: list.length,
       won: Boolean(winner),
       winningLogoUrl: winner?.coverPath ? (urls.get(winner.coverPath) ?? null) : null,
       latestCoverUrl: list[0].coverPath ? (urls.get(list[0].coverPath) ?? null) : null,
+      designs: list.flatMap((e) => {
+        const shown = e.pictures.flatMap((p) => (urls.has(p.path) ? [{ id: p.id, url: urls.get(p.path)!, label: p.label, doubted: p.doubted }] : []));
+        return shown.length ? [{ id: e.id, number: e.number, status: e.status, pictures: shown }] : [];
+      }),
+      open: c.status === "open" && (!c.endsAt || new Date(c.endsAt) > now),
+      prize: c.prize,
     };
   });
 }

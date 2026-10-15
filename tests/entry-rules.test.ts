@@ -73,6 +73,15 @@ describe("canWithdraw (owner, 2026-10-11)", () => {
     expect(canWithdraw({ status: "active", designerId: "d1" }, open, "d1", now)).toBe(true);
     expect(canWithdraw({ status: "rejected", designerId: "d1" }, open, "d1", now)).toBe(true);
   });
+  it("also a design waiting for approval, whole or one picture at a time (owner, 2026-10-16)", () => {
+    expect(canWithdraw({ status: "held", designerId: "d1" }, open, "d1", now)).toBe(true);
+    expect(canWithdraw({ status: "held", designerId: "d1" }, open, "d2", now)).toBe(false);
+  });
+  it("never once the contest has finished: its designs are the designer's portfolio", () => {
+    for (const status of ["judging", "winner_selected", "handover", "completed"]) {
+      expect(canWithdraw({ status: "active", designerId: "d1" }, { status, endsAt: open.endsAt }, "d1", now)).toBe(false);
+    }
+  });
   it("never someone else's design, a winner, or after the contest stops taking designs", () => {
     expect(canWithdraw({ status: "active", designerId: "d1" }, open, "d2", now)).toBe(false);
     expect(canWithdraw({ status: "active", designerId: "d1" }, open, null, now)).toBe(false);

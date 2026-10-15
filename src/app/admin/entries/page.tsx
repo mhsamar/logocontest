@@ -9,7 +9,7 @@ import { str } from "@/components/admin/table-bits";
 import { AdmCard, ADM_INPUT, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
 import { requirePermission } from "@/lib/admin/core";
 import { duplicatePairs, heldEntries, recentEntries, type AdminEntry, type HeldEntry } from "@/lib/admin/moderation";
-import { approveEntry, clearDuplicate, removeEntry } from "@/lib/admin/moderation-actions";
+import { approveEntry, clearDuplicate, removeEntry, removeHeldPicture } from "@/lib/admin/moderation-actions";
 import { getSetting } from "@/lib/settings";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
@@ -228,15 +228,29 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
                     </div>
                     <ul className="m-0 grid list-none grid-cols-2 gap-2.5 p-0 sm:grid-cols-4">
                       {e.pictures.map((p, i) => (
-                        <li key={i} className={cx("relative overflow-hidden rounded-[12px] bg-[#eeeff2] ring-2", p.doubted ? "ring-adm-bad" : "ring-transparent")}>
-                          {p.url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.url} alt={p.label ?? ""} loading="lazy" className="aspect-square w-full object-contain" />
-                          ) : (
-                            <span className="flex aspect-square items-center justify-center text-[13px] text-muted">{t("admin.entries.noImage")}</span>
+                        <li key={p.id} className="flex flex-col gap-1.5">
+                          <div className={cx("relative overflow-hidden rounded-[12px] bg-[#eeeff2] ring-2", p.doubted ? "ring-adm-bad" : "ring-transparent")}>
+                            {p.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.url} alt={p.label ?? ""} loading="lazy" className="aspect-square w-full object-contain" />
+                            ) : (
+                              <span className="flex aspect-square items-center justify-center text-[13px] text-muted">{t("admin.entries.noImage")}</span>
+                            )}
+                            <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11.5px] font-bold text-white">{num(i + 1)}</span>
+                            {p.doubted && <Pill tone="bad" className="absolute right-1.5 top-1.5">{t("admin.entries.held.doubted")}</Pill>}
+                          </div>
+                          {/* Owner, 2026-10-16: take off only the doubted picture and keep the rest. */}
+                          {e.pictures.length > 1 && (
+                            <AdminAction
+                              label={t("admin.entries.held.removePicture")}
+                              title={t("admin.entries.held.removePictureTitle", { n: num(i + 1), d: num(e.number) })}
+                              body={t(e.pictures.filter((x) => x.doubted).length === 1 && p.doubted ? "admin.entries.held.removePictureLast" : "admin.entries.held.removePictureBody")}
+                              done={t("admin.entries.held.pictureRemoved")}
+                              tone={p.doubted ? "danger" : "ghost"}
+                              fields={[]}
+                              run={removeHeldPicture.bind(null, e.id, p.id)}
+                            />
                           )}
-                          <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11.5px] font-bold text-white">{num(i + 1)}</span>
-                          {p.doubted && <Pill tone="bad" className="absolute right-1.5 top-1.5">{t("admin.entries.held.doubted")}</Pill>}
                         </li>
                       ))}
                     </ul>

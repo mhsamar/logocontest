@@ -28,6 +28,8 @@ export type WalletWithdrawal = {
   txnId: string | null;
   rejectReason: string | null;
   createdAt: Date;
+  /** When it was sent (or turned down). */
+  processedAt: Date | null;
 };
 
 export type PayoutMethod = { id: string; type: "bkash" | "bank"; label: string; isDefault: boolean; bkashNumber: string | null; bkashKind: "personal" | "agent" | null };
@@ -45,6 +47,10 @@ export type Wallet = {
   transactions: WalletTx[];
   withdrawals: WalletWithdrawal[];
   methods: PayoutMethod[];
+  /** Owner, 2026-10-16: every taka sent so far, what is on its way, and all they earned here (after fees). */
+  paidOut: { total: number; count: number };
+  requested: { total: number; count: number };
+  earned: number;
 };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -62,11 +68,26 @@ export function maskDestination(type: string, d: Record<string, string | undefin
 export async function getWallet(designerId: string): Promise<Wallet> {
   const s = await getSettings(["fees.designer_tiers", "limits.withdrawal_min", "timers.payout_hold_days"]);
   const tiers = [...s["fees.designer_tiers"]].sort((a, b) => a.min_wins - b.min_wins);
-  const empty: Wallet = { balance: 0, pending: 0, held: [], countedWins: 0, rate: feeRateFor(0, tiers), next: nextTier(0, tiers), tiers, minWithdrawal: s["limits.withdrawal_min"], transactions: [], withdrawals: [], methods: [] };
+  const empty: Wallet = {
+    balance: 0,
+    pending: 0,
+    held: [],
+    countedWins: 0,
+    rate: feeRateFor(0, tiers),
+    next: nextTier(0, tiers),
+    tiers,
+    minWithdrawal: s["limits.withdrawal_min"],
+    transactions: [],
+    withdrawals: [],
+    methods: [],
+    paidOut: { total: 0, count: 0 },
+    requested: { total: 0, count: 0 },
+    earned: 0,
+  };
   if (!isSupabaseConfigured()) return empty;
 
   const db = createAdminClient();
-  const [profile, txs, withdrawals, open, methods, approved, claimed] = await Promise.all([
+  const [profile, txs, withdrawals, open, methods, approved, claimed, allOut, earnedRows] = await Promise.all([
     db.from("profiles").select("counted_wins_count").eq("id", designerId).single(),
     db
       .from("wallet_transactions")
@@ -74,12 +95,18 @@ export async function getWallet(designerId: string): Promise<Wallet> {
       .eq("designer_id", designerId)
       .order("seq", { ascending: false })
       .limit(50),
-    db.from("withdrawals").select("id, amount, method_type, destination, status, paid_txn_id, reject_reason, created_at").eq("designer_id", designerId).order("created_at", { ascending: false }).limit(20),
+    db.from("withdrawals").select("id, amount, method_type, destination, status, paid_txn_id, reject_reason, created_at, processed_at").eq("designer_id", designerId).order("created_at", { ascending: false }).limit(20),
     db.from("handovers").select("prize, fee_rate").eq("designer_id", designerId).in("status", ["awaiting_files", "submitted", "revision_requested"]),
     db.from("designer_payout_methods").select("id, type, bkash_number, bkash_kind, bank_name, account_number, is_default").eq("user_id", designerId).order("is_default", { ascending: false }),
     db.from("handovers").select("id, prize, fee_rate, approved_at, created_at, contest:contests!contest_id(brand_name)").eq("designer_id", designerId).eq("status", "approved").is("credited_at", null),
     openClaimHandoverIds(designerId),
+    db.from("withdrawals").select("amount, status").eq("designer_id", designerId).in("status", ["paid", "requested"]).limit(5000),
+    db.from("wallet_transactions").select("amount").eq("designer_id", designerId).in("type", ["prize_credit", "split_share", "bonus"]).limit(5000),
   ]);
+  const sumOf = (status: string) => {
+    const rows = (allOut.data ?? []).filter((r) => r.status === status);
+    return { total: rows.reduce((a, r) => a + (r.amount as number), 0), count: rows.length };
+  };
 
   const held = (approved.data ?? []).map((h) => ({
     brand: one(h.contest as { brand_name: string } | { brand_name: string }[] | null)?.brand_name ?? "",
@@ -120,7 +147,11 @@ export async function getWallet(designerId: string): Promise<Wallet> {
       txnId: (w.paid_txn_id as string | null) ?? null,
       rejectReason: (w.reject_reason as string | null) ?? null,
       createdAt: new Date(w.created_at as string),
+      processedAt: w.processed_at ? new Date(w.processed_at as string) : null,
     })),
+    paidOut: sumOf("paid"),
+    requested: sumOf("requested"),
+    earned: (earnedRows.data ?? []).reduce((a, r) => a + (r.amount as number), 0),
     methods: (methods.data ?? []).map((m) => ({
       id: m.id as string,
       type: m.type as "bkash" | "bank",
@@ -131,27 +162,4 @@ export async function getWallet(designerId: string): Promise<Wallet> {
       bkashKind: ((m as { bkash_kind?: string | null }).bkash_kind as "personal" | "agent" | null) ?? null,
     })),
   };
-}
-
-/** Admin queue: withdrawals waiting for someone to pay them by hand (BLUEPRINT §7.3). */
-export async function pendingWithdrawals(): Promise<(WalletWithdrawal & { designer: { name: string; username: string | null }; full: Record<string, string> })[]> {
-  if (!isSupabaseConfigured()) return [];
-  const { data } = await createAdminClient()
-    .from("withdrawals")
-    .select("id, amount, method_type, destination, status, paid_txn_id, reject_reason, created_at, designer:profiles!designer_id(name, username)")
-    .eq("status", "requested")
-    .order("created_at", { ascending: true })
-    .limit(200);
-  return (data ?? []).map((w) => ({
-    id: w.id as string,
-    amount: w.amount as number,
-    methodType: w.method_type as "bkash" | "bank",
-    destination: maskDestination(w.method_type as string, (w.destination ?? {}) as Record<string, string>),
-    full: (w.destination ?? {}) as Record<string, string>,
-    status: w.status as WalletWithdrawal["status"],
-    txnId: null,
-    rejectReason: null,
-    createdAt: new Date(w.created_at as string),
-    designer: one(w.designer as { name: string; username: string | null } | { name: string; username: string | null }[] | null) ?? { name: "—", username: null },
-  }));
 }

@@ -27,6 +27,10 @@ export type EntryCard = {
   previews: string[];
   /** The designer's name for each preview, same order (owner, 2026-10-11; null on older designs). */
   labels: (string | null)[];
+  /** Each preview's picture, same order: its designer may remove one while the contest is open (owner, 2026-10-16). */
+  pictureIds: string[];
+  /** Waiting for approval (owner, 2026-10-16): which previews the design check doubted, same order. */
+  doubted: boolean[];
   commentCount: number;
   mine: boolean;
   /** Like and dislike votes on the design (owner, 2026-10-11), and the viewer's own vote. */
@@ -61,7 +65,8 @@ type Row = {
   is_shortlisted: boolean;
   logo_story: string | null;
   designer: { name: string; username: string | null } | { name: string; username: string | null }[] | null;
-  images: { position: number; preview_path: string; label?: string | null }[];
+  images: { id: string; position: number; preview_path: string; label?: string | null }[];
+  held_positions?: number[] | null;
   check_id: string | null;
   file_sha256: string | null;
   is_hidden: boolean | null;
@@ -92,13 +97,13 @@ async function voteCounts(entryIds: string[], viewerId: string | null): Promise<
   return out;
 }
 
-/** The previews that have a link, with their names in the same order. */
-function shown(images: { preview_path: string; label?: string | null }[], urls: Map<string, string>) {
+/** The previews that have a link, with their names, pictures and doubts in the same order. */
+function shown(images: { id: string; position: number; preview_path: string; label?: string | null }[], urls: Map<string, string>, doubtedAt: number[]) {
   const kept = images.flatMap((i) => {
     const url = urls.get(i.preview_path);
-    return url ? [{ url, label: i.label?.trim() || null }] : [];
+    return url ? [{ url, label: i.label?.trim() || null, id: i.id, doubted: doubtedAt.includes(i.position) }] : [];
   });
-  return { previews: kept.map((k) => k.url), labels: kept.map((k) => k.label) };
+  return { previews: kept.map((k) => k.url), labels: kept.map((k) => k.label), pictureIds: kept.map((k) => k.id), doubted: kept.map((k) => k.doubted) };
 }
 
 /**
@@ -132,7 +137,7 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     rating: r.rating,
     isShortlisted: r.is_shortlisted,
     imageCount: r.images.length,
-    ...(locked.has(r.id) ? { previews: [], labels: [] } : shown(r.images.slice(0, previewLimit), urls)),
+    ...(locked.has(r.id) ? { previews: [], labels: [], pictureIds: [], doubted: [] } : shown(r.images.slice(0, previewLimit), urls, r.status === "held" ? (r.held_positions ?? []) : [])),
     commentCount: counts.get(r.id) ?? 0,
     mine: r.designer_id === viewer?.id,
     upVotes: votes.get(r.id)?.up ?? 0,
@@ -145,7 +150,7 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, designer:profiles!designer_id(name, username), images:entry_images!entry_id(position, preview_path, label)";
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, held_positions, designer:profiles!designer_id(name, username), images:entry_images!entry_id(id, position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
+import { DesignerMoneyCard } from "@/components/admin/designer-money";
 import { CustomRange, PeriodTabs } from "@/components/admin/period";
 import { AdmCard, AdmEmpty, CardTitle, KpiGrid, KpiTile } from "@/components/admin/ui";
 import { adminUser } from "@/lib/admin/core";
@@ -136,6 +137,9 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
               ))}
             </dl>
           </AdmCard>
+
+          {/* Designers' money (owner, 2026-10-16): earned, paid out, waiting, still in wallets */}
+          {hasPermission(me, "withdrawals.view") && <DesignerMoneyCard period={effective} />}
 
           {/* Latest admin actions */}
           <AdmCard className="flex flex-col gap-3.5 p-5 sm:p-6">

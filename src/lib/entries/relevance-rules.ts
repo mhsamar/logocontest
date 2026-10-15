@@ -61,3 +61,24 @@ export function readRelevance(raw: unknown, count: number): RelevanceAnswer | nu
   const reason = off.map((o) => `Picture ${o.position + 1}: ${o.what || "not a design"}`).join("; ").slice(0, 500);
   return { held: off.length > 0, positions: off.map((o) => o.position), reason };
 }
+
+/**
+ * A picture of a design was removed (owner, 2026-10-16: by its designer while the contest is open, or by the team in
+ * To approve). `remaining` are the old 0-based positions still there, in order; they become 0, 1, 2…
+ * The doubted pictures and the reason follow: the removed picture drops out and the rest are renumbered.
+ * No doubted picture left means the design no longer needs a check.
+ */
+export function heldAfterRemoval(held: { positions: number[]; reason: string }, remaining: number[]): { positions: number[]; reason: string; clear: boolean } {
+  const next = new Map(remaining.map((old, i) => [old, i]));
+  const positions = held.positions.flatMap((p) => (next.has(p) ? [next.get(p)!] : [])).sort((a, b) => a - b);
+  const reason = held.reason
+    .split(/;\s*(?=Picture \d+:)/)
+    .flatMap((part) => {
+      const m = /^Picture (\d+):\s*(.*)$/.exec(part.trim());
+      if (!m) return [];
+      const to = next.get(Number(m[1]) - 1);
+      return to === undefined || !positions.includes(to) ? [] : [`Picture ${to + 1}: ${m[2]}`];
+    })
+    .join("; ");
+  return { positions, reason, clear: positions.length === 0 };
+}

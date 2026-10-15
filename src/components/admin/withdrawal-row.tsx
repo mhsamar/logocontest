@@ -12,7 +12,7 @@ import { markWithdrawalPaid, rejectWithdrawal, setAutoWithdrawals } from "@/lib/
 import { useReadOnly } from "./read-only";
 
 /** Admin: pay a withdrawal by hand (record the transaction ID) or reject it (money goes back). */
-export function WithdrawalActions({ id }: { id: string }) {
+export function WithdrawalActions({ id, stacked = false }: { id: string; /** Large buttons one above the other (owner, 2026-10-16). */ stacked?: boolean }) {
   const readOnly = useReadOnly();
   const { t } = useI18n();
   const router = useRouter();
@@ -35,17 +35,17 @@ export function WithdrawalActions({ id }: { id: string }) {
 
   if (!mode)
     return (
-      <div className="flex gap-2">
-        <Button size="md" onClick={() => (setValue(""), setMode("pay"))}>
+      <div className={cx("flex gap-2", stacked && "w-full flex-col")}>
+        <Button size={stacked ? "lg" : "md"} block={stacked} onClick={() => (setValue(""), setMode("pay"))}>
           {t("admin.withdrawals.markPaid")}
         </Button>
-        <Button size="md" variant="danger" onClick={() => (setValue(""), setMode("reject"))}>
+        <Button size={stacked ? "lg" : "md"} block={stacked} variant="danger" onClick={() => (setValue(""), setMode("reject"))}>
           {t("admin.withdrawals.reject")}
         </Button>
       </div>
     );
   return (
-    <div className="w-full space-y-2 sm:w-72">
+    <div className={cx("w-full space-y-2", !stacked && "sm:w-72")}>
       <TextField label={mode === "pay" ? t("admin.withdrawals.txnLabel") : t("admin.withdrawals.reasonLabel")} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
       {error && <Alert tone="danger">{error}</Alert>}
       <div className="flex gap-2">
