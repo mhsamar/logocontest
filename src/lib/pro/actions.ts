@@ -151,7 +151,8 @@ export async function setProCardMinimised(minimised: boolean): Promise<void> {
   await createAdminClient().from("pro_preferences").upsert({ designer_id: user.id, card_minimised: minimised === true, updated_at: new Date().toISOString() }, { onConflict: "designer_id" });
 }
 
-const PREF_KEYS = ["show_badge", "client_messages", "weekly_report", "show_contact", "alert_app", "alert_email", "similar_alerts"] as const;
+// No "alert_email" (owner, 2026-10-15): designers don't switch emails; Admin › Notifications does.
+const PREF_KEYS = ["show_badge", "client_messages", "weekly_report", "show_contact", "alert_app", "similar_alerts"] as const;
 type PrefKey = (typeof PREF_KEYS)[number];
 
 /** Pro extras switches (Settings) and the alert switches (Contests). Pro designers only. */

@@ -1,13 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
 import { EXPERIENCE_MAX, isLanguageKey, isSkillKey, isToolKey, LANGUAGES, OTHER_MAX, SKILL_LEVELS, SKILLS, SKILLS_MAX, TOOLS } from "@/lib/designers/portfolio-options";
 import { useI18n } from "@/lib/i18n/client";
 import { savePortfolio, type SettingsState } from "@/lib/profile/actions";
+import { SaveButton, useUnsaved } from "./save-button";
 
 /** A tappable chip that is really a checkbox, so it works without JavaScript. */
 function Chip({ name, value, label, checked, onChange, disabled = false }: { name: string; value: string; label: string; checked: boolean; onChange: (on: boolean) => void; disabled?: boolean }) {
@@ -41,6 +41,7 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
   const { t } = useI18n();
   const toast = useToast();
   const [state, action, pending] = useActionState<SettingsState, FormData>(savePortfolio, { status: "idle" });
+  const { unsaved, changed } = useUnsaved(state);
   useEffect(() => {
     if (state.status === "ok") toast(t("settings.saved"));
   }, [state, toast, t]);
@@ -52,7 +53,20 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
   const [pickedLangs, setPickedLangs] = useState(() => new Set<string>((extras?.languages ?? []).filter(isLanguageKey)));
   const [otherSkill, setOtherSkill] = useState(otherSkillStart);
   const [otherTool, setOtherTool] = useState(otherToolStart);
-  const otherLanguage = (extras?.languages ?? []).find((l) => !isLanguageKey(l)) ?? "";
+  // Every field is controlled (owner, 2026-10-15): the form resets itself after each save, and a field that only had a
+  // starting value went blank then, so the next save wiped it (the years of experience "vanished").
+  const [years, setYears] = useState(experienceYears === null ? "" : String(experienceYears));
+  const [otherLanguage, setOtherLanguage] = useState((extras?.languages ?? []).find((l) => !isLanguageKey(l)) ?? "");
+  const [levels, setLevels] = useState<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(extras?.skillLevels ?? {})) out[isSkillKey(k) ? k : "other"] = v;
+    return out;
+  });
+  const [toolYears, setToolYears] = useState<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(extras?.toolYears ?? {})) out[isToolKey(k) ? k : "other"] = String(v);
+    return out;
+  });
   // At most SKILLS_MAX skills, the "other" one included (owner, 2026-10-14).
   const skillCount = pickedSkills.size + (otherSkill.trim() ? 1 : 0);
   const skillsFull = skillCount >= SKILLS_MAX;
@@ -66,15 +80,10 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
   // A level for each picked skill (and the "other" one), years for each picked tool.
   const levelRows = [...SKILLS.filter((k) => pickedSkills.has(k)).map((k) => ({ key: k as string, label: t(`portfolio.skills.${k}`) })), ...(otherSkill.trim() ? [{ key: "other", label: otherSkill.trim() }] : [])];
   const yearRows = [...TOOLS.filter((k) => pickedTools.has(k)).map((k) => ({ key: k as string, label: t(`portfolio.tools.${k}`) })), ...(otherTool.trim() ? [{ key: "other", label: otherTool.trim() }] : [])];
-  const levelOf = (key: string) => (key === "other" ? extras?.skillLevels[otherSkillStart] : extras?.skillLevels[key]) ?? "";
-  const yearsOf = (key: string) => {
-    const v = key === "other" ? extras?.toolYears[otherToolStart] : extras?.toolYears[key];
-    return v === undefined ? "" : String(v);
-  };
   const yearsError = yearRows.map((r) => err(`years_${r.key}`)).find(Boolean);
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} onChange={changed} className="space-y-6">
       {extras && <input type="hidden" name="extras" value="1" />}
       <div className="max-w-xs">
         <TextField
@@ -85,7 +94,8 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
           max={EXPERIENCE_MAX}
           label={t("portfolio.experience")}
           hint={t("portfolio.experienceHint")}
-          defaultValue={experienceYears ?? ""}
+          value={years}
+          onChange={(e) => setYears(e.target.value)}
           error={err("experienceYears")}
         />
       </div>
@@ -120,7 +130,7 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
             {levelRows.map((r) => (
               <label key={r.key} className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold text-ink">
                 {r.label}
-                <select name={`level_${r.key}`} defaultValue={levelOf(r.key)} aria-label={`${t("portfolio.level")}: ${r.label}`} className={SELECT}>
+                <select name={`level_${r.key}`} value={levels[r.key] ?? ""} onChange={(e) => setLevels((x) => ({ ...x, [r.key]: e.target.value }))} aria-label={`${t("portfolio.level")}: ${r.label}`} className={SELECT}>
                   <option value="">{t("portfolio.levels.none")}</option>
                   {SKILL_LEVELS.map((l) => (
                     <option key={l} value={l}>
@@ -165,7 +175,8 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
                     inputMode="numeric"
                     min={0}
                     max={EXPERIENCE_MAX}
-                    defaultValue={yearsOf(r.key)}
+                    value={toolYears[r.key] ?? ""}
+                    onChange={(e) => setToolYears((x) => ({ ...x, [r.key]: e.target.value }))}
                     aria-label={`${t("portfolio.toolYears")}: ${r.label}`}
                     className={cx(SELECT, "w-20")}
                   />
@@ -187,16 +198,24 @@ export function PortfolioForm({ skills, tools, experienceYears, extras }: { skil
             ))}
           </div>
           <div className="mt-3 max-w-sm">
-            <TextField name="otherLanguage" label={t("portfolio.otherLanguage")} hint={t("portfolio.otherHint", { max: OTHER_MAX })} maxLength={OTHER_MAX} defaultValue={otherLanguage} error={err("otherLanguage")} />
+            <TextField
+              name="otherLanguage"
+              label={t("portfolio.otherLanguage")}
+              hint={t("portfolio.otherHint", { max: OTHER_MAX })}
+              maxLength={OTHER_MAX}
+              value={otherLanguage}
+              onChange={(e) => setOtherLanguage(e.target.value)}
+              error={err("otherLanguage")}
+            />
           </div>
         </fieldset>
       )}
 
       {state.status === "error" && !state.field && state.error && <p className="text-sm text-danger">{t(state.error.key, state.error.params)}</p>}
       <div className="flex justify-end">
-        <Button type="submit" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("portfolio.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
   );

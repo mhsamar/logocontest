@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
-import { EmailPrefsForm } from "@/components/settings/email-prefs";
-import { SETTINGS_KEYS } from "@/lib/email/catalog";
-import { getEmailOff } from "@/lib/email/prefs";
 import { formatBdMobile } from "@/lib/phone";
 import { SmallPageHeader } from "@/components/ui/section-heading";
 import { PageShell, Panel } from "@/components/ui/panel";
@@ -25,30 +22,31 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("settings.meta.title"), robots: { index: false } };
 }
 
-// D-12 My profile / C-20 Profile: settings for designers and clients.
+// D-12 My profile / C-20 Profile: settings for designers and clients. Order (owner, 2026-10-15): photo, name and bio;
+// payout; mobile; email; password; then the portfolio. Which emails go out is set in Admin › Notifications, not here.
 export default async function ProfileSettingsPage() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect("/login?next=/dashboard/profile");
   if (user.role !== "designer" && user.role !== "client") notFound();
 
-  const [{ data: profile }, extrasRes, s, emailOff] = await Promise.all([
+  const [{ data: profile }, extrasRes, s] = await Promise.all([
     createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years, whatsapp").eq("id", user.id).single(),
     // Profile extras (migration 0042); before that SQL runs the query fails and the fields stay hidden.
     createAdminClient().from("profiles").select("languages, skill_levels, tool_years").eq("id", user.id).maybeSingle(),
-    getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
-    getEmailOff(user.id),
+    getSettings(["limits.designer_bio_max_length", "auth.password_min_length", "auth.email_code_length"]),
   ]);
   let payout: PayoutValues | null = null;
   if (user.role === "designer") {
     const { data: p } = await createAdminClient()
       .from("designer_payout_methods")
-      .select("type, bkash_number, bank_name, branch, account_name, account_number, routing_number")
+      .select("type, bkash_number, bkash_kind, bank_name, branch, account_name, account_number, routing_number")
       .eq("user_id", user.id)
       .eq("is_default", true)
       .maybeSingle();
     payout = {
       type: p?.type === "bank" ? "bank" : "bkash",
       bkashNumber: p?.bkash_number ? formatBdMobile(p.bkash_number) : "",
+      bkashKind: p?.bkash_kind === "personal" || p?.bkash_kind === "agent" ? p.bkash_kind : "",
       bankName: p?.bank_name ?? "",
       branch: p?.branch ?? "",
       accountName: p?.account_name ?? "",
@@ -91,6 +89,20 @@ export default async function ProfileSettingsPage() {
               />
             </div>
           </Section>
+          {payout && (
+            <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
+              <PayoutForm initial={payout} />
+            </Section>
+          )}
+          <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
+            <MobileForm mobile={user.mobile} whatsapp={profile?.whatsapp === true} />
+          </Section>
+          <Section id="email" title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
+            <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} codeLength={s["auth.email_code_length"]} />
+          </Section>
+          <Section title={t("settings.password.title")}>
+            <PasswordForm min={s["auth.password_min_length"]} />
+          </Section>
           {user.role === "designer" && (
             <Section id="portfolio" title={t("portfolio.title")} subtitle={t("portfolio.subtitle")}>
               <PortfolioForm
@@ -109,23 +121,6 @@ export default async function ProfileSettingsPage() {
               />
             </Section>
           )}
-          {payout && (
-            <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
-              <PayoutForm initial={payout} />
-            </Section>
-          )}
-          <Section title={t("settings.mobile.title")} subtitle={t("settings.mobile.subtitle")}>
-            <MobileForm mobile={user.mobile} whatsapp={profile?.whatsapp === true} />
-          </Section>
-          <Section id="email" title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
-            <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} />
-          </Section>
-          <Section title={t("settings.password.title")}>
-            <PasswordForm min={s["auth.password_min_length"]} />
-          </Section>
-          <Section id="emails" title={t("email.prefs.title")} subtitle={t("email.prefs.subtitle")}>
-            <EmailPrefsForm keys={SETTINGS_KEYS[user.role]} off={emailOff} />
-          </Section>
         </div>
       </Panel>
   );

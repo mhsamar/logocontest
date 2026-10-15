@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import { setProAlertServices, setProPreference, setSavedReminder } from "@/lib/pro/actions";
 
-type PrefKey = "show_badge" | "client_messages" | "weekly_report" | "show_contact" | "alert_app" | "alert_email" | "similar_alerts";
+type PrefKey = "show_badge" | "client_messages" | "weekly_report" | "show_contact" | "alert_app" | "similar_alerts";
 
 /** One Pro on/off switch row (Settings › Pro extras, Contests › Instant alerts). Saved at once. */
 export function PrefToggle({ pref, on: initial, label, sub }: { pref: PrefKey; on: boolean; label: string; sub?: string }) {

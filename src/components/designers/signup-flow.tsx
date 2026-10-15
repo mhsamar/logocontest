@@ -22,6 +22,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { Suggestions } from "@/components/wizard/suggestions";
 import { subscribeToPush } from "@/lib/push/client";
 import { FieldInput } from "@/components/services/field-input";
+import { BkashKindPicker } from "@/components/settings/bkash-kind";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { checkExtraAnswers, EMPTY_ONBOARDING, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
 import type { Answers, Lang } from "@/lib/services/types";
@@ -41,6 +42,7 @@ type Form = {
   bio: string;
   payoutType: "bkash" | "bank";
   bkashNumber: string;
+  bkashKind: string;
   bankName: string;
   branch: string;
   accountName: string;
@@ -61,6 +63,7 @@ const EMPTY: Form = {
   bio: "",
   payoutType: "bkash",
   bkashNumber: "",
+  bkashKind: "",
   bankName: "",
   branch: "",
   accountName: "",
@@ -142,7 +145,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
 
   const payout = (): PayoutInput =>
     form.payoutType === "bkash"
-      ? { type: "bkash", bkashNumber: form.bkashNumber }
+      ? { type: "bkash", bkashNumber: form.bkashNumber, bkashKind: form.bkashKind }
       : { type: "bank", bankName: form.bankName, branch: form.branch, accountName: form.accountName, accountNumber: form.accountNumber, routingNumber: form.routingNumber };
 
   const next = () => {
@@ -334,6 +337,9 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
                   onChange={(e) => set("bkashNumber", e.target.value)}
                   error={fieldError("bkashNumber")}
                 />
+              ) : null}
+              {form.payoutType === "bkash" ? (
+                <BkashKindPicker value={form.bkashKind} onChange={(k) => set("bkashKind", k)} error={fieldError("bkashKind")} />
               ) : (
                 <>
                   <TextField label={t("designerSignup.payout.bankName")} value={form.bankName} onChange={(e) => set("bankName", e.target.value)} error={fieldError("bankName")} />

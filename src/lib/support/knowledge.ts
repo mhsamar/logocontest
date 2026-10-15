@@ -122,7 +122,7 @@ export function pageList(origin: string): string {
     ["Logo checker", "/logo-checker"],
     ["Join as a designer", "/designers/signup"],
     ["Dashboard", "/dashboard"],
-    ["Profile, password, email and email settings", "/dashboard/profile"],
+    ["Profile, payout method, mobile, email and password", "/dashboard/profile"],
     ["Wallet and withdrawals (designers)", "/dashboard/wallet"],
     ["My logo checks", "/dashboard/logo-checks"],
     ["Notifications", "/notifications"],

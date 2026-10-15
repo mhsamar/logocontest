@@ -54,6 +54,26 @@ export const SETTINGS_KEYS: Record<"designer" | "client", OptionalKey[]> = {
   client: ["client-new-entries", "client-pick-winner", "chat-message", "logo-check-ready", "notification"],
 };
 
+/**
+ * Designer emails by plan (owner, 2026-10-15): in Admin › Notifications the owner turns each designer email on or off
+ * for Basic and for Pro designers; only the ones on are sent. Designers have no email settings of their own (only the
+ * Unsubscribe link each of these emails must carry).
+ */
+export const DESIGNER_TIERS = ["basic", "pro"] as const;
+export type DesignerTier = (typeof DESIGNER_TIERS)[number];
+export type TierOff = Record<DesignerTier, OptionalKey[]>;
+export const isDesignerEmail = (key: EmailKey): key is OptionalKey => (SETTINGS_KEYS.designer as readonly string[]).includes(key);
+
+/** The saved switches, cleaned: only designer emails, no repeats. */
+export function parseTierOff(raw: unknown): TierOff {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const one = (v: unknown) => [...new Set((Array.isArray(v) ? v : []).filter((k): k is OptionalKey => isOptionalKey(k) && isDesignerEmail(k)))];
+  return { basic: one(r.basic), pro: one(r.pro) };
+}
+
+/** Whether a designer on this plan gets this email (emails that aren't designer emails are not affected). */
+export const tierAllows = (off: TierOff, tier: DesignerTier, key: EmailKey) => !isDesignerEmail(key) || !off[tier].includes(key);
+
 /** Whether this email goes out: codes and security emails always do; the rest unless the person turned it off. */
 export function shouldSend(key: EmailKey, off: readonly string[], security = false): boolean {
   if (key === "otp" || security) return true;

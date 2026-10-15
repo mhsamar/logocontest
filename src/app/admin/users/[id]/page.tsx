@@ -181,7 +181,13 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
             <div className="flex flex-col gap-2.5">
               <h2 className="m-0 text-[17px] font-semibold">{t("admin.users.general")}</h2>
               {fact(t("admin.users.joined"), formatDate(u.createdAt, locale, "long"))}
-              {d && fact(t("admin.users.payout"), d.payoutType ? t(`designerSignup.payout.${d.payoutType}` as MessageKey) : "—")}
+              {d &&
+                fact(
+                  t("admin.users.payout"),
+                  d.payoutType
+                    ? `${t(`designerSignup.payout.${d.payoutType}` as MessageKey)}${d.payoutType === "bkash" ? ` · ${d.bkashKind ? t(`wallet.form.${d.bkashKind}`) : t("admin.users.bkashKindUnknown")}` : ""}`
+                    : "—",
+                )}
               {d && fact(t("footer.designerRules"), d.agreedAt ? <span className="text-adm-good">{t("admin.users.agreed")}</span> : <span className="text-adm-warn">{t("admin.users.notAgreed")}</span>)}
               {fact(t("admin.users.strikes"), num(u.strikes))}
               {u.flagWarnings > 0 && fact(t("admin.users.warningsLabel"), num(u.flagWarnings))}

@@ -251,7 +251,7 @@ export async function updatePayout(input: PayoutInput): Promise<SettingsState> {
   if (!checked.ok) return fail(`designerSignup.payout.errors.${checked.field}`, checked.field);
   const db = createAdminClient();
   // One payout method per designer for now: replace the default row.
-  const empty = { bkash_number: null, bank_name: null, branch: null, account_name: null, account_number: null, routing_number: null };
+  const empty = { bkash_number: null, bkash_kind: null, bank_name: null, branch: null, account_name: null, account_number: null, routing_number: null };
   const row: Record<string, string | boolean | null> = { ...empty, ...checked.payout, user_id: user.id, is_default: true };
   const { data: existing } = await db.from("designer_payout_methods").select("id").eq("user_id", user.id).eq("is_default", true).maybeSingle();
   const { error } = existing

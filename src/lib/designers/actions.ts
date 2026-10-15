@@ -28,7 +28,7 @@ import { noticeOn } from "@/lib/notifications/switches";
 
 /** D-01 designer sign-up (UI-JOURNEY). Each step is checked on the server before the next one opens. */
 
-export type StepField = "name" | "mobile" | "email" | "password" | "username" | "bio" | "rules" | "bkashNumber" | "bankName" | "accountName" | "accountNumber" | "routingNumber";
+export type StepField = "name" | "mobile" | "email" | "password" | "username" | "bio" | "rules" | "bkashNumber" | "bkashKind" | "bankName" | "accountName" | "accountNumber" | "routingNumber";
 
 export type StepResult = { ok: true } | { ok: false; field?: StepField; error: { key: MessageKey; params?: MessageParams } };
 

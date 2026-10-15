@@ -210,7 +210,6 @@ export type ProPrefs = {
   coverEntryIds: string[];
   featuredEntryIds: string[];
   alertApp: boolean;
-  alertEmail: boolean;
   alertServices: string[];
   similarAlerts: boolean;
 };
@@ -227,7 +226,6 @@ export async function proPrefs(designerId: string): Promise<ProPrefs> {
     coverEntryIds: (r.cover_entry_ids as string[] | null) ?? [],
     featuredEntryIds: (r.featured_entry_ids as string[] | null) ?? [],
     alertApp: r.alert_app !== false,
-    alertEmail: r.alert_email !== false,
     alertServices: (r.alert_services as string[] | null) ?? [],
     similarAlerts: r.similar_alerts !== false,
   };

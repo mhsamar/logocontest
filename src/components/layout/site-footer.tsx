@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getContact } from "@/lib/content/contact";
 import { visibleList } from "@/lib/content/lists";
+import { publishedGuides } from "@/lib/guides/queries";
+import { guideText } from "@/lib/guides/rules";
 import { showsLink } from "@/lib/rewards/program";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { setCurrency } from "@/lib/currency/actions";
@@ -64,7 +66,13 @@ const SOCIAL = [
 /** Site footer (owner, 2026-10-10; the home page design, on every page): links from Lists → Footer links, social links and phone from Settings. */
 export async function SiteFooter() {
   const { t, locale, currency } = await getI18n();
-  const [links, contact, allFooterLinks, offers] = await Promise.all([getSettings(SOCIAL.map((x) => x.key)), getContact(locale), visibleList("footer_links", locale), visibleOffers()]);
+  const [links, contact, allFooterLinks, offers, guides] = await Promise.all([
+    getSettings(SOCIAL.map((x) => x.key)),
+    getContact(locale),
+    visibleList("footer_links", locale),
+    visibleOffers(),
+    publishedGuides(),
+  ]);
   // Owner, 2026-10-13: no leaderboard link while the monthly prizes program is off.
   const footerLinks = allFooterLinks.filter((l) => showsLink(l.href, offers));
   const social = SOCIAL.filter((x) => links[x.key]);
@@ -72,6 +80,8 @@ export async function SiteFooter() {
   const columns = (["clients", "designers", "legal"] as const)
     .map((column) => ({ title: t(column === "legal" ? "footer.legal" : `footer.${column}`), links: footerLinks.filter((l) => l.column === column) }))
     .filter((c) => c.links.length > 0);
+  // Guides (owner, 2026-10-15): the ones marked "Show in the footer" in Admin › Guides, then "All guides".
+  const footerGuides = guides.filter((g) => g.in_footer).slice(0, 5);
   const languageButton = (l: "en" | "bn") => (
     <button type="submit" name="locale" value={l} lang={l} aria-current={locale === l ? "true" : undefined} className={locale === l ? "lc-ft-lang font-semibold text-ink" : "lc-ft-lang hover:text-ink"}>
       {t(l === "en" ? "home.landing.english" : "home.landing.bangla")}
@@ -127,6 +137,22 @@ export async function SiteFooter() {
             ))}
           </nav>
         ))}
+        {guides.length > 0 && (
+          <nav aria-label={t("footer.guides")} className="lc-rv-soft flex flex-col items-start gap-0.5 text-muted">
+            <span className="lc-ft-head pb-2 font-bold text-ink">{t("footer.guides")}</span>
+            {footerGuides.map((g) => {
+              const title = guideText(g, locale).title;
+              return (
+                <Link key={g.id} href={`/guides/${g.slug}`} lang={title.lang} className="lc-ft-link py-1.5">
+                  {title.text}
+                </Link>
+              );
+            })}
+            <Link href="/guides" className="lc-ft-link py-1.5 font-semibold text-ink">
+              {t("footer.allGuides")}
+            </Link>
+          </nav>
+        )}
       </div>
       <div className="lc-ft-bar lc-rv-soft relative mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 pt-5 text-[15px] text-muted">
         <span>{t("footer.rights", { year })}</span>

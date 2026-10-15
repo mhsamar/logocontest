@@ -21,6 +21,9 @@ import {
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import type { Area } from "react-easy-crop";
 import { cropToBlob, PhotoCropper } from "./photo-cropper";
+import { EmailCodeForm } from "@/components/auth/email-code-form";
+import { BkashKindPicker } from "./bkash-kind";
+import { SaveButton, useUnsaved } from "./save-button";
 
 const IDLE: SettingsState = { status: "idle" };
 
@@ -153,15 +156,26 @@ export function ProfileForm({
 }) {
   const { t, locale } = useI18n();
   const [state, action, pending] = useActionState(updateProfile, IDLE);
+  // Controlled, so nothing typed is lost when the form resets after a save (owner, 2026-10-15).
+  const [nameText, setNameText] = useState(name);
+  const [businessText, setBusinessText] = useState(businessName);
   const [bioText, setBioText] = useState(bio);
+  const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.saved"));
   const err = useFieldError(state);
   const count = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
   return (
-    <form action={action} className="space-y-4">
-      <TextField name="name" label={t("designerSignup.name.label")} defaultValue={name} maxLength={60} autoComplete="name" error={err("name")} />
+    <form action={action} onChange={changed} className="space-y-4">
+      <TextField name="name" label={t("designerSignup.name.label")} value={nameText} onChange={(e) => setNameText(e.target.value)} maxLength={60} autoComplete="name" error={err("name")} />
       {role === "client" && (
-        <TextField name="businessName" label={t("settings.businessName")} optionalLabel={t("common.optional")} defaultValue={businessName} maxLength={80} />
+        <TextField
+          name="businessName"
+          label={t("settings.businessName")}
+          optionalLabel={t("common.optional")}
+          value={businessText}
+          onChange={(e) => setBusinessText(e.target.value)}
+          maxLength={80}
+        />
       )}
       {role === "designer" && (
         <TextAreaField
@@ -189,9 +203,9 @@ export function ProfileForm({
         </div>
       )}
       <div className="flex justify-end">
-        <Button type="submit" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("settings.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
   );
@@ -205,29 +219,32 @@ export function MobileForm({ mobile, whatsapp = false }: { mobile: string; whats
   const [country, setCountry] = useState(start.country);
   const [value, setValue] = useState(mobile ? (start.country === "BD" ? formatBdMobile(mobile) : start.number) : "");
   const [onWhatsapp, setOnWhatsapp] = useState(whatsapp);
+  const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.mobile.saved"));
   const err = useFieldError(state);
   return (
-    <form action={action} className="space-y-4">
-      <PhoneField mark name="mobile" label={t("designerSignup.mobile")} country={country} onCountryChange={setCountry} countryName="country" countryLabel={t("auth.phone.country")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
+    <form action={action} onChange={changed} className="space-y-4">
+      <PhoneField mark name="mobile" label={t("designerSignup.mobile")} country={country} onCountryChange={(c) => (setCountry(c), changed())} countryName="country" countryLabel={t("auth.phone.country")} value={value} onChange={(e) => setValue(e.target.value)} error={err("mobile")} />
       <Checkbox name="whatsapp" value="1" label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={onWhatsapp} onChange={(e) => setOnWhatsapp(e.target.checked)} />
       <div className="flex justify-end">
-        <Button type="submit" variant="success" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("settings.mobile.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
   );
 }
 
-export function EmailForm({ email, verified }: { email: string; verified: boolean }) {
+export function EmailForm({ email, verified, codeLength }: { email: string; verified: boolean; codeLength: number }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(changeEmail, IDLE);
   const [value, setValue] = useState(email);
+  const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.email.saved"));
   const err = useFieldError(state);
   return (
-    <form action={action} className="space-y-4">
+    <div className="space-y-4">
+    <form action={action} onChange={changed} className="space-y-4">
       <TextField
         mark
         name="email"
@@ -241,11 +258,19 @@ export function EmailForm({ email, verified }: { email: string; verified: boolea
         hint={verified ? `✓ ${t("settings.email.verified")}` : t("settings.email.unverified")}
       />
       <div className="flex justify-end">
-        <Button type="submit" variant="success" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("settings.email.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
+      {/* "Confirm your email" leads here (owner, 2026-10-15), so the code can be typed right here. */}
+      {!verified && email && (
+        <div className="rounded-[18px] bg-warning/10 p-4 ring-1 ring-inset ring-warning/20">
+          <p className="m-0 mb-2 text-center text-[15px] text-ink">{t("settings.email.codeLead", { email })}</p>
+          <EmailCodeForm length={codeLength} variant="compact" />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -253,13 +278,14 @@ export function PasswordForm({ min }: { min: number }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState(changePassword, IDLE);
   const formRef = useRef<HTMLFormElement>(null);
+  const { unsaved, changed } = useUnsaved(state);
   useSavedToast(state, t("settings.password.saved"));
   useEffect(() => {
     if (state.status === "ok") formRef.current?.reset();
   }, [state]);
   const err = useFieldError(state);
   return (
-    <form ref={formRef} action={action} className="space-y-4">
+    <form ref={formRef} action={action} onChange={changed} className="space-y-4">
       <PasswordField
         name="current"
         label={t("settings.password.current")}
@@ -278,9 +304,9 @@ export function PasswordForm({ min }: { min: number }) {
         error={err("password")}
       />
       <div className="flex justify-end">
-        <Button type="submit" variant="success" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("settings.password.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
   );
@@ -291,6 +317,8 @@ export { Section };
 export type PayoutValues = {
   type: "bkash" | "bank";
   bkashNumber: string;
+  /** "personal", "agent", or "" when not chosen yet (owner, 2026-10-15). */
+  bkashKind: string;
   bankName: string;
   branch: string;
   accountName: string;
@@ -305,8 +333,10 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
   const [v, setV] = useState<PayoutValues>(initial);
   const [state, setState] = useState<SettingsState>(IDLE);
   const [pending, start] = useTransition();
+  const { unsaved, changed } = useUnsaved(state);
   const err = useFieldError(state);
   const set = <K extends keyof PayoutValues>(k: K, value: PayoutValues[K]) => {
+    changed();
     setV((x) => ({ ...x, [k]: value }));
     setState(IDLE);
   };
@@ -318,7 +348,7 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
         start(async () => {
           const r = await updatePayout(
             v.type === "bkash"
-              ? { type: "bkash", bkashNumber: v.bkashNumber }
+              ? { type: "bkash", bkashNumber: v.bkashNumber, bkashKind: v.bkashKind }
               : { type: "bank", bankName: v.bankName, branch: v.branch, accountName: v.accountName, accountNumber: v.accountNumber, routingNumber: v.routingNumber },
           );
           setState(r);
@@ -343,7 +373,10 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
         ))}
       </div>
       {v.type === "bkash" ? (
-        <PhoneField label={t("designerSignup.payout.bkashNumber")} value={v.bkashNumber} onChange={(e) => set("bkashNumber", e.target.value)} error={err("bkashNumber")} />
+        <div className="space-y-4">
+          <PhoneField label={t("designerSignup.payout.bkashNumber")} value={v.bkashNumber} onChange={(e) => set("bkashNumber", e.target.value)} error={err("bkashNumber")} />
+          <BkashKindPicker value={v.bkashKind} onChange={(k) => set("bkashKind", k)} error={err("bkashKind")} />
+        </div>
       ) : (
         <div className="space-y-4">
           <TextField label={t("designerSignup.payout.bankName")} value={v.bankName} onChange={(e) => set("bankName", e.target.value)} error={err("bankName")} />
@@ -368,9 +401,9 @@ export function PayoutForm({ initial }: { initial: PayoutValues }) {
       )}
       {state.status === "error" && !state.field && state.error && <p className="text-sm text-danger">{t(state.error.key, state.error.params)}</p>}
       <div className="flex justify-end">
-        <Button type="submit" variant="success" loading={pending}>
+        <SaveButton unsaved={unsaved} loading={pending}>
           {t("settings.payout.save")}
-        </Button>
+        </SaveButton>
       </div>
     </form>
   );

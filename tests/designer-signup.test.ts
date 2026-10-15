@@ -28,8 +28,12 @@ describe("suggestUsername", () => {
 
 describe("checkPayout", () => {
   it("accepts a bKash number in any common format", () => {
-    expect(checkPayout({ type: "bkash", bkashNumber: "01712-028511" })).toEqual({ ok: true, payout: { type: "bkash", bkash_number: "+8801712028511" } });
-    expect(checkPayout({ type: "bkash", bkashNumber: "12345" })).toEqual({ ok: false, field: "bkashNumber" });
+    expect(checkPayout({ type: "bkash", bkashNumber: "01712-028511", bkashKind: "personal" })).toEqual({ ok: true, payout: { type: "bkash", bkash_number: "+8801712028511", bkash_kind: "personal" } });
+    expect(checkPayout({ type: "bkash", bkashNumber: "01712-028511", bkashKind: "agent" })).toEqual({ ok: true, payout: { type: "bkash", bkash_number: "+8801712028511", bkash_kind: "agent" } });
+    expect(checkPayout({ type: "bkash", bkashNumber: "12345", bkashKind: "personal" })).toEqual({ ok: false, field: "bkashNumber" });
+    // Personal or agent must be chosen (owner, 2026-10-15).
+    expect(checkPayout({ type: "bkash", bkashNumber: "01712-028511", bkashKind: "" })).toEqual({ ok: false, field: "bkashKind" });
+    expect(checkPayout({ type: "bkash", bkashNumber: "01712-028511", bkashKind: "merchant" })).toEqual({ ok: false, field: "bkashKind" });
   });
 
   it("checks bank details, with branch and routing optional", () => {
