@@ -16,16 +16,22 @@ export function normalizeEmail(input: string): string | null {
   return email.length <= 254 && EMAIL.test(email) ? email : null;
 }
 
-export type LoginIdentifier = { kind: "email"; email: string } | { kind: "mobile"; mobile: string };
+export type LoginIdentifier = { kind: "email"; email: string } | { kind: "mobile"; mobile: string } | { kind: "username"; username: string };
 
-/** P-11 accepts "Mobile number or email". */
+/** A username typed to log in (owner, 2026-10-15): starts with a letter, then letters, digits, _ or -. */
+const LOGIN_USERNAME = /^@?[a-z][a-z0-9_-]{1,59}$/i;
+
+/** P-11 accepts a mobile number, an email or a username. */
 export function parseLoginIdentifier(input: string): LoginIdentifier | null {
   const value = input.trim();
-  if (value.includes("@")) {
+  // "@name" is a username; anything else with an @ is an email.
+  if (value.includes("@") && !value.startsWith("@")) {
     const email = normalizeEmail(value);
     return email ? { kind: "email", email } : null;
   }
   // A number from another country is typed with its code, +44… or 0044… (owner, 2026-10-14).
   const mobile = /^\s*(\+|00)/.test(value) ? toE164(value) : normalizeBdMobile(value);
-  return mobile ? { kind: "mobile", mobile } : null;
+  if (mobile) return { kind: "mobile", mobile };
+  // Or the person's username (owner, 2026-10-15).
+  return LOGIN_USERNAME.test(value) ? { kind: "username", username: value.replace(/^@/, "").toLowerCase() } : null;
 }

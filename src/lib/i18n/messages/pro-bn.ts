@@ -33,7 +33,7 @@ const proBn: Messages["pro"] = {
   },
   go: {
     metaTitle: "Pro নিন",
-    metaDescription: "logocontest.bd-তে ডিজাইনার Pro: নতুন কনটেস্ট আগে দেখা, ক্লায়েন্টের আমন্ত্রণ, Pro ব্যাজ, হাইলাইট করা এন্ট্রি, বেশি লোগো চেক আর ইনসাইট।",
+    metaDescription: "logocontest.bd-তে ডিজাইনার Pro: ক্লায়েন্টের আমন্ত্রণ, Pro ব্যাজ, হাইলাইট করা এন্ট্রি, বেশি লোগো চেক আর ইনসাইট।",
     kicker: "ডিজাইনারদের জন্য",
     title: "Pro নিন।",
     accent: "আরও বেশি সুযোগ পান।",

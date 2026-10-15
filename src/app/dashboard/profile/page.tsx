@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
+import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, UsernameForm, type PayoutValues } from "@/components/settings/settings-forms";
+import { formatDate } from "@/lib/dates";
+import { nextUsernameChange } from "@/lib/profile/username-rules";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { formatBdMobile } from "@/lib/phone";
 import { SmallPageHeader } from "@/components/ui/section-heading";
@@ -25,16 +27,23 @@ export async function generateMetadata(): Promise<Metadata> {
 // D-12 My profile / C-20 Profile: settings for designers and clients. Order (owner, 2026-10-15): photo, name and bio;
 // payout; mobile; email; password; then the portfolio. Which emails go out is set in Admin › Notifications, not here.
 export default async function ProfileSettingsPage() {
-  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect("/login?next=/dashboard/profile");
   if (user.role !== "designer" && user.role !== "client") notFound();
 
-  const [{ data: profile }, extrasRes, s] = await Promise.all([
-    createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years, whatsapp").eq("id", user.id).single(),
+  const [{ data: profile }, extrasRes, s, changedRes, pro] = await Promise.all([
+    createAdminClient().from("profiles").select("name, bio, username, skills, tools, experience_years, whatsapp").eq("id", user.id).single(),
     // Profile extras (migration 0042); before that SQL runs the query fails and the fields stay hidden.
     createAdminClient().from("profiles").select("languages, skill_levels, tool_years").eq("id", user.id).maybeSingle(),
     getSettings(["limits.designer_bio_max_length", "auth.password_min_length", "auth.email_code_length"]),
+    // When a Pro designer last changed their username (migration 0063; missing before it runs).
+    createAdminClient().from("profiles").select("username_changed_at").eq("id", user.id).maybeSingle(),
+    user.role === "designer" ? isPro(user.id) : Promise.resolve(false),
   ]);
+  // Usernames (owner, 2026-10-15): fixed for everyone; a Pro designer may change theirs once every 60 days.
+  const lastChange = !changedRes.error && changedRes.data?.username_changed_at ? new Date(changedRes.data.username_changed_at as string) : null;
+  const next = nextUsernameChange(lastChange);
+  const nextChange = next && next > new Date() ? formatDate(next, locale, "long") : null;
   let payout: PayoutValues | null = null;
   if (user.role === "designer") {
     const { data: p } = await createAdminClient()
@@ -82,12 +91,17 @@ export default async function ProfileSettingsPage() {
                 role={user.role}
                 name={profile?.name ?? user.name}
                 bio={profile?.bio ?? ""}
-                businessName={profile?.business_name ?? ""}
-                username={user.role === "designer" ? (profile?.username ?? null) : null}
+                username={profile?.username ?? null}
                 profileUrl={profileUrl}
                 bioMax={s["limits.designer_bio_max_length"]}
+                usernameNote={t(pro ? "settings.username.proNote" : "settings.username.fixed")}
               />
             </div>
+            {pro && profile?.username && (
+              <div className="mt-6 border-t border-line pt-6">
+                <UsernameForm username={profile.username as string} nextChange={nextChange} />
+              </div>
+            )}
           </Section>
           {payout && (
             <Section title={t("settings.payout.title")} subtitle={t("settings.payout.subtitle")}>
@@ -125,7 +139,7 @@ export default async function ProfileSettingsPage() {
       </Panel>
   );
   // Designer Pro plan (owner, 2026-10-13): Pro designers get their Pro extras and subscription on top, in the workspace.
-  if (user.role === "designer" && (await isPro(user.id)))
+  if (pro)
     return (
       <ProWorkspace user={user} active="settings">
         <WsHead

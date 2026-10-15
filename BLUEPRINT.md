@@ -770,6 +770,13 @@ Other pages: `/contests` (filters: open, judging, completed), `/contest/{slug}`,
 - **Search:** published guides are in the sitemap; `/guides` joins it once one guide is published (until then it is `noindex`). Up to five guides marked "Show in the footer" appear in a Guides column with "All guides".
 - **Google's rules:** no hidden pages or hidden text, no near-copies made for keywords, own words and own pictures only. Admin › Guides shows these rules next to the list.
 
+### 15.4 Usernames (owner, 2026-10-15; migration `0063_usernames`)
+
+- Every client and designer has one username, and can log in with it, their email or their mobile number.
+- Clients get theirs from their name when the account is made (`anika_jaman`, `anika_jaman2` when taken; `client_1234` for a name without Latin letters). Designers pick theirs at sign-up. Nobody can change it, except **Pro designers: once every 60 days** (Profile settings, `profiles.username_changed_at`).
+- Old usernames are kept in `username_history`: `/d/old`, `/designer/old` and `/c/old` forward to the new name, an old Designer ID still finds the designer, and nobody else can take an old name.
+- Clients have no business name on their profile: each contest has its own brand name; Pro chat shows the contest's brand.
+
 ### 15.3 Profile settings (owner, 2026-10-15)
 
 - **Order:** photo, name and bio; payout method (designers); mobile; email (with the code box while it isn't confirmed); password; then the portfolio (designers). No email settings: see §12 "Email settings".

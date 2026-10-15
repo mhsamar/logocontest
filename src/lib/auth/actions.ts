@@ -7,7 +7,7 @@ import { parseLoginIdentifier } from "./identity";
 import { clientIp } from "./services";
 import { homeForRole } from "./home";
 import { markLoggedOut } from "./sessions";
-import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, safeNext, signIn, type AuthFormState } from "./sign-in";
+import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, findProfileByUsername, safeNext, signIn, type AuthFormState } from "./sign-in";
 
 export type { AuthFormState, FormMessage } from "./sign-in";
 
@@ -18,17 +18,19 @@ export type { AuthFormState, FormMessage } from "./sign-in";
 export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
 
-  // P-11: one field that takes a mobile number or an email.
+  // P-11: one field that takes a mobile number, an email or a username (owner, 2026-10-15).
   const id = parseLoginIdentifier(String(formData.get("identifier") ?? ""));
   if (!id) return fail("auth.errors.invalidIdentifier", "phone");
   const password = String(formData.get("password") ?? "");
   if (!password) return fail("auth.errors.invalidCredentials", "password");
 
-  const key = id.kind === "email" ? id.email : id.mobile;
-  const authEmail = id.kind === "email" ? id.email : await authEmailForMobile(id.mobile);
+  const byName = id.kind === "username" ? await findProfileByUsername(id.username) : null;
+  const key = id.kind === "email" ? id.email : id.kind === "mobile" ? id.mobile : id.username;
+  // An unknown username still goes through the same password check, so it never tells strangers which names exist.
+  const authEmail = id.kind === "email" ? id.email : id.kind === "mobile" ? await authEmailForMobile(id.mobile) : (byName?.email ?? `${id.username}@unknown.logocontest.bd`);
   const result = await signIn(key, authEmail, password, await clientIp());
   if (result) return result;
-  const profile = id.kind === "email" ? await findProfileByEmail(id.email) : await findProfileByPhone(id.mobile);
+  const profile = id.kind === "email" ? await findProfileByEmail(id.email) : id.kind === "mobile" ? await findProfileByPhone(id.mobile) : byName;
   // A client account on "Log in as a designer" (or the other way round) is told so and not signed in (owner,
   // 2026-10-14). Only after the password was right, so it never tells strangers which accounts exist.
   const as = formData.get("as");

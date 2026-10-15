@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- avatars and signed, short-lived storage links */
+import { currentUsernameFor } from "@/lib/profile/usernames";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import "@/components/studio/studio.css";
 import "@/components/designers/profile.css";
 import { DesignerBadges } from "@/components/designers/badges";
@@ -55,7 +56,12 @@ const EVENT_DOT = { sent: "#8B0000", won: "#D9A52B", rated: "#1F9D57" } as const
 export default async function DesignerProfilePage({ params, searchParams }: PageProps<"/d/[username]">) {
   const [{ username }, sp] = await Promise.all([params, searchParams]);
   const [{ t, locale }, designer, user] = await Promise.all([getI18n(), designerByUsername(username), getCurrentUser()]);
-  if (!designer) notFound();
+  if (!designer) {
+    // An old username (a Pro designer changed theirs, or a client's was renewed): on to the new one (owner, 2026-10-15).
+    const moved = await currentUsernameFor(username);
+    if (moved) permanentRedirect(`/d/${moved}`);
+    notFound();
+  }
   const isOwnerUser = user?.id === designer.id;
   const owner = isOwnerUser && sp.view !== "public";
   const [data, champion, origin, codeLength] = await Promise.all([

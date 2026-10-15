@@ -11,7 +11,8 @@ describe("login identifier (P-11: mobile number or email)", () => {
     expect(parseLoginIdentifier(input)).toEqual(expected);
   });
 
-  it.each(["", "rahim", "0171234", "rahim@", "@example.com", "a@b"])("rejects %s", (input) => {
+  // "rahim" is a username since 2026-10-15 (owner), so it isn't rejected any more (tests/usernames.test.ts).
+  it.each(["", "0171234", "rahim@", "@example.com", "a@b"])("rejects %s", (input) => {
     expect(parseLoginIdentifier(input)).toBeNull();
   });
 

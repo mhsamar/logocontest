@@ -57,7 +57,7 @@ export async function chatContext(entryId: string, viewer: CurrentUser | null): 
   if (!allowed) return null;
   const otherId = viewer.id === c.client_id ? designerId : c.client_id;
   const [{ data: other }, { data: img }] = await Promise.all([
-    db().from("profiles").select("id, name, avatar_path, last_seen_at, business_name").eq("id", otherId).maybeSingle(),
+    db().from("profiles").select("id, name, avatar_path, last_seen_at").eq("id", otherId).maybeSingle(),
     db().from("entry_images").select("preview_path").eq("entry_id", entryId).order("position").limit(1).maybeSingle(),
   ]);
   const thumbs = img?.preview_path ? await getFileStorage().createReadUrls("entry-files", [img.preview_path as string], 3600).catch(() => new Map<string, string>()) : new Map<string, string>();
@@ -75,7 +75,8 @@ export async function chatContext(entryId: string, viewer: CurrentUser | null): 
       name: ((other?.name as string | null) ?? "").trim(),
       avatarUrl: avatarUrl((other?.avatar_path as string | null) ?? null),
       online: Boolean(other?.last_seen_at && Date.now() - new Date(other.last_seen_at as string).getTime() < 5 * 60_000),
-      business: viewer.id === designerId ? ((other?.business_name as string | null) ?? null) : null,
+      // The designer sees this contest's brand (owner, 2026-10-15: a client can run contests for several businesses).
+      business: viewer.id === designerId ? c.brand_name : null,
     },
     thumb: img?.preview_path ? (thumbs.get(img.preview_path as string) ?? null) : null,
   };

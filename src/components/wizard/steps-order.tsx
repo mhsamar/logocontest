@@ -213,8 +213,33 @@ export function PackageStep({
         })
       : undefined;
 
+  // Owner, 2026-10-16: a big note that bigger prizes bring Pro and experienced designers and more good logos.
+  const best = config.bestResultsFrom ?? 0;
+  const chosenPrize = order.package === "custom" ? (order.customPrize ?? 0) : config.packagePrizes[order.package];
+  const reached = best > 0 && chosenPrize >= best;
+
   return (
     <div className="space-y-9">
+      {best > 0 && (
+        <div
+          className={cx(
+            "flex items-start gap-4 rounded-[22px] p-5 ring-1 sm:p-6",
+            reached ? "bg-success/5 ring-success/25" : "bg-[#FFF8E6] ring-[#F0D27A]",
+          )}
+          role="note"
+        >
+          <span className={cx("flex size-12 shrink-0 items-center justify-center rounded-2xl text-2xl", reached ? "bg-success/10" : "bg-[#FDEBB8]")} aria-hidden>
+            {reached ? "✓" : "🏆"}
+          </span>
+          <div className="min-w-0">
+            <p className="m-0 text-[18px] font-semibold leading-snug text-ink">
+              {reached ? t("wizard.c08.best.reachedTitle") : t("wizard.c08.best.title", { amount: money(best) })}
+            </p>
+            <p className="m-0 mt-1.5 text-[15px] leading-relaxed text-ink/80">{reached ? t("wizard.c08.best.reachedBody") : t("wizard.c08.best.body", { amount: money(best) })}</p>
+          </div>
+        </div>
+      )}
+
       {/* Packages */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {PACKAGES.map((pkg) => {

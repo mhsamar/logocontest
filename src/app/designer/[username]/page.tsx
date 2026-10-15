@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- signed, short-lived storage links */
+import { currentUsernameFor } from "@/lib/profile/usernames";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ProfileShareMenu } from "@/components/designers/profile-share-menu";
 import { Icon, ProBadge, SmallAvatar } from "@/components/pro/parts";
 import { PageShell } from "@/components/ui/panel";
@@ -38,7 +39,12 @@ type Tab = (typeof TABS)[number];
 export default async function ProProfilePage({ params, searchParams }: PageProps<"/designer/[username]">) {
   const [{ username }, sp] = await Promise.all([params, searchParams]);
   const [{ t, locale }, designer] = await Promise.all([getI18n(), designerByUsername(username)]);
-  if (!designer) notFound();
+  if (!designer) {
+    // An old username (a Pro designer changed theirs, or a client's was renewed): on to the new one (owner, 2026-10-15).
+    const moved = await currentUsernameFor(username);
+    if (moved) permanentRedirect(`/designer/${moved}`);
+    notFound();
+  }
   if (!(await isPro(designer.id)))
     return (
       <PageShell>

@@ -12,6 +12,7 @@ import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { toE164 } from "@/lib/phone";
 import { isPersonName, personNameFrom } from "@/lib/profile/name-rules";
+import { uniqueUsername } from "@/lib/profile/usernames";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
 import { translatorFor } from "@/lib/content/texts";
@@ -42,7 +43,6 @@ import {
 import { feePercentFor, serviceFee as feeFor } from "./pricing";
 import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
-import { makeSlug } from "./service";
 import { emailWelcome } from "@/lib/email/events";
 import { after } from "next/server";
 import { noticeOn } from "@/lib/notifications/switches";
@@ -237,9 +237,11 @@ export async function createAccountAndDraft(input: {
       : err("auth.errors.generic");
   }
 
+  // A fixed username from the client's name (owner, 2026-10-15); each contest keeps its own brand name, so the
+  // profile has no business name.
   await admin
     .from("profiles")
-    .update({ business_name: brandName, username: makeSlug(brandName), whatsapp: input.whatsapp === true })
+    .update({ username: await uniqueUsername(personName, "client"), whatsapp: input.whatsapp === true })
     .eq("id", created.data.user.id);
   // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
   await saveSignupSource(created.data.user.id, await takeSignupSource());
