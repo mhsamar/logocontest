@@ -13,6 +13,7 @@ import { fetchImage, logoForAi, shrinkCandidate } from "./images";
 import { checkHeadline, sourceRows } from "./present";
 import { certNumber, hostOf, isOnHosts, overallScore, uniquenessScore, verdictFor, type CheckLimits, type MatchSource } from "./rules";
 import { lensSearch, visionSearch, type Candidate, type SourceRun } from "./search";
+import { emailCheckReady } from "@/lib/email/events";
 
 /**
  * The background job for one check (owner, 2026-10-10; handoff "How a check runs"). Steps:
@@ -82,6 +83,8 @@ export async function runLogoCheck(id: string, origin: string): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     try {
       await work(check, origin);
+      // logo-check-ready.html (owner, 2026-10-15).
+      await emailCheckReady(check.id);
       return;
     } catch (e) {
       const code = e instanceof CheckError ? e.code : e instanceof AiUnavailableError ? "ai_unavailable" : "technical";

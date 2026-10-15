@@ -1,0 +1,214 @@
+[
+  {
+    "key": "otp",
+    "group": "Account",
+    "subject": "{{otp_code}} is your logocontest.bd code",
+    "preheader": "Your code works for {{otp_minutes}} minutes. Do not share it.",
+    "vars": [
+      "first_name",
+      "otp_code",
+      "otp_minutes",
+      "otp_purpose (sign in / confirm your email / reset your password)",
+      "email"
+    ]
+  },
+  {
+    "key": "welcome",
+    "group": "Account",
+    "subject": "Welcome to logocontest.bd",
+    "preheader": "Your account is ready.",
+    "vars": [
+      "first_name",
+      "dashboard_url"
+    ]
+  },
+  {
+    "key": "contest-new",
+    "group": "Designer",
+    "subject": "New contest: {{contest_title}} · ৳{{prize}}",
+    "preheader": "A {{contest_type}} contest is open. Ends {{end_date}}.",
+    "vars": [
+      "first_name",
+      "contest_title",
+      "contest_type",
+      "prize",
+      "end_date",
+      "contest_url",
+      "contest_image_url",
+      "pro (true/false)",
+      "head_start"
+    ]
+  },
+  {
+    "key": "contest-invite",
+    "group": "Designer (Pro)",
+    "subject": "You are invited: {{contest_title}}",
+    "preheader": "{{client_name}} invited you. Prize ৳{{prize}}.",
+    "vars": [
+      "first_name",
+      "client_name",
+      "contest_title",
+      "contest_type",
+      "prize",
+      "end_date",
+      "contest_url",
+      "contest_image_url",
+      "reminder_time"
+    ]
+  },
+  {
+    "key": "contest-ending",
+    "group": "Designer",
+    "subject": "{{hours_left}} left: {{contest_title}}",
+    "preheader": "The contest ends {{end_date}}.",
+    "vars": [
+      "first_name",
+      "hours_left",
+      "contest_title",
+      "contest_type",
+      "prize",
+      "end_date",
+      "entry_count",
+      "my_entry_count",
+      "contest_url",
+      "contest_image_url"
+    ]
+  },
+  {
+    "key": "entry-shortlisted",
+    "group": "Designer",
+    "subject": "Shortlisted in {{contest_title}}",
+    "preheader": "The client liked your entry #{{entry_no}}.",
+    "vars": [
+      "first_name",
+      "entry_no",
+      "contest_title",
+      "entry_image_url",
+      "contest_url"
+    ]
+  },
+  {
+    "key": "contest-won",
+    "group": "Designer",
+    "subject": "You won {{contest_title}}!",
+    "preheader": "Prize ৳{{prize}}. Upload your final files.",
+    "vars": [
+      "first_name",
+      "entry_no",
+      "contest_title",
+      "entry_image_url",
+      "prize",
+      "fee_percent",
+      "fee_amount",
+      "payout_amount",
+      "handover_url"
+    ]
+  },
+  {
+    "key": "client-new-entries",
+    "group": "Client",
+    "subject": "{{new_count}} new designs in {{contest_title}}",
+    "preheader": "Take a look and rate them.",
+    "vars": [
+      "first_name",
+      "new_count",
+      "contest_title",
+      "entry_1_image_url",
+      "entry_2_image_url",
+      "entry_3_image_url",
+      "entry_count",
+      "checked_count",
+      "end_date",
+      "contest_url"
+    ]
+  },
+  {
+    "key": "client-pick-winner",
+    "group": "Client",
+    "subject": "Pick a winner for {{contest_title}}",
+    "preheader": "{{entry_count}} designs are waiting.",
+    "vars": [
+      "first_name",
+      "contest_title",
+      "contest_type",
+      "prize",
+      "end_date",
+      "entry_count",
+      "pick_days",
+      "contest_url",
+      "contest_image_url"
+    ]
+  },
+  {
+    "key": "chat-message",
+    "group": "Everyone",
+    "subject": "{{sender_name}} sent you a message",
+    "preheader": "{{message_preview}}",
+    "vars": [
+      "sender_name",
+      "contest_title",
+      "entry_no",
+      "message_preview",
+      "chat_url"
+    ]
+  },
+  {
+    "key": "logo-check-ready",
+    "group": "Everyone",
+    "subject": "Logo check: {{match_level}} · {{file_name}}",
+    "preheader": "Report {{report_id}} is ready.",
+    "vars": [
+      "match_level",
+      "match_percent",
+      "file_name",
+      "report_id",
+      "checked_at",
+      "checks_left",
+      "report_url"
+    ]
+  },
+  {
+    "key": "pro-receipt",
+    "group": "Designer (Pro)",
+    "subject": "Receipt {{receipt_no}} · Pro plan ৳{{amount}}",
+    "preheader": "Your Pro plan is active until {{period_end}}.",
+    "vars": [
+      "first_name",
+      "receipt_no",
+      "amount",
+      "payment_method",
+      "period_end",
+      "dashboard_url"
+    ]
+  },
+  {
+    "key": "pro-renewal",
+    "group": "Designer (Pro)",
+    "subject": "Pro renews in {{days_left}} days",
+    "preheader": "Renew to keep early access, invites and 100 logo checks.",
+    "vars": [
+      "first_name",
+      "days_left",
+      "period_end",
+      "amount",
+      "checks_used",
+      "wins_month",
+      "renew_url",
+      "manage_url"
+    ]
+  },
+  {
+    "key": "notification",
+    "group": "Everyone",
+    "subject": "{{title}}",
+    "preheader": "{{preview}}",
+    "vars": [
+      "first_name",
+      "title",
+      "body",
+      "preview",
+      "button_text (optional)",
+      "button_url (optional)"
+    ]
+  }
+]

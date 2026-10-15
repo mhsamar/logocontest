@@ -31,6 +31,7 @@ import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
 import { mockupLimit } from "./limits";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
 import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES } from "./rules";
+import { emailChat } from "@/lib/email/events";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -298,8 +299,15 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   // Who wrote it decides the kind (owner, 2026-10-09): the client's feedback, the designer's reply, or someone else's comment.
   const clientLink = `/dashboard/contests/${c.slug}?entry=${data.number}`;
   const designerLink = `/contest/${c.slug}?tab=entries&entry=${data.number}`;
-  if (user.id === c.client_id) await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
-  else if (user.id === data.designer_id) await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
+  // chat-message.html (owner, 2026-10-15) between the client and the designer, at most one per design every 30 minutes.
+  const chat = { contestId: c.id, entryNo: data.number as number, message: body, thread: `comments:${entryId}` };
+  if (user.id === c.client_id) {
+    await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
+    await emailChat({ ...chat, to: data.designer_id as string, senderName: "The client", path: designerLink });
+  } else if (user.id === data.designer_id) {
+    await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
+    await emailChat({ ...chat, to: c.client_id, senderName: `The designer of #${data.number}`, path: clientLink });
+  }
   else {
     await notify([data.designer_id], "entry_comment_other", n, designerLink, user.id);
     await notify([c.client_id], "entry_comment_other", n, clientLink, user.id);

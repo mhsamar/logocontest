@@ -2,7 +2,8 @@ import "server-only";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { blockedTerms } from "@/lib/contests/community";
 import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender, siteOrigin } from "@/lib/email";
+import { siteOrigin } from "@/lib/email";
+import { emailText } from "@/lib/email/events";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
 import { getSetting, getSettings } from "@/lib/settings";
@@ -24,20 +25,22 @@ export async function emailUser(userId: string, kind: MailKind, params: { reason
   const t = await translatorFor(lang);
   const until = params.until ? new Date(params.until).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "";
   const s = await getSettings(["timers.strike_expiry_days", "limits.strikes_for_ban"]);
-  await getEmailSender()
-    .send({
-      to: p.email as string,
-      subject: t(`admin.users.mail.${kind}.subject`),
-      text: t(`admin.users.mail.${kind}.body`, {
-        name: ((p.name as string | null) ?? "").trim(),
-        reason: params.reason,
-        until,
-        ban: s["limits.strikes_for_ban"],
-        days: s["timers.strike_expiry_days"],
-        link: `${await siteOrigin()}/legal/designer-rules`,
-      }),
-    })
-    .catch((err: unknown) => console.error("[suspension] email failed:", err instanceof Error ? err.message : err));
+  // A security email (owner, 2026-10-15): always sent, no Unsubscribe.
+  await emailText({
+    userId,
+    email: p.email as string,
+    locale: lang,
+    subject: t(`admin.users.mail.${kind}.subject`),
+    body: t(`admin.users.mail.${kind}.body`, {
+      name: ((p.name as string | null) ?? "").trim(),
+      reason: params.reason,
+      until,
+      ban: s["limits.strikes_for_ban"],
+      days: s["timers.strike_expiry_days"],
+      link: `${await siteOrigin()}/legal/designer-rules`,
+    }),
+    security: true,
+  });
 }
 
 export type SuspendResult = { status: "active" | "suspended" | "banned"; strikes: number; suspendedUntil: string | null };

@@ -12,6 +12,7 @@ import { designerFeeWithCode, markPromoUsed } from "@/lib/promos/promos";
 import { feeRateFor } from "@/lib/wallet/fees";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { REJECT_REASONS } from "./review-options";
+import { emailShortlisted, emailWon } from "@/lib/email/events";
 
 /** The client's review tools (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
 
@@ -52,6 +53,8 @@ export async function setShortlist(entryId: string, on: boolean): Promise<Result
   if (!own) return { ok: false, error: "auth.errors.generic" };
   const { error } = await createAdminClient().from("entries").update({ is_shortlisted: on }).eq("id", entryId);
   if (error) return { ok: false, error: "auth.errors.generic" };
+  // entry-shortlisted.html (owner, 2026-10-15), once per design.
+  if (on) await emailShortlisted(entryId);
   refresh();
   return { ok: true };
 }
@@ -102,6 +105,7 @@ export async function pickWinner(entryId: string): Promise<Result> {
   const n = { brand: own.contest.brand_name, number: own.entry.number };
   const link = `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`;
   await notify([own.entry.designer_id], "winner_picked", n, `/dashboard/handover/${own.contest.slug}`);
+  await emailWon(entryId);
   await notify((await contestDesignerIds(own.contest.id)).filter((id) => id !== own.entry.designer_id), "contest_closed", n, link);
   // The designer's win card (owner, 2026-10-11), made in the background.
   await afterWinnerPicked(own.contest.id, entryId);

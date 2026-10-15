@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { adminIdsWith } from "@/lib/admin/recipients";
 import { audit } from "@/lib/admin/core";
 import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender } from "@/lib/email";
+import { emailText } from "@/lib/email/events";
 import { isSupabaseConfigured } from "@/lib/env";
 import { notify } from "@/lib/notifications";
 import { monthLabel } from "@/lib/notifications/render";
@@ -128,13 +128,7 @@ export async function sendMonthRewards(month: string, isTest: boolean, origin: s
     if (w.email) {
       const lang = w.locale === "bn" ? "bn" : "en";
       const t = await translatorFor(lang);
-      await getEmailSender()
-        .send({
-          to: w.email,
-          subject: t(`monthlyReward.email.${kind}.subject`, { month: monthLabel(month, lang) }),
-          text: t(`monthlyReward.email.${kind}.body`, { name: (w.name ?? "").trim(), month: monthLabel(month, lang), link: `${origin}${link}` }),
-        })
-        .catch((err: unknown) => console.error("[month-close] email failed:", err instanceof Error ? err.message : err));
+      await emailText({ userId: w.id, email: w.email, locale: lang, subject: t(`monthlyReward.email.${kind}.subject`, { month: monthLabel(month, lang) }), body: t(`monthlyReward.email.${kind}.body`, { name: (w.name ?? "").trim(), month: monthLabel(month, lang), link: `${origin}${link}` }) });
     }
     sent.push(mine.id as string);
   }

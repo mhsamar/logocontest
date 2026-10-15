@@ -1,7 +1,7 @@
 import "server-only";
 import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender, siteOrigin } from "@/lib/email";
-import { formatDate } from "@/lib/dates";
+import { siteOrigin } from "@/lib/email";
+import { emailProReceipt, emailProRenewal, emailText } from "@/lib/email/events";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,12 +36,15 @@ export async function tellDesigner(designerId: string, type: NotificationType, d
     if (!mail) return;
     const { data: p } = await db().from("profiles").select("email, name, locale").eq("id", designerId).maybeSingle();
     if (!p?.email) return;
-    const t = await translatorFor(p.locale === "bn" ? "bn" : "en");
+    const locale = p.locale === "bn" ? "bn" : "en";
+    const t = await translatorFor(locale);
     const url = `${await siteOrigin()}${link}`;
-    await getEmailSender().send({
-      to: p.email as string,
+    // notification.html (owner, 2026-10-15), in the designer's language.
+    await emailText({
+      userId: designerId,
+      locale,
       subject: t(mail.subject as never, mail.params),
-      text: t(mail.body as never, { name: ((p.name as string | null) ?? "").trim(), link: url, ...mail.params }),
+      body: t(mail.body as never, { name: ((p.name as string | null) ?? "").trim(), link: url, ...mail.params }),
     });
   } catch (e) {
     console.error("[pro] tell designer:", e instanceof Error ? e.message : e);
@@ -147,24 +150,19 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<numb
     if (!claimed?.length) continue;
     n++;
     const days = Math.max(1, Math.ceil((sub.currentPeriodEnd.getTime() - now.getTime()) / 86_400_000));
-    const changed = settings.priceBdt !== sub.priceBdt;
-    await tellDesigner(sub.designerId, due === "7d" ? "pro_renew_7d" : "pro_renew_1d", { days, amount: settings.priceBdt }, "/pro/checkout?renew=1", {
-      subject: due === "7d" ? "pro.mail.renew7.subject" : "pro.mail.renew1.subject",
-      body: changed ? "pro.mail.renewNewPrice.body" : "pro.mail.renew.body",
-      params: { days, amount: `৳${settings.priceBdt}`, old: `৳${sub.priceBdt}`, date: formatDate(sub.currentPeriodEnd, "en", "long") },
-    });
+    await tellDesigner(sub.designerId, due === "7d" ? "pro_renew_7d" : "pro_renew_1d", { days, amount: settings.priceBdt }, "/pro/checkout?renew=1");
+    // pro-renewal.html (owner, 2026-10-15): 7 days and 1 day before, with the price that applies from this renewal.
+    await emailProRenewal(sub.designerId, days, sub.currentPeriodEnd, settings.priceBdt);
   }
   if (n) await logProActivity(null, "renewal_reminders", null, null, { sent: n });
   return n;
 }
 
 /** Receipt by email and in the app, right after a payment (and on the Wallet as a PDF). */
-export async function sendReceipt(designerId: string, receiptNo: number, amount: number, until: Date): Promise<void> {
-  await tellDesigner(designerId, "pro_activated", { amount }, "/dashboard/wallet#receipts", {
-    subject: "pro.mail.receipt.subject",
-    body: "pro.mail.receipt.body",
-    params: { receipt: receiptCode(receiptNo), amount: `৳${amount}`, date: formatDate(until, "en", "long") },
-  });
+export async function sendReceipt(designerId: string, receiptNo: number, amount: number, until: Date, method: string): Promise<void> {
+  await tellDesigner(designerId, "pro_activated", { amount }, "/dashboard/wallet#receipts");
+  // pro-receipt.html (owner, 2026-10-15).
+  await emailProReceipt(designerId, receiptCode(receiptNo), amount, until, method);
 }
 
 /** For admin-made changes: a free month counts from the end when the plan is running. */
