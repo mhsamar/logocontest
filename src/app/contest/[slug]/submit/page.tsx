@@ -49,12 +49,13 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
   const unverified = user.role === "designer" && Boolean(user.email) && !user.emailVerifiedAt;
   const blocked = held ? "suspended" : !can(user, "entry.submit") ? "designersOnly" : !open ? "closed" : unverified ? "emailUnverified" : null;
 
-  const [min, siteMax, px, siteMb] = await Promise.all([
+  const [min, siteMax, px, siteMb, deliverDays] = await Promise.all([
     getSetting("limits.entry_min_images"),
     // Basic and Pro each have their own number (owner, 2026-10-14: Admin › Settings).
     user.role === "designer" ? mockupLimit(user.id) : getSetting("limits.entry_max_images"),
     getSetting("limits.entry_image_min_px"),
     getSetting("limits.entry_image_max_mb"),
+    getSetting("timers.designer_file_upload_days"),
   ]);
   // A non-logo contest (owner, 2026-10-13): its own upload limits, and what to make, shown above the form.
   const svc = isLogo(contest.service) ? null : await getService(contest.service);
@@ -86,7 +87,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
                   <ServiceBrief service={svc} answers={contest.serviceBrief} full />
                 </div>
               )}
-              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max, px, mb, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
+              <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max, px, mb, deliverDays, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
             </>
           )}
         </div>

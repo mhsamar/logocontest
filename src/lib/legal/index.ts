@@ -15,7 +15,7 @@ import { fillLegal, LEGAL_VERSION, type AgreementText, type LegalBlock, type Leg
 export async function legalParams(t: Translate, locale: Locale): Promise<Record<string, string | number>> {
   const [{ params }, s, contact] = await Promise.all([
     faqParams(t, locale),
-    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "timers.suspension_hours", "limits.strikes_for_ban"]),
+    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "timers.suspension_hours", "limits.strikes_for_ban", "trash.unpaid_hours", "trash.keep_days"]),
     getContact(locale),
   ]);
   const n = (v: number) => formatNumber(v, locale);
@@ -32,6 +32,9 @@ export async function legalParams(t: Translate, locale: Locale): Promise<Record<
     holdDays: n(s["timers.payout_hold_days"]),
     suspendHours: n(s["timers.suspension_hours"]),
     ban: n(s["limits.strikes_for_ban"]),
+    // Unpaid contests and the trash (owner, 2026-10-14).
+    unpaidHours: n(s["trash.unpaid_hours"]),
+    trashDays: n(s["trash.keep_days"]),
   };
 }
 

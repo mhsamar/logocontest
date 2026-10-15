@@ -29,7 +29,7 @@ const nameFromFile = (file: string) =>
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, LABEL_MAX);
-type Limits = { min: number; max: number; px: number; mb: number; /** A contest service's own design size (owner, 2026-10-13: real shape); square px×px when absent. */ size?: { w: number; h: number } | null };
+type Limits = { min: number; max: number; px: number; mb: number; /** Days the winner has to send the final files (Settings). */ deliverDays?: number; /** A contest service's own design size (owner, 2026-10-13: real shape); square px×px when absent. */ size?: { w: number; h: number } | null };
 
 function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -307,7 +307,7 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
           {DECLARATION_KEYS.map((k) => (
             <Checkbox
               key={k}
-              label={t(`submit.declarations.${k}`)}
+              label={t(`submit.declarations.${k}`, { days: limits.deliverDays ?? 3 })}
               checked={ticked.has(k)}
               onChange={(e) =>
                 setTicked((s) => {

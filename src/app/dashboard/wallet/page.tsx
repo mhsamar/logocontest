@@ -16,6 +16,7 @@ import { ProWalletExtras } from "@/components/pro/pro-wallet-extras";
 import { ProWorkspace, WsHead } from "@/components/pro/workspace";
 import { isPro } from "@/lib/pro/status";
 import { pendingDesignerFee } from "@/lib/promos/promos";
+import { getSettings } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -29,7 +30,8 @@ export default async function WalletPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?as=designer&next=/dashboard/wallet");
   if (user.role !== "designer") redirect("/dashboard");
-  const [{ t, locale }, w, feeCode] = await Promise.all([getI18n(), getWallet(user.id), pendingDesignerFee(user.id)]);
+  const [{ t, locale }, w, feeCode, hold] = await Promise.all([getI18n(), getWallet(user.id), pendingDesignerFee(user.id), getSettings(["timers.payout_hold_days"])]);
+  const holdDays = formatNumber(hold["timers.payout_hold_days"], locale);
   const taka = (n: number) => formatTaka(n, locale);
   const fmt = (n: number) => formatNumber(n, locale);
   const lastTier = w.tiers.at(-1)?.min_wins ?? 1;
@@ -46,8 +48,8 @@ export default async function WalletPage() {
             <p className="lc-d m-0 mt-1 text-5xl font-semibold tabular-nums tracking-[-0.04em] text-gold">
               <CountUp value={w.balance} locale={locale} taka />
             </p>
-            <p className="m-0 mt-3 text-sm text-white/75" title={t("wallet.pendingHint")}>
-              {t("wallet.pending")}: <b className="text-white">{taka(w.pending)}</b> <span className="text-white/60">· {t("wallet.pendingHint")}</span>
+            <p className="m-0 mt-3 text-sm text-white/75" title={t("wallet.pendingHint", { days: holdDays })}>
+              {t("wallet.pending")}: <b className="text-white">{taka(w.pending)}</b> <span className="text-white/60">· {t("wallet.pendingHint", { days: holdDays })}</span>
             </p>
             {w.held.length > 0 && (
               <ul className="m-0 mt-3 list-none space-y-1.5 p-0">

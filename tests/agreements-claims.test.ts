@@ -129,6 +129,10 @@ describe("legal texts (P-10)", () => {
       "suspendHours",
       "holdDays",
       "ban",
+      // Designs per contest, unpaid contests and the trash (owner, 2026-10-15)
+      "designsRule",
+      "unpaidHours",
+      "trashDays",
     ]);
     const all = JSON.stringify([LEGAL_EN, LEGAL_BN]);
     const used = new Set([...all.matchAll(/\{(\w+)\}/g)].map((m) => m[1]));

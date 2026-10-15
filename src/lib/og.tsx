@@ -20,8 +20,8 @@ const BG = "linear-gradient(135deg, #fff7e8 0%, #fdeef2 45%, #eef1ff 100%)";
 export function OgFrame({ logoSrc, children }: { logoSrc: string; children: React.ReactNode }) {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: BG, padding: "64px 72px", color: "#200e01", fontFamily: "Geist" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       {/* The logo cropped to its edges, 455×70, so it lines up with the text (owner, 2026-10-15: new logo with the star). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={logoSrc} width={390} height={60} alt="" />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>{children}</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: "#5c4a3d" }}>

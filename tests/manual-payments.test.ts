@@ -118,3 +118,13 @@ describe("Bangla QR (owner, 2026-10-15)", () => {
     expect(banglaQrReady({}, true)).toBe(false);
   });
 });
+
+describe("Automatic withdrawals (owner, 2026-10-15)", () => {
+  it("unlock only once the bKash payout API is connected and its keys are set", async () => {
+    const { bkashPayoutsReady } = await import("@/lib/payouts/ready");
+    const keys = { BKASH_PAYOUT_BASE_URL: "https://x", BKASH_PAYOUT_APP_KEY: "a", BKASH_PAYOUT_APP_SECRET: "b", BKASH_PAYOUT_USERNAME: "c", BKASH_PAYOUT_PASSWORD: "d" };
+    expect(bkashPayoutsReady(keys)).toBe(false);
+    expect(bkashPayoutsReady(keys, true)).toBe(true);
+    expect(bkashPayoutsReady({ ...keys, BKASH_PAYOUT_PASSWORD: "" }, true)).toBe(false);
+  });
+});

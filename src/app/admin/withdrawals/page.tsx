@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { WithdrawalActions } from "@/components/admin/withdrawal-row";
+import { AutoWithdrawCard, WithdrawalActions } from "@/components/admin/withdrawal-row";
+import { hasPermission } from "@/lib/admin/permissions";
+import { autoWithdrawalsOn } from "@/lib/payouts";
+import { bkashPayoutsReady } from "@/lib/payouts/ready";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
@@ -13,12 +16,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Admin withdrawal queue (BLUEPRINT §7.3): bank requests, and bKash when the automatic payout is off or failed.
 export default async function AdminWithdrawalsPage() {
-  await requirePermission("withdrawals.view");
-  const [{ t, locale }, list] = await Promise.all([getI18n(), pendingWithdrawals()]);
+  const me = await requirePermission("withdrawals.view");
+  const [{ t, locale }, list, auto] = await Promise.all([getI18n(), pendingWithdrawals(), autoWithdrawalsOn()]);
   return (
     <div>
       <h1 className="text-h2 font-bold tracking-tight text-ink lg:text-h2-lg">{t("admin.withdrawals.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("admin.withdrawals.lead")}</p>
+      {/* Automatic bKash withdrawals (owner, 2026-10-15). */}
+      <AutoWithdrawCard on={auto} ready={bkashPayoutsReady()} canManage={hasPermission(me, "withdrawals.manage")} />
       {list.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t("admin.withdrawals.empty")}</p>
       ) : (

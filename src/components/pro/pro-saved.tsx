@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
+import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { contestsByIdsMini, serviceNames } from "@/lib/pro/workspace";
 import { durationText, Icon } from "./parts";
@@ -20,6 +21,8 @@ export async function ProSaved({ user }: { user: CurrentUser }) {
     .filter((c) => ["open", "judging"].includes(c.status))
     .sort((a, b) => (a.endsAt?.getTime() ?? Infinity) - (b.endsAt?.getTime() ?? Infinity));
   const n = (v: number) => formatNumber(v, locale);
+  // When saved-contest reminders go (Admin › Notifications, owner 2026-10-15).
+  const savedHours = (await getSettings(["notify.saved_reminder_hours"]))["notify.saved_reminder_hours"];
   return (
     <ProWorkspace user={user} active="saved">
       <WsHead title={t("pro.saved.title")} lead={t("pro.saved.lead")} />
@@ -64,7 +67,7 @@ export async function ProSaved({ user }: { user: CurrentUser }) {
             <Icon name="clock" />
           </span>
           <b>{t("pro.saved.timesTitle")}</b>
-          <p>{t("pro.saved.times")}</p>
+          <p>{t("pro.saved.times", { times: savedHours.map((h) => (h === 1 ? t("pro.time.h1") : t("pro.time.hn", { n: n(h) }))).join(` ${t("pro.saved.and")} `) })}</p>
         </section>
         <section className="pr-card pr-mini">
           <span className="pr-ic m">
