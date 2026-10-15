@@ -1,6 +1,6 @@
 import "server-only";
-import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender, siteOrigin } from "@/lib/email";
+import { after } from "next/server";
+import { designersForAlert, emailContestNew } from "@/lib/email/events";
 import { isSupabaseConfigured } from "@/lib/env";
 import { broadcastToDesigners, notifyWithPush } from "@/lib/notifications/broadcast";
 import { notifyInvited } from "@/lib/pro/invites";
@@ -21,26 +21,6 @@ async function proAlertIds(pro: string[], service: string): Promise<{ app: strin
     app: pro.filter((id) => wants(id) && prefs.get(id)?.alert_app !== false),
     email: pro.filter((id) => wants(id) && prefs.get(id)?.alert_email !== false),
   };
-}
-
-/** The instant alert by email, in each designer's language. Never throws. */
-async function emailAlert(ids: string[], brand: string | null, amount: number, link: string): Promise<void> {
-  if (!ids.length) return;
-  try {
-    const { data: people } = await createAdminClient().from("profiles").select("email, name, locale").in("id", ids);
-    const url = `${await siteOrigin()}${link}`;
-    for (const p of people ?? []) {
-      if (!p.email) continue;
-      const t = await translatorFor(p.locale === "bn" ? "bn" : "en");
-      await getEmailSender().send({
-        to: p.email as string,
-        subject: t("pro.mail.alert.subject", { brand: brand ?? t("pro.contests.privateContest") }),
-        text: t("pro.mail.alert.body", { name: ((p.name as string | null) ?? "").trim(), brand: brand ?? t("pro.contests.privateContest"), amount: `৳${amount}`, link: url }),
-      });
-    }
-  } catch (e) {
-    console.error("[announce] pro email:", e instanceof Error ? e.message : e);
-  }
 }
 
 /**
@@ -67,7 +47,8 @@ export async function announceContest(contestId: string): Promise<boolean> {
     if (!sentEarly && pro.length) {
       const alerts = await proAlertIds(pro, (c.service as string | null) ?? "logo");
       await notifyWithPush(alerts.app, brand ? "contest_new_pro" : "contest_new_pro_private", data, link);
-      await emailAlert(alerts.email, brand, c.prize_amount as number, link);
+      // contest-new.html with the "Pro early access" note (owner, 2026-10-15).
+      await emailContestNew(c.id as string, alerts.email, { headStartMinutes: settings.earlyAccessMinutes });
     }
     await notifyInvited(c.id as string);
     const startsAt = c.starts_at ? new Date(c.starts_at as string) : new Date();
@@ -80,6 +61,12 @@ export async function announceContest(contestId: string): Promise<boolean> {
   const { error } = await db.from("lifecycle_events").insert({ contest_id: c.id, kind: "announced" });
   if (error) return false;
   await broadcastToDesigners(brand ? "contest_new" : "contest_new_private", data, link, early ? pro : []);
+  // And by email (contest-new.html) to every designer who hasn't turned these off; Pro designers had theirs already.
+  // Sent after the reply, so approving a payment never waits for many emails.
+  const except = early ? pro : [];
+  after(async () => {
+    await emailContestNew(c.id as string, await designersForAlert(except), null);
+  });
   return true;
 }
 

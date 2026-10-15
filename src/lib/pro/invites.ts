@@ -1,4 +1,5 @@
 import "server-only";
+import { emailInvite } from "@/lib/email/events";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -119,6 +120,8 @@ export async function notifyInvited(contestId: string): Promise<number> {
   // Private and NDA contests: the invitation carries the prize, never the name.
   const brand = c.is_private || c.is_nda ? undefined : (c.brand_name as string);
   if (sendTo.length) await notifyWithPush(sendTo, brand ? "pro_invited" : "pro_invited_private", { brand, amount: c.prize_amount as number }, `/contest/${c.slug}?tab=brief`);
+  // contest-invite.html (owner, 2026-10-15).
+  if (sendTo.length) await emailInvite(contestId, sendTo);
   return sendTo.length;
 }
 

@@ -7,6 +7,7 @@ import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
+import { emailContestEnding, emailPickWinner, sendClientDigests } from "@/lib/email/events";
 import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
 import { releaseStalePromos } from "@/lib/promos/promos";
 import { purgeExpiredTrash, trashUnpaidContests } from "@/lib/admin/trash";
@@ -20,7 +21,7 @@ import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endi
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; trashed?: number; erased?: number; errors: string[] };
+export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; trashed?: number; erased?: number; digests?: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
@@ -85,6 +86,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         for (const h of due) await once(c.id as string, designerEndingKind(h));
         const brand = c.is_private || c.is_nda ? undefined : (c.brand_name as string);
         await broadcastToDesigners(brand ? "contest_ending" : "contest_ending_private", { brand, hours: due[0], amount: c.prize_amount as number }, `/contest/${c.slug}`);
+        // contest-ending.html (owner, 2026-10-15) to the designers who sent a design or saved the contest.
+        await emailContestEnding(c.id as string, due[0]);
         report.designerReminders++;
       } catch (e) {
         fail("designer-ending", c.id as string, e);
@@ -118,6 +121,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         if (error) throw new Error(error.message);
         if (!moved || !(moved as ContestRow).id) continue;
         await notify([c.client_id], "judging_started", { brand: c.brand_name, days: s["timers.judging_window_days"] }, manageLink(c));
+        await emailPickWinner(c.id, s["timers.judging_window_days"]);
         // Designers who entered hear it ended and the client is choosing (owner, 2026-10-09).
         await notify(await contestDesignerIds(c.id), "contest_ended_entered", { brand: c.brand_name }, `/contest/${c.slug}`);
         report.judging++;
@@ -125,6 +129,13 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         fail("judging", c.id, e);
       }
     }
+  }
+
+  // 2b. New designs: each client gets at most one email a day per contest (owner, 2026-10-15; client-new-entries.html).
+  try {
+    report.digests = await sendClientDigests(now);
+  } catch (e) {
+    fail("digests", "-", e);
   }
 
   // 3. Pick-a-winner reminders on judging days 1, 3, 5 (only while no winner is picked).

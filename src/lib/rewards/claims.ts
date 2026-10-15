@@ -1,7 +1,7 @@
 import "server-only";
 import { adminIdsWith } from "@/lib/admin/recipients";
 import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender } from "@/lib/email";
+import { emailText } from "@/lib/email/events";
 import { isSupabaseConfigured } from "@/lib/env";
 import { notify } from "@/lib/notifications";
 import { monthLabel } from "@/lib/notifications/render";
@@ -88,19 +88,13 @@ export async function tellAdminsClaimed(reward: { id: string; month: string; kin
   const ids = await adminIdsWith("monthly.view");
   await notify(ids, "monthly_claimed", { month: reward.month, name: winnerName }, "/admin/monthly");
   if (!ids.length) return;
-  const { data } = await createAdminClient().from("profiles").select("email, locale").in("id", ids);
+  const { data } = await createAdminClient().from("profiles").select("id, email, locale").in("id", ids);
   for (const a of data ?? []) {
     if (!a.email) continue;
     const lang = a.locale === "bn" ? "bn" : "en";
     const t = await translatorFor(lang);
     const prize = t(reward.kind === "smartphone" ? "monthlyReward.page.smartphone" : "monthlyReward.page.giftBox");
-    await getEmailSender()
-      .send({
-        to: a.email as string,
-        subject: t("monthlyReward.adminEmail.subject", { name: winnerName, prize }),
-        text: t("monthlyReward.adminEmail.body", { name: winnerName, prize, month: monthLabel(reward.month, lang), number: reward.number, link: `${origin}/admin/monthly` }),
-      })
-      .catch((err: unknown) => console.error("[claim] admin email failed:", err instanceof Error ? err.message : err));
+    await emailText({ userId: a.id as string, email: a.email as string, locale: lang, subject: t("monthlyReward.adminEmail.subject", { name: winnerName, prize }), body: t("monthlyReward.adminEmail.body", { name: winnerName, prize, month: monthLabel(reward.month, lang), number: reward.number, link: `${origin}/admin/monthly` }) });
   }
 }
 
@@ -158,13 +152,7 @@ async function sendReminder(r: ReminderRow, origin: string, now: Date): Promise<
     const lang = w.locale === "bn" ? "bn" : "en";
     const t = await translatorFor(lang);
     const prize = t(kind === "smartphone" ? "monthlyReward.page.smartphone" : "monthlyReward.page.giftBox");
-    await getEmailSender()
-      .send({
-        to: w.email,
-        subject: t("monthlyReward.reminderEmail.subject", { prize }),
-        text: t("monthlyReward.reminderEmail.body", { name: (w.name ?? "").trim(), prize, month: monthLabel(r.month, lang), link: `${origin}${link}` }),
-      })
-      .catch((err: unknown) => console.error("[claim] reminder email failed:", err instanceof Error ? err.message : err));
+    await emailText({ userId: w.id, email: w.email, locale: lang, subject: t("monthlyReward.reminderEmail.subject", { prize }), body: t("monthlyReward.reminderEmail.body", { name: (w.name ?? "").trim(), prize, month: monthLabel(r.month, lang), link: `${origin}${link}` }) });
   }
   return true;
 }

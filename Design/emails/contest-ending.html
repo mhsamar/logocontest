@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light only">
+<title>{{hours_left}} left: {{contest_title}}</title>
+<style>
+@media (max-width:620px){ .wrap{width:100% !important} .px{padding-left:20px !important;padding-right:20px !important} h1{font-size:22px !important} }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#F4F4F6">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">The contest ends {{end_date}}.&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4F4F6" style="background:#F4F4F6">
+<tr><td align="center" style="padding:28px 12px">
+<table role="presentation" class="wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px">
+<tr><td style="padding:0 4px 16px">
+ <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+  <td><a href="{{site_url}}" style="text-decoration:none"><img src="{{logo_url}}" width="34" height="34" alt="" style="vertical-align:middle;border-radius:8px;border:0"> <span style="font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:18px;font-weight:800;color:#111216;vertical-align:middle">logocontest.bd</span></a></td>
+  <td align="right" style="font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:12px;color:#5F626B">Reminder</td>
+ </tr></table>
+</td></tr>
+<tr><td bgcolor="#FFFFFF" style="background:#FFFFFF;border-radius:20px;overflow:hidden;border:1px solid #ECECF1">
+ <div style="height:6px;background:#8B0000;background-image:linear-gradient(120deg,#8B0000,#B3261E 55%,#D9A52B);font-size:0;line-height:0">&nbsp;</div>
+ <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:32px 36px 28px">
+<h1 style="margin:0 0 12px;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:26px;line-height:1.25;color:#111216;font-weight:800;letter-spacing:-.3px">{{hours_left}} left to send your design</h1><p style="margin:0 0 14px;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#111216;font-weight:400">Hi {{first_name}}, this contest ends soon.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 18px;border:1px solid #ECECF1;border-radius:16px;border-collapse:separate"><tr><td width="96" style="padding:14px"><img src="{{contest_image_url}}" width="80" height="60" alt="" style="display:block;border-radius:10px;background:#F4F4F7;object-fit:cover"></td><td style="padding:14px 14px 14px 0;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif"><div style="font-size:17px;font-weight:800;color:#111216">{{contest_title}}</div><div style="font-size:14px;color:#5F626B;margin-top:3px">{{contest_type}} · Prize ৳{{prize}} · Ends {{end_date}}</div></td></tr></table><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 18px;border:1px solid #ECECF1;border-radius:14px;border-collapse:separate"><tr><td style="padding:10px 16px;border-top:1px solid #FFFFFF;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#5F626B">Designs sent so far</td><td align="right" style="padding:10px 16px;border-top:1px solid #FFFFFF;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#111216;font-weight:700">{{entry_count}}</td></tr><tr><td style="padding:10px 16px;border-top:1px solid #ECECF1;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#5F626B">Your designs</td><td align="right" style="padding:10px 16px;border-top:1px solid #ECECF1;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#111216;font-weight:700">{{my_entry_count}}</td></tr></table><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 4px"><tr><td align="center" bgcolor="#8B0000" style="border-radius:12px;background:#8B0000;background-image:linear-gradient(120deg,#8B0000,#B3261E 55%,#D9A52B)"><a href="{{contest_url}}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:12px">Send a design</a></td></tr></table>
+ </td></tr></table>
+</td></tr>
+<tr><td class="px" style="padding:20px 24px;font-family:'Urbanist','Instrument Sans',Arial,Helvetica,sans-serif;font-size:12.5px;line-height:1.6;color:#5F626B;text-align:center">
+ You got this email because you saved or joined this contest.<br>
+ <a href="{{settings_url}}" style="color:#5F626B;text-decoration:underline">Email settings</a> &nbsp;·&nbsp; <a href="{{help_url}}" style="color:#5F626B;text-decoration:underline">Help</a> &nbsp;·&nbsp; <a href="{{unsubscribe_url}}" style="color:#5F626B;text-decoration:underline">Unsubscribe</a><br>
+ logocontest.bd · {{company_address}}<br>
+ We never ask for your password, OTP or payment details by email.
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>

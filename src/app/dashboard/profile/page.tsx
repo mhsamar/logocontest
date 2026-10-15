@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
+import { EmailPrefsForm } from "@/components/settings/email-prefs";
+import { SETTINGS_KEYS } from "@/lib/email/catalog";
+import { getEmailOff } from "@/lib/email/prefs";
 import { formatBdMobile } from "@/lib/phone";
 import { SmallPageHeader } from "@/components/ui/section-heading";
 import { PageShell, Panel } from "@/components/ui/panel";
@@ -28,11 +31,12 @@ export default async function ProfileSettingsPage() {
   if (!user) redirect("/login?next=/dashboard/profile");
   if (user.role !== "designer" && user.role !== "client") notFound();
 
-  const [{ data: profile }, extrasRes, s] = await Promise.all([
+  const [{ data: profile }, extrasRes, s, emailOff] = await Promise.all([
     createAdminClient().from("profiles").select("name, bio, business_name, username, skills, tools, experience_years, whatsapp").eq("id", user.id).single(),
     // Profile extras (migration 0042); before that SQL runs the query fails and the fields stay hidden.
     createAdminClient().from("profiles").select("languages, skill_levels, tool_years").eq("id", user.id).maybeSingle(),
     getSettings(["limits.designer_bio_max_length", "auth.password_min_length"]),
+    getEmailOff(user.id),
   ]);
   let payout: PayoutValues | null = null;
   if (user.role === "designer") {
@@ -118,6 +122,9 @@ export default async function ProfileSettingsPage() {
           </Section>
           <Section title={t("settings.password.title")}>
             <PasswordForm min={s["auth.password_min_length"]} />
+          </Section>
+          <Section id="emails" title={t("email.prefs.title")} subtitle={t("email.prefs.subtitle")}>
+            <EmailPrefsForm keys={SETTINGS_KEYS[user.role]} off={emailOff} />
           </Section>
         </div>
       </Panel>

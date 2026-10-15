@@ -46,6 +46,8 @@ import { feePercentFor, serviceFee as feeFor } from "./pricing";
 import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
 import { makeSlug } from "./service";
+import { emailWelcome } from "@/lib/email/events";
+import { after } from "next/server";
 
 export type WizardResult<T = object> =
   | ({ ok: true } & T)
@@ -260,6 +262,8 @@ export async function createAccountAndDraft(input: {
   // Owner, 2026-10-07: welcome push in the browser + the 6-digit email code. Neither blocks sign-up.
   const userId = created.data.user.id;
   await sendVerificationEmail({ userId, email, name: brandName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
+  // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
+  after(() => emailWelcome(userId));
   if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent")))) {
     const t = await translatorFor(locale);
     await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });

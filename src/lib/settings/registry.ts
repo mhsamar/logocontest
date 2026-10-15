@@ -421,7 +421,7 @@ export const SETTINGS = {
     group: "auth",
     type: "int",
     schema: z.number().int().min(5).max(1440),
-    default: 30,
+    default: 10,
     description: "Minutes a confirm-your-email code stays valid.",
   },
   "auth.email_code_max_attempts": {
@@ -578,6 +578,12 @@ export const SETTINGS = {
   "security.impersonate_minutes": {
     group: "security", type: "int", schema: int(5, 240), default: 60,
     description: "\"Log in as this user\" ends on its own after this many minutes.",
+  },
+
+  // ---- Emails (owner, 2026-10-15) ------------------------------------------------------------------------------------
+  "email.daily_limit": {
+    group: "email", type: "int", schema: int(0, 100_000), default: 80,
+    description: "Most emails a day other than codes and security emails (the rest of the email plan's daily limit is kept for codes; Resend's free plan sends 100 a day). 0 = no limit.",
   },
 
   // ---- Trash (owner, 2026-10-14) -------------------------------------------------------------------------------------

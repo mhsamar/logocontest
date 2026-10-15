@@ -55,6 +55,6 @@ export async function settleProPayment(v: VerifiedCallback): Promise<{ status: "
   await markProPromoUsed(v.paymentId);
   await logFunnel(p.kind === "renewal" ? "renewed" : "paid", { designerId, step: p.method as string });
   await logProActivity(null, p.kind === "renewal" ? "renewed" : "paid", designerId, null, { amount: p.amount_bdt, until: sub?.currentPeriodEnd.toISOString() ?? null });
-  if (sub) await sendReceipt(designerId, p.receipt_no as number, p.amount_bdt as number, sub.currentPeriodEnd);
+  if (sub) await sendReceipt(designerId, p.receipt_no as number, p.amount_bdt as number, sub.currentPeriodEnd, (p.method as string | null) ?? "bkash");
   return { status: "paid", paymentId: v.paymentId };
 }

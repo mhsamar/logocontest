@@ -593,6 +593,35 @@ Channels: in-app for everything, plus SMS, email and browser push where marked. 
 | Strike, suspension or ban | User | Yes |
 | Monthly Champion announced | All designers | Email |
 
+### 12.1 Emails (owner, 2026-10-15; `Design/emails/`, migration `0057_email_log`)
+
+Every email the site sends uses one of 14 designed templates (600px, tables, inline styles). `scripts/email-templates.mjs` turns `Design/emails/*.html` into `src/lib/email/templates.ts`; subjects and preview lines are in `src/lib/email/catalog.ts` (from `templates.json`). `render(key, data)` (`src/lib/email/render.ts`) fills `{{vars}}` (always HTML-escaped), keeps or drops `{{#if}}` parts, and makes the plain-text version from the same filled email. The designs are in English; the general `notification` email carries the text in the person's own language.
+
+**Provider:** Resend (`EMAIL_DRIVER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`; server env only), from `no-reply@logocontest.bd`, reply-to `support@logocontest.bd` (`EMAIL_REPLY_TO`). `EMAIL_DRIVER=log` prints emails to the console instead.
+
+| Template | Sent when | To |
+|---|---|---|
+| `otp` | Confirm-your-email code (sign-up, Resend code, changed email). 6 digits, 10 minutes, 5 tries, 60 s before a new one, at most 3 an hour per address and 10 per IP; the code is never in a link | The person |
+| `welcome` | Account created (client wizard or designer sign-up) | The person |
+| `contest-new` | A contest opens: Pro designers with email alerts on hear at once with the "Pro early access" note and their head start; every other active designer when it opens to all | Designers |
+| `contest-invite` | A client's invitation reaches a Pro designer | Pro designer |
+| `contest-ending` | At each designer ending notice (`timers.designer_ending_notice_hours`, 12 h and 6 h) | Designers who sent a design or saved the contest |
+| `entry-shortlisted` | The client shortlists a design (once per design) | Designer |
+| `contest-won` | A winner is picked (by the client or an admin): prize, the fee of their locked fee step, what they get | Winner |
+| `client-new-entries` | Lifecycle job: new designs since the last one, at most once a day per contest | Client |
+| `client-pick-winner` | The contest ends and judging starts | Client |
+| `chat-message` | Pro messages, comments between the client and the designer on a design, the final-files chat; at most one email per conversation every 30 minutes | The other person |
+| `logo-check-ready` | A logo check finishes (not the check a designer runs while sending a design) | Who ran it |
+| `pro-receipt` | A Pro payment is received | Designer |
+| `pro-renewal` | 7 days and 1 day before the Pro plan ends | Designer |
+| `notification` | Everything else that emails: password reset, suspension/ban/reactivation, ID check, Pro trial and expiry, Pro weekly report, monthly prizes and claims, win cards | The person |
+
+**Email settings:** `profiles.email_off` lists the emails a person turned off (Profile › Email settings, `/dashboard/profile#emails`). Every email except codes and security emails (password reset, suspension, ban, reactivation, ID check) has an Unsubscribe link for its own kind (`/email/unsubscribe`, signed with `OTP_SECRET`, asks before changing anything) and a one-click `List-Unsubscribe` header (`POST /api/email/unsubscribe`). A Pro designer's "email alerts" switch on the Contests page still applies to new-contest emails.
+
+**Sending (`src/lib/email/send.ts`):** settings first, then the daily limit (Settings › Emails › `email.daily_limit`, 80: emails other than codes and security emails stop for the day at that number, so codes still go on Resend's 100-a-day free plan; 0 = no limit), then Resend with up to 3 retries (not when Resend refuses for good), and a row in `email_log` either way (user, template, what it was about, sent/failed/skipped and why, Resend's message id, tries).
+
+**Pictures:** the logo is `/brand/logo-icon-tile.png`. A contest's picture is `/api/email/contest/<slug>` (a 320×240 PNG tile with the brand's first letter; the logo for private and NDA contests). A design's picture is `/api/email/image/<token>`: the token is signed and runs out after 120 days, only design previews can be asked for, and it is sent as a JPEG at most 1200 px wide. Logos found by the checker are never in an email.
+
 ## 13. Admin panel (`/admin`)
 
 1. Dashboard: contests posted/paid/completed, total client payments, platform revenue, average entries per contest, wizard drop-off by step, pending withdrawals

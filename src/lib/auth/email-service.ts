@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getEmailSender, siteOrigin } from "@/lib/email";
+import { siteOrigin } from "@/lib/email";
+import { emailNotification } from "@/lib/email/events";
+import { sendEmail } from "@/lib/email/send";
 import { requireEnv } from "@/lib/env";
 import type { Locale } from "@/lib/i18n/config";
 import { translatorFor } from "@/lib/content/texts";
@@ -136,12 +138,14 @@ export async function sendVerificationEmail(input: {
   if (!(await underLimit("verify", input.email, input.ip))) return { status: "rate_limited" };
   const issued = await emailVerificationService().issue(input.userId, input.email);
   if (!issued.ok) return { status: "cooldown", retryAfterSeconds: issued.retryAfterSeconds };
-  const t = await translatorFor(input.locale);
-  await getEmailSender().send({
-    to: input.email,
-    subject: t("email.verify.subject"),
-    text: t("email.verify.body", { name: input.name, code: issued.code, minutes: issued.ttlMinutes }),
+  // The designed code email (owner, 2026-10-15; Design/emails/otp.html). The code is only in the email's text, never
+  // in a link. A failed send still fails the request, as before.
+  const sent = await sendEmail({
+    key: "otp",
+    to: { userId: input.userId, email: input.email, name: input.name },
+    data: { otp_code: issued.code, otp_minutes: issued.ttlMinutes, otp_purpose: "confirm your email" },
   });
+  if (sent !== "sent") throw new Error("The code email could not be sent");
   await recordSend("verify", input.email, input.ip);
   return { status: "sent" };
 }
@@ -166,10 +170,14 @@ export async function sendPasswordResetEmail(input: { email: string; locale: Loc
   }
   const t = await translatorFor(input.locale);
   const link = `${await siteOrigin()}/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}`;
-  await getEmailSender().send({
-    to: input.email,
-    subject: t("email.reset.subject"),
-    text: t("email.reset.body", { name: profile.name as string, link }),
+  // A security email (owner, 2026-10-15): always sent, no Unsubscribe.
+  await emailNotification({
+    to: { userId: profile.id as string, email: input.email },
+    title: t("email.reset.subject"),
+    body: t("email.reset.body", { name: profile.name as string, link }),
+    buttonText: t("email.reset.button"),
+    buttonUrl: link,
+    security: true,
   });
   return "sent";
 }

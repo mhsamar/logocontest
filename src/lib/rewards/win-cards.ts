@@ -1,7 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { translatorFor } from "@/lib/content/texts";
-import { getEmailSender } from "@/lib/email";
+import { emailText } from "@/lib/email/events";
 import { isSupabaseConfigured } from "@/lib/env";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { formatTaka } from "@/lib/money";
@@ -137,13 +137,7 @@ export async function createWinCard(contestId: string, entryId: string, origin: 
     const { data: d } = await db.from("profiles").select("name, email, locale").eq("id", e.designer_id).maybeSingle();
     if (d?.email) {
       const t = await translatorFor(d.locale === "bn" ? "bn" : "en");
-      await getEmailSender()
-        .send({
-          to: d.email as string,
-          subject: t("winCard.email.subject"),
-          text: t(hidden ? "winCard.email.bodyHidden" : "winCard.email.body", { name: (d.name as string) || "", brand: c.brand_name as string, link: `${origin}${link}` }),
-        })
-        .catch((err: unknown) => console.error("[win-card] email failed:", err instanceof Error ? err.message : err));
+      await emailText({ userId: e.designer_id as string, email: d.email as string, locale: d.locale === "bn" ? "bn" : "en", subject: t("winCard.email.subject"), body: t(hidden ? "winCard.email.bodyHidden" : "winCard.email.body", { name: (d.name as string) || "", brand: c.brand_name as string, link: `${origin}${link}` }) });
     }
     return slug;
   } catch (err) {

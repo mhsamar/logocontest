@@ -16,6 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
 import { driveLinkAccess } from "./drive";
 import { acceptsFile, CHAT_STATUSES, cleanDriveUrl, countWords, extensionOf, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
+import { emailChat } from "@/lib/email/events";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -224,6 +225,15 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
     toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
     user.id,
   );
+  await emailChat({
+    to: toClient ? h.contest!.client_id : h.designer_id,
+    senderName: user.name,
+    contestId: h.contest_id,
+    entryNo: null,
+    message: body,
+    path: toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
+    thread: `files:${h.id}`,
+  });
   refresh();
   return { ok: true };
 }
