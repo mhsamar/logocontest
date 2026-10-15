@@ -31,10 +31,17 @@ describe("findContactDetails (no-contact filter)", () => {
     expect(findContactDetails("mail me a@b.com")).toBe("email");
     expect(findContactDetails("my gmail is sam")).toBe("email");
     expect(findContactDetails("see www.example.org")).toBe("link");
-    expect(findContactDetails("mysite dot com")).toBe("link");
+    // A domain name on its own is fine (owner, 2026-10-15): many brands are named after one.
+    expect(findContactDetails("mysite dot com")).toBeNull();
     expect(findContactDetails("knock me on WhatsApp")).toBe("link");
     expect(findContactDetails("fb te knock dio")).toBe("link");
-    expect(findContactDetails("example.com.bd")).toBe("link");
+    expect(findContactDetails("example.com.bd")).toBeNull();
+    expect(findContactDetails("Be Healthy.bd, always by your side")).toBeNull();
+    expect(findContactDetails("logo for shop.com.au")).toBeNull();
+    // A link to a person on a social or chat app is still blocked.
+    expect(findContactDetails("t.me/rafi")).toBe("link");
+    expect(findContactDetails("instagram.com/rafi.designs")).toBe("link");
+    expect(findContactDetails("wa.me/8801712345678")).toBe("phone");
   });
 
   it("lets ordinary brief text through, even when it names a platform (owner, 2026-10-08)", () => {

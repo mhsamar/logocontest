@@ -22,10 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("admin.unpaid.title"), robots: { index: false } };
 }
 
-/** The wizard's 11 steps, then "went to payment" (12) and "paid" (13), as on the Dashboard. */
-const STEPS = 13;
+/** The wizard's 8 steps (owner, 2026-10-15), then "went to payment" (9) and "paid" (10), as on the Dashboard. */
+const STEPS = 10;
+const AT_PAYMENT = 9;
+const REVIEW = 8;
 /** "Where clients stop": the steps the design shows. */
-const FUNNEL_STEPS = [1, 2, 8, 11, 12, 13];
+const FUNNEL_STEPS = [1, 2, 7, 8, 9, 10];
 const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(d);
 
 // A-22 Unpaid contests (BLUEPRINT §13.2 item 4; design/admin/unpaid-contests.html, owner 2026-10-10): started but not
@@ -43,24 +45,24 @@ export default async function AdminUnpaidPage() {
   const stepName = (n: number) => t(`admin.dashboard.steps.s${n}` as MessageKey);
 
   const waiting = rows.reduce((a, r) => a + r.amount, 0);
-  const atPayment = rows.filter((r) => (r.step ?? 0) >= 12).length;
+  const atPayment = rows.filter((r) => (r.step ?? 0) >= AT_PAYMENT).length;
   const longest = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
   const funnelTop = Math.max(1, stats?.funnel[0]?.visits ?? 0);
 
   const advice = (r: UnpaidContest) => {
     const step = r.step ?? 0;
-    if (step >= 12) return { title: t("admin.unpaid.next.call"), body: t("admin.unpaid.next.callBody", { brand: r.brand || "—" }) };
-    if (step === 11) return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.reviewBody", { brand: r.brand || "—" }) };
+    if (step >= AT_PAYMENT) return { title: t("admin.unpaid.next.call"), body: t("admin.unpaid.next.callBody", { brand: r.brand || "—" }) };
+    if (step === REVIEW) return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.reviewBody", { brand: r.brand || "—" }) };
     return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.stepBody", { brand: r.brand || "—", step: step ? stepName(step) : "—" }) };
   };
 
   const filled = (r: UnpaidContest): [string, string][] => [
-    [t("admin.dashboard.steps.s1"), r.brand || "—"],
-    [t("admin.dashboard.steps.s2"), r.brief.businessType ? t(`wizard.businessTypes.${r.brief.businessType}` as MessageKey) : "—"],
-    [t("admin.dashboard.steps.s3"), r.brief.website || t("admin.unpaid.none_")],
-    [t("admin.dashboard.steps.s4"), r.brief.styles.length ? r.brief.styles.map((s) => t(`wizard.styles.${s}` as MessageKey)).join(", ") : "—"],
-    [t("admin.dashboard.steps.s5"), r.brief.letDesignersChoose ? t("admin.unpaid.designersChoose") : r.brief.colors.length ? r.brief.colors.join(" ") : "—"],
-    [t("admin.dashboard.steps.s7"), num(r.brief.files)],
+    [t("admin.dashboard.steps.s2"), r.brand || "—"],
+    [t("admin.dashboard.steps.s3"), r.brief.businessType ? t(`wizard.businessTypes.${r.brief.businessType}` as MessageKey) : "—"],
+    [t("wizard.c11.recap.website"), r.brief.website || t("admin.unpaid.none_")],
+    [t("wizard.c11.recap.styles"), r.brief.styles.length ? r.brief.styles.map((s) => t(`wizard.styles.${s}` as MessageKey)).join(", ") : "—"],
+    [t("wizard.c11.recap.colours"), r.brief.letDesignersChoose ? t("admin.unpaid.designersChoose") : r.brief.colors.length ? r.brief.colors.join(" ") : "—"],
+    [t("wizard.c11.files"), num(r.brief.files)],
     [t("admin.unpaid.prizeAddons"), r.brief.prize ? `${taka(r.brief.prize)}${r.brief.addons ? ` + ${taka(r.brief.addons)}` : ""}` : "—"],
   ];
 
@@ -96,7 +98,7 @@ export default async function AdminUnpaidPage() {
                           {r.brand || "—"}
                         </Link>
                         <Pill>{t(`admin.unpaid.statuses.${r.status}`)}</Pill>
-                        {step >= 12 && <Pill tone="warn">{t("admin.unpaid.stoppedAtPayment")}</Pill>}
+                        {step >= AT_PAYMENT && <Pill tone="warn">{t("admin.unpaid.stoppedAtPayment")}</Pill>}
                       </div>
                       <span className="text-[15px] text-muted">
                         {t("admin.unpaid.clientLabel")}{" "}

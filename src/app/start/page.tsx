@@ -40,7 +40,7 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
   if (draft || params.step !== undefined || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
-    return logoWizard(draft && params.step === undefined ? { ...params, step: "11" } : params, user);
+    return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);
   }
 
   return (

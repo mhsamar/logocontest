@@ -4,7 +4,7 @@ import Link from "next/link";
 import { MethodPicker, PromoField, type AppliedPromo } from "@/components/payments/pay-bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";
-import type { Brief, Order } from "@/lib/contests/brief";
+import { briefLinks, WIZARD_STEPS as S, type Brief, type Order } from "@/lib/contests/brief";
 import type { Price } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { formatTaka } from "@/lib/money";
@@ -52,30 +52,36 @@ export function ReviewStep({
 }) {
   const { t, locale, currency, price: taka } = useI18n();
   const failed = uploads.some((u) => u.status === "error");
+  const links = briefLinks(brief);
 
   const recap: { step: number; label: string; value: string }[] = [
-    { step: 1, label: t("wizard.c11.recap.brand"), value: [brief.brandName, brief.shortName, brief.logoText, brief.slogan].filter(Boolean).join(" · ") },
-    { step: 2, label: t("wizard.c11.recap.business"), value: brief.businessType ? t(`wizard.businessTypes.${brief.businessType}`) : "" },
-    { step: 2, label: t("wizard.c11.recap.audience"), value: brief.targetAudience },
-    { step: 3, label: t("wizard.c11.recap.website"), value: brief.noWebsite || !brief.websiteUrl ? t("wizard.c11.recap.none") : brief.websiteUrl },
-    { step: 4, label: t("wizard.c11.recap.styles"), value: brief.styles.map((s) => t(`wizard.styles.${s}`)).join(", ") },
+    { step: S.logo, label: t("wizard.c11.recap.brand"), value: [brief.brandName, brief.shortName, brief.logoText, brief.slogan].filter(Boolean).join(" · ") },
     {
-      step: 5,
+      step: S.business,
+      label: t("wizard.c11.recap.business"),
+      value: brief.businessType === "other" && brief.businessTypeOther ? brief.businessTypeOther : brief.businessType ? t(`wizard.businessTypes.${brief.businessType}`) : "",
+    },
+    { step: S.business, label: t("wizard.c11.recap.audience"), value: brief.targetAudience },
+    { step: S.links, label: t("wizard.c11.recap.website"), value: links.length ? links.map((l) => l.url.replace(/^https?:\/\//, "")).join(" · ") : t("wizard.c11.recap.none") },
+    { step: S.links, label: t("wizard.c11.recap.competitors"), value: brief.competitors?.trim() || t("wizard.c11.recap.none") },
+    { step: S.look, label: t("wizard.c11.recap.styles"), value: brief.styles.map((s) => t(`wizard.styles.${s}`)).join(", ") },
+    {
+      step: S.look,
       label: t("wizard.c11.recap.colours"),
       value: brief.letDesignersChoose ? t("wizard.c05.letChoose") : brief.colors.join(" ").toUpperCase(),
     },
     {
-      step: 5,
+      step: S.needs,
       label: t("wizard.c11.recap.needs"),
       value: brief.deliverables.length ? brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`)).join(", ") : t("wizard.c11.recap.none"),
     },
     {
-      step: 6,
+      step: S.needs,
       label: t("wizard.c11.recap.requirements"),
       value: [...brief.requirements.map((r) => t(`wizard.requirements.${r}`)), brief.requirementsNote].filter(Boolean).join(" · ") || t("wizard.c11.recap.none"),
     },
     {
-      step: 8,
+      step: S.prize,
       label: t("wizard.c11.recap.package"),
       value: `${t(`wizard.packages.${order.package}.name`)} · ${t("wizard.c08.days", { days: order.durationDays })}`,
     },

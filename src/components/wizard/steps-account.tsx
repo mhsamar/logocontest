@@ -18,7 +18,9 @@ export function AccountStep({
   onCountry,
   whatsapp = false,
   onWhatsapp,
+  autoFocus = true,
 }: {
+  autoFocus?: boolean;
   mobile: string;
   email: string;
   /** Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14). */
@@ -46,7 +48,7 @@ export function AccountStep({
         value={mobile}
         onChange={(e) => onMobile(e.target.value)}
         error={mobileError}
-        autoFocus
+        autoFocus={autoFocus}
       />
       {onWhatsapp && <Checkbox label={t("auth.phone.whatsapp")} description={t("auth.phone.whatsappHint")} checked={whatsapp} onChange={(e) => onWhatsapp(e.target.checked)} />}
       <TextField
@@ -85,7 +87,9 @@ export function PasswordStep({
   onPassword,
   min,
   error,
+  autoFocus = true,
 }: {
+  autoFocus?: boolean;
   password: string;
   onPassword: (p: string) => void;
   min: number;
@@ -104,7 +108,7 @@ export function PasswordStep({
         value={password}
         onChange={(e) => onPassword(e.target.value)}
         error={error}
-        autoFocus
+        autoFocus={autoFocus}
       />
       {password && (
         <div className="flex items-center gap-2" aria-live="polite">

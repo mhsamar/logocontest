@@ -12,7 +12,6 @@ import { saveWizardLead } from "@/lib/wizard-tracking";
 import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
-import { Suggestions } from "@/components/wizard/suggestions";
 import { checkAccountDetails, createAccountAndDraft, previewPromo, saveDraft, startCheckout } from "@/lib/contests/actions";
 import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { MethodPicker, PromoField } from "@/components/payments/pay-bits";
@@ -221,12 +220,17 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                   />
                 )}
                 <TextField label={t("services.wizard.title")} hint={t("services.wizard.titleHint")} value={d.title} maxLength={LIMITS.title.max} onChange={(e) => setD({ ...d, title: e.target.value })} error={touched && titleError ? t("services.wizard.errors.title") : undefined} />
-                <TextAreaField label={t("services.wizard.description")} hint={t("services.wizard.descriptionHint")} value={d.description} maxLength={LIMITS.description.max} onChange={(e) => setD({ ...d, description: e.target.value })} error={touched && descError ? t("services.wizard.errors.description", { min: LIMITS.description.min }) : undefined} />
-                <Suggestions
-                  key={`desc-${d.title}`}
-                  items={(["d1", "d2", "d3", "d4", "d5"] as const).map((k) => t(`services.wizard.suggest.${k}`, { service: l(service.name).toLocaleLowerCase(locale === "bn" ? "bn" : "en"), title: d.title.trim() || t("services.wizard.suggest.yourName") })).filter((x) => x.length <= LIMITS.description.max)}
+                <TextAreaField
+                  label={t("services.wizard.description")}
+                  hint={t("services.wizard.descriptionHint")}
                   value={d.description}
-                  onPick={(text) => setD({ ...d, description: text })}
+                  maxLength={LIMITS.description.max}
+                  onChange={(e) => setD({ ...d, description: e.target.value })}
+                  error={touched && descError ? t("services.wizard.errors.description", { min: LIMITS.description.min }) : undefined}
+                  ideas={{
+                    items: (["d1", "d2", "d3", "d4", "d5"] as const).map((k) => t(`services.wizard.suggest.${k}`, { service: l(service.name).toLocaleLowerCase(locale === "bn" ? "bn" : "en"), title: d.title.trim() || t("services.wizard.suggest.yourName") })).filter((x) => x.length <= LIMITS.description.max),
+                    onPick: (text) => setD({ ...d, description: text }),
+                  }}
                 />
                 {service.fields.map((f) => (
                   <FieldInput key={f.key} f={f} value={d.answers[f.key]} onChange={(v) => setAnswer(f.key, v)} error={fieldError(f)} l={l} />

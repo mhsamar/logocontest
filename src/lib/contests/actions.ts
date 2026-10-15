@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { toE164 } from "@/lib/phone";
-import { personNameFrom } from "@/lib/profile/name-rules";
+import { isPersonName, personNameFrom } from "@/lib/profile/name-rules";
 import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
 import { translatorFor } from "@/lib/content/texts";
@@ -30,18 +30,15 @@ import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import {
   BUSINESS_TYPES,
   DELIVERABLES,
-  findBriefContact,
+  LINK_KINDS,
   LOGO_STYLES,
   PACKAGES,
   REQUIREMENTS,
   UPGRADES,
   USED_ON,
   type Brief,
-  type ContactCheckedField,
   type Order,
 } from "./brief";
-import { findContactDetails } from "@/lib/moderation/contact-filter";
-import { blockedTerms } from "./community";
 import { feePercentFor, serviceFee as feeFor } from "./pricing";
 import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
@@ -52,7 +49,7 @@ import { noticeOn } from "@/lib/notifications/switches";
 
 export type WizardResult<T = object> =
   | ({ ok: true } & T)
-  | { ok: false; error: { key: MessageKey; params?: MessageParams; field?: ContactCheckedField } };
+  | { ok: false; error: { key: MessageKey; params?: MessageParams; field?: string } };
 
 const err = (key: MessageKey, params?: MessageParams) => ({ ok: false as const, error: { key, params } });
 
@@ -65,6 +62,12 @@ const BriefShape = z.object({
   businessDescription: z.string().max(1000),
   websiteUrl: z.string().max(500),
   noWebsite: z.boolean(),
+  // Added 2026-10-15 (owner): "Other" business, links and competitors.
+  businessTypeOther: z.string().max(200).default(""),
+  links: z.array(z.object({ kind: z.enum(LINK_KINDS), url: z.string().max(500) })).max(10).default([]),
+  noLinks: z.boolean().default(false),
+  competitors: z.string().max(1000).default(""),
+  noCompetitors: z.boolean().default(false),
   styles: z.array(z.enum(LOGO_STYLES)).max(LOGO_STYLES.length),
   sliders: z.object({ complexity: z.number(), era: z.number(), tone: z.number() }),
   colors: z.array(z.string().max(7)).max(5),
@@ -104,26 +107,9 @@ function parse(brief: unknown, order: unknown): { brief: Brief; order: Order } |
   return b.success && o.success ? { brief: b.data as Brief, order: o.data } : null;
 }
 
-/** C-06: brief text can't carry contact details (BLUEPRINT §10). Names the field so the wizard shows it inline. */
-async function contactError(brief: Brief) {
-  const terms = await blockedTerms();
-  const field = findBriefContact(brief, terms);
-  if (field) return { ok: false as const, error: { key: "wizard.errors.contact" as const, field } };
-  // The owner's own questions (Admin › Onboarding): no contact details in written answers either.
-  const written = Object.values(brief.extra ?? {}).flatMap((v) => (Array.isArray(v) ? [] : [v]));
-  return written.some((x) => x && findContactDetails(x, terms)) ? err("services.wizard.contact") : null;
-}
-
 /** A non-logo contest's service and answers (owner, 2026-10-13); null for logo contests. */
 const ServiceShape = z.object({ slug: z.string().max(40), answers: z.record(z.string(), z.union([z.string().max(2000), z.array(z.string().max(100)).max(20)])) });
 type ServiceArg = z.infer<typeof ServiceShape> | null | undefined;
-
-/** The same no-contact rule for a service contest: its title, description and every written answer. */
-async function serviceContactError(brief: Brief, answers: Record<string, string | string[]>) {
-  const terms = await blockedTerms();
-  const texts = [brief.brandName, brief.businessDescription, ...Object.values(answers).flatMap((v) => (Array.isArray(v) ? [] : [v]))];
-  return texts.some((x) => x && findContactDetails(x, terms)) ? err("services.wizard.contact") : null;
-}
 
 /**
  * Owner, 2026-10-13: a design type that is off in Admin → Services can't be started, also not by calling this API
@@ -162,8 +148,6 @@ export async function saveDraft(input: { brief: unknown; order: unknown; contest
   if (!data || service === "bad") return err("wizard.errors.incomplete");
   const off = await serviceOff(service?.slug);
   if (off) return off;
-  const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
-  if (contact) return contact;
 
   const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId, service);
   if (!result.ok) return err(SAVE_ERRORS[result.error]);
@@ -197,6 +181,8 @@ export async function checkAccountDetails(input: { mobile: string; email: string
  * signs in, and saves the wizard as a server draft.
  */
 export async function createAccountAndDraft(input: {
+  /** The client's real name (owner, 2026-10-15), checked against payments. Older callers leave it out. */
+  name?: string;
   mobile: string;
   country?: string;
   /** "This number is on WhatsApp" (owner, 2026-10-14). */
@@ -214,11 +200,9 @@ export async function createAccountAndDraft(input: {
   const data = parse(input.brief, input.order);
   const service = parseService(input.service);
   if (!data || service === "bad") return err("wizard.errors.incomplete");
-  // Before the account is created, so a tripped filter doesn't leave an account without a draft.
+  // Before the account is created, so a switched-off service doesn't leave an account without a draft.
   const off = await serviceOff(service?.slug);
   if (off) return off;
-  const contact = service ? await serviceContactError(data.brief, service.answers) : await contactError(data.brief);
-  if (contact) return contact;
 
   const mobile = toE164(input.mobile, input.country);
   const email = normalizeEmail(input.email);
@@ -234,14 +218,18 @@ export async function createAccountAndDraft(input: {
 
   const { locale } = await getI18n();
   const brandName = data.brief.brandName.trim().slice(0, 80) || "Client";
+  // The client's own name (owner, 2026-10-15: before, a new client's account was named after the brand).
+  const typed = (input.name ?? "").trim().replace(/\s+/g, " ");
+  if (input.name !== undefined && (!isPersonName(typed) || typed.length < 2 || typed.length > 60)) return err("designerSignup.errors.nameLetters");
+  const fallback = personNameFrom(brandName).length >= 2 ? personNameFrom(brandName) : "Client";
+  const personName = input.name !== undefined ? typed : fallback;
   const admin = createAdminClient();
-  // The trigger creates the profile as a "client". The real name is asked in C-11.
+  // The trigger creates the profile as a "client" with this name.
   const created = await admin.auth.admin.createUser({
     email,
     password: input.password,
     email_confirm: true,
-    // A person's name has letters only (owner, 2026-10-14): the brand name without its digits and signs.
-    user_metadata: { mobile, name: personNameFrom(brandName).length >= 2 ? personNameFrom(brandName) : "Client", email, locale },
+    user_metadata: { mobile, name: personName, email, locale },
   });
   if (created.error || !created.data.user) {
     return /already|exists|registered/i.test(created.error?.message ?? "")
@@ -262,7 +250,7 @@ export async function createAccountAndDraft(input: {
 
   // Owner, 2026-10-07: welcome push in the browser + the 6-digit email code. Neither blocks sign-up.
   const userId = created.data.user.id;
-  await sendVerificationEmail({ userId, email, name: brandName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
+  await sendVerificationEmail({ userId, email, name: personName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
   // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
   after(() => emailWelcome(userId));
   // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
@@ -303,13 +291,11 @@ export async function startCheckout(input: {
   if (!method) return err("wizard.errors.paymentsClosed");
   if ((await awaitingApproval([input.contestId])).size > 0) return err("pay.page.errors.awaiting");
 
-  // The draft was checked when saved, but the admin may have blocked more terms since.
+  // A design type switched off since the draft was saved can't be paid for.
   const contest = await contestRepository().findContest(input.contestId);
   if (contest && contest.clientId === user.id) {
     const off = await serviceOff(contest.service);
     if (off) return off;
-    const contact = contest.service !== "logo" ? await serviceContactError(contest.brief, contest.serviceBrief) : await contactError(contest.brief);
-    if (contact) return contact;
   }
 
   // A client fee code (owner, 2026-10-14): reserved for this client now, used when the payment is approved.
@@ -345,7 +331,7 @@ export async function startCheckout(input: {
       bdt: result.payment.amount,
       name: `logocontest.bd · ${contest?.brief.brandName ?? "Contest"}`,
       email: user.email,
-      cancelPath: `/start?draft=${input.contestId}&step=${logoDraft ? "11" : "pay"}`,
+      cancelPath: `/start?draft=${input.contestId}&step=${logoDraft ? "8" : "pay"}`,
     });
     if (!url) return err("wizard.errors.payment");
     redirect(url);

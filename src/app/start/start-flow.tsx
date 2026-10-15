@@ -144,7 +144,9 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
     }
   }
 
-  const step = Number(params.step);
+  // 8 steps since 2026-10-15 (owner); older links to "?step=11" (the review) open the review.
+  const asked = Number(params.step);
+  const step = asked > 8 ? 8 : asked;
   return (
     <Wizard
       user={wizardUser}
@@ -153,7 +155,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       passwordMin={s["auth.password_min_length"]}
       previous={previous}
       resume={resume}
-      initialStep={Number.isInteger(step) && step >= 1 && step <= 11 ? step : null}
+      initialStep={Number.isInteger(step) && step >= 1 && step <= 8 ? step : null}
       prefillName={typeof params.name === "string" ? params.name : ""}
       choices={{ businessTypes: businessTypes.map((b) => b.id), swatches: colours.map((c) => c.value ?? "").filter(Boolean) }}
       inviteFirst={inviteFirst}

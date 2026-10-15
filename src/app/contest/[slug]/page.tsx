@@ -184,7 +184,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                 {contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{t(`wizard.businessTypes.${contest.businessType}`)}</span>
+                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{contest.businessType === "other" && contest.brief?.businessTypeOther ? contest.brief.businessTypeOther : t(`wizard.businessTypes.${contest.businessType}`)}</span>
                 <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">
                   {svc ? l(svc.name) : t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}
                 </span>

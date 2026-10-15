@@ -15,6 +15,75 @@ type FieldProps = {
   mark?: boolean;
 };
 
+/** Text boxes can offer ready answers. */
+type WithIdeas = {
+  /**
+   * Ready answers to tap (owner, 2026-10-15): an "ideas" button at the top right of the field, beside "Optional";
+   * the list opens under the label and a pick fills the box.
+   */
+  ideas?: Ideas;
+};
+
+export type Ideas = { items: string[]; onPick: (text: string) => void };
+
+const BULB = (
+  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z" strokeLinecap="round" />
+  </svg>
+);
+
+/** The ideas button and its list (see FieldProps.ideas). */
+function IdeasButton({ ideas, open, onToggle }: { ideas: Ideas; open: boolean; onToggle: () => void }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className={cx(
+        "inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold transition-colors",
+        open ? "bg-primary text-white" : "bg-tint text-primary hover:bg-[#F6D9D6]",
+      )}
+    >
+      {BULB}
+      {t("wizard.suggest.short", { n: ideas.items.length })}
+    </button>
+  );
+}
+
+function IdeasList({ ideas, onClose }: { ideas: Ideas; onClose: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="animate-rise rounded-[18px] border border-line bg-surface p-2.5">
+      <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
+        <p className="m-0 text-[13px] font-semibold text-muted">{t("wizard.suggest.title")}</p>
+        <button type="button" onClick={onClose} className="min-h-8 shrink-0 px-2 text-xs font-semibold text-muted hover:text-ink">
+          {t("wizard.suggest.hide")}
+        </button>
+      </div>
+      <ul className="m-0 list-none space-y-1.5 p-0">
+        {ideas.items.map((text, i) => (
+          <li key={text} className="animate-item-in" style={{ animationDelay: `${i * 40}ms` }}>
+            <button
+              type="button"
+              onClick={() => {
+                ideas.onPick(text);
+                onClose();
+              }}
+              className="flex min-h-11 w-full items-start gap-2 rounded-[14px] bg-chip px-3 py-2.5 text-left text-sm leading-relaxed text-ink ring-1 ring-transparent transition-[background-color,box-shadow] hover:bg-surface hover:ring-primary"
+            >
+              <span className="mt-0.5 text-primary" aria-hidden>
+                +
+              </span>
+              <span>{text}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // Inputs from the site design (owner, 2026-10-10; UI-JOURNEY §1): white, thin line, 14px corners, 52px tall.
 export const INPUT =
   "block w-full min-h-[52px] rounded-[14px] bg-surface px-4 text-[17px] font-medium text-ink placeholder:font-normal placeholder:text-muted/80 " +
@@ -30,21 +99,30 @@ function FieldShell({
   optionalLabel,
   className,
   mark,
+  ideas,
   children,
-}: FieldProps & { id: string; children: React.ReactNode }) {
+}: FieldProps & WithIdeas & { id: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const withIdeas = ideas && ideas.items.length > 0 ? ideas : null;
   return (
     <div className={cx("space-y-1.5", className)}>
-      <label htmlFor={id} className="flex items-baseline justify-between gap-2 text-sm font-semibold text-ink">
-        <span>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-sm font-semibold text-ink">
           {label}
           {mark && (
             <span className="ml-0.5 text-danger" aria-hidden>
               *
             </span>
           )}
-        </span>
-        {optionalLabel && <span className="text-xs font-normal text-muted">{optionalLabel}</span>}
-      </label>
+        </label>
+        {(withIdeas || optionalLabel) && (
+          <span className="flex shrink-0 items-center gap-2">
+            {withIdeas && <IdeasButton ideas={withIdeas} open={open} onToggle={() => setOpen((x) => !x)} />}
+            {optionalLabel && <span className="text-xs font-normal text-muted">{optionalLabel}</span>}
+          </span>
+        )}
+      </div>
+      {withIdeas && open && <IdeasList ideas={withIdeas} onClose={() => setOpen(false)} />}
       {children}
       {error ? (
         <p id={`${id}-msg`} role="alert" className="text-sm text-danger">
@@ -66,11 +144,12 @@ export function TextField({
   optionalLabel,
   className,
   mark,
+  ideas,
   ...input
-}: FieldProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">) {
+}: FieldProps & WithIdeas & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">) {
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark} ideas={ideas}>
       <input
         id={id}
         aria-invalid={error ? true : undefined}
@@ -231,14 +310,15 @@ export function TextAreaField({
   optionalLabel,
   className,
   mark,
+  ideas,
   value,
   maxLength,
   counterLabel,
   ...input
-}: FieldProps & { value: string; counterLabel?: string } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "value">) {
+}: FieldProps & WithIdeas & { value: string; counterLabel?: string } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "value">) {
   const id = useId();
   return (
-    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark}>
+    <FieldShell id={id} label={label} hint={hint} error={error} optionalLabel={optionalLabel} className={className} mark={mark} ideas={ideas}>
       <textarea
         id={id}
         value={value}

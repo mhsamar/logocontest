@@ -118,7 +118,8 @@ export function suspendedError(user: Pick<CurrentUser, "status" | "suspendedUnti
  * designer who tries is suspended at once. Returns the error to show, or null when the comment is fine.
  */
 export async function checkComment(user: CurrentUser, body: string, where: { contestId: string; entryId?: string | null }): Promise<FormError | null> {
-  const contact = findContactDetails(body, await blockedTerms());
+  // Clients are never stopped for contact details (owner, 2026-10-15); bad words still are.
+  const contact = user.role === "client" ? null : findContactDetails(body, await blockedTerms());
   const bad = contact ? null : findBadWord(body);
   if (!contact && !bad) return null;
   if (await suspendForComment(user, contact ? "contact" : "abuse", where)) return { key: "suspension.commentBlocked", params: { hours: await getSetting("timers.suspension_hours") } };

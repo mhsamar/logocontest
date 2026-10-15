@@ -7,9 +7,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cleanBrief, findBriefContact, validateBrief, type Brief, type FieldErrors } from "./brief";
+import { cleanBrief, validateBrief, type Brief, type FieldErrors } from "./brief";
 import { getOnboarding } from "@/lib/onboarding/store";
-import { blockedTerms } from "./community";
 import { contestRepository } from "./services";
 import { briefDetailColumns } from "./supabase-repository";
 
@@ -31,8 +30,6 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
   // Questions the owner hid (Admin › Onboarding) can stay empty.
   const errors = validateBrief(brief, new Set((await getOnboarding("client")).hidden));
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  const contact = findBriefContact(brief, await blockedTerms());
-  if (contact) return { ok: false, errors: { [contact]: "contest.comments.contact" } };
 
   const { error } = await createAdminClient()
     .from("contests")

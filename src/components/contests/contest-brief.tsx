@@ -42,7 +42,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {/* The description itself is in the page header. */}
-      {(facts.length > 0 || brief.websiteUrl || brief.targetAudience) && (
+      {(facts.length > 0 || brief.links.length > 0 || brief.targetAudience || brief.competitors) && (
         <Block title={t("contest.brief.about")} className="lg:col-span-2">
           <dl className="grid gap-3 sm:grid-cols-3">
             {facts.map((f) => (
@@ -51,20 +51,27 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
                 <dd className="mt-0.5 font-medium">{f.value}</dd>
               </div>
             ))}
-            {brief.websiteUrl && (
-              <div className="min-w-0">
-                <dt className="text-xs text-muted">{t("contest.brief.website")}</dt>
+            {/* Website and social links (owner, 2026-10-15): each with its kind. */}
+            {brief.links.map((l, i) => (
+              <div key={`${l.url}-${i}`} className="min-w-0">
+                <dt className="text-xs text-muted">{t(`wizard.links.kinds.${l.kind}`)}</dt>
                 <dd className="mt-0.5 truncate font-medium">
-                  <a href={brief.websiteUrl} target="_blank" rel="nofollow noopener noreferrer" className="text-primary underline">
-                    {brief.websiteUrl.replace(/^https?:\/\//, "")}
+                  <a href={l.url} target="_blank" rel="nofollow noopener noreferrer" className="text-primary underline">
+                    {l.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                   </a>
                 </dd>
               </div>
-            )}
+            ))}
             {brief.targetAudience && (
               <div className="sm:col-span-3">
                 <dt className="text-xs text-muted">{t("contest.brief.audience")}</dt>
                 <dd className="mt-0.5 font-medium">{brief.targetAudience}</dd>
+              </div>
+            )}
+            {brief.competitors && (
+              <div className="sm:col-span-3">
+                <dt className="text-xs text-muted">{t("wizard.links.competitorsTitle")}</dt>
+                <dd className="mt-0.5 whitespace-pre-line font-medium">{brief.competitors}</dd>
               </div>
             )}
           </dl>

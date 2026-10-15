@@ -5,7 +5,7 @@ import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
 import { countDesigners, countShownEntries, designerFaces, leadingDesigns, type ContestCover, type ContestDesigner } from "@/lib/entries/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAcceptedNda } from "./nda";
-import type { BusinessType, Deliverable, LogoStyle, PackageKey, Requirement, StyleSlider, UsedOn } from "./brief";
+import { briefLinks, type BriefLink, type BusinessType, type Deliverable, type LogoStyle, type PackageKey, type Requirement, type StyleSlider, type UsedOn } from "./brief";
 import { GONE_STATUSES } from "@/lib/entries/rules";
 import { MESSAGES } from "@/lib/i18n/messages";
 import { addonRank } from "./addon-order";
@@ -321,6 +321,10 @@ export type ContestDetail = ContestRow & {
     logoText: string | null;
     slogan: string | null;
     websiteUrl: string | null;
+    /** Owner, 2026-10-15 (migration 0062): every link, "Other" business type and competitors. */
+    links: BriefLink[];
+    businessTypeOther: string | null;
+    competitors: string | null;
     styles: LogoStyle[];
     sliders: Partial<Record<StyleSlider, number>>;
     colors: string[];
@@ -345,7 +349,7 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
   const { data, error } = await db
     .from("contests")
     .select(
-      `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, styles, style_sliders, colors,
+      `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, links, business_type_other, competitors, styles, style_sliders, colors,
        let_designers_choose_colors, used_on, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
     )
     .eq("slug", slug)
@@ -406,6 +410,9 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
           logoText: data.logo_text,
           slogan: data.slogan,
           websiteUrl: data.website_url,
+          links: briefLinks({ links: (data.links ?? []) as BriefLink[], websiteUrl: data.website_url ?? "", noWebsite: !data.website_url }),
+          businessTypeOther: data.business_type_other ?? null,
+          competitors: data.competitors ?? null,
           styles: (data.styles ?? []) as LogoStyle[],
           sliders: (data.style_sliders ?? {}) as Partial<Record<StyleSlider, number>>,
           colors: (data.colors ?? []) as string[],
