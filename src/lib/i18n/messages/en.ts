@@ -4971,7 +4971,7 @@ const en = {
       failed: "Upload failed",
       image: "Mockup {n}",
     },
-    confirm: { title: "Confirm" },
+    confirm: { title: "Confirm", agreeAll: "I agree to all of the above" },
     declarations: {
       own: "I made this logo myself for this contest. It is not copied or traced from any other logo, template, or stock artwork.",
       custom: "This is a custom design for this brief, not a pre-made or resold logo.",
@@ -4987,7 +4987,7 @@ const en = {
       images: "At least one mockup",
       names: "A name for every mockup",
       uploading: "Wait for the uploads to finish",
-      declarations: "Tick all seven boxes",
+      declarations: "Tick all {n} boxes",
     },
     button: "Submit design",
     done: {
@@ -5011,7 +5011,7 @@ const en = {
       fileSize: "Each image can be up to {mb} MB.",
       minImages: "Add at least {min} mockup.",
       maxImages: "You can add up to {max} mockups in one design.",
-      declarations: "Please tick all seven boxes.",
+      declarations: "Please tick all {n} boxes.",
       tooMany: "You can submit up to {max} designs to this contest.",
       tooManyBasic: "Basic designers can send up to {max} designs to one contest. Go Pro to send as many as you like.",
       missing: "Mockup {n} didn't finish uploading. Remove it and add it again.",

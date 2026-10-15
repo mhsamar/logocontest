@@ -141,7 +141,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
   if (paths.length > maxImages) return fail("submit.errors.maxImages", { max: maxImages });
   const pattern = originalPattern(contest.id, user!.id);
   if (!paths.every((p) => pattern.test(p))) return fail("auth.errors.generic");
-  if (!DECLARATION_KEYS.every((k) => input.declarations.includes(k))) return fail("submit.errors.declarations");
+  if (!DECLARATION_KEYS.every((k) => input.declarations.includes(k))) return fail("submit.errors.declarations", { n: DECLARATION_KEYS.length });
   // Every mockup has a name, without contact details (owner, 2026-10-11).
   const terms = await blockedTerms();
   for (const [i, p] of paths.entries()) {

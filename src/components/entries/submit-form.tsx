@@ -149,7 +149,7 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
     ready.length < limits.min && t("submit.missing.images"),
     items.some((i) => !i.label.trim()) && t("submit.missing.names"),
     uploading && t("submit.missing.uploading"),
-    ticked.size < DECLARATION_KEYS.length && t("submit.missing.declarations"),
+    ticked.size < DECLARATION_KEYS.length && t("submit.missing.declarations", { n: fmt(DECLARATION_KEYS.length) }),
   ].filter(Boolean) as string[];
 
   // "Submit new design": an empty form for the next design.
@@ -323,6 +323,14 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
             />
           ))}
         </div>
+        {/* One tick for all of them (owner, 2026-10-16). */}
+        <div className="mt-1 border-t-2 border-line pt-1" data-agree-all>
+          <Checkbox
+            label={<strong className="font-bold text-ink">{t("submit.confirm.agreeAll")}</strong>}
+            checked={ticked.size === DECLARATION_KEYS.length}
+            onChange={(e) => setTicked(e.target.checked ? new Set(DECLARATION_KEYS) : new Set())}
+          />
+        </div>
         {/* Pro "Hide my design" (owner, 2026-10-14) */}
         {canHide && (
           <div className="mt-3 rounded-[14px] bg-[#F4F0FF] px-3.5 py-1" data-hide-option>
@@ -379,7 +387,8 @@ export function SubmitForm({ contestId, slug, limits, contestName, check, canHid
             <ButtonLink href={`/contest/${slug}?tab=entries&entry=${done ?? ""}`} size="lg" className="flex-1">
               {t("submit.done.view")}
             </ButtonLink>
-            <Button variant="secondary" size="lg" className="flex-1" onClick={startNew}>
+            {/* A different colour from "View design" (owner, 2026-10-16). */}
+            <Button variant="dark" size="lg" className="flex-1" onClick={startNew}>
               {t("submit.done.another")}
             </Button>
           </div>
