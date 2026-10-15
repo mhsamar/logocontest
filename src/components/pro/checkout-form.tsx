@@ -88,8 +88,8 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, method
           {methods.map((m) => (
             <label key={m.key} className="ck-pm" data-method={m.key}>
               <input type="radio" name="pm" checked={method === m.key} onChange={() => setMethod(m.key)} />
-              <span className="ck-pmi" style={{ background: m.key === "stripe" ? "#635BFF" : m.key === "sslcommerz" ? "#1F2A44" : "#E2136E" }} aria-hidden>
-                {m.key === "sslcommerz" || m.key === "stripe" ? <Icon name="wallet" size={22} /> : "b"}
+              <span className="ck-pmi" style={{ background: m.key === "stripe" ? "#635BFF" : m.key === "sslcommerz" ? "#1F2A44" : m.key === "bangla_qr" ? "#006A4E" : "#E2136E" }} aria-hidden>
+                {m.key === "sslcommerz" || m.key === "stripe" ? <Icon name="wallet" size={22} /> : m.key === "bangla_qr" ? "QR" : "b"}
               </span>
               <span>
                 <b>{t(`pay.methods.${m.key}`)}</b>

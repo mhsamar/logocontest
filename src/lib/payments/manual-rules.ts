@@ -5,7 +5,8 @@
  * from visitors abroad; the others are for visitors who see taka.
  */
 
-export const METHOD_KEYS = ["bkash_personal", "bkash_merchant", "bkash_api", "sslcommerz", "stripe"] as const;
+// Bangla QR (owner, 2026-10-15): automatic, for later, once Bangladesh Bank's API is out (see bangla-qr.ts).
+export const METHOD_KEYS = ["bkash_personal", "bkash_merchant", "bkash_api", "sslcommerz", "bangla_qr", "stripe"] as const;
 export type MethodKey = (typeof METHOD_KEYS)[number];
 export const isMethodKey = (v: unknown): v is MethodKey => (METHOD_KEYS as readonly unknown[]).includes(v);
 
