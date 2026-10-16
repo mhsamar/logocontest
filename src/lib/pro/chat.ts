@@ -5,7 +5,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canUseContestChat } from "./rules";
 import { getProSettings } from "./settings";
-import { isPro } from "./status";
+import { isPro, proIdsAmong } from "./status";
 
 export const PRO_FILES_BUCKET = "pro-files";
 const db = () => createAdminClient();
@@ -163,8 +163,8 @@ export async function chattableEntries(contestId: string, viewer: CurrentUser | 
   const { data: entries } = await db().from("entries").select("id, designer_id").eq("contest_id", contestId).not("status", "in", "(removed,withdrawn)");
   const ids = [...new Set((entries ?? []).map((e) => e.designer_id as string))];
   if (!ids.length) return new Set();
-  const { data: subs } = await db().from("pro_subscriptions").select("designer_id").in("designer_id", ids).neq("status", "expired").gt("current_period_end", new Date().toISOString());
-  const pro = new Set((subs ?? []).map((s) => s.designer_id as string));
+  // Pro plan or the free Pro Trial (owner, 2026-10-16): the trial gives every Pro feature, this chat too.
+  const pro = await proIdsAmong(ids);
   const { data: off } = await db().from("pro_preferences").select("designer_id").in("designer_id", [...pro]).eq("client_messages", false);
   for (const r of off ?? []) pro.delete(r.designer_id as string);
   return new Set((entries ?? []).filter((e) => pro.has(e.designer_id as string)).map((e) => e.id as string));
