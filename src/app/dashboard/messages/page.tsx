@@ -27,6 +27,8 @@ export default async function MessagesPage({ searchParams }: PageProps<"/dashboa
   const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   if (!user) redirect("/login?next=%2Fdashboard%2Fmessages");
   if (user.role !== "client" && user.role !== "designer") redirect("/dashboard");
+  // Premium client workspace (owner, 2026-10-16): the client's messages are at /client/messages.
+  if (user.role === "client") redirect(typeof sp.entry === "string" ? `/client/messages?entry=${encodeURIComponent(sp.entry)}` : "/client/messages");
   const { settings, ready } = await getProSettings();
   const pro = user.role === "designer" && (await isPro(user.id));
   if (user.role === "designer" && !pro) redirect("/pro");
@@ -42,7 +44,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/dashboa
     return m < 60 ? t("pro.insights.minutes", { n: f(Math.max(1, Math.round(m))) }) : m < 1440 ? t("pro.insights.hours", { n: f(Math.round(m / 60)) }) : t("pro.insights.days", { n: f(Math.round(m / 1440)) });
   };
   // A thread that was just opened from a design has no messages yet: show it at the top of the list.
-  const list = ctx && !threads.some((x) => x.entryId === ctx.entryId) ? [{ entryId: ctx.entryId, entryNumber: ctx.entryNumber, brand: ctx.brand, other: { name: ctx.other.name, avatarUrl: ctx.other.avatarUrl }, last: "", lastAt: new Date().toISOString(), unread: 0 }, ...threads] : threads;
+  const list = ctx && !threads.some((x) => x.entryId === ctx.entryId) ? [{ entryId: ctx.entryId, entryNumber: ctx.entryNumber, brand: ctx.brand, contestSlug: ctx.contestSlug, other: { id: ctx.other.id, name: ctx.other.name, avatarUrl: ctx.other.avatarUrl }, last: "", lastAt: new Date().toISOString(), unread: 0 }, ...threads] : threads;
 
   const chat: ReactNode = (
     <section className="pr-chat">
@@ -91,7 +93,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/dashboa
             <ChatThread entryId={ctx.entryId} messages={messages} />
           </>
         ) : (
-          <div className="pr-nochat">{list.length ? t("pro.chat.pick") : user.role === "client" ? t("pro.chat.emptyClient") : t("pro.chat.emptyDesigner")}</div>
+          <div className="pr-nochat">{list.length ? t("pro.chat.pick") : t("pro.chat.emptyDesigner")}</div>
         )}
       </div>
     </section>

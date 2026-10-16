@@ -8,7 +8,7 @@ import { cx } from "@/lib/cx";
 export function MessageDesignerLink({ entryId, label, size = "lg", className }: { entryId: string; label: string; size?: "lg" | "sm"; className?: string }) {
   return (
     <Link
-      href={`/dashboard/messages?entry=${entryId}`}
+      href={`/client/messages?entry=${entryId}`}
       data-message-designer
       className={cx(
         "inline-flex items-center gap-2 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] font-bold text-white transition-[filter] hover:brightness-110",

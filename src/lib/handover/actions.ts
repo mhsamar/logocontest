@@ -221,7 +221,7 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
     [toClient ? h.contest!.client_id : h.designer_id],
     "handover_message",
     { brand: h.contest?.brand_name, name: user.name },
-    toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
+    toClient ? `/client/contests/${h.contest?.slug}?tab=payment#files` : `/dashboard/handover/${h.contest?.slug}`,
     user.id,
   );
   await emailChat({
@@ -230,7 +230,7 @@ export async function postHandoverMessage(input: { handoverId: string; body: str
     contestId: h.contest_id,
     entryNo: null,
     message: body,
-    path: toClient ? `/dashboard/contests/${h.contest?.slug}#files` : `/dashboard/handover/${h.contest?.slug}`,
+    path: toClient ? `/client/contests/${h.contest?.slug}?tab=payment#files` : `/dashboard/handover/${h.contest?.slug}`,
     thread: `files:${h.id}`,
     notice: "handover_message",
   });

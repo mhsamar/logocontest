@@ -103,7 +103,17 @@ export async function chatMessages(ctx: ChatContext, viewerId: string): Promise<
   }));
 }
 
-export type ChatThread = { entryId: string; entryNumber: number; brand: string; other: { name: string; avatarUrl: string | null }; last: string; lastAt: string; unread: number };
+export type ChatThread = {
+  entryId: string;
+  entryNumber: number;
+  brand: string;
+  /** The contest (owner, 2026-10-16: the client's Messages groups chats by contest). */
+  contestSlug: string;
+  other: { id: string; name: string; avatarUrl: string | null };
+  last: string;
+  lastAt: string;
+  unread: number;
+};
 
 /** Every chat this person is in (designer: their entries; client: their contests), newest first. */
 export async function chatThreads(viewer: CurrentUser): Promise<ChatThread[]> {
@@ -112,7 +122,7 @@ export async function chatThreads(viewer: CurrentUser): Promise<ChatThread[]> {
   const col = viewer.role === "client" ? "client_id" : "designer_id";
   const { data } = await db()
     .from("contest_messages")
-    .select("entry_id, client_id, designer_id, sender_id, body, file_name, read_at, created_at, entry:entries!entry_id(number), contest:contests!contest_id(brand_name)")
+    .select("entry_id, client_id, designer_id, sender_id, body, file_name, read_at, created_at, entry:entries!entry_id(number), contest:contests!contest_id(brand_name, slug)")
     .eq(col, viewer.id)
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -126,13 +136,15 @@ export async function chatThreads(viewer: CurrentUser): Promise<ChatThread[]> {
       continue;
     }
     const entry = (Array.isArray(r.entry) ? r.entry[0] : r.entry) as { number: number } | null;
-    const contest = (Array.isArray(r.contest) ? r.contest[0] : r.contest) as { brand_name: string } | null;
+    const contest = (Array.isArray(r.contest) ? r.contest[0] : r.contest) as { brand_name: string; slug: string } | null;
+    const otherId = (viewer.role === "client" ? r.designer_id : r.client_id) as string;
     byEntry.set(id, {
       entryId: id,
       entryNumber: entry?.number ?? 0,
       brand: contest?.brand_name ?? "",
-      other: { name: "", avatarUrl: null },
-      otherId: (viewer.role === "client" ? r.designer_id : r.client_id) as string,
+      contestSlug: contest?.slug ?? "",
+      other: { id: otherId, name: "", avatarUrl: null },
+      otherId,
       last: (r.body as string) || (r.file_name as string) || "",
       lastAt: r.created_at as string,
       unread,
@@ -141,7 +153,7 @@ export async function chatThreads(viewer: CurrentUser): Promise<ChatThread[]> {
   const threads = [...byEntry.values()];
   const ids = [...new Set(threads.map((t) => t.otherId))];
   const { data: people } = ids.length ? await db().from("profiles").select("id, name, avatar_path").in("id", ids) : { data: [] };
-  const who = new Map((people ?? []).map((p) => [p.id as string, { name: ((p.name as string) ?? "").trim(), avatarUrl: avatarUrl(p.avatar_path as string | null) }]));
+  const who = new Map((people ?? []).map((p) => [p.id as string, { id: p.id as string, name: ((p.name as string) ?? "").trim(), avatarUrl: avatarUrl(p.avatar_path as string | null) }]));
   return threads.map(({ otherId, ...t }) => ({ ...t, other: who.get(otherId) ?? t.other }));
 }
 

@@ -10,9 +10,13 @@ import { usePathname } from "next/navigation";
 /** The admin sign-in and signed-out pages are full-screen pages of their own (owner, 2026-10-10). */
 const ADMIN_DOORS = ["/admin-login", "/admin-signed-out"];
 
-export function SiteChrome({ children, hideOnHome = false }: { children: React.ReactNode; hideOnHome?: boolean }) {
+/** The premium client workspace (owner, 2026-10-16) has its own top bar (logo and photo only) and no site footer. */
+export const isClientWorkspace = (path: string) => path === "/client" || path.startsWith("/client/");
+
+export function SiteChrome({ children, hideOnHome = false, hideOnClient = false }: { children: React.ReactNode; hideOnHome?: boolean; hideOnClient?: boolean }) {
   const path = usePathname();
   if (path === "/admin" || path.startsWith("/admin/") || ADMIN_DOORS.includes(path)) return null;
   if (hideOnHome && path === "/") return null;
+  if (hideOnClient && isClientWorkspace(path)) return null;
   return <>{children}</>;
 }

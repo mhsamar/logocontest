@@ -61,7 +61,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   // Owner, 2026-10-13: the leaderboard link leaves the menu while the monthly prizes program is off.
   const links = menu.filter((item) => showsLink(item.href, offers)).map((item) =>
     user?.role === "client" && item.href === "/contests"
-      ? { href: "/my-contests", label: t("nav.myContests") }
+      ? { href: "/client/contests", label: t("nav.myContests") }
       : { href: item.href ?? "/", label: item.text.label, badge: isNewLink(item.href, now) ? t("nav.new") : undefined },
   );
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
