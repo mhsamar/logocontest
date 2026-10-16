@@ -22,6 +22,7 @@ import { CountUp } from "@/components/ui/count-up";
 import { StatusChip, type ChipStatus } from "@/components/ui/status-chip";
 import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
+import { oldContestLink } from "@/lib/client/rules";
 import { hasPermission } from "@/lib/admin/permissions";
 import { CheckerBox, CheckCardAction } from "@/components/logo-check/checker-box";
 import { CheckerProvider } from "@/components/logo-check/checker-context";
@@ -71,6 +72,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   // Admin › Contests › Client's view (owner, 2026-10-14): staff see the client's page, read-only.
   const adminView = Boolean(contest && !contest.isOwner && hasPermission(user, "contests.view"));
   if (!contest || !(contest.isOwner || adminView)) notFound();
+  // Premium client workspace (owner, 2026-10-16): the contest's client has its details at /client/contests/<slug>.
+  if (contest.isOwner && user.role === "client") redirect(oldContestLink(contest.slug, sp));
   // An unpaid contest has no page yet; staff go back to it in the admin.
   if (adminView && (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment")) redirect(`/admin/contests/${contest.slug}`);
   if (contest.rawStatus === "draft" || contest.rawStatus === "pending_payment") {
