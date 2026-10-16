@@ -33,6 +33,8 @@ import { cx } from "@/lib/cx";
 import { getEntryDetail, listEntries } from "@/lib/entries/queries";
 import { CheckedSummary, CheckLegend, JudgingSortBar, ReportPanel } from "@/components/logo-check/judging";
 import { MatchBadge } from "@/components/logo-check/match";
+import { MessageDesignerLink } from "@/components/pro/message-designer";
+import { chattableEntries } from "@/lib/pro/chat";
 import { badgesFor, levelRanges } from "@/lib/logo-check/entry-links";
 import { entryReport } from "@/lib/logo-check/entry-check";
 import { filterCounts, isJudgingSort, JUDGING_FILTERS, matchesFilter, sortForJudging, type JudgingFilter, type JudgingSort } from "@/lib/logo-check/entry-rules";
@@ -111,7 +113,16 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   ]);
   // Pro first, the PRO mark (the designer may hide it) and each entry's logo check badge.
   const designerIds = listed.map((e) => e.designerId);
-  const [proIds, shownPro, trialIds, badges, ranges, { settings: proSet }] = await Promise.all([proIdsAmong(designerIds), badgeIdsAmong(designerIds), trialIdsAmong(designerIds), badgesFor(listed), levelRanges(), getProSettings()]);
+  const [proIds, shownPro, trialIds, badges, ranges, { settings: proSet }, chattable] = await Promise.all([
+    proIdsAmong(designerIds),
+    badgeIdsAmong(designerIds),
+    trialIdsAmong(designerIds),
+    badgesFor(listed),
+    levelRanges(),
+    getProSettings(),
+    // "Message designer" where the client works (owner, 2026-10-16): Pro and Pro Trial designers.
+    chattableEntries(contest.id, user),
+  ]);
   const judged = listed.map((e) => ({ ...e, pro: proIds.has(e.designerId), showPro: proSet.features.highlighted_entries && Boolean(e.designer) && shownPro.has(e.designerId), trial: trialIds.has(e.designerId), badge: badges.get(e.id) ?? ({ kind: "none" } as const) }));
   const entries = sortForJudging(judged, sort);
   const reportNumber = typeof sp.report === "string" ? Number(sp.report) : null;
@@ -423,6 +434,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         wonHref={withParam(here, `won=${e.number}`)}
                       />
                       <CheckCardAction entryId={e.id} reportCheckId={e.badge.kind === "checked" ? e.checkId : null} />
+                      {chattable.has(e.id) && <MessageDesignerLink entryId={e.id} label={t("pro.chat.message")} size="sm" className="mt-2" />}
                     </div>
                   </div>
                 </li>
@@ -492,6 +504,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           }
         >
           <div className="space-y-5">
+            {chattable.has(entry.id) && <MessageDesignerLink entryId={entry.id} label={t("pro.chat.message")} />}
             <OwnerActions
               entryId={entry.id}
               number={entry.number}

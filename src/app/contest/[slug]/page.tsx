@@ -15,6 +15,7 @@ import { ReportButton } from "@/components/entries/report-button";
 import { VoteButtons } from "@/components/entries/vote-buttons";
 import { WithdrawButton } from "@/components/entries/withdraw-button";
 import { FullReportButton } from "@/components/logo-check/full-report";
+import { MessageDesignerLink } from "@/components/pro/message-designer";
 import { hasPermission } from "@/lib/admin/permissions";
 import { entryCheckId } from "@/lib/logo-check/queries";
 import { SaveButton } from "@/components/contests/save-button";
@@ -526,12 +527,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           {/* Contest chat (owner, 2026-10-13): the client and a Pro designer, about this design only. */}
           {chattable.has(entry.id) && (
             <div className="mb-4">
-              <Link href={`/dashboard/messages?entry=${entry.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[linear-gradient(120deg,#8B0000,#B3261E_45%,#D9A52B)] px-5 font-bold text-white">
-                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                  <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.7A8 8 0 1 1 21 12Z" strokeLinejoin="round" />
-                </svg>
-                {t("pro.chat.message")}
-              </Link>
+              <MessageDesignerLink entryId={entry.id} label={t("pro.chat.message")} />
             </div>
           )}
           {/* Like and dislike (owner, 2026-10-11) */}
