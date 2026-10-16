@@ -1415,6 +1415,13 @@ const en = {
     },
   },
   settings: {
+    // Owner, 2026-10-16: bios made from the designer's own skills, tools and years.
+    bioIdeas: {
+      yearsSkills: "Designer with {years} years of experience in {skills}. I make clean, memorable designs that work on a signboard and a phone screen alike.",
+      skills: "My work: {skills} for businesses in Bangladesh. Simple ideas, strong shapes and colours that fit the brand.",
+      tools: "I work in {tools} and deliver ready files: AI, SVG, PDF and PNG, in every colour version you need.",
+      years: "{years} years of designing logos. I listen to the brief, then give you ideas that are clear, fresh and easy to remember.",
+    },
     nameFixed: "Your name can't be changed. If it is wrong, write to us in Support and we will correct it.",
     username: {
       note: "You can log in with it, your email or your mobile number. You can change it once every 60 days; your old profile link keeps working.",
@@ -4366,6 +4373,9 @@ const en = {
     },
   },
   checker: {
+    // Owner, 2026-10-16: a logo on a mockup confuses the check; the full report for the designer and the client.
+    mockupTip: "Best result: check the logo alone on a plain background, not on a mockup. If the picture is a mockup, the AI finds the logo in it and checks only that part.",
+    full: { open: "See full report", openLong: "See full report: shapes, scores and certificate" },
     title: "AI copyright checker",
     usedOf: "{used} of {limit} checks used",
     close: "Close",
@@ -4464,6 +4474,9 @@ const en = {
       colours: "Colours",
       similarTitle: "Logos with a similar shape",
       foundCount: "{n} kept · {close} close",
+      cropped: "Your picture was a mockup, so the AI cut out the logo and checked only that part.",
+      web: "the web",
+      noPicture: "No picture kept",
       yourLogo: "Your logo",
       noSimilar: "No similar logo was found.",
       similarNote: "Found with {sources}, then compared with your logo by AI. The number is how close the shape is.",
@@ -4544,7 +4557,7 @@ const en = {
       closed: "Winner picked",
       lockedLine: "Not added to this contest.",
     },
-    card: { check: "Check with AI", certificate: "Certificate", checking: "AI checking…" },
+    card: { check: "Check with AI", certificate: "Certificate", checking: "AI checking…", seeReport: "See AI report" },
   },
   upload: {
     optional: "Optional",

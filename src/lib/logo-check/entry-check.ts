@@ -138,6 +138,8 @@ export async function entryCheckState(id: string, user: CurrentUser): Promise<En
 
 export type EntryReport = {
   reportId: string;
+  /** The check behind the report, for the full report (owner, 2026-10-16). */
+  checkId: string;
   entry: { id: string; number: number; status: string; coverUrl: string | null };
   contest: { id: string; slug: string; brand: string; clientId: string };
   designer: { id: string; name: string; username: string | null; pro: boolean };
@@ -173,6 +175,7 @@ async function toReport(r: ReportRow, coverUrl: string | null): Promise<EntryRep
   const d = one(e.designer as { id: string; name: string; username: string | null } | null) ?? { id: "", name: "—", username: null };
   return {
     reportId: r.report_id as string,
+    checkId: r.id as string,
     entry: { id: e.id as string, number: e.number as number, status: e.status as string, coverUrl },
     contest: { id: c.id as string, slug: c.slug as string, brand: c.brand_name as string, clientId: c.client_id as string },
     designer: { ...d, pro: d.id ? await isPro(d.id) : false },

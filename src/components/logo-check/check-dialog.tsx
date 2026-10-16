@@ -22,7 +22,23 @@ type Choice = { kind: "entry"; id: string; number: number; coverUrl: string | nu
  * The AI copyright checker pop-up (owner, 2026-10-10; Design/copyright-checker/client-check-popup.html):
  * 1 choose, 2 check (live progress), 3 result, 4 certificate. Full screen on phones.
  */
-export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerSetup | null; lens: boolean; initial: { entryId?: string | null; checkId?: string; step?: 3 | 4 }; onClose: () => void }) {
+export function CheckDialog({
+  setup,
+  lens,
+  initial,
+  onClose,
+  container,
+  refreshOnDone = true,
+}: {
+  setup: CheckerSetup | null;
+  lens: boolean;
+  initial: { entryId?: string | null; checkId?: string; step?: 3 | 4 };
+  onClose: () => void;
+  /** Where it is drawn: a top-layer dialog when it opens above another pop-up (owner, 2026-10-16). */
+  container?: HTMLElement;
+  /** Reload the page once the check is finished (not when only reading a finished report). */
+  refreshOnDone?: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [checkId, setCheckId] = useState<string | null>(initial.checkId ?? null);
@@ -56,7 +72,7 @@ export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerS
           setCheck(json.check);
           if (json.check.status === "done" || json.check.status === "failed") {
             if (json.check.status === "done") setStep((s) => (s === 2 ? 3 : s));
-            if (!refreshed.current) {
+            if (!refreshed.current && refreshOnDone) {
               refreshed.current = true;
               router.refresh();
             }
@@ -73,7 +89,7 @@ export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerS
       stop = true;
       clearTimeout(timer);
     };
-  }, [checkId, router]);
+  }, [checkId, router, refreshOnDone]);
 
   const started = (id: string) => {
     refreshed.current = false;
@@ -94,7 +110,7 @@ export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerS
   const STEPS = ["choose", "check", "result", "certificate"] as const;
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-stretch justify-center bg-ink/55 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-stretch justify-center bg-ink/55 sm:items-center sm:p-4" onClick={onClose} data-check-dialog>
       <div
         role="dialog"
         aria-modal="true"
@@ -157,7 +173,7 @@ export function CheckDialog({ setup, lens, initial, onClose }: { setup: CheckerS
         </div>
       </div>
     </div>,
-    document.body,
+    container ?? document.body,
   );
 }
 
@@ -219,6 +235,10 @@ function ChooseStep({ setup, lens, initialEntryId, onStarted }: { setup: Checker
         <div>
           <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em] text-ink">{t("checker.choose.title")}</h2>
           <p className="m-0 mt-1 text-[15px] text-muted">{t("checker.choose.lead")}</p>
+          {/* Owner, 2026-10-16: a logo on a mockup confuses the search; a plain background gives the best result. */}
+          <p className="m-0 mt-3 rounded-[12px] bg-[#fff8e6] px-3.5 py-2.5 text-[14px] text-[#6b4e00] ring-1 ring-[#f3dca0]" data-mockup-tip>
+            {t("checker.mockupTip")}
+          </p>
         </div>
 
         <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
@@ -451,6 +471,7 @@ function ResultStep({ check, canCheckAnother, onAnother, onCertificate }: { chec
     <div className="flex min-h-full flex-col">
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <VerdictBanner verdict={check.verdict ?? "no_match"} close={close} closest={top?.similarity ?? 0} name={name} />
+        {s?.cropped && <p className="m-0 -mt-3 rounded-[12px] bg-chip px-3.5 py-2.5 text-[14px] text-muted">{t("checker.result.cropped")}</p>}
 
         {r && (
           <section>
@@ -508,8 +529,16 @@ function ResultStep({ check, canCheckAnother, onAnother, onCertificate }: { chec
               <ul className="m-0 grid list-none grid-cols-3 content-start gap-2 p-0">
                 {check.matches.map((m) => (
                   <li key={m.position} className={cx("relative aspect-square overflow-hidden rounded-[12px] bg-white", m.isClose ? "ring-[3px] ring-[#d08a1e]" : "ring-1 ring-white/20")}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {m.imageUrl && <img src={m.imageUrl} alt="" className="size-full object-contain p-1.5" />}
+                    {m.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.imageUrl} alt="" className="size-full object-contain p-1.5" />
+                    ) : (
+                      // Older designer checks kept no picture (before 2026-10-16): show where it was found instead.
+                      <a href={m.pageUrl ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="flex size-full flex-col items-center justify-center gap-1 p-2 pb-8 text-center text-[12.5px] font-semibold text-ink">
+                        <span className="line-clamp-2 break-all">{m.foundBy === "site" ? "logocontest.bd" : (m.site ?? t("checker.result.web"))}</span>
+                        <span className="text-[11.5px] font-medium text-muted">{t("checker.result.noPicture")}</span>
+                      </a>
+                    )}
                     <span className={cx("absolute bottom-1.5 left-1.5 rounded-full px-2 py-0.5 text-[12px] font-bold", m.isClose ? "bg-[#ffedd5] text-[#9a3412]" : "bg-chip text-ink")}>{m.similarity}%</span>
                   </li>
                 ))}
@@ -532,8 +561,12 @@ function ResultStep({ check, canCheckAnother, onAnother, onCertificate }: { chec
               </figure>
               <figure className="m-0 flex flex-col gap-1.5">
                 <span className={cx("relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[14px] bg-white", top.isClose ? "ring-2 ring-[#d08a1e]" : "ring-1 ring-line")}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {top.imageUrl && <img src={top.imageUrl} alt="" className="size-full object-contain p-3" />}
+                  {top.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={top.imageUrl} alt="" className="size-full object-contain p-3" />
+                  ) : (
+                    <span className="p-4 text-center text-[14px] font-semibold text-muted">{t("checker.result.noPicture")}</span>
+                  )}
                   <span className="absolute bottom-2 left-2 rounded-full bg-[#ffedd5] px-2 py-0.5 text-[12px] font-bold text-[#9a3412]">{top.similarity}%</span>
                 </span>
                 <figcaption className="min-w-0 text-[13.5px] text-muted">
@@ -608,7 +641,7 @@ function ResultStep({ check, canCheckAnother, onAnother, onCertificate }: { chec
       </div>
 
       <div className="sticky bottom-0 grid gap-2 border-t border-line bg-frame/95 px-4 py-3.5 backdrop-blur sm:flex sm:flex-wrap sm:px-6">
-        {check.entry && (
+        {check.entry && check.viewer !== "designer" && (
           <Link href={`/dashboard/contests/${check.contest.slug}?entry=${check.entry.number}`} className="inline-flex min-h-12 items-center justify-center rounded-[12px] border border-line bg-surface px-4 text-[15px] font-bold text-ink hover:border-primary sm:flex-1">
             {t("checker.result.askDesigner")}
           </Link>

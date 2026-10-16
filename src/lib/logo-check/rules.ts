@@ -113,3 +113,23 @@ export function isFetchableUrl(url: string): boolean {
   }
   return true;
 }
+
+/**
+ * The part of a mockup picture that holds the logo (owner, 2026-10-16: a logo on a mockup confused the search and the
+ * comparison). `box` is the AI's [ymin, xmin, ymax, xmax] on a 0-1000 scale; a little room is added around it. Null when
+ * the box is unusable, too small to be the logo, or already (almost) the whole picture.
+ */
+export function logoCropBox(box: unknown, width: number, height: number): { left: number; top: number; width: number; height: number } | null {
+  if (!Array.isArray(box) || box.length !== 4 || !box.every((v) => typeof v === "number" && Number.isFinite(v))) return null;
+  const [y0, x0, y1, x1] = (box as number[]).map((v) => Math.min(1000, Math.max(0, v)) / 1000);
+  if (y1 <= y0 || x1 <= x0) return null;
+  const area = (y1 - y0) * (x1 - x0);
+  if (area < 0.005 || area > 0.85) return null;
+  const pad = 0.1 * Math.max(y1 - y0, x1 - x0);
+  const l = Math.max(0, x0 - pad);
+  const t = Math.max(0, y0 - pad);
+  const r = Math.min(1, x1 + pad);
+  const b = Math.min(1, y1 + pad);
+  const out = { left: Math.round(l * width), top: Math.round(t * height), width: Math.round((r - l) * width), height: Math.round((b - t) * height) };
+  return out.width >= 32 && out.height >= 32 ? out : null;
+}

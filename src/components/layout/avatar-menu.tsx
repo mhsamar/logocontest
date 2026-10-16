@@ -15,7 +15,10 @@ export function AvatarMenu({
   label,
   items,
   footer,
+  nameHref,
 }: {
+  /** The name at the top links here (a Pro designer's whole menu is in the workspace, owner 2026-10-16). */
+  nameHref?: string;
   name: string;
   avatarUrl: string | null;
   label: string;
@@ -60,7 +63,13 @@ export function AvatarMenu({
           role="menu"
           className="absolute right-0 top-full z-50 mt-1 w-56 origin-top-right animate-pop-in overflow-hidden rounded-2xl bg-surface py-1 shadow-raised ring-1 ring-line"
         >
-          <p className="truncate border-b border-line px-4 py-2.5 text-sm font-medium text-ink">{name}</p>
+          {nameHref ? (
+            <Link role="menuitem" href={nameHref} className="block truncate border-b border-line px-4 py-2.5 text-sm font-semibold text-ink hover:bg-canvas hover:text-primary">
+              {name}
+            </Link>
+          ) : (
+            <p className="truncate border-b border-line px-4 py-2.5 text-sm font-medium text-ink">{name}</p>
+          )}
           {items.map((item, i) => (
             <Link
               key={item.href}

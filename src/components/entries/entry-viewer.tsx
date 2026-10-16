@@ -107,7 +107,7 @@ export function EntryViewer({
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && ["TEXTAREA", "INPUT"].includes(e.target.tagName);
       // A dialog on top (e.g. Report) handles its own Escape.
-      if (document.querySelector("dialog[open]")) return;
+      if (document.querySelector("dialog[open], [data-check-dialog]")) return;
       if (e.key === "Escape") {
         if (onClose) onClose();
         else router.push(closeHref ?? "/", { scroll: false });

@@ -9,7 +9,7 @@ import { certificateHtml, renderCertificate, type CertificateData } from "./cert
 import { aiCost, checkerRates, searchCost, toBdt } from "./costs";
 import { closestResults, levelFor } from "./entry-rules";
 import { flagIfHigh, levelRanges, validReportOf } from "./entry-links";
-import { fetchImage, logoForAi, shrinkCandidate } from "./images";
+import { cropLogo, fetchImage, logoForAi, shrinkCandidate } from "./images";
 import { checkHeadline, sourceRows } from "./present";
 import { certNumber, hostOf, isOnHosts, overallScore, uniquenessScore, verdictFor, type CheckLimits, type MatchSource } from "./rules";
 import { lensSearch, visionSearch, type Candidate, type SourceRun } from "./search";
@@ -70,7 +70,24 @@ export type Sources = {
   site: { ran: boolean; found: number; close: number };
   shape: { compared: number; close: number; closest: number };
   font: { look: string; guess: string; hasText: boolean };
+  /** Owner, 2026-10-16: the picture was a mockup; only the logo in it was checked. */
+  cropped?: boolean;
 };
+
+/** Runs `fn` over `items`, at most `limit` at a time (owner, 2026-10-16: fewer AI calls at once, fewer "busy" answers). */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]);
+      }
+    }),
+  );
+  return out;
+}
 
 const db = () => createAdminClient();
 const setStep = (id: string, step: number) => db().from("logo_checks").update({ step }).eq("id", id);
@@ -101,8 +118,10 @@ async function work(check: CheckRow, origin: string) {
   const store = getFileStorage();
   // API prices from Settings › Logo checker costs (owner, 2026-10-14); the check keeps its cost in USD and taka.
   const [limits, rates] = await Promise.all([checkLimits(), checkerRates()]);
-  const logo = await store.download(LOGO_CHECKS_BUCKET, check.image_path);
-  const logoAi = await logoForAi(logo);
+  const picture = await store.download(LOGO_CHECKS_BUCKET, check.image_path);
+  let logo: Uint8Array = picture;
+  let logoAi = await logoForAi(picture);
+  let checkedPath = check.image_path;
   let cost = Number(check.cost_usd) || 0;
 
   const { data: contest } = check.contest_id ? await db().from("contests").select("id, slug, website_url").eq("id", check.contest_id).single() : { data: null };
@@ -118,9 +137,20 @@ async function work(check: CheckRow, origin: string) {
   }
   if (!reading.is_logo) throw new CheckError("not_logo");
 
+  // A logo on a mockup (owner, 2026-10-16): search and compare only the logo, not the scene around it.
+  if (reading.is_mockup) {
+    const crop = await cropLogo(picture, reading.logo_box);
+    if (crop) {
+      logo = crop;
+      logoAi = await logoForAi(crop);
+      checkedPath = `${check.id}/logo-crop.png`;
+      await store.upload(LOGO_CHECKS_BUCKET, checkedPath, crop, "image/png");
+    }
+  }
+
   // 2. Search the web. Results on our own site or the client's site are dropped.
   await setStep(check.id, 2);
-  const signed = (await store.createReadUrls(LOGO_CHECKS_BUCKET, [check.image_path], 900)).get(check.image_path);
+  const signed = (await store.createReadUrls(LOGO_CHECKS_BUCKET, [checkedPath], 900)).get(checkedPath);
   const [lens, vision] = await Promise.all([signed ? lensSearch(signed) : Promise.resolve({ run: { ran: false, found: 0, costUsd: 0 }, candidates: [] }), visionSearch(logo)]);
   if (!lens.run.ran && !vision.run.ran) throw new CheckError("search_unavailable");
   cost += searchCost(lens.run, vision.run, rates);
@@ -182,7 +212,7 @@ async function work(check: CheckRow, origin: string) {
   const scored: { c: Candidate; img: Buffer; imageUrl: string | null; m: ShapeMatch }[] = [];
   const batches: (typeof loaded)[] = [];
   for (let i = 0; i < loaded.length; i += 5) batches.push(loaded.slice(i, i + 5));
-  const results = await Promise.all(batches.map((b) => compareShapes(logoAi, b.map((x) => x.img))));
+  const results = await mapLimit(batches, 2, (b) => compareShapes(logoAi, b.map((x) => x.img)));
   results.forEach((r, bi) => {
     cost += aiCost(r, rates);
     for (const m of r.data) {
@@ -209,21 +239,22 @@ async function work(check: CheckRow, origin: string) {
   const sum = await summarize(facts);
   cost += aiCost(sum, rates);
 
-  // 6. Save: our own copy of every kept image, then the check, then the certificate. A designer's contest check
-  // keeps no copies of other people's logos (owner, 2026-10-14): only the source, the link and the similarity.
+  // 6. Save: our own copy of every kept image, then the check, then the certificate. Owner, 2026-10-16: a designer's
+  // contest check keeps them too, so the designer and the client see the shapes side by side (before, only the
+  // source, the link and the similarity were kept).
   await setStep(check.id, 6);
   const contestCheck = check.source === "pre_submit";
   await db().from("logo_check_matches").delete().eq("check_id", check.id);
   const rows = await Promise.all(
     top.map(async (t, i) => {
-      const path = contestCheck ? null : `${check.id}/match-${i}.png`;
+      const path = `${check.id}/match-${i}.png`;
       if (path) await store.upload(LOGO_CHECKS_BUCKET, path, t.img, "image/png");
       return {
         check_id: check.id,
         position: i,
         found_by: t.c.foundBy as MatchSource,
         image_path: path,
-        image_url: !contestCheck && t.imageUrl && !t.imageUrl.startsWith("data:") ? t.imageUrl.slice(0, 2000) : null,
+        image_url: t.imageUrl && !t.imageUrl.startsWith("data:") ? t.imageUrl.slice(0, 2000) : null,
         page_url: t.c.pageUrl?.slice(0, 2000) ?? null,
         title: t.c.title?.slice(0, 300) ?? null,
         site: (t.c.site ?? hostOf(t.c.pageUrl ?? t.imageUrl))?.slice(0, 200) ?? null,
@@ -245,6 +276,7 @@ async function work(check: CheckRow, origin: string) {
     site: { ran: true, found: site.length, close: top.filter((t) => t.c.foundBy === "site" && t.m.similarity >= limits.closeFrom).length },
     shape: { compared: loaded.length, close: closeCount, closest },
     font: { look: reading.font_look, guess: reading.font_guess, hasText: Boolean(reading.text.trim()) },
+    ...(checkedPath !== check.image_path ? { cropped: true } : {}),
   };
   // The match score is the closest similarity found; the level comes from Admin › Pro plan.
   const report = contestCheck
@@ -269,6 +301,8 @@ async function work(check: CheckRow, origin: string) {
       },
       advice: sum.data.advice,
       sources,
+      // The logo that was really checked: the part cut out of a mockup (owner, 2026-10-16).
+      image_path: checkedPath,
       ...report,
       cost_usd: Math.round(cost * 10000) / 10000,
       cost_bdt: toBdt(cost, rates),

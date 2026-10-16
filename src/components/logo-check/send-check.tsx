@@ -9,6 +9,7 @@ import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import { useI18n } from "@/lib/i18n/client";
 import type { ClosestResult, MatchLevel } from "@/lib/logo-check/entry-rules";
+import { FullReportButton } from "./full-report";
 import { LEVEL_TONE, ScoreRing, ShieldIcon } from "./match";
 
 export type SendCheckSetup = {
@@ -168,6 +169,10 @@ export function SendCheckModal({
             <div className="rounded-[16px] bg-chip p-4">
               <p className="m-0 font-bold">{t("entryCheck.send.readyTitle")}</p>
               <p className="m-0 mt-1 text-[14px] text-muted">{t("entryCheck.send.readyLead")}</p>
+              {/* Owner, 2026-10-16: a logo on a mockup can confuse the check. */}
+              <p className="m-0 mt-2 text-[13.5px] text-[#6b4e00]" data-mockup-tip>
+                {t("checker.mockupTip")}
+              </p>
               <p className="m-0 mt-2 text-[13px] font-semibold text-muted">{t("entryCheck.send.uses", { left: n(usage.left), limit: n(usage.limit), plan })}</p>
             </div>
             {error && <p className="m-0 text-[14px] font-semibold text-danger" role="alert">{error}</p>}
@@ -233,6 +238,8 @@ export function SendCheckModal({
                 </ul>
               </div>
             )}
+            {/* The whole report: shapes side by side, scores, certificate (owner, 2026-10-16). */}
+            <FullReportButton checkId={current.id} label={t("checker.full.openLong")} className="w-full" />
             {leftLine}
             {current.level === "high" ? (
               <>

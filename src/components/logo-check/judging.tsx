@@ -6,6 +6,7 @@ import type { Translate } from "@/lib/i18n/translate";
 import type { EntryReport } from "@/lib/logo-check/entry-check";
 import { JUDGING_SORTS, type JudgingSort, type LevelRanges } from "@/lib/logo-check/entry-rules";
 import { formatNumber } from "@/lib/money";
+import { FullReportButton } from "./full-report";
 import { LEVEL_TONE, MatchBadge, ScoreRing, ShieldIcon } from "./match";
 
 /**
@@ -118,6 +119,8 @@ export function ReportPanel({ report, closeHref, t, locale }: { report: EntryRep
           <p className="m-0 mt-1 text-[13.5px] text-ink">{t(`entryCheck.report.lines.${report.level}`)}</p>
         </div>
       </div>
+      {/* Owner, 2026-10-16: everything the designer's check found, no new check needed. */}
+      <FullReportButton checkId={report.checkId} label={t("checker.full.openLong")} variant="solid" className="mt-3 w-full" />
       <div className="mt-3 rounded-[14px] ring-1 ring-line">
         {row(t("entryCheck.report.checked"), t("entryCheck.report.checkedValue", { date: when(report.checkedAt, locale) }))}
         {row(t("entryCheck.report.searched"), t("entryCheck.report.searchedValue", { n: n(report.sourcesCount) }))}

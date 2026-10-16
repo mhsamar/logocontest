@@ -16,7 +16,12 @@ export async function GET(req: NextRequest, { params }: RouteContext<"/api/logo-
   // A designer's own check (owner, 2026-10-13).
   if (user?.role === "designer") {
     const mine = await designerCheckView(id, user);
-    if (!mine) return NextResponse.json({ ok: false }, { status: 404 });
+    if (!mine) {
+      // A contest check on their design, by them or by the client (owner, 2026-10-16): the full report, read only.
+      const view = await checkView(id, user);
+      if (!view || view.status !== "done") return NextResponse.json({ ok: false }, { status: 404 });
+      return NextResponse.json({ ok: true, check: view }, { headers: { "Cache-Control": "no-store" } });
+    }
     if (mine.stale) {
       const origin = req.nextUrl.origin;
       after(() => runLogoCheck(mine.id, origin));
