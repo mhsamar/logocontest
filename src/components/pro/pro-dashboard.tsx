@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { MyContestDesigns } from "@/components/dashboard/my-designs";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";
+import { designerContests } from "@/lib/designers/profile";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
@@ -40,7 +42,7 @@ export function leftText(end: Date | null, t: Translate): string {
  */
 export async function ProDashboard({ user }: { user: CurrentUser }) {
   const { t, locale, price } = await getI18n();
-  const [{ settings }, earlyList, fresh, notes, invitations, week, usage, mine, strength, names] = await Promise.all([
+  const [{ settings }, earlyList, fresh, notes, invitations, week, usage, mine, strength, names, pictures] = await Promise.all([
     getProSettings(),
     earlyContests(),
     newContests(),
@@ -51,7 +53,10 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
     myContestRows(user.id),
     profileStrength(user.id, Boolean(user.avatarUrl)),
     serviceNames(locale),
+    // Owner, 2026-10-16: every picture of my designs in each contest, as on the Basic dashboard.
+    designerContests(user.id),
   ]);
+  const picturesOf = new Map(pictures.map((c) => [c.slug, c]));
   const now = new Date();
   // Owner, 2026-10-16: with Pro early access off, the panel shows the newest contests instead.
   const earlyOn = settings.features.early_access && settings.earlyAccessMinutes > 0;
@@ -257,24 +262,40 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
                 <span>{t("pro.dash.hStatus")}</span>
                 <span>{t("pro.dash.hEnds")}</span>
               </div>
-              {mine.map((r) => (
-                <Link key={r.contest.id} href={`/contest/${r.contest.slug}`} className="pr-tr" style={{ color: "inherit" }}>
-                  <span className="pr-thumb" aria-hidden style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#8B0000" }}>
-                    <Icon name={r.place === "won" ? "trophy" : "image"} size={20} />
-                  </span>
-                  <span className="n">
-                    <b>{r.contest.brand ?? t("pro.contests.privateContest")}</b>
-                    <em>
-                      {contestTypeLabel(r.contest, t, names)} · {price(r.contest.prize)}
-                    </em>
-                  </span>
-                  <span>{n(r.designs)}</span>
-                  <span>
-                    <i className={`pr-pill ${r.place === "won" ? "win" : r.place === "shortlisted" ? "sl" : r.place === "open" ? "op" : "mu"}`}>{t(`pro.dash.status.${r.place}`)}</i>
-                  </span>
-                  <span>{r.contest.status === "open" ? leftText(r.contest.endsAt, t) : t("pro.dash.ended")}</span>
-                </Link>
-              ))}
+              {mine.map((r) => {
+                const p = picturesOf.get(r.contest.slug);
+                const cover = p ? (p.winningLogoUrl ?? p.latestCoverUrl) : null;
+                const brand = r.contest.brand ?? t("pro.contests.privateContest");
+                return (
+                  <div key={r.contest.id} className="pr-mc">
+                    <div className="pr-tr">
+                      <Link href={`/contest/${r.contest.slug}?tab=entries`} className="pr-thumb" aria-hidden tabIndex={-1} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#8B0000", position: "relative" }}>
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover} alt="" loading="lazy" />
+                        ) : (
+                          <Icon name={r.place === "won" ? "trophy" : "image"} size={20} />
+                        )}
+                      </Link>
+                      <span className="n">
+                        <Link href={`/contest/${r.contest.slug}?tab=entries`} style={{ color: "inherit" }}>
+                          <b>{brand}</b>
+                        </Link>
+                        <em>
+                          {contestTypeLabel(r.contest, t, names)} · {price(r.contest.prize)}
+                        </em>
+                      </span>
+                      <span>{n(r.designs)}</span>
+                      <span>
+                        <i className={`pr-pill ${r.place === "won" ? "win" : r.place === "shortlisted" ? "sl" : r.place === "open" ? "op" : "mu"}`}>{t(`pro.dash.status.${r.place}`)}</i>
+                      </span>
+                      <span>{r.contest.status === "open" ? leftText(r.contest.endsAt, t) : t("pro.dash.ended")}</span>
+                    </div>
+                    {/* Hover for a quick view, click to open the design right here (owner, 2026-10-16). */}
+                    {p && p.designs.length > 0 && <MyContestDesigns slug={r.contest.slug} brand={brand} designs={p.designs} open={p.open} className="pr-mc-strip" />}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

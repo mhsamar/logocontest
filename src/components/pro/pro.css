@@ -975,6 +975,13 @@
   font-size: 13px;
   color: var(--pr-mu);
 }
+/* My contests: each row with the pictures of my designs under it (owner, 2026-10-16) */
+.pr-mc-strip {
+  padding: 0 0 12px 86px;
+}
+.pr-tr .n a:hover b {
+  color: #8b0000;
+}
 
 /* Profile strength ring */
 .pr-ring {
@@ -2337,6 +2344,9 @@
   .pr-tr {
     grid-template-columns: 56px minmax(0, 1fr) 92px;
     gap: 10px;
+  }
+  .pr-mc-strip {
+    padding-left: 0;
   }
   .pr-tr > :nth-child(3),
   .pr-tr > :nth-child(5) {

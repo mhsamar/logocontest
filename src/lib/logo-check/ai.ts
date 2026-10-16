@@ -94,18 +94,30 @@ export function toGeminiSchema(schema: unknown): unknown {
   return out;
 }
 
-async function callGemini<T>(system: string, content: Block[], tool: Tool, fetcher: typeof fetch): Promise<AiResult<T>> {
+/**
+ * When every model said "busy" at once (429 or 503), wait and ask again (owner, 2026-10-16: a check failed the first
+ * time and worked the second). Not after a model was slow: that already used its time.
+ */
+export const BUSY_WAITS_MS = [3_000, 8_000];
+
+async function callGemini<T>(system: string, content: Block[], tool: Tool, fetcher: typeof fetch, waits: number[] = BUSY_WAITS_MS): Promise<AiResult<T>> {
   let last: unknown;
-  for (const model of geminiModels()) {
-    try {
-      return await callGeminiModel<T>(model, system, content, tool, fetcher);
-    } catch (e) {
-      last = e;
-      // A wrong key fails the same way on every model; a busy, missing or slow model may not.
-      if (e instanceof AiUnavailableError && /API key not valid|API_KEY_INVALID/i.test(e.message)) throw e;
-      const busy = e instanceof GeminiBusyError || (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError"));
-      if (!busy) throw e;
+  for (let round = 0; round <= waits.length; round++) {
+    if (round > 0) await new Promise((r) => setTimeout(r, waits[round - 1]));
+    let slow = false;
+    for (const model of geminiModels()) {
+      try {
+        return await callGeminiModel<T>(model, system, content, tool, fetcher);
+      } catch (e) {
+        last = e;
+        // A wrong key fails the same way on every model; a busy, missing or slow model may not.
+        if (e instanceof AiUnavailableError && /API key not valid|API_KEY_INVALID/i.test(e.message)) throw e;
+        const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+        if (!(e instanceof GeminiBusyError) && !timedOut) throw e;
+        if (timedOut) slow = true;
+      }
     }
+    if (slow) break;
   }
   throw new AiUnavailableError(`Gemini is busy: ${last instanceof Error ? last.message : String(last)}`);
 }
@@ -168,6 +180,10 @@ const SYSTEM =
 
 export type Reading = {
   is_logo: boolean;
+  /** Owner, 2026-10-16: the logo is shown on a mockup or photo; the check then looks only at `logo_box`. */
+  is_mockup?: boolean;
+  /** Where the logo is: [ymin, xmin, ymax, xmax] on a 0-1000 scale. */
+  logo_box?: number[];
   shape: string;
   logo_type: "wordmark" | "lettermark" | "pictorial" | "abstract" | "mascot" | "emblem" | "combination";
   text: string;
@@ -185,14 +201,28 @@ const SCORE = { type: "object", properties: { score: { type: "integer", minimum:
 export function readLogo(logo: Uint8Array, fetcher?: typeof fetch): Promise<AiResult<Reading>> {
   return callTool<Reading>(
     SYSTEM,
-    [imageBlock(logo), textBlock("Read this logo. Describe only what you can see.")],
+    [
+      imageBlock(logo),
+      textBlock(
+        "Read this logo. Describe only what you can see. The picture may show the logo on a mockup (a sign, card, shirt, wall, product or photo): " +
+          "then read the logo itself, not the scene, and give the box around the logo (its symbol and name together).",
+      ),
+    ],
     {
       name: "logo_reading",
       description: "What the logo shows.",
       input_schema: {
         type: "object",
         properties: {
-          is_logo: { type: "boolean", description: "False when the image is not a logo (a photo, a screenshot, empty)." },
+          is_logo: { type: "boolean", description: "True when there is a logo in the image, also when it is shown on a mockup. False only when there is no logo at all (a plain photo, a screenshot, empty)." },
+          is_mockup: { type: "boolean", description: "True when the logo is shown on a mockup or in a photo or scene, not on a plain background." },
+          logo_box: {
+            type: "array",
+            items: { type: "integer", minimum: 0, maximum: 1000 },
+            minItems: 4,
+            maxItems: 4,
+            description: "The box around the whole logo (symbol and name): [ymin, xmin, ymax, xmax] on a 0-1000 scale of the image. [0, 0, 1000, 1000] when the logo fills the image.",
+          },
           shape: { type: "string", description: "The main shape or symbol in a few words, e.g. 'diamond icon left of the name'." },
           logo_type: { type: "string", enum: ["wordmark", "lettermark", "pictorial", "abstract", "mascot", "emblem", "combination"] },
           text: { type: "string", description: "The letters the logo shows, exactly. Empty when there are none." },
@@ -204,7 +234,7 @@ export function readLogo(logo: Uint8Array, fetcher?: typeof fetch): Promise<AiRe
           legibility: { ...SCORE, description: "How easy the text is to read, small and large. 100 when there is no text to read but the mark is clear." },
           colour: { ...SCORE, description: "Colour choice and contrast, and whether it works in one colour." },
         },
-        required: ["is_logo", "shape", "logo_type", "text", "colors", "font_look", "font_guess", "description", "tags", "legibility", "colour"],
+        required: ["is_logo", "is_mockup", "logo_box", "shape", "logo_type", "text", "colors", "font_look", "font_guess", "description", "tags", "legibility", "colour"],
       },
     },
     1200,

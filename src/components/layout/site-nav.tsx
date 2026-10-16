@@ -13,6 +13,7 @@ import { visibleOffers } from "@/lib/rewards/visible";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
+import { isPro } from "@/lib/pro/status";
 import { renderNotification } from "@/lib/notifications/render";
 import { NavLinks, Roll } from "./nav-links";
 import { SiteNavDrawer } from "./site-nav-drawer";
@@ -64,6 +65,11 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
       : { href: item.href ?? "/", label: item.text.label, badge: isNewLink(item.href, now) ? t("nav.new") : undefined },
   );
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
+  // Owner, 2026-10-16: a Pro designer has every page in the workspace's left menu, so the account menu at the top
+  // only logs out (the name leads back to the dashboard); on phones the menu keeps the way to the dashboard.
+  const pro = user?.role === "designer" && (await isPro(user.id));
+  const topItems = user ? (pro ? [] : accountItems(user, t)) : [];
+  const drawerItems = user ? (pro ? [{ href: "/dashboard", label: t("nav.dashboard") }] : accountItems(user, t)) : [];
   const otherLocale = locale === "en" ? "bn" : "en";
   const languageForm = (className: string, roll = false) => (
     <form action={setLocale}>
@@ -99,7 +105,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
         {user ? (
           <>
             <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} />
-            <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={accountItems(user, t)} footer={logoutForm} />
+            <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={topItems} footer={logoutForm} nameHref={pro ? "/dashboard" : undefined} />
           </>
         ) : (
           <>
@@ -116,7 +122,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
         )}
         <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
           {user ? (
-            accountItems(user, t).map((item) => (
+            drawerItems.map((item) => (
               <Link key={item.href} href={item.href} className={`${pill} justify-center border border-line px-4`}>
                 {item.label}
               </Link>

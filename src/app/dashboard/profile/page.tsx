@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
 import { profileSteps } from "@/lib/profile/completeness";
+import { bioIdeas } from "@/lib/profile/bio-ideas";
 import { getSettings } from "@/lib/settings";
 import Link from "next/link";
 import { ProSettingsExtras } from "@/components/pro/pro-settings";
@@ -95,6 +96,21 @@ export default async function ProfileSettingsPage() {
                 profileUrl={profileUrl}
                 bioMax={s["limits.designer_bio_max_length"]}
                 usernameNote={t("settings.username.note")}
+                bioIdeas={
+                  user.role === "designer"
+                    ? bioIdeas(
+                        {
+                          name: profile?.name ?? user.name,
+                          skills: (profile?.skills ?? []) as string[],
+                          tools: (profile?.tools ?? []) as string[],
+                          years: (profile?.experience_years as number | null) ?? null,
+                          max: s["limits.designer_bio_max_length"],
+                        },
+                        t,
+                        locale,
+                      )
+                    : []
+                }
               />
             </div>
             {/* Anyone can change their username once every 60 days (owner, 2026-10-16). */}

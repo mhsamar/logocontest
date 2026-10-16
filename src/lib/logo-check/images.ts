@@ -1,6 +1,6 @@
 import "server-only";
 import sharp from "sharp";
-import { isFetchableUrl } from "./rules";
+import { isFetchableUrl, logoCropBox } from "./rules";
 
 /** Image work for the AI copyright checker (owner, 2026-10-10). */
 
@@ -19,6 +19,17 @@ export async function normalizeLogo(input: Uint8Array): Promise<Buffer | null> {
     const meta = await img.metadata();
     if (!meta.width || !meta.height || meta.width < 32 || meta.height < 32) return null;
     return await img.resize(1024, 1024, { fit: "inside", withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+  } catch {
+    return null;
+  }
+}
+
+/** Only the logo out of a mockup picture (owner, 2026-10-16), as PNG; null when the AI's box can't be used. */
+export async function cropLogo(png: Uint8Array, box: unknown): Promise<Buffer | null> {
+  try {
+    const meta = await sharp(png).metadata();
+    const region = meta.width && meta.height ? logoCropBox(box, meta.width, meta.height) : null;
+    return region ? await sharp(png).extract(region).png({ compressionLevel: 9 }).toBuffer() : null;
   } catch {
     return null;
   }

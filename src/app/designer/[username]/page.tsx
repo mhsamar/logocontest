@@ -5,10 +5,12 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ProfileShareMenu } from "@/components/designers/profile-share-menu";
 import { Icon, ProBadge, SmallAvatar } from "@/components/pro/parts";
+import { ProWorkspace } from "@/components/pro/workspace";
 import { PageShell } from "@/components/ui/panel";
 import "@/components/designers/profile.css";
 import "@/components/pro/pro.css";
 import "@/components/pro/pro-profile.css";
+import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { isLanguageKey, isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { designerByUsername } from "@/lib/designers/profile";
@@ -38,7 +40,7 @@ type Tab = (typeof TABS)[number];
 // actions, and the bottom card asks clients to start a contest.
 export default async function ProProfilePage({ params, searchParams }: PageProps<"/designer/[username]">) {
   const [{ username }, sp] = await Promise.all([params, searchParams]);
-  const [{ t, locale }, designer] = await Promise.all([getI18n(), designerByUsername(username)]);
+  const [{ t, locale }, designer, viewer] = await Promise.all([getI18n(), designerByUsername(username), getCurrentUser()]);
   if (!designer) {
     // An old username (a Pro designer changed theirs, or a client's was renewed): on to the new one (owner, 2026-10-15).
     const moved = await currentUsernameFor(username);
@@ -98,8 +100,8 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
     </Link>
   );
 
-  return (
-    <PageShell>
+  // Owner, 2026-10-16: a Pro designer opening their own profile keeps the workspace's left menu.
+  const page = (
       <div className="pr pp">
         <section className="pp-cov" aria-label={t("pro.profile.coverNote")}>
           <div className="pp-wall" aria-hidden>
@@ -320,6 +322,12 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
           </div>
         )}
       </div>
-    </PageShell>
   );
+  if (viewer && viewer.id === designer.id)
+    return (
+      <ProWorkspace user={viewer} active="profile">
+        {page}
+      </ProWorkspace>
+    );
+  return <PageShell>{page}</PageShell>;
 }

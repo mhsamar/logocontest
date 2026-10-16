@@ -422,7 +422,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         variant="card"
                         wonHref={withParam(here, `won=${e.number}`)}
                       />
-                      <CheckCardAction entryId={e.id} />
+                      <CheckCardAction entryId={e.id} reportCheckId={e.badge.kind === "checked" ? e.checkId : null} />
                     </div>
                   </div>
                 </li>

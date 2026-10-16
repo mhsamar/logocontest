@@ -101,6 +101,8 @@ export type CheckView = CheckListItem & {
   costUsd: number;
   /** Checks left in this contest. */
   left: number;
+  /** Who is looking (owner, 2026-10-16: the designer sees the full report too, without the client's buttons). */
+  viewer: "client" | "designer" | "admin";
 };
 
 const VIEW_COLUMNS =
@@ -118,9 +120,13 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
   if (!data) return null;
   const r = data as unknown as Record<string, unknown>;
   const contest = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; client_id: string; prize_amount: number; logo_scan: boolean } | null);
-  if (!contest || !canSeeChecks(viewer, contest.client_id)) return null;
+  if (!contest) return null;
   const entry = one(r.entry as { id: string; number: number; designer: unknown } | null);
   const designer = entry ? one(entry.designer as { id: string; name: string; username: string | null } | null) : null;
+  const requester = one(r.requester as { id: string; name: string } | null);
+  // Owner, 2026-10-16: the designer who ran the check, or whose design the client checked, sees the full report too.
+  const isDesigner = !!viewer && (viewer.id === requester?.id || viewer.id === designer?.id) && viewer.id !== contest.client_id;
+  if (!canSeeChecks(viewer, contest.client_id) && !isDesigner) return null;
   const rawMatches = [...((r.matches as Record<string, unknown>[] | null) ?? [])].sort((a, b) => (a.position as number) - (b.position as number));
   const paths = [r.image_path as string, ...rawMatches.map((m) => m.image_path as string).filter(Boolean)];
   const urls = await getFileStorage()
@@ -133,7 +139,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     ...toItem(r),
     contest: { id: contest.id, slug: contest.slug, brand: contest.brand_name, number: contest.contest_number, clientId: contest.client_id },
     entry: entry ? { id: entry.id, number: entry.number, designer } : null,
-    requestedBy: one(r.requester as { id: string; name: string } | null) ?? { id: "", name: "" },
+    requestedBy: requester ?? { id: "", name: "" },
     logoUrl: urls.get(r.image_path as string) ?? null,
     reading: (r.reading as Reading | null) ?? null,
     matches: rawMatches.map((m) => ({
@@ -159,7 +165,25 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < Date.now(),
     costUsd: Number(r.cost_usd) || 0,
     left: checksLeft(count ?? 0, limitFor(contest.prize_amount, Boolean(contest.logo_scan), limits)),
+    viewer: viewer && viewer.id === contest.client_id ? "client" : isDesigner ? "designer" : "admin",
   };
+}
+
+/**
+ * The finished check to show for one design (owner, 2026-10-16): the designer's own check while the design still uses
+ * that file, otherwise the newest finished check of it (the client's). Null when there is none.
+ */
+export async function entryCheckId(entry: { id: string; checkId: string | null }): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data } = await createAdminClient()
+    .from("logo_checks")
+    .select("id, finished_at")
+    .eq("entry_id", entry.id)
+    .eq("status", "done")
+    .order("finished_at", { ascending: false })
+    .limit(10);
+  const rows = data ?? [];
+  return (entry.checkId && rows.some((r) => r.id === entry.checkId) ? entry.checkId : (rows[0]?.id as string | undefined)) ?? null;
 }
 
 /** For the public /verify page: only the number, date, checked logo and result. */

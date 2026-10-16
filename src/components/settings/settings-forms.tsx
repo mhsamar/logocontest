@@ -146,7 +146,10 @@ export function ProfileForm({
   profileUrl,
   bioMax,
   usernameNote,
+  bioIdeas = [],
 }: {
+  /** Ready bios to tap (owner, 2026-10-16), shown behind the ideas button of the Bio box. */
+  bioIdeas?: string[];
   role: "client" | "designer";
   name: string;
   bio: string;
@@ -182,6 +185,7 @@ export function ProfileForm({
           maxLength={bioMax}
           counterLabel={`${count.format(bioText.length)} / ${count.format(bioMax)}`}
           error={err("bio")}
+          ideas={bioIdeas.length ? { items: bioIdeas, onPick: (text) => (setBioText(text), changed()) } : undefined}
         />
       )}
       {username && (

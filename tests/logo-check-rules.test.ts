@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkHeadline, sourceRows } from "@/lib/logo-check/present";
-import { accessFor, certNumber, checksLeft, limitFor, isFetchableUrl, isOnHosts, overallScore, parseCertNumber, uniquenessScore, verdictFor } from "@/lib/logo-check/rules";
+import { accessFor, certNumber, checksLeft, limitFor, isFetchableUrl, isOnHosts, logoCropBox, overallScore, parseCertNumber, uniquenessScore, verdictFor } from "@/lib/logo-check/rules";
 
 const limits = { perThousand: 15, freeChecks: 20, paidChecks: 10, freeFrom: 5000, price: 250, closeFrom: 45, highRiskFrom: 85 };
 
@@ -91,5 +91,25 @@ describe("AI copyright checker wording (owner, 2026-10-10)", () => {
   it("writes the headline from the verdict", () => {
     expect(checkHeadline("similar", src(true, true), { highRiskFrom: 85 }).headline).toBe("2 similar logos found");
     expect(checkHeadline("no_match", { ...src(true, true), shape: { compared: 0, close: 0, closest: 0 } }, { highRiskFrom: 85 }).subline).toMatch(/Nothing similar/);
+  });
+});
+
+describe("logoCropBox (owner, 2026-10-16: check only the logo inside a mockup)", () => {
+  it("cuts the AI's box out of the picture, with a little room around it", () => {
+    expect(logoCropBox([400, 300, 600, 700], 1000, 1000)).toEqual({ left: 260, top: 360, width: 480, height: 280 });
+  });
+  it("keeps the whole picture when the box is unusable, tiny or almost everything", () => {
+    expect(logoCropBox(null, 1000, 1000)).toBeNull();
+    expect(logoCropBox([1, 2, 3], 1000, 1000)).toBeNull();
+    expect(logoCropBox([600, 300, 400, 700], 1000, 1000)).toBeNull();
+    expect(logoCropBox([500, 500, 510, 510], 1000, 1000)).toBeNull();
+    expect(logoCropBox([0, 0, 1000, 1000], 1000, 1000)).toBeNull();
+  });
+  it("stays inside the picture", () => {
+    const r = logoCropBox([0, 0, 500, 500], 800, 600)!;
+    expect(r.left).toBe(0);
+    expect(r.top).toBe(0);
+    expect(r.left + r.width).toBeLessThanOrEqual(800);
+    expect(r.top + r.height).toBeLessThanOrEqual(600);
   });
 });

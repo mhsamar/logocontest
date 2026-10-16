@@ -163,11 +163,18 @@ function BuyChecker({ contestId, price, n, open, onClose }: { contestId: string;
 }
 
 /** Under each design card: "Check with AI", or the result and "Certificate" once it was checked. */
-export function CheckCardAction({ entryId }: { entryId: string }) {
+export function CheckCardAction({ entryId, reportCheckId = null }: { entryId: string; /** The designer's valid check of this file (owner, 2026-10-16): no new check needed. */ reportCheckId?: string | null }) {
   const { t } = useI18n();
   const { setup, open } = useChecker();
   if (!setup) return null;
   const c = setup.state.checks.find((x) => x.entryId === entryId && x.status !== "failed");
+  if (!c && reportCheckId)
+    return (
+      <button type="button" onClick={() => open({ checkId: reportCheckId, step: 3 })} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-primary ring-1 ring-primary/40 hover:bg-tint" data-see-report>
+        <ShieldIcon className="size-3.5" />
+        {t("checker.card.seeReport")}
+      </button>
+    );
   if (c?.status === "done" && c.verdict)
     return (
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
