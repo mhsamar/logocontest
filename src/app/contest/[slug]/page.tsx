@@ -245,7 +245,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           {/* What the client wants (owner, 2026-10-10: one tidy card with no empty middle; the full brief is in the Brief tab) */}
           {contest.brief && svc && (
             <div className="mt-3.5">
-              <ServiceBrief service={svc} answers={contest.serviceBrief} />
+              <ServiceBrief service={svc} answers={contest.serviceBrief} hidden={contest.hiddenPrivate} />
             </div>
           )}
           {contest.brief && !svc && (
@@ -451,7 +451,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         ) : tab === "brief" ? (
           contest.brief && svc ? (
             <div className="mx-auto max-w-3xl">
-              <ServiceBrief service={svc} answers={contest.serviceBrief} full />
+              <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
             </div>
           ) : contest.brief ? (
             <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />

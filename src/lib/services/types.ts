@@ -25,6 +25,13 @@ export type BriefField = {
   options: Lang[];
   /** Ready answers the client can tap to fill a text box (owner, 2026-10-13). */
   suggestions?: Lang[];
+  /**
+   * Private (owner, 2026-10-17): the answer is shown only to the client, the admin team and the winning designer, for
+   * details that must not reach every designer (the phone, email and address printed on a business card).
+   */
+  private?: boolean;
+  /** A heading shown above this question, starting a new part of the brief (owner, 2026-10-17). */
+  section?: Lang;
 };
 
 export type ServiceDef = {
@@ -64,7 +71,7 @@ export const LIMITS = {
   option: 60,
   options: 12,
   suggestions: 8,
-  fields: 15,
+  fields: 25,
   text: 120,
   longText: 1000,
   link: 300,
@@ -77,6 +84,51 @@ export const LIMITS = {
 const L = (en: string, bn: string): Lang => ({ en, bn });
 const field = (key: string, type: FieldType, label: Lang, required: boolean, help: Lang = L("", ""), options: Lang[] = [], suggestions: Lang[] = []): BriefField => ({ key, type, label, help, required, options, suggestions });
 const ideas = (...pairs: [string, string][]) => pairs.map(([en, bn]) => L(en, bn));
+const opts = (...pairs: [string, string][]) => pairs.map(([en, bn]) => L(en, bn));
+/** A question whose answer only the client, the team and the winner see. */
+const privateField = (f: BriefField): BriefField => ({ ...f, private: true });
+/** The first question of a part of the brief, with the part's heading above it. */
+const startsSection = (section: Lang, f: BriefField): BriefField => ({ ...f, section });
+
+/**
+ * The business card brief (owner, 2026-10-17): brand, colours, reference and style, the card holder's details, what
+ * goes on each side and the printing. The brand name and description are the contest's title and description. The
+ * phone, email, address and QR link on the card are private: designers use sample details until the winner is picked.
+ */
+export const BUSINESS_CARD_FIELDS: BriefField[] = [
+  startsSection(L("Brand information", "ব্র্যান্ডের তথ্য"), field("industry", "text", L("Business category / industry", "ব্যবসার ধরন / ইন্ডাস্ট্রি"), true, L("", ""), [], ideas(["Restaurant", "রেস্টুরেন্ট"], ["Clothing shop", "কাপড়ের দোকান"], ["IT company", "আইটি কোম্পানি"], ["Clinic or hospital", "ক্লিনিক বা হাসপাতাল"], ["Real estate", "রিয়েল এস্টেট"], ["Law firm", "ল ফার্ম"]))),
+  field("website", "link", L("Website", "ওয়েবসাইট"), false),
+  field("logo_link", "link", L("Your logo (link)", "আপনার লোগো (লিংক)"), false, L("Or upload it under Reference images.", "অথবা রেফারেন্স ছবিতে আপলোড করুন।")),
+  startsSection(L("Brand colours", "ব্র্যান্ডের রং"), field("colour_choice", "choice", L("Colours", "রং"), true, L("", ""), opts(["Use our existing brand colours", "আমাদের ব্র্যান্ডের রং ব্যবহার করুন"], ["Designer can suggest suitable colours", "ডিজাইনার মানানসই রং বেছে নিতে পারেন"]))),
+  field("colours", "colours", L("Primary and secondary colour", "প্রধান ও দ্বিতীয় রং"), false, L("The primary colour first, then the secondary.", "প্রথমে প্রধান রং, তারপর দ্বিতীয় রং।")),
+  startsSection(L("Reference and design style", "রেফারেন্স ও ডিজাইনের স্টাইল"), field("reference", "choice", L("Reference design", "রেফারেন্স ডিজাইন"), true, L("", ""), opts(["Reference image attached", "রেফারেন্স ছবি দেওয়া আছে"], ["Reference link provided", "রেফারেন্স লিংক দেওয়া আছে"], ["No reference: the designer may create a suitable design", "রেফারেন্স নেই: ডিজাইনার মানানসই ডিজাইন করবেন"]))),
+  field("reference_notes", "long_text", L("Reference link or notes", "রেফারেন্স লিংক বা নোট"), false),
+  field("style", "multi_choice", L("Preferred style", "পছন্দের স্টাইল"), false, L("", ""), opts(["Modern", "আধুনিক"], ["Minimal", "মিনিমাল"], ["Professional", "প্রফেশনাল"], ["Luxury", "বিলাসী"], ["Creative", "ক্রিয়েটিভ"], ["Bold", "বোল্ড"], ["Other", "অন্যান্য"])),
+  field("avoid", "text", L("Colours or styles to avoid", "যে রং বা স্টাইল চান না"), false),
+  startsSection(L("Card holder details", "কার্ডধারীর তথ্য"), field("card_name", "text", L("Full name on the card", "কার্ডে পুরো নাম"), true)),
+  field("job_title", "text", L("Job title", "পদবি"), false, L("", ""), [], ideas(["Managing Director", "ব্যবস্থাপনা পরিচালক"], ["CEO", "সিইও"], ["Sales Manager", "সেলস ম্যানেজার"], ["Proprietor", "প্রোপ্রাইটর"])),
+  privateField(field("card_phone", "text", L("Phone number on the card", "কার্ডে ফোন নম্বর"), false, L("Only the winning designer sees it.", "শুধু বিজয়ী ডিজাইনার দেখবেন।"))),
+  privateField(field("card_email", "text", L("Email address on the card", "কার্ডে ইমেইল"), false, L("Only the winning designer sees it.", "শুধু বিজয়ী ডিজাইনার দেখবেন।"))),
+  privateField(field("office_address", "long_text", L("Office address", "অফিসের ঠিকানা"), false, L("Only the winning designer sees it.", "শুধু বিজয়ী ডিজাইনার দেখবেন।"))),
+  privateField(field("qr_link", "link", L("QR code link (if needed)", "QR কোডের লিংক (দরকার হলে)"), false, L("Only the winning designer sees it.", "শুধু বিজয়ী ডিজাইনার দেখবেন।"))),
+  startsSection(L("Front and back", "সামনে ও পেছনে"), field("front_side", "multi_choice", L("Front side", "সামনের দিক"), true, L("", ""), opts(["Logo and brand/company name", "লোগো আর ব্র্যান্ড/কোম্পানির নাম"], ["Name and job title", "নাম আর পদবি"], ["Other", "অন্যান্য"]))),
+  field("back_side", "multi_choice", L("Back side", "পেছনের দিক"), false, L("", ""), opts(["Contact details", "যোগাযোগের তথ্য"], ["QR code", "QR কোড"], ["Social media links", "সোশ্যাল মিডিয়া লিংক"], ["Office address", "অফিসের ঠিকানা"], ["Other", "অন্যান্য"])),
+  field("side_other", "text", L("Anything else on the front or back", "সামনে বা পেছনে আর কী থাকবে"), false),
+  startsSection(L("Printing details", "প্রিন্টের তথ্য"), field("card_size", "choice", L("Card size", "কার্ডের সাইজ"), true, L("", ""), opts(["Standard (3.5 × 2 in)", "স্ট্যান্ডার্ড (৩.৫ × ২ ইঞ্চি)"], ["Custom size", "নিজের সাইজ"]))),
+  field("custom_size", "text", L("Custom size", "নিজের সাইজ"), false, L("Only for a custom size, for example 85 × 55 mm.", "শুধু নিজের সাইজ হলে, যেমন ৮৫ × ৫৫ মিমি।")),
+  field("orientation", "choice", L("Card orientation", "কার্ডের দিক"), true, L("", ""), opts(["Horizontal", "আড়াআড়ি"], ["Vertical", "লম্বালম্বি"])),
+  field("print_type", "choice", L("Print type", "প্রিন্টের ধরন"), true, L("", ""), opts(["Single-sided", "এক পাশে"], ["Double-sided", "দুই পাশে"])),
+  field("notes", "long_text", L("Additional notes or instructions", "আরও নির্দেশনা"), false),
+];
+/** What the business card asks the client, in plain words (Admin → Services can still change it). */
+export const BUSINESS_CARD_INSTRUCTION = L(
+  "Fill in what goes on the card. The phone number, email, address and QR link are shown only to the winning designer; the other designers use sample details. Add your logo and any reference cards under Reference images.",
+  "কার্ডে কী থাকবে তা লিখুন। ফোন নম্বর, ইমেইল, ঠিকানা আর QR লিংক শুধু বিজয়ী ডিজাইনার দেখবেন; অন্য ডিজাইনাররা নমুনা তথ্য ব্যবহার করবেন। আপনার লোগো আর পছন্দের কার্ড রেফারেন্স ছবিতে দিন।",
+);
+export const BUSINESS_CARD_DESIGNER = L(
+  "3.5 × 2 in (1050 × 600 px at 300 dpi), front and back, unless the brief asks for another size. Use sample phone, email and address: the winner gets the real ones. Final files: print-ready PDF.",
+  "৩.৫ × ২ ইঞ্চি (৩০০ ডিপিআই-তে ১০৫০ × ৬০০ পিক্সেল), সামনে ও পেছনে, ব্রিফে অন্য সাইজ না চাইলে। নমুনা ফোন, ইমেইল আর ঠিকানা দিন: বিজয়ী আসলগুলো পাবেন। ফাইনাল ফাইল: প্রিন্টের জন্য PDF।",
+);
 
 const base = {
   builtIn: false,
@@ -205,13 +257,13 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
     position: 6,
     name: L("Business card", "বিজনেস কার্ড"),
     short: L("A front and back business card, ready to print.", "সামনে-পেছনে বিজনেস কার্ড, প্রিন্টের জন্য তৈরি।"),
-    // Briefs never carry phone numbers or emails (no-contact rule): designers use sample contact lines.
-    clientInstruction: L("Give the name and title to print, and your logo link if you have one. Designers use sample contact lines; you put in your real ones once you have the files.", "যে নাম আর পদবি প্রিন্ট হবে তা দিন, লোগো থাকলে লিংক দিন। ডিজাইনাররা নমুনা যোগাযোগের তথ্য ব্যবহার করবেন; ফাইল পাওয়ার পর আপনি আসল তথ্য বসাবেন।"),
-    designerInstruction: L("3.5 × 2 in (1050 × 600 px at 300 dpi), front and back. Final files: print-ready PDF.", "৩.৫ × ২ ইঞ্চি (৩০০ ডিপিআই-তে ১০৫০ × ৬০০ পিক্সেল), সামনে ও পেছনে। ফাইনাল ফাইল: প্রিন্টের জন্য PDF।"),
+    // The card's phone, email, address and QR link are private: only the winner sees them (no-contact rule).
+    clientInstruction: BUSINESS_CARD_INSTRUCTION,
+    designerInstruction: BUSINESS_CARD_DESIGNER,
     width: 1050,
     height: 600,
     finalTypes: ["pdf", "png"],
-    fields: [field("card_name", "text", L("Name and title on the card", "কার্ডে নাম ও পদবি"), true), field("logo_link", "link", L("Your logo (link)", "আপনার লোগো (লিংক)"), false), field("colours", "colours", L("Brand colours", "ব্র্যান্ডের রং"), false)],
+    fields: BUSINESS_CARD_FIELDS,
     defaultPrize: 2000,
     minPrize: 1000,
     defaultDays: 4,
@@ -351,7 +403,9 @@ export function parseService(raw: unknown, existing: ServiceDef | null): { ok: t
       .map((x) => lang(x, type === "long_text" ? LIMITS.longText : LIMITS.text))
       .filter((x) => x.en && x.bn);
     seen.add(key);
-    fields.push({ key, type, label, help: lang(o.help, LIMITS.help), required: o.required === true, options: type === "choice" || type === "multi_choice" ? options : [], suggestions: type === "text" || type === "long_text" ? suggestions : [] });
+    const priv = o.private === true && (type === "text" || type === "long_text" || type === "link");
+    const section = lang(o.section, LIMITS.label);
+    fields.push({ key, type, label, help: lang(o.help, LIMITS.help), required: o.required === true, options: type === "choice" || type === "multi_choice" ? options : [], suggestions: type === "text" || type === "long_text" ? suggestions : [], ...(priv ? { private: true } : {}), ...(section.en ? { section: { en: section.en, bn: section.bn || section.en } } : {}) });
   }
   const minPrize = int(r.minPrize, 100, 1_000_000);
   return {
@@ -379,4 +433,20 @@ export function parseService(raw: unknown, existing: ServiceDef | null): { ok: t
       winners: 1,
     },
   };
+}
+
+/** The keys of private questions (owner, 2026-10-17): their answers go only to the client, the team and the winner. */
+export const privateKeys = (def: Pick<ServiceDef, "fields">): string[] => def.fields.filter((f) => f.private).map((f) => f.key);
+
+/** The answers a viewer may see: without the private ones unless `allowed`. Also says which answered ones were hidden. */
+export function visibleAnswers(def: Pick<ServiceDef, "fields">, answers: Answers, allowed: boolean): { answers: Answers; hidden: string[] } {
+  if (allowed) return { answers, hidden: [] };
+  const priv = new Set(privateKeys(def));
+  const out: Answers = {};
+  const hidden: string[] = [];
+  for (const [k, v] of Object.entries(answers)) {
+    if (!priv.has(k)) out[k] = v;
+    else if (String(v ?? "").length > 0) hidden.push(k);
+  }
+  return { answers: out, hidden };
 }

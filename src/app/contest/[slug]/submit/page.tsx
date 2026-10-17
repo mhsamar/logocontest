@@ -84,7 +84,7 @@ export default async function SubmitDesignPage({ params }: PageProps<"/contest/[
             <>
               {svc && contest.brief && (
                 <div className="mb-5">
-                  <ServiceBrief service={svc} answers={contest.serviceBrief} full />
+                  <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
                 </div>
               )}
               <SubmitForm contestId={contest.id} slug={contest.slug} contestName={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} check={check} canHide={canHide} limits={{ min, max, px, mb, deliverDays, size: svc && svc.width > 0 && svc.height > 0 ? { w: svc.width, h: svc.height } : null }} />
