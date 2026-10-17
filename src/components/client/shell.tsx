@@ -77,7 +77,7 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
               {languageForm("lc-nv-link py-[11px] font-medium")}
             </nav>
             <div className="ctx">
-              <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} />
+              <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now, "client"))} unread={unread} />
               <ClientAvatarMenu name={shell.name} business={shell.business} avatarUrl={shell.avatarUrl} news={hasNews(shell.counts)} accountLabel={t("cw.shell.account")} logoutLabel={t("nav.logout")} />
               <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
                 {languageForm("inline-flex min-h-11 w-full items-center justify-center rounded-[14px] bg-chip px-4 font-semibold")}

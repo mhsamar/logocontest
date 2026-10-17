@@ -1,4 +1,5 @@
 import "server-only";
+import { contestHref } from "@/lib/client/rules";
 import { audit, one } from "@/lib/admin/core";
 import { adminIdsWith } from "@/lib/admin/recipients";
 import { settleAddonPayment } from "@/lib/contests/addon-payments";
@@ -195,13 +196,13 @@ export async function approveProof(id: string, adminId: string): Promise<{ ok: t
       const contest = await contestRepository().confirmPayment(p.payment_id, (pay?.amount as number) ?? p.amount, p.txn_id, raw);
       await markContestPromoUsed(p.payment_id);
       await announceForPayment(p.payment_id);
-      await notifyWithPush([p.user_id], "payment_approved_contest", { brand: contest.brief.brandName }, `/dashboard/contests/${contest.slug}`);
+      await notifyWithPush([p.user_id], "payment_approved_contest", { brand: contest.brief.brandName }, contestHref(contest.slug));
     } else if (p.kind === "addon") {
       const { data: pay } = await db().from("payments").select("amount").eq("id", p.payment_id).maybeSingle();
       const settled = await settleAddonPayment({ paymentId: p.payment_id, status: "paid", amount: (pay?.amount as number) ?? p.amount, txnId: p.txn_id, raw });
       if (settled.status !== "paid") throw new Error("addon not settled");
       const { data: c } = await db().from("contests").select("brand_name").eq("id", p.contest_id ?? "").maybeSingle();
-      await notifyWithPush([p.user_id], "payment_approved_addon", { brand: (c?.brand_name as string) ?? "" }, settled.slug ? `/dashboard/contests/${settled.slug}` : "/dashboard");
+      await notifyWithPush([p.user_id], "payment_approved_addon", { brand: (c?.brand_name as string) ?? "" }, settled.slug ? contestHref(settled.slug, "payment") : "/client");
     } else {
       const { data: pay } = await db().from("pro_payments").select("amount_bdt").eq("id", p.payment_id).maybeSingle();
       const settled = await settleProPayment({ paymentId: p.payment_id, status: "paid", amount: (pay?.amount_bdt as number) ?? p.amount, txnId: p.txn_id, raw });

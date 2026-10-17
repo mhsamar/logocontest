@@ -98,7 +98,7 @@ describe("contest number (owner, 2026-10-08)", () => {
 describe("landing page after login (owner, 2026-10-08)", () => {
   it("sends each role to its own page", async () => {
     const { homeForRole } = await import("@/lib/auth/home");
-    expect(homeForRole("client")).toBe("/dashboard");
+    expect(homeForRole("client")).toBe("/client");
     expect(homeForRole("designer")).toBe("/contests");
     expect(homeForRole("admin")).toBe("/admin");
     expect(homeForRole(undefined)).toBe("/");

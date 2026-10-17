@@ -1,3 +1,4 @@
+import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 function resultPath(r: SettleResult): string {
   const ok = r.status === "paid";
   if (r.kind === "contest") return `/start/result?payment=${r.paymentId}`;
-  if (r.kind === "addon") return r.slug ? `/dashboard/contests/${r.slug}?payment=${ok ? "paid" : "failed"}` : "/dashboard";
+  if (r.kind === "addon") return r.slug ? contestHref(r.slug, "payment", { payment: ok ? "paid" : "failed" }) : "/client";
   return `/pro/checkout?status=${ok ? "success" : "failed"}&payment=${r.paymentId}`;
 }
 
@@ -42,7 +43,7 @@ export default async function StripeReturnPage({ searchParams }: PageProps<"/pay
           <p className="m-0 mt-2.5 text-[17px] text-muted">{waiting ? t("pay.stripe.returnLead") : t("pay.stripe.failedLead")}</p>
           {!waiting && (
             <div className="mt-8 flex justify-center">
-              <ButtonLink href="/dashboard" size="lg">
+              <ButtonLink href={result?.kind === "pro" ? "/dashboard" : "/client"} size="lg">
                 {t("pay.page.toDashboard")}
               </ButtonLink>
             </div>

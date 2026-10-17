@@ -1,4 +1,5 @@
 import "server-only";
+import { contestHref } from "@/lib/client/rules";
 import { PAGE_VIEW_DAYS } from "@/lib/analytics/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { adminIdsWith } from "@/lib/admin/recipients";
@@ -53,7 +54,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const { error } = await db.from("lifecycle_events").insert({ contest_id: contestId, kind });
     return !error;
   };
-  const manageLink = (c: ContestRow) => `/dashboard/contests/${c.slug}`;
+  // The client's contest in the client workspace (owner, 2026-10-17).
+  const manageLink = (c: ContestRow) => contestHref(c.slug);
   const SELECT = "id, slug, brand_name, client_id, status, ends_at, judging_ends_at, prize_amount";
 
   // 0. New contests every designer hasn't heard about yet (the payment usually announces them at once).
@@ -237,7 +239,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         if (!done || !(done as { id?: string }).id || !c) continue;
         await notify([h.designer_id as string], "files_missed_banned", { brand: c.brand_name }, null);
         await notify(await adminIdsWith("users.view"), "files_missed_admin", { ...(await designerContact(h.designer_id as string)), brand: c.brand_name }, `/admin/users/${h.designer_id}`);
-        await notify([c.client_id], "repick_winner", { brand: c.brand_name, days: s["timers.repick_window_days"] }, `/dashboard/contests/${c.slug}`);
+        await notify([c.client_id], "repick_winner", { brand: c.brand_name, days: s["timers.repick_window_days"] }, contestHref(c.slug, "designs"));
         report.forfeited++;
       } catch (e) {
         fail("forfeit", h.id as string, e);
@@ -268,7 +270,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         });
         if (error) throw new Error(error.message);
         if (!done || !(done as { id?: string }).id) continue;
-        await notify([c.client_id], "no_result_client", { brand: c.brand_name }, `/dashboard/contests/${c.slug}`);
+        await notify([c.client_id], "no_result_client", { brand: c.brand_name }, contestHref(c.slug));
         for (const x of shares) await notify([x.designerId], "no_result_share", { brand: c.brand_name, amount: x.credit }, "/dashboard/wallet");
         report.noResult++;
       } catch (e) {

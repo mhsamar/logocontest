@@ -64,7 +64,7 @@ export function WinnerPopup({
             </svg>
             {t("manage.winner.popup.checker")}
           </Button>
-          <ButtonLink href="/dashboard" variant="secondary" size="lg" className="flex-1">
+          <ButtonLink href="/client" variant="secondary" size="lg" className="flex-1">
             {t("manage.winner.popup.dashboard")}
           </ButtonLink>
         </div>

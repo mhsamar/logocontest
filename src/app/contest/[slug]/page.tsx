@@ -1,3 +1,4 @@
+import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -79,7 +80,7 @@ const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] te
 
 function primaryAction(contest: ContestDetail, user: CurrentUser | null, t: Translate) {
   const open = contest.status === "open";
-  if (contest.isOwner) return { href: `/dashboard/contests/${contest.slug}`, label: t("dashboard.manage") };
+  if (contest.isOwner) return { href: contestHref(contest.slug), label: t("dashboard.manage") };
   if (open && !user) return { href: `/login?next=${encodeURIComponent(`/contest/${contest.slug}`)}`, label: t("contest.actions.login") };
   if (open && user?.role === "designer") return { href: `/contest/${contest.slug}/submit`, label: t("contest.actions.submit") };
   // A finished contest only points to the open ones (owner, 2026-10-11).

@@ -1,5 +1,6 @@
 "use client";
 
+import { contestHref } from "@/lib/client/rules";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -642,7 +643,7 @@ function ResultStep({ check, canCheckAnother, onAnother, onCertificate }: { chec
 
       <div className="sticky bottom-0 grid gap-2 border-t border-line bg-frame/95 px-4 py-3.5 backdrop-blur sm:flex sm:flex-wrap sm:px-6">
         {check.entry && check.viewer !== "designer" && (
-          <Link href={`/dashboard/contests/${check.contest.slug}?entry=${check.entry.number}`} className="inline-flex min-h-12 items-center justify-center rounded-[12px] border border-line bg-surface px-4 text-[15px] font-bold text-ink hover:border-primary sm:flex-1">
+          <Link href={contestHref(check.contest.slug, "designs", { entry: check.entry.number })} className="inline-flex min-h-12 items-center justify-center rounded-[12px] border border-line bg-surface px-4 text-[15px] font-bold text-ink hover:border-primary sm:flex-1">
             {t("checker.result.askDesigner")}
           </Link>
         )}

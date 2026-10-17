@@ -128,6 +128,25 @@ describe("contest tabs deep links", () => {
     expect(rules.oldContestLink("nodi", { payment: "paid" })).toBe("/client/contests/nodi?tab=payment&payment=paid");
     expect(rules.oldContestLink("nodi", { won: "4" })).toBe("/client/contests/nodi?won=4");
   });
+  it("old client addresses go straight to the client workspace (owner, 2026-10-17: no empty page after login)", () => {
+    expect(rules.clientPathFor("/dashboard")).toBe("/client");
+    expect(rules.clientPathFor("/dashboard/")).toBe("/client");
+    expect(rules.clientPathFor("/my-contests?tab=done")).toBe("/client/contests?tab=completed");
+    expect(rules.clientPathFor("/dashboard/messages?entry=abc")).toBe("/client/messages?entry=abc");
+    expect(rules.clientPathFor("/dashboard/messages")).toBe("/client/messages");
+    expect(rules.clientPathFor("/dashboard/profile#email")).toBe("/client/settings#email");
+    expect(rules.clientPathFor("/dashboard/logo-checks")).toBe("/client/checks");
+    expect(rules.clientPathFor("/support")).toBe("/client/help");
+    expect(rules.clientPathFor("/dashboard/contests/nodi?entry=3")).toBe("/client/contests/nodi?tab=designs&entry=3");
+    expect(rules.clientPathFor("/dashboard/contests/nodi#files")).toBe("/client/contests/nodi?tab=payment#files");
+    expect(rules.clientPathFor("/dashboard/contests/nodi")).toBe("/client/contests/nodi");
+    // Pages that stay where they are, and anything outside the site.
+    expect(rules.clientPathFor("/dashboard/contests/nodi/edit")).toBe("/dashboard/contests/nodi/edit");
+    expect(rules.clientPathFor("/contest/nodi")).toBe("/contest/nodi");
+    expect(rules.clientPathFor("https://example.com/dashboard")).toBe("https://example.com/dashboard");
+    expect(rules.clientPathFor("//evil.com/dashboard")).toBe("//evil.com/dashboard");
+  });
+
   it("old My contests links keep their tab, sort and search", () => {
     expect(rules.oldMyContestsLink({})).toBe("/client/contests");
     expect(rules.oldMyContestsLink({ tab: "done" })).toBe("/client/contests?tab=completed");

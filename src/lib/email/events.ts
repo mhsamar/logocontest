@@ -1,4 +1,5 @@
 import "server-only";
+import { contestHref } from "@/lib/client/rules";
 import { translatorFor } from "@/lib/content/texts";
 import { requireEnv, isSupabaseConfigured } from "@/lib/env";
 import { SHOWN_STATUSES } from "@/lib/entries/rules";
@@ -219,7 +220,7 @@ export async function emailPickWinner(contestId: string, pickDays: number): Prom
       key: "client-pick-winner",
       to: { userId: c.clientId },
       ref: `pick:${c.id}`,
-      data: { ...cardData(origin, c), contest_title: c.title, entry_count: count ?? 0, pick_days: pickDays, contest_url: `${origin}/dashboard/contests/${c.slug}` },
+      data: { ...cardData(origin, c), contest_title: c.title, entry_count: count ?? 0, pick_days: pickDays, contest_url: `${origin}${contestHref(c.slug, "designs", { sort: "top" })}` },
     });
   });
 }
@@ -268,7 +269,7 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
             entry_count: total ?? 0,
             checked_count: checked ?? 0,
             end_date: c.endsAt ? emailDate(c.endsAt) : "",
-            contest_url: `${origin}/dashboard/contests/${c.slug}`,
+            contest_url: `${origin}${contestHref(c.slug, "designs")}`,
           },
         });
         if (status === "sent") sent++;

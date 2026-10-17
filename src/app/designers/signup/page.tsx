@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DesignerSignupPage() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   // Signed-in people already have an account (one account = one role).
-  if (user) redirect(user.role === "designer" ? "/contests" : "/dashboard");
+  if (user) redirect(user.role === "designer" ? "/contests" : user.role === "client" ? "/client" : "/dashboard");
   const s = await getSettings(["auth.password_min_length", "limits.designer_bio_max_length"]);
 
   return (

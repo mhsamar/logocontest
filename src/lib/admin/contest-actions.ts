@@ -1,5 +1,6 @@
 "use server";
 
+import { contestHref } from "@/lib/client/rules";
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { contestDesignerIds, notify } from "@/lib/notifications";
@@ -88,7 +89,7 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
   const n = { brand: c.brand_name, number: entry.number as number };
   await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, admin.id);
   await emailWon(entry.id as string);
-  await notify([c.client_id], "winner_picked_by_admin", n, `/dashboard/contests/${c.slug}`, admin.id);
+  await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), admin.id);
   await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
   await afterWinnerPicked(c.id, entry.id as string);
   refresh();

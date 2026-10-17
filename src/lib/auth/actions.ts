@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { parseLoginIdentifier } from "./identity";
 import { clientIp } from "./services";
+import { clientPathFor } from "@/lib/client/rules";
 import { homeForRole } from "./home";
 import { markLoggedOut } from "./sessions";
 import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, findProfileByUsername, safeNext, signIn, type AuthFormState } from "./sign-in";
@@ -41,7 +42,8 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   }
   // A page that sent the person to log in wins; otherwise each role has its own landing page.
   const next = formData.get("next");
-  if (typeof next === "string" && next) redirect(safeNext(next));
+  // A client goes straight to the new address of an old link (owner, 2026-10-17: no empty in-between page).
+  if (typeof next === "string" && next) redirect(role === "client" ? clientPathFor(safeNext(next)) : safeNext(next));
   redirect(homeForRole(role));
 }
 
