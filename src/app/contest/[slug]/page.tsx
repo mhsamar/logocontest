@@ -148,7 +148,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const canHideDesigns = proSet.features.hidden_entries && viewerIsPro;
   // Its designer takes the open design back, whole or one picture at a time, while the contest is open (owner, 2026-10-16).
   // The AI check report of this design (owner, 2026-10-16): its designer, the client and the admin team open it here.
-  const reportCheckId = entry && user && (entry.mine || user.id === contest.ownerId || hasPermission(user, "copyright.view")) ? await entryCheckId({ id: entry.id, checkId: entry.checkId }) : null;
+  const reportCheck = entry && user && (entry.mine || user.id === contest.ownerId || hasPermission(user, "copyright.view")) ? await entryCheckId({ id: entry.id, checkId: entry.checkId }) : null;
   const entryRemovable = entry ? canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) : false;
   const proMark = (e: { designerId: string; designer: unknown }) => ({
     badge: Boolean(e.designer) && badges.has(e.designerId),
@@ -529,9 +529,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           removable={entryRemovable ? { entryId: entry.id, pictureIds: entry.pictureIds } : null}
         >
           <EntryViewBeacon entryId={entry.id} />
-          {reportCheckId && (
+          {reportCheck && (
             <div className="mb-4">
-              <FullReportButton checkId={reportCheckId} label={t("checker.full.openLong")} className="w-full" />
+              <FullReportButton checkId={reportCheck.id} verdict={reportCheck.verdict} variant="card" />
             </div>
           )}
           {/* Contest chat (owner, 2026-10-13): the client and a Pro designer, about this design only. */}

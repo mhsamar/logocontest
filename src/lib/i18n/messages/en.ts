@@ -4388,7 +4388,7 @@ const en = {
   checker: {
     // Owner, 2026-10-16: a logo on a mockup confuses the check; the full report for the designer and the client.
     mockupTip: "Best result: check the logo alone on a plain background, not on a mockup. If the picture is a mockup, the AI finds the logo in it and checks only that part.",
-    full: { open: "See full report", openLong: "See full report: shapes, scores and certificate" },
+    full: { open: "See full report", openLong: "See full report: shapes, scores and certificate", cardTitle: "Logo check report", cardLead: "Shapes, scores and certificate" },
     title: "AI copyright checker",
     usedOf: "{used} of {limit} checks used",
     close: "Close",
