@@ -11,6 +11,7 @@ import { ServiceBrief } from "@/components/services/service-brief";
 import { NavScroll } from "@/components/ui/nav-scroll";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { ShareButtons } from "@/components/share/share-buttons";
 import { VoteButtons } from "@/components/entries/vote-buttons";
 import { ClientHandover } from "@/components/handover/client-handover";
 import { HandoverChat } from "@/components/handover/handover-chat";
@@ -34,6 +35,9 @@ import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboardin
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getEntryDetail } from "@/lib/entries/queries";
+import { isShareableDesign } from "@/lib/entries/rules";
+import { siteOrigin } from "@/lib/email";
+import { designPath, designPinPath } from "@/lib/share/links";
 import { CHAT_STATUSES } from "@/lib/handover/options";
 import { getHandoverByContest, handoverMessages } from "@/lib/handover/queries";
 import { getI18n } from "@/lib/i18n/server";
@@ -112,6 +116,13 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const day = (d: Date) => formatDate(d, locale, "short");
   const now = new Date();
   const finished = isFinished(contest.rawStatus);
+  // Facebook and Pinterest (owner, 2026-10-18): the open design, when a logged-out visitor sees it too.
+  const shareOrigin =
+    entry &&
+    !entry.locked &&
+    isShareableDesign({ status: entry.status, isHidden: entry.hidden }, { status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, isBlind: contest.isBlind, winnerIsPublic: contest.winnerIsPublic })
+      ? await siteOrigin()
+      : null;
   const reviewing = contest.status === "open" || contest.status === "judging";
   const fileDays = s["timers.designer_file_upload_days"];
   const here = contestHref(contest.slug, tab, tab === "designs" ? { filter, sort: sort !== "pro" ? sort : null } : {});
@@ -647,6 +658,17 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               {entries.find((e) => e.id === entry.id)?.chat && <MessageDesignerLink entryId={entry.id} label={t("pro.chat.message")} />}
               <OwnerActions entryId={entry.id} number={entry.number} rating={entry.rating} shortlisted={entry.isShortlisted} canAct={reviewing && entry.status === "active"} readOnly={finished} fileDays={fileDays} variant="panel" wonHref={withParam(here, `won=${entry.number}`)} />
               <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!finished} hint={finished ? t("contest.finished") : null} />
+              {/* Share this design (owner, 2026-10-18): ask friends on Facebook, only when visitors can see it too. */}
+              {shareOrigin && (
+                <div data-entry-share>
+                  <p className="m-0 mb-2 text-sm font-semibold text-ink">{t("share.design")}</p>
+                  <ShareButtons
+                    url={`${shareOrigin}${designPath(contest.slug, entry.number)}`}
+                    media={`${shareOrigin}${designPinPath(contest.slug, entry.number)}`}
+                    text={t(entry.status === "winner" ? "share.winnerText" : "share.designText", { n: num(entry.number), brand: contest.brandName })}
+                  />
+                </div>
+              )}
               <EntryComments entryId={entry.id} comments={entry.comments} canComment={!finished} reason={finished ? "finished" : "notAllowed"} loginHref="/login" maxLength={s["limits.contest_comment_max_length"]} />
             </div>
           </EntryViewer>

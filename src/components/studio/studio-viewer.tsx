@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { timeAgo } from "@/lib/dates";
+import { ShareButtons } from "@/components/share/share-buttons";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/money";
+import { designPath, designPinPath } from "@/lib/share/links";
 import { STUDIO_NEW_MS } from "@/lib/studio/options";
 import type { StudioDesign } from "@/lib/studio/queries";
 import { Chevron, StudioAvatar, StudioBadge } from "./studio-bits";
@@ -178,6 +180,16 @@ export function StudioViewer({
                 <dd>{when}</dd>
               </div>
             </dl>
+            {/* Share it (owner, 2026-10-18): the Studio lists public designs only. */}
+            <div data-entry-share>
+              <span className="text-[12.5px] font-bold uppercase tracking-[0.06em] text-[#5F626B]">{t("share.design")}</span>
+              <ShareButtons
+                className="mt-1.5"
+                url={`${window.location.origin}${designPath(d.contestSlug, d.number)}`}
+                media={`${window.location.origin}${designPinPath(d.contestSlug, d.number)}`}
+                text={t(d.isWinner ? "share.winnerText" : "share.designText", { n: formatNumber(d.number, locale), brand: d.brandName })}
+              />
+            </div>
             <Link href={`/contest/${d.contestSlug}?tab=entries&entry=${d.number}`} className="ds-b1 mt-auto min-h-12">
               {t("studio.viewer.view")}
               <Chevron dir="right" />

@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { EntryViewer } from "@/components/entries/entry-viewer";
+import { ShareButtons } from "@/components/share/share-buttons";
 import { WithdrawButton } from "@/components/entries/withdraw-button";
 import { buttonClasses } from "@/components/ui/button";
 import type { MyDesign } from "@/lib/designers/profile";
 import { WITHDRAWABLE } from "@/lib/entries/rules";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { designPath, designPinPath } from "@/lib/share/links";
 
 type Peek = { url: string; caption: string; label: string | null; left: number; top: number };
 
@@ -111,6 +113,17 @@ export function MyContestDesigns({ slug, brand, designs, open, className }: { sl
           <Link href={`/contest/${slug}?tab=entries&entry=${current.number}`} className={buttonClasses({ variant: "secondary" })}>
             {t("designerDash.designs.onContest")}
           </Link>
+          {/* Share it (owner, 2026-10-18): only when visitors see it too. The viewer opens on a click, so window is there. */}
+          {current.shareable && (
+            <div className="mt-5" data-entry-share>
+              <p className="m-0 mb-2 text-sm font-semibold text-ink">{t("share.design")}</p>
+              <ShareButtons
+                url={`${window.location.origin}${designPath(slug, current.number)}`}
+                media={`${window.location.origin}${designPinPath(slug, current.number)}`}
+                text={t(current.status === "winner" ? "share.winnerText" : "share.designText", { n: fmt(current.number), brand })}
+              />
+            </div>
+          )}
           <p className="m-0 mt-5 border-t border-line pt-4 text-sm text-muted">{t(open ? "designerDash.designs.canRemove" : "designerDash.designs.finished")}</p>
           {open && WITHDRAWABLE.includes(current.status) && (
             <div className="mt-2">

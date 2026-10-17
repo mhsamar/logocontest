@@ -105,6 +105,14 @@ export function isPublicDesign(entry: { status: EntryStatus; isHidden?: boolean 
 }
 
 /**
+ * Share buttons and the design's public page (owner, 2026-10-18): only designs a logged-out visitor already sees,
+ * and never from an NDA contest. Everything else (private, blind, hidden, held, rejected) is never shared.
+ */
+export function isShareableDesign(entry: { status: EntryStatus; isHidden?: boolean | null }, contest: PublicDesignContest & { isNda: boolean }): boolean {
+  return !contest.isNda && isPublicDesign(entry, contest);
+}
+
+/**
  * A designer may remove (withdraw) their own design while the contest still takes designs (owner, 2026-10-11:
  * uploaded by mistake, or they think it isn't good). A rejected design can go too; a winner never.
  * The same rule lets them remove single pictures (owner, 2026-10-16), also from a design waiting for approval.

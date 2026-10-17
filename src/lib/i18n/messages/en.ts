@@ -1,4 +1,5 @@
 import clientEn from "./client-en";
+import shareEn from "./share-en";
 import checkEn from "./check-en";
 import payEn from "./pay-en";
 import proEn from "./pro-en";
@@ -8,6 +9,7 @@ const en = {
   entryCheck: checkEn,
   pay: payEn,
   cw: clientEn,
+  share: shareEn,
   meta: {
     title: "logocontest.bd — Logo design contests in Bangladesh",
     description: "Many designers. Many ideas. One perfect logo. Get your logo from Bangladesh's best designers.",

@@ -190,7 +190,14 @@ export type DesignerContest = {
   prize: number;
 };
 
-export type MyDesign = { id: string; number: number; status: EntryStatus; pictures: { id: string; url: string; label: string | null; doubted: boolean }[] };
+export type MyDesign = {
+  id: string;
+  number: number;
+  status: EntryStatus;
+  pictures: { id: string; url: string; label: string | null; doubted: boolean }[];
+  /** Share buttons (owner, 2026-10-18): visitors see this design too (contest isPrivate here includes NDA). */
+  shareable: boolean;
+};
 
 /** The dashboard signs at most this many pictures, newest contests first; older ones show their cover only. */
 const DASHBOARD_PICTURES = 400;
@@ -216,7 +223,7 @@ export async function designerContests(userId: string): Promise<DesignerContest[
       latestCoverUrl: list[0].coverPath ? (urls.get(list[0].coverPath) ?? null) : null,
       designs: list.flatMap((e) => {
         const shown = e.pictures.flatMap((p) => (urls.has(p.path) ? [{ id: p.id, url: urls.get(p.path)!, label: p.label, doubted: p.doubted }] : []));
-        return shown.length ? [{ id: e.id, number: e.number, status: e.status, pictures: shown }] : [];
+        return shown.length ? [{ id: e.id, number: e.number, status: e.status, pictures: shown, shareable: isPublic(e) }] : [];
       }),
       open: c.status === "open" && (!c.endsAt || new Date(c.endsAt) > now),
       prize: c.prize,
