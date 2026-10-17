@@ -7,17 +7,20 @@ import { PRIVATE_PATHS, searchIndexingOn, siteUrl } from "@/lib/seo";
  */
 const SHARE_BOTS = ["Pinterestbot", "Pinterest", "facebookexternalhit", "Facebot", "Twitterbot", "LinkedInBot", "WhatsApp", "TelegramBot"];
 
+/** Win and monthly prize cards are public pictures that are shared and pinned, although they live under /api. */
+const PUBLIC_PICTURES = ["/api/cards/win/", "/api/cards/monthly/"];
+
 // robots.txt (BLUEPRINT §15.1): the private areas are blocked; a staging copy blocks everything but link previews.
 export default function robots(): MetadataRoute.Robots {
   if (!searchIndexingOn())
     return {
       rules: [
-        { userAgent: SHARE_BOTS, allow: "/", disallow: PRIVATE_PATHS },
+        { userAgent: SHARE_BOTS, allow: ["/", ...PUBLIC_PICTURES], disallow: PRIVATE_PATHS },
         { userAgent: "*", disallow: "/" },
       ],
     };
   return {
-    rules: { userAgent: "*", allow: "/", disallow: PRIVATE_PATHS },
+    rules: { userAgent: "*", allow: ["/", ...PUBLIC_PICTURES], disallow: PRIVATE_PATHS },
     sitemap: `${siteUrl()}/sitemap.xml`,
     host: siteUrl(),
   };

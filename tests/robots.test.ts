@@ -10,7 +10,7 @@ describe("robots.txt", () => {
     const rules = Array.isArray(r.rules) ? r.rules : [r.rules];
     const share = rules.find((x) => Array.isArray(x.userAgent) && x.userAgent.includes("Pinterestbot"))!;
     expect(share.userAgent).toEqual(expect.arrayContaining(["Pinterestbot", "facebookexternalhit", "WhatsApp"]));
-    expect(share.allow).toBe("/");
+    expect(share.allow).toEqual(["/", "/api/cards/win/", "/api/cards/monthly/"]);
     expect(share.disallow).toEqual(expect.arrayContaining(["/dashboard", "/admin", "/api"]));
     expect(rules.find((x) => x.userAgent === "*")?.disallow).toBe("/");
     expect(r.sitemap).toBeUndefined();

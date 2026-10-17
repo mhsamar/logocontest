@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { PinterestIcon } from "@/components/share/share-buttons";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { pinterestShareUrl } from "@/lib/share/links";
 
 type Size = "square" | "story";
 
@@ -11,7 +13,7 @@ type Size = "square" | "story";
  * Download and share a card picture (owner, 2026-10-11; Design/rewards/designer-win-card.html). On a phone, Share
  * opens the phone's share sheet with the picture, so it can go straight to Instagram or Facebook. On a computer,
  * Facebook shares the public page (its preview is the card) and Instagram downloads the picture, because
- * Instagram doesn't take posts from websites.
+ * Instagram doesn't take posts from websites. Pinterest (owner, 2026-10-18) pins the tall story picture, linking to the page.
  */
 export function CardShare({
   images,
@@ -85,6 +87,10 @@ export function CardShare({
       save(file);
       toast(t("winCard.share.instagramDownloaded"));
     });
+  const pinterest = () => {
+    const media = new URL(images.story, window.location.href).href;
+    window.open(pinterestShareUrl({ url: pageUrl, media, description: shareText }), "_blank", "noopener,width=760,height=640");
+  };
   const copy = () =>
     run("copy", async () => {
       await navigator.clipboard.writeText(pageUrl);
@@ -127,6 +133,10 @@ export function CardShare({
           {icons.instagram}
           Instagram
         </button>
+        <button type="button" onClick={pinterest} disabled={busy !== null} className={cx(small, "text-[#BD081C]")}>
+          <PinterestIcon className="size-[18px]" />
+          Pinterest
+        </button>
       </div>
     );
   }
@@ -168,6 +178,10 @@ export function CardShare({
             <path d="M16.8 7.2v.1" />
           </svg>
           {t("winCard.share.instagram")}
+        </button>
+        <button type="button" onClick={pinterest} disabled={busy !== null} className={cx(btn, "border border-[#DCDEE3] bg-white text-[#BD081C]")}>
+          <PinterestIcon className="size-[18px]" />
+          {t("share.pinterest")}
         </button>
       </div>
       <button type="button" onClick={copy} className="inline-flex min-h-11 items-center gap-2 text-[15.5px] font-bold text-[#8B0000]">

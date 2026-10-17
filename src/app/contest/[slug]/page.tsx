@@ -21,6 +21,8 @@ import { hasPermission } from "@/lib/admin/permissions";
 import { entryCheckId } from "@/lib/logo-check/queries";
 import { SaveButton } from "@/components/contests/save-button";
 import { ShareContest } from "@/components/contests/share-contest";
+import { ShareButtons } from "@/components/share/share-buttons";
+import { contestPinPath, designPath, designPinPath } from "@/lib/share/links";
 import { UsedOnIcon } from "@/components/contests/used-on-icon";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/panel";
@@ -43,7 +45,7 @@ import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
-import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
+import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, isShareableDesign, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { HideToggle } from "@/components/entries/hidden-bits";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
@@ -156,7 +158,14 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   });
   const ordered = sort === "top" && proSet.features.highlighted_entries ? [...entries].sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner") || Number(proMark(b).highlight) - Number(proMark(a).highlight)) : entries;
   const fmt = (n: number) => formatNumber(n, locale);
-  const contestUrl = `${await siteOrigin()}/contest/${contest.slug}`;
+  const origin = await siteOrigin();
+  const contestUrl = `${origin}/contest/${contest.slug}`;
+  // Facebook and Pinterest (owner, 2026-10-18): only what a logged-out visitor sees may be shared.
+  const indexable = contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda });
+  const entryShareable =
+    entry !== null &&
+    !entry.locked &&
+    isShareableDesign({ status: entry.status, isHidden: entry.hidden }, { status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, isBlind: contest.isBlind, winnerIsPublic: contest.winnerIsPublic });
   const sortHref = (s: EntrySortKey) => `/contest/${contest.slug}?tab=entries${s === "top" ? "" : `&sort=${s}`}`;
   const entriesHref = sortHref(sort);
   const loginHref = `/login?next=${encodeURIComponent(`/contest/${contest.slug}?tab=comments`)}`;
@@ -374,7 +383,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                     <p className="mt-1.5 text-sm text-muted">{t("contest.glance.noDesignersLine")}</p>
                   )}
                 </div>
-                <ShareContest url={contestUrl} brand={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} />
+                <ShareContest url={contestUrl} brand={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} pin={indexable ? `${origin}${contestPinPath(contest.slug)}` : null} />
               </div>
             </div>
           }
@@ -554,6 +563,17 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               }
             />
           </div>
+          {/* Share this design (owner, 2026-10-18): its own page, with the design as the preview picture. */}
+          {entryShareable && (
+            <div className="mb-5" data-entry-share>
+              <p className="m-0 mb-2 text-sm font-semibold text-ink">{t("share.design")}</p>
+              <ShareButtons
+                url={`${origin}${designPath(contest.slug, entry.number)}`}
+                media={`${origin}${designPinPath(contest.slug, entry.number)}`}
+                text={t(entry.status === "winner" ? "share.winnerText" : "share.designText", { n: fmt(entry.number), brand: contest.brandName })}
+              />
+            </div>
+          )}
           <EntryComments
             entryId={entry.id}
             comments={entry.comments}

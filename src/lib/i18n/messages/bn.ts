@@ -3,12 +3,14 @@ import clientBn from "./client-bn";
 import checkBn from "./check-bn";
 import payBn from "./pay-bn";
 import proBn from "./pro-bn";
+import shareBn from "./share-bn";
 
 const bn: Messages = {
   pro: proBn,
   entryCheck: checkBn,
   pay: payBn,
   cw: clientBn,
+  share: shareBn,
   meta: {
     title: "logocontest.bd — বাংলাদেশে লোগো ডিজাইন কনটেস্ট",
     description: "অনেক ডিজাইনার। অনেক আইডিয়া। একটি নিখুঁত লোগো। বাংলাদেশের সেরা ডিজাইনারদের কাছ থেকে আপনার লোগো নিন।",
