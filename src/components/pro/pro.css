@@ -1844,6 +1844,18 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+.pr-picks .up.chosen {
+  justify-content: flex-start;
+}
+.pr-picks .up .prev {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--pr-ln);
+}
 .pr-picks .up input:not([type="file"]) {
   flex: 1 1 200px;
   height: 42px;

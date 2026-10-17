@@ -489,6 +489,12 @@ const proEn = {
     upload: "Upload a design",
     uploadHint: "Your own work only, not contest designs. PNG or JPG of any size; we make it lighter for you.",
     removeItem: "Remove",
+    // Owner, 2026-10-16: choose a picture, name it, then Save.
+    itemName: "Name of this design",
+    itemNameHint: "Name (optional), e.g. Shark logo for a seafood shop",
+    saving: "Saving…",
+    cancelPick: "Cancel",
+    itemSaved: "Design saved to your portfolio.",
     messagesToggle: "Messages from contest clients",
     messagesSub: "Clients of contests you joined can message you",
     badgeToggle: "Show Pro badge",

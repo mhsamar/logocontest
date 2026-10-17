@@ -86,14 +86,27 @@ export function TitleForm({ initial }: { initial: string }) {
   );
 }
 
-/** Portfolio uploads (own designs only), within the Pro slots. */
+/**
+ * Portfolio uploads (own designs only), within the Pro slots. Owner, 2026-10-16: choose a picture, see it, give it a
+ * name, then Save (before, the name box had no Save button and the picture went up the moment it was chosen).
+ */
 export function PortfolioManager({ items, max }: { items: { id: string; url: string | null; title: string }[]; max: number }) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState("");
+  const [chosen, setChosen] = useState<{ file: File; url: string } | null>(null);
   const full = items.length >= max;
+  const choose = (f: File) => {
+    if (chosen) URL.revokeObjectURL(chosen.url);
+    setChosen({ file: f, url: URL.createObjectURL(f) });
+  };
+  const clear = () => {
+    if (chosen) URL.revokeObjectURL(chosen.url);
+    setChosen(null);
+    setTitle("");
+  };
   const upload = async (picked: File) => {
     setBusy(true);
     try {
@@ -103,9 +116,10 @@ export function PortfolioManager({ items, max }: { items: { id: string; url: str
       if (!prep.ok) return toast(t(prep.error), "danger");
       const { error } = await createBrowserSupabase().storage.from("pro-files").uploadToSignedUrl(prep.path, prep.token, f, { contentType: f.type });
       if (error) return toast(t("pro.errors.generic"), "danger");
-      const res = await addPortfolioItem({ path: prep.path, title });
+      const res = await addPortfolioItem({ path: prep.path, title: title.trim() });
       if (!res.ok) return toast(t(res.error), "danger");
-      setTitle("");
+      clear();
+      toast(t("pro.settings.itemSaved"));
       router.refresh();
     } finally {
       setBusy(false);
@@ -131,14 +145,36 @@ export function PortfolioManager({ items, max }: { items: { id: string; url: str
           ))}
         </div>
       )}
-      {!full && (
+      {!full && !chosen && (
         <div className="up">
-          <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 80))} placeholder={t("pro.settings.titleHint")} aria-label={t("pro.settings.title2")} />
           <label className={`pr-btn sm${busy ? " busy" : ""}`}>
-            <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) choose(f);
+              }}
+            />
             <Icon name="upload" size={16} />
             {t("pro.settings.upload")}
           </label>
+        </div>
+      )}
+      {!full && chosen && (
+        <div className="up chosen" data-portfolio-chosen>
+          <img src={chosen.url} alt="" className="prev" />
+          <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 80))} placeholder={t("pro.settings.itemNameHint")} aria-label={t("pro.settings.itemName")} autoFocus />
+          <button type="button" className="pr-btn sm" onClick={() => void upload(chosen.file)} disabled={busy}>
+            <Icon name="check" size={16} strokeWidth={3} />
+            {busy ? t("pro.settings.saving") : t("pro.settings.save")}
+          </button>
+          <button type="button" className="pr-out sm" onClick={clear} disabled={busy}>
+            {t("pro.settings.cancelPick")}
+          </button>
         </div>
       )}
       <p className="pr-mut">{t("pro.settings.uploadHint")}</p>

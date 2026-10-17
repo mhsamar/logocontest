@@ -488,6 +488,12 @@ const proBn: Messages["pro"] = {
     upload: "একটি ডিজাইন আপলোড করুন",
     uploadHint: "শুধু নিজের কাজ, কনটেস্টের ডিজাইন নয়। যেকোনো সাইজের PNG বা JPG; আমরা নিজেরাই হালকা করে নিই।",
     removeItem: "সরান",
+    // Owner, 2026-10-16: choose a picture, name it, then Save.
+    itemName: "এই ডিজাইনের নাম",
+    itemNameHint: "নাম (ঐচ্ছিক), যেমন: সি-ফুড দোকানের শার্ক লোগো",
+    saving: "সেভ হচ্ছে…",
+    cancelPick: "বাতিল",
+    itemSaved: "ডিজাইনটি আপনার পোর্টফোলিওতে সেভ হয়েছে।",
     messagesToggle: "কনটেস্ট ক্লায়েন্টদের মেসেজ",
     messagesSub: "আপনি যে কনটেস্টে আছেন তার ক্লায়েন্টরা মেসেজ দিতে পারবেন",
     badgeToggle: "Pro ব্যাজ দেখান",
