@@ -40,6 +40,31 @@ export function clientMenu(counts: MenuCounts, links: Partial<Record<ClientMenuK
   }));
 }
 
+/**
+ * Which menu item a page belongs to (owner, 2026-10-17): the menu sits in a shared layout that stays on screen while
+ * pages change, so it reads the address instead of being told by each page.
+ */
+const MENU_PATHS: [string, ClientMenuKey][] = [
+  ["/client/contests", "contests"],
+  ["/client/messages", "messages"],
+  ["/client/checks", "checks"],
+  ["/client/files", "files"],
+  ["/client/payments", "payments"],
+  ["/client/profile", "profile"],
+  ["/client/settings", "settings"],
+  ["/client/help", "help"],
+  ["/start", "start"],
+  ["/pay", "payments"],
+  ["/dashboard/contests", "contests"],
+  ["/verify-email", "settings"],
+];
+export function menuKeyForPath(path: string): ClientMenuKey | null {
+  const p = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  if (p === "/client") return "dashboard";
+  for (const [prefix, key] of MENU_PATHS) if (p === prefix || p.startsWith(`${prefix}/`)) return key;
+  return null;
+}
+
 /** The avatar's red dot: something new to look at. */
 export const hasNews = (counts: MenuCounts) => counts.review > 0 || counts.unread > 0;
 

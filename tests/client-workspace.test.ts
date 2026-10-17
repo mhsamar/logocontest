@@ -74,6 +74,25 @@ describe("menu counts", () => {
     expect(menu.every((i) => i.key === "start" || i.href.startsWith("/client"))).toBe(true);
     expect(href("review")).toBe("/client/contests/abc?tab=designs&filter=unrated");
   });
+  it("the menu marks the open page from its address, on every page that shows the workspace", () => {
+    expect(rules.menuKeyForPath("/client")).toBe("dashboard");
+    expect(rules.menuKeyForPath("/client/")).toBe("dashboard");
+    expect(rules.menuKeyForPath("/client/contests")).toBe("contests");
+    expect(rules.menuKeyForPath("/client/contests/nodi-tea?tab=designs")).toBe("contests");
+    expect(rules.menuKeyForPath("/client/messages")).toBe("messages");
+    expect(rules.menuKeyForPath("/client/checks")).toBe("checks");
+    expect(rules.menuKeyForPath("/client/settings")).toBe("settings");
+    expect(rules.menuKeyForPath("/client/help")).toBe("help");
+    expect(rules.menuKeyForPath("/start")).toBe("start");
+    expect(rules.menuKeyForPath("/start/invite")).toBe("start");
+    expect(rules.menuKeyForPath("/start/social_post")).toBe("start");
+    expect(rules.menuKeyForPath("/pay/contest/abc")).toBe("payments");
+    expect(rules.menuKeyForPath("/dashboard/contests/nodi/edit")).toBe("contests");
+    expect(rules.menuKeyForPath("/notifications")).toBeNull();
+    expect(rules.menuKeyForPath("/clientele")).toBeNull();
+    expect(rules.menuKeyForPath("/starting")).toBeNull();
+  });
+
   it("the avatar's red dot shows only when there are new designs or unread messages", () => {
     expect(rules.hasNews({ contests: 5, review: 0, unread: 0 })).toBe(false);
     expect(rules.hasNews({ contests: 0, review: 1, unread: 0 })).toBe(true);

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ClientShell } from "@/components/client/shell";
 import { SettingsBody } from "@/components/settings/settings-body";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
@@ -18,7 +17,7 @@ export default async function ClientSettingsPage() {
   if (user.role !== "client") redirect("/dashboard/profile");
   const { t } = await getI18n();
   return (
-    <ClientShell user={user} active="settings">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -27,6 +26,6 @@ export default async function ClientSettingsPage() {
         </div>
       </div>
       <SettingsBody user={user} bare />
-    </ClientShell>
+    </>
   );
 }

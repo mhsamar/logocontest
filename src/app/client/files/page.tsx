@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CwIcon } from "@/components/client/icons";
 import { Empty, Picture } from "@/components/client/parts";
-import { ClientShell } from "@/components/client/shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestHref } from "@/lib/client/rules";
 import { clientFiles } from "@/lib/client/workspace";
@@ -24,7 +23,7 @@ export default async function ClientFilesPage() {
   if (user.role !== "client") redirect("/dashboard");
   const [{ t, locale }, f] = await Promise.all([getI18n(), clientFiles(user.id)]);
   return (
-    <ClientShell user={user} active="files">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -85,6 +84,6 @@ export default async function ClientFilesPage() {
           )}
         </section>
       </div>
-    </ClientShell>
+    </>
   );
 }

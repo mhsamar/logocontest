@@ -6,7 +6,6 @@ import { ClientChat } from "@/components/client/chat";
 import { CwIcon } from "@/components/client/icons";
 import { CheckChip, Empty, Picture, ProChip, Stars } from "@/components/client/parts";
 import { RateStars, ShortlistButton } from "@/components/client/review-buttons";
-import { ClientShell } from "@/components/client/shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { agoParts, contestHref } from "@/lib/client/rules";
 import { judgedEntries } from "@/lib/client/workspace";
@@ -68,7 +67,7 @@ export default async function ClientMessagesPage({ searchParams }: PageProps<"/c
   const files = messages.filter((m) => m.file).length;
 
   return (
-    <ClientShell user={user} active="messages">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -250,6 +249,6 @@ export default async function ClientMessagesPage({ searchParams }: PageProps<"/c
           </aside>
         </section>
       )}
-    </ClientShell>
+    </>
   );
 }

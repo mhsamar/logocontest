@@ -668,3 +668,15 @@ body:has([data-client-shell]) [data-top-bars] { padding-top:0 !important }
 /* Any page that shows the workspace (the client pages, and Start a contest for a signed-in client: owner, 2026-10-17)
    hides the site's own floating menu bar and footer; the workspace brings its own top bar */
 body:has([data-client-shell]) :is(.lc-nav-slot, .lc-footer-slot) { display:none !important }
+/* Loading placeholders inside the workspace (owner, 2026-10-17) */
+.cwx .cload { display:flex; flex-direction:column; gap:18px }
+.cwx .cload span { display:block; border-radius:20px; background:linear-gradient(90deg,#ECEDF1 0%,#F6F6F9 50%,#ECEDF1 100%); background-size:200% 100%; animation:cload 1.3s ease-in-out infinite }
+.cwx .cload .cl1 { width:46%; height:44px; border-radius:14px }
+.cwx .cload .cl2 { width:70%; height:18px; border-radius:9px }
+.cwx .cload .cl3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px }
+.cwx .cload .cl3 span { height:110px }
+.cwx .cload .cl4 { height:320px }
+@keyframes cload { 0% { background-position:100% 0 } 100% { background-position:-100% 0 } }
+@media (max-width:700px) { .cwx .cload .cl3 { grid-template-columns:1fr } }
+/* The site's page frame inside the workspace: no extra side padding (pay, notifications, edit brief…) */
+.cwx .cmn > .lc-page { padding-left:0; padding-right:0; padding-bottom:0 }

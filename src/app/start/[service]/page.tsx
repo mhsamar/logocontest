@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
-import { cannotStart, ComingSoon, inWorkspace, logoWizard, serviceWizard } from "../start-flow";
+import { cannotStart, ComingSoon, logoWizard, serviceWizard } from "../start-flow";
 
 export async function generateMetadata({ params }: PageProps<"/start/[service]">): Promise<Metadata> {
   const [{ t, locale }, service] = await Promise.all([getI18n(), getService((await params).service)]);
@@ -22,5 +22,5 @@ export default async function StartServicePage({ params, searchParams }: PagePro
   const blocked = await cannotStart(user);
   if (blocked) return blocked;
   if (!service.on) return <ComingSoon service={service} />;
-  return inWorkspace(user, isLogo(service.slug) ? await logoWizard(query, user) : await serviceWizard(service, user));
+  return isLogo(service.slug) ? logoWizard(query, user) : serviceWizard(service, user);
 }

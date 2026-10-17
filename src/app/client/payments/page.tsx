@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Empty } from "@/components/client/parts";
-import { ClientShell } from "@/components/client/shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestHref } from "@/lib/client/rules";
 import { clientPayments } from "@/lib/client/workspace";
@@ -23,7 +22,7 @@ export default async function ClientPaymentsPage() {
   const [{ t, locale }, list] = await Promise.all([getI18n(), clientPayments(user.id)]);
   const paid = list.filter((p) => p.status === "paid");
   return (
-    <ClientShell user={user} active="payments">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -57,6 +56,6 @@ export default async function ClientPaymentsPage() {
           </div>
         )}
       </section>
-    </ClientShell>
+    </>
   );
 }

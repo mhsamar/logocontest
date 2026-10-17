@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CwIcon } from "@/components/client/icons";
 import { Empty, Picture, StatusPill } from "@/components/client/parts";
-import { ClientShell } from "@/components/client/shell";
 import { SortSelect } from "@/components/client/sort-select";
 import { getCurrentUser } from "@/lib/auth/session";
 import { actionRank, contestHref, contestStages, leftParts, mainAction, MY_SORTS, MY_TABS, mySort, myTab, myTabOf, STAGES } from "@/lib/client/rules";
@@ -67,7 +66,7 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
   };
 
   return (
-    <ClientShell user={user} active="contests">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -220,6 +219,6 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
           <em>{t("cw.my.newLead")}</em>
         </Link>
       </div>
-    </ClientShell>
+    </>
   );
 }

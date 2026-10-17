@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { CwIcon } from "@/components/client/icons";
 import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, StatusPill } from "@/components/client/parts";
 import { ShortlistHeart } from "@/components/client/review-buttons";
-import { ClientShell } from "@/components/client/shell";
 import { ClientAvatar } from "@/components/client/avatar-menu";
 import { getCurrentUser } from "@/lib/auth/session";
 import { agoParts, contestHref, leftParts, mainAction, progressShare } from "@/lib/client/rules";
@@ -48,7 +47,7 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
   const ring = h.checks ? Math.round((h.checks.left / Math.max(1, h.checks.limit)) * 314) : 0;
 
   return (
-    <ClientShell user={user} active="dashboard">
+    <>
       {/* Hero */}
       <section className="chero">
         <span className="cha a" />
@@ -308,6 +307,6 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
           )}
         </section>
       </div>
-    </ClientShell>
+    </>
   );
 }

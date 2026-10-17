@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { CwIcon } from "@/components/client/icons";
 import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, Stars, StatusPill } from "@/components/client/parts";
 import { ShortlistHeart } from "@/components/client/review-buttons";
-import { ClientShell } from "@/components/client/shell";
 import { ClientAvatar } from "@/components/client/avatar-menu";
 import { CopyClaim } from "@/components/claims/copy-claim";
 import { ContestBrief } from "@/components/contests/contest-brief";
@@ -201,7 +200,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   );
 
   return (
-    <ClientShell user={user} active="contests">
+    <>
       <CheckerProvider setup={checkerOn && checks ? checker : null} lens={checker.lens}>
         {sp.payment === "paid" && <p className="calert ok">{t("manage.payment.paid")}</p>}
         {sp.payment === "failed" && <p className="calert bad">{t("manage.payment.failed")}</p>}
@@ -653,7 +652,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           />
         )}
       </CheckerProvider>
-    </ClientShell>
+    </>
   );
 }
 
