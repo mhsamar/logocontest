@@ -8,6 +8,7 @@ import { ClientAvatar } from "@/components/client/avatar-menu";
 import { CopyClaim } from "@/components/claims/copy-claim";
 import { ContestBrief } from "@/components/contests/contest-brief";
 import { ServiceBrief } from "@/components/services/service-brief";
+import { NavScroll } from "@/components/ui/nav-scroll";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { EntryViewer } from "@/components/entries/entry-viewer";
 import { VoteButtons } from "@/components/entries/vote-buttons";
@@ -242,12 +243,16 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
         </div>
 
         {/* Tabs and actions */}
-        <nav className="dtabs dtt" aria-label={t("cw.detail.tabsLabel")}>
-          {CONTEST_TABS.map((k) => (
-            <Link key={k} href={contestHref(contest.slug, k)} className={k === tab ? "on" : undefined} aria-current={k === tab ? "page" : undefined} scroll={false} data-tab={k}>
-              {tabLabel(k)}
-            </Link>
-          ))}
+        {/* Tabs, then the actions; on phones the tabs are one sliding row and the actions go under it (owner, 2026-10-17). */}
+        <div className="dtbar">
+          <nav className="dtabs dtt" aria-label={t("cw.detail.tabsLabel")}>
+            {CONTEST_TABS.map((k) => (
+              <Link key={k} href={contestHref(contest.slug, k)} className={k === tab ? "on" : undefined} aria-current={k === tab ? "page" : undefined} scroll={false} data-tab={k}>
+                {tabLabel(k)}
+              </Link>
+            ))}
+          </nav>
+          <NavScroll selector=".dtbar .dtt" />
           <span className="dtact">
             {canEdit && (
               <Link href={`/dashboard/contests/${contest.slug}/edit`} className="dout sm">
@@ -263,7 +268,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               {t(`cw.action.${headAction === "details" ? "review" : headAction}`)}
             </Link>
           </span>
-        </nav>
+        </div>
 
         {contest.status === "judging" && contest.judgingEndsAt && <p className="calert info">{t("lifecycle.pickBy", { date: formatDate(contest.judgingEndsAt, locale, "long") })}</p>}
         {contest.status === "no_result" && <p className="calert info">{t("lifecycle.noResultClient")}</p>}

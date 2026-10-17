@@ -183,7 +183,7 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
       )}
 
       {/* The three steps, each with its own questions */}
-      <div className="grid items-stretch gap-5 min-[1021px]:grid-cols-3 max-[1020px]:mx-auto max-[1020px]:w-full max-[1020px]:max-w-[480px]">
+      <div className="grid items-stretch gap-5 min-[1021px]:grid-cols-3 max-[1020px]:mx-auto max-[1020px]:w-full max-[1020px]:max-w-[480px] max-[1020px]:grid-cols-[minmax(0,1fr)]">
         {steps.map((st, i) => (
           <article key={st.key} id={`step-${i + 1}`} className={cx(CARD, "flex scroll-mt-28 flex-col gap-3.5 p-5 max-[640px]:p-[18px]")}>
             {st.art}

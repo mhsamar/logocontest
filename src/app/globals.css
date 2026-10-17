@@ -859,6 +859,11 @@ select:focus-visible {
   scale: 1 1;
   translate: -18px -50%;
 }
+.lc-ft-lang {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
 .lc-ft-lang[aria-current] {
   text-decoration: underline;
   text-decoration-color: var(--color-primary);
