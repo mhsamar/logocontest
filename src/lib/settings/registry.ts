@@ -307,7 +307,7 @@ export const SETTINGS = {
   },
   "designs.relevance_check": {
     group: "limits", type: "bool", schema: z.boolean(), default: true,
-    description: "Design check (owner, 2026-10-15): the AI looks at each new logo design; one that isn't a design (a screenshot, a random photo) waits in Admin › Designs › To approve.",
+    description: "Design check (owner, 2026-10-15; 2026-10-17: nudity only): the AI looks at each new logo design; one with a nude or sexual picture, or one it isn't sure about, waits in Admin › Designs › To approve. Every kind of mockup is allowed.",
   },
   "limits.entry_min_images": {
     group: "limits", type: "int", schema: int(1), default: 1,

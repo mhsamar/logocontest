@@ -5,38 +5,52 @@ import { heldAfterRemoval, readRelevance, RELEVANCE_TOOL, relevancePrompt } from
 import { NOTICE_ROWS } from "@/lib/notifications/admin-catalog";
 import { SETTINGS } from "@/lib/settings/registry";
 
-describe("design check (owner, 2026-10-15)", () => {
-  it("reads the AI's answer: which pictures are not designs, and why", () => {
+describe("design check (owner, 2026-10-15; 2026-10-17: nudity only)", () => {
+  it("holds sexual pictures and the ones the AI isn't sure about, and says why", () => {
     const a = readRelevance(
       {
         images: [
-          { n: 1, related: true, what: "logo on a white background" },
-          { n: 2, related: false, what: "screenshot of a diary app form" },
-          { n: 3, related: false, what: "  selfie   photo " },
-          { n: 2, related: false, what: "duplicate answer" },
-          { n: 9, related: false, what: "out of range" },
+          { n: 1, adult: "no", what: "logo on a jacket" },
+          { n: 2, adult: "yes", what: "nude photo" },
+          { n: 3, adult: " Unsure ", what: "  woman in   lingerie " },
+          { n: 2, adult: "yes", what: "duplicate answer" },
+          { n: 9, adult: "yes", what: "out of range" },
         ],
       },
       3,
     );
-    expect(a).toEqual({ held: true, positions: [1, 2], reason: "Picture 2: screenshot of a diary app form; Picture 3: selfie photo" });
+    expect(a).toEqual({ held: true, positions: [1, 2], reason: "Picture 2: sexual content (nude photo); Picture 3: may be sexual (woman in lingerie)" });
   });
 
-  it("anything unclear counts as a design; a broken answer means no check", () => {
-    expect(readRelevance({ images: [{ n: 1, related: true, what: "mockup" }, { n: 2, what: "?" }, { n: 3, related: "no" }] }, 3)).toEqual({ held: false, positions: [], reason: "" });
+  it("every kind of mockup, screenshot or photo passes", () => {
+    const mockups = ["logo on a jacket worn by a person", "app icons on a dark background", "robot wearing a yellow shirt with the logo", "website screenshot", "selfie photo"];
+    expect(readRelevance({ images: mockups.map((what, i) => ({ n: i + 1, adult: "no", what })) }, mockups.length)).toEqual({ held: false, positions: [], reason: "" });
+  });
+
+  it("an unclear answer doesn't hold; a broken answer means no check", () => {
+    expect(readRelevance({ images: [{ n: 1, adult: "no", what: "mockup" }, { n: 2, what: "?" }, { n: 3, adult: "maybe" }, { n: 4, related: false }] }, 4)).toEqual({ held: false, positions: [], reason: "" });
     expect(readRelevance({ images: [] }, 2)).toEqual({ held: false, positions: [], reason: "" });
     expect(readRelevance(null, 2)).toBeNull();
     expect(readRelevance({ images: "x" }, 2)).toBeNull();
   });
 
-  it("the instructions say what counts and lean towards publishing", () => {
+  it("the instructions ask only about nudity and allow every mockup", () => {
     const p = relevancePrompt({ service: "a logo design", brand: null, count: 2 });
     expect(p).toContain("a logo design");
-    expect(p).toContain("screenshot of an app");
-    expect(p).toContain("If you are not sure, answer related = true");
+    expect(p).toContain("Only one thing matters: nude or sexual content");
+    expect(p).toContain("app icons");
+    expect(p).toContain("adult = unsure");
+    expect(p).not.toContain("related =");
     expect(p).not.toContain('for the brand "');
     expect(RELEVANCE_TOOL.input_schema.required).toEqual(["images"]);
+    expect(RELEVANCE_TOOL.input_schema.properties.images.items.properties.adult.enum).toEqual(["no", "unsure", "yes"]);
     expect(SETTINGS["designs.relevance_check"].default).toBe(true);
+  });
+
+  it("removing the doubted picture still clears the design", () => {
+    const held = { positions: [1], reason: "Picture 2: may be sexual (woman in lingerie)" };
+    expect(heldAfterRemoval(held, [0, 2])).toEqual({ positions: [], reason: "", clear: true });
+    expect(heldAfterRemoval({ positions: [2], reason: "Picture 3: sexual content (nude photo)" }, [1, 2])).toEqual({ positions: [1], reason: "Picture 2: sexual content (nude photo)", clear: false });
   });
 
   it("a held design is seen only by its own designer and the admin team", () => {
