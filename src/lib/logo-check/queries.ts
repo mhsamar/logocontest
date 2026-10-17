@@ -173,17 +173,19 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
  * The finished check to show for one design (owner, 2026-10-16): the designer's own check while the design still uses
  * that file, otherwise the newest finished check of it (the client's). Null when there is none.
  */
-export async function entryCheckId(entry: { id: string; checkId: string | null }): Promise<string | null> {
+export async function entryCheckId(entry: { id: string; checkId: string | null }): Promise<{ id: string; verdict: Verdict | null } | null> {
   if (!isSupabaseConfigured()) return null;
   const { data } = await createAdminClient()
     .from("logo_checks")
-    .select("id, finished_at")
+    .select("id, verdict, finished_at")
     .eq("entry_id", entry.id)
     .eq("status", "done")
     .order("finished_at", { ascending: false })
     .limit(10);
   const rows = data ?? [];
-  return (entry.checkId && rows.some((r) => r.id === entry.checkId) ? entry.checkId : (rows[0]?.id as string | undefined)) ?? null;
+  const row = (entry.checkId ? rows.find((r) => r.id === entry.checkId) : undefined) ?? rows[0];
+  // The result goes on the report card (owner, 2026-10-18).
+  return row ? { id: row.id as string, verdict: (row.verdict as Verdict | null) ?? null } : null;
 }
 
 /** For the public /verify page: only the number, date, checked logo and result. */

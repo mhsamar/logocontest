@@ -4,14 +4,28 @@ import { useEffect, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { CheckDialog } from "./check-dialog";
-import { ShieldIcon } from "./parts";
+import type { Verdict } from "@/lib/logo-check/rules";
+import { ShieldIcon, VerdictPill } from "./parts";
 
 /**
  * "See full report" (owner, 2026-10-16): the whole AI report of a finished check (what the AI sees, the similar
  * logos, the closest one side by side, scores, the certificate) for the client, the design's designer and admins.
  * It opens in its own top-layer dialog, so it also shows above the send pop-up.
  */
-export function FullReportButton({ checkId, label, variant = "outline", className }: { checkId: string; label?: string; variant?: "outline" | "solid" | "link"; className?: string }) {
+export function FullReportButton({
+  checkId,
+  label,
+  variant = "outline",
+  verdict = null,
+  className,
+}: {
+  checkId: string;
+  label?: string;
+  /** "card" (owner, 2026-10-18): a full-width card with the shield, the result and an arrow, for the design viewer. */
+  variant?: "outline" | "solid" | "link" | "card";
+  verdict?: Verdict | null;
+  className?: string;
+}) {
   const { t } = useI18n();
   const [dialog, setDialog] = useState<HTMLDialogElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -22,8 +36,32 @@ export function FullReportButton({ checkId, label, variant = "outline", classNam
     if (!open && dialog.open) dialog.close();
   }, [open, dialog]);
 
-  return (
-    <>
+  const trigger =
+    variant === "card" ? (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        data-full-report={checkId}
+        className={cx(
+          "group flex w-full items-center gap-3.5 rounded-[18px] bg-surface p-3 pr-3.5 text-left ring-1 ring-line transition-[box-shadow,background-color] hover:bg-tint/40 hover:ring-primary/40 hover:shadow-[0_8px_22px_-14px_rgba(139,0,0,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+          className,
+        )}
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-[image:var(--gradient-red)] text-white shadow-[0_6px_14px_-6px_rgba(139,0,0,0.6)]">
+          <ShieldIcon className="size-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[15.5px] font-bold leading-tight text-ink">{label ?? t("checker.full.cardTitle")}</span>
+            {verdict && <VerdictPill verdict={verdict} className="px-2 text-[12px]" />}
+          </span>
+          <span className="mt-1 block text-[13.5px] leading-snug text-muted">{t("checker.full.cardLead")}</span>
+        </span>
+        <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </button>
+    ) : (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -39,6 +77,11 @@ export function FullReportButton({ checkId, label, variant = "outline", classNam
         <ShieldIcon className="size-4" />
         {label ?? t("checker.full.open")}
       </button>
+    );
+
+  return (
+    <>
+      {trigger}
       <dialog
         ref={setDialog}
         onCancel={(e) => {

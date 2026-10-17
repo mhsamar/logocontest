@@ -4384,7 +4384,7 @@ const bn: Messages = {
   checker: {
     // Owner, 2026-10-16: a logo on a mockup confuses the check; the full report for the designer and the client.
     mockupTip: "সেরা ফলের জন্য: মকআপ নয়, সাদামাটা ব্যাকগ্রাউন্ডে শুধু লোগোটি চেক করুন। ছবিটি মকআপ হলে AI এর ভেতরের লোগো খুঁজে নিয়ে শুধু সেই অংশটি চেক করে।",
-    full: { open: "পুরো রিপোর্ট দেখুন", openLong: "পুরো রিপোর্ট দেখুন: আকার, স্কোর ও সার্টিফিকেট" },
+    full: { open: "পুরো রিপোর্ট দেখুন", openLong: "পুরো রিপোর্ট দেখুন: আকার, স্কোর ও সার্টিফিকেট", cardTitle: "লোগো চেক রিপোর্ট", cardLead: "আকার, স্কোর ও সার্টিফিকেট" },
     title: "AI কপিরাইট চেকার",
     usedOf: "{limit}টির মধ্যে {used}টি চেক ব্যবহার হয়েছে",
     close: "বন্ধ করুন",
