@@ -7,7 +7,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { getService } from "@/lib/services/store";
 import { isLogo, LOGO } from "@/lib/services/types";
-import { cannotStart, ComingSoon, logoWizard, serviceDraftOf, serviceWizard } from "./start-flow";
+import { cannotStart, ComingSoon, inWorkspace, logoWizard, serviceDraftOf, serviceWizard } from "./start-flow";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -35,26 +35,26 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     // A saved draft opens at "Review and pay" (owner, 2026-10-14: "Finish payment" went back to step 1). A service
     // draft is only saved with a complete brief; a logo draft that isn't complete opens at its first unfinished step.
     if (service && !isLogo(service.slug))
-      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined);
+      return inWorkspace(user, await serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined));
   }
   if (draft || params.step !== undefined || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
-    return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);
+    return inWorkspace(user, await logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user));
   }
 
-  return (
-    <PageShell>
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-1 py-4">
-        <div className="flex flex-col gap-2">
-          <span className="self-start rounded-full bg-tint px-3 py-1 text-[13px] font-bold text-primary">{t("services.picker.kicker")}</span>
-          <h1 className="m-0 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.06] tracking-[-0.04em] text-ink">{t("services.picker.title")}</h1>
-          <p className="m-0 max-w-[620px] text-[17px] text-muted">{t("services.picker.lead")}</p>
-        </div>
-        <DesignTypes variant="start" />
-        <DesignTypesHow />
-        <p className="dt-note">{t("services.types.samples")}</p>
+  const picker = (
+    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-1 py-4">
+      <div className="flex flex-col gap-2">
+        <span className="self-start rounded-full bg-tint px-3 py-1 text-[13px] font-bold text-primary">{t("services.picker.kicker")}</span>
+        <h1 className="m-0 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.06] tracking-[-0.04em] text-ink">{t("services.picker.title")}</h1>
+        <p className="m-0 max-w-[620px] text-[17px] text-muted">{t("services.picker.lead")}</p>
       </div>
-    </PageShell>
+      <DesignTypes variant="start" />
+      <DesignTypesHow />
+      <p className="dt-note">{t("services.types.samples")}</p>
+    </div>
   );
+  // A signed-in client picks inside the client workspace (owner, 2026-10-17).
+  return user?.role === "client" ? inWorkspace(user, picker) : <PageShell>{picker}</PageShell>;
 }

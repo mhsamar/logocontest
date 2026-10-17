@@ -665,3 +665,6 @@ body:has([data-client-shell]) [data-top-bars] { padding-top:0 !important }
   .cwx .ctop { gap:8px }
   .cwx .ctx { gap:6px }
 }
+/* Any page that shows the workspace (the client pages, and Start a contest for a signed-in client: owner, 2026-10-17)
+   hides the site's own floating menu bar and footer; the workspace brings its own top bar */
+body:has([data-client-shell]) :is(.lc-nav-slot, .lc-footer-slot) { display:none !important }
