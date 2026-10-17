@@ -1,3 +1,4 @@
+import { NavScroll } from "@/components/ui/nav-scroll";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageShell } from "@/components/ui/panel";
@@ -72,6 +73,7 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
                 </Link>
               ))}
           </nav>
+          <NavScroll selector=".pr-nav" />
           {onTrial && (
             <div className="pr-plan">
               <span className="glow" aria-hidden />

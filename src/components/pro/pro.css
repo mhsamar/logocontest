@@ -2321,12 +2321,21 @@
   .pr-card {
     padding: 20px 18px;
   }
-  .pr-nav a {
-    padding: 8px 10px;
-    font-size: 13.5px;
+  /* Owner, 2026-10-17 (phones first): the menu is one sliding row, not a block of ten buttons on every page. */
+  .pr-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
-  .pr-nav a em {
+  .pr-nav::-webkit-scrollbar {
     display: none;
+  }
+  .pr-nav a {
+    flex: none;
+    white-space: nowrap;
+    padding: 10px 12px;
+    font-size: 13.5px;
   }
   .pr-k4 {
     gap: 10px;
@@ -2356,6 +2365,11 @@
   .pr-tr {
     grid-template-columns: 56px minmax(0, 1fr) 92px;
     gap: 10px;
+  }
+  /* The picture fits its 56px column on phones (it overlapped the contest name). */
+  .pr-tr .pr-thumb {
+    width: 56px;
+    height: 56px;
   }
   .pr-mc-strip {
     padding-left: 0;

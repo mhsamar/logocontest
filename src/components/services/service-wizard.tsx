@@ -2,17 +2,24 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
+import { Checkbox, TextAreaField, TextField } from "@/components/ui/field";
 import { wizardVisitId } from "@/components/wizard/visit-id";
+import { deleteFile, getFile } from "@/components/wizard/file-store";
+import type { LocalFile, ServerFile } from "@/components/wizard/state";
+import { Part } from "@/components/wizard/steps-brief";
+import { FilesStep } from "@/components/wizard/steps-order";
+import { normalizeEmail } from "@/lib/auth/identity";
 import { toE164 } from "@/lib/phone";
+import { isPersonName } from "@/lib/profile/name-rules";
+import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { saveWizardLead } from "@/lib/wizard-tracking";
 import { Stepper } from "@/components/ui/stepper";
 import { PriceBar, PriceSidebar } from "@/components/wizard/price-summary";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
-import { checkAccountDetails, createAccountAndDraft, previewPromo, saveDraft, startCheckout } from "@/lib/contests/actions";
+import { checkAccountDetails, createAccountAndDraft, prepareBriefUpload, previewPromo, recordBriefUpload, removeBriefFile, saveDraft, startCheckout } from "@/lib/contests/actions";
 import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { MethodPicker, PromoField } from "@/components/payments/pay-bits";
 import type { PromoPreview } from "@/components/wizard/step-review";
@@ -29,14 +36,19 @@ import { cleanAnswers, LIMITS, sizeText, type Answers, type BriefField, type Lan
 /** Add-ons a non-logo contest can take (the AI logo checker is for logos only). */
 const SERVICE_UPGRADES: UpgradeKey[] = ["promoted", "highlight", "urgent", "private", "blind", "nda"];
 
-type Draft = { title: string; description: string; answers: Answers; prize: number; days: number; upgrades: Order["upgrades"]; contestId: string | null };
+/** Reference images wait in this browser (IndexedDB) until the contest is saved, then go up (as in the logo wizard). */
+type Draft = { title: string; description: string; answers: Answers; prize: number; days: number; upgrades: Order["upgrades"]; contestId: string | null; localFiles?: LocalFile[] };
+const BUCKET = "contest-files";
+const NAME_MAX = 60;
 
 export type ServiceWizardProps = {
   service: ServiceDef;
   user: { name: string; mobile: string } | null;
   pricing: PricingConfig;
   passwordMin: number;
-  resume: { contestId: string; title: string; description: string; answers: Answers; order: Order } | null;
+  resume: { contestId: string; title: string; description: string; answers: Answers; order: Order; files?: ServerFile[] } | null;
+  /** Reference images (owner, 2026-10-17: every contest has them, like the logo contest). */
+  fileLimits: { maxFiles: number; maxMb: number };
   /** Designer Pro plan (owner, 2026-10-13): after saving, the optional "Invite Pro designers" step comes before paying. */
   inviteFirst?: boolean;
   /** Back from the invite step: open at "Review and pay". */
@@ -47,25 +59,30 @@ export type ServiceWizardProps = {
 
 /**
  * Contest wizard for a non-logo service (owner, 2026-10-13): the service's brief (a title, a short description and
- * the questions set in Admin → Services), prize and days, an account for new clients, then review and pay. Saved on
- * this device until the draft is on the server. The same actions as the logo wizard save and check out.
+ * the questions set in Admin → Services), prize and days, then review and pay. Saved on this device until the draft
+ * is on the server. The same actions as the logo wizard save and check out. Owner, 2026-10-17: a visitor starts like
+ * in the logo contest, with "Tell us about you" (real name, mobile and email, asked once), sets a password with the
+ * prize, and every contest has reference images.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods }: ServiceWizardProps) {
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits }: ServiceWizardProps) {
   // The prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
   const { t, locale, price: money } = useI18n();
   const router = useRouter();
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
   const cfg = useMemo<PricingConfig>(() => ({ ...pricing, customMin: service.minPrize }), [pricing, service.minPrize]);
   const key = `lc-service-wizard-${service.slug}`;
-  type Step = "brief" | "order" | "account" | "password" | "pay";
-  const steps: Step[] = user ? ["brief", "order", "pay"] : ["brief", "order", "account", "password", "pay"];
+  type Step = "you" | "brief" | "order" | "pay";
+  const steps: Step[] = user ? ["brief", "order", "pay"] : ["you", "brief", "order", "pay"];
 
   const [d, setD] = useState<Draft>(() =>
     resume
       ? { title: resume.title, description: resume.description, answers: resume.answers, prize: resume.order.customPrize ?? service.defaultPrize, days: resume.order.durationDays, upgrades: resume.order.upgrades, contestId: resume.contestId }
       : { title: "", description: "", answers: {}, prize: service.defaultPrize, days: Math.min(cfg.durationMax, Math.max(cfg.durationMin, service.defaultDays)), upgrades: noUpgrades(), contestId: null },
   );
-  const [step, setStep] = useState<Step>(resume && startAtPay ? "pay" : "brief");
+  const [step, setStep] = useState<Step>(resume && startAtPay ? "pay" : user ? "brief" : "you");
+  const [name, setName] = useState("");
+  const [serverFiles, setServerFiles] = useState<ServerFile[]>(resume?.files ?? []);
+  const [uploading, setUploading] = useState(false);
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
@@ -113,10 +130,19 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const brief = { ...emptyBrief(), brandName: d.title.trim(), businessDescription: d.description.trim(), businessType: "other" as const, noWebsite: true };
   const svc = { slug: service.slug, answers: d.answers };
 
-  // A new client's mobile number on the first step (owner, 2026-10-14), so the team can help if they don't finish.
-  const leadMobileOk = Boolean(user) || toE164(mobile, country) !== null;
+  // Step 1 for a visitor (owner, 2026-10-17, as in the logo contest): real name, mobile and email, asked once.
+  const personName = name.trim().replace(/\s+/g, " ");
+  const nameOk = isPersonName(personName) && personName.length >= 2 && personName.length <= NAME_MAX;
+  const aboutOk = nameOk && toE164(mobile, country) !== null && normalizeEmail(email) !== null;
+  const localFiles = d.localFiles ?? [];
   const valid =
-    step === "brief" ? briefValid && leadMobileOk : step === "order" ? !orderError : step === "account" ? Boolean(mobile && email) : step === "password" ? password.length >= passwordMin : Boolean(method && terms && contentOk);
+    step === "you"
+      ? aboutOk
+      : step === "brief"
+        ? briefValid
+        : step === "order"
+          ? !orderError && (Boolean(user) || password.length >= passwordMin)
+          : Boolean(method && terms && contentOk) && !uploading;
   const go = (s: Step) => {
     setError(null);
     setTouched(false);
@@ -124,23 +150,43 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
     window.scrollTo({ top: 0 });
   };
 
+  // The reference images go up once the contest is saved; false when one couldn't be sent (it stays to try again).
+  const uploadFiles = useCallback(async (contestId: string, files: LocalFile[]): Promise<boolean> => {
+    if (!files.length) return true;
+    setUploading(true);
+    const supabase = createBrowserSupabase();
+    const left: LocalFile[] = [];
+    for (const f of files) {
+      const ok = await (async () => {
+        const blob = await getFile(f.id);
+        if (!blob) return true; // gone from this browser: nothing to send
+        const prepared = await prepareBriefUpload({ contestId, name: f.name, type: f.type, size: f.size });
+        if (!prepared.ok) return false;
+        const up = await supabase.storage.from(BUCKET).uploadToSignedUrl(prepared.path, prepared.token, blob, { contentType: f.type });
+        if (up.error) return false;
+        const rec = await recordBriefUpload({ contestId, path: prepared.path, name: f.name, type: f.type, size: f.size, isCurrentLogo: false });
+        if (!rec.ok) return false;
+        setServerFiles((sf) => [...sf, { id: rec.id, name: f.name, type: f.type, isCurrentLogo: false }]);
+        await deleteFile(f.id);
+        return true;
+      })().catch(() => false);
+      if (!ok) left.push(f);
+    }
+    setD((cur) => ({ ...cur, localFiles: left }));
+    setUploading(false);
+    return left.length === 0;
+  }, []);
+
+  // After the contest is saved: send the reference images, then the invite step or payment.
+  const afterSave = async (contestId: string) => {
+    if (!(await uploadFiles(contestId, localFiles))) return setError(t("services.wizard.uploadFailed"));
+    if (inviteFirst) return router.push(`/start/invite?draft=${contestId}`);
+    go("pay");
+  };
+
   const onNext = () => {
     if (!valid) return setTouched(true);
-    if (step === "brief") {
-      if (!user) void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug });
-      return go("order");
-    }
-    if (step === "order") {
-      if (!user) return go("account");
-      return start(async () => {
-        const res = await saveDraft({ brief, order, contestId: d.contestId, service: svc });
-        if (!res.ok) return setError(t(res.error.key, res.error.params));
-        setD((cur) => ({ ...cur, contestId: res.contestId }));
-        if (inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
-        go("pay");
-      });
-    }
-    if (step === "account") {
+    if (step === "you") {
       return start(async () => {
         const res = await checkAccountDetails({ mobile, country, email });
         if (!res.ok) {
@@ -150,19 +196,40 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           if (!isField) return setError(t(k, res.error.params));
           return setAccountError({ field: phoneKeys.includes(k) ? "mobile" : "email", message: t(k, res.error.params), taken: k === "auth.errors.phoneTaken" || k === "wizard.errors.emailTaken" });
         }
-        go("password");
+        // A new client's mobile for the team (owner, 2026-10-14), so they can help if the visitor doesn't finish.
+        void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug });
+        go("brief");
       });
     }
-    if (step === "password") {
+    if (step === "brief") {
+      if (!user) void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug });
+      return go("order");
+    }
+    if (step === "order") {
+      if (user) {
+        return start(async () => {
+          const res = await saveDraft({ brief, order, contestId: d.contestId, service: svc });
+          if (!res.ok) return setError(t(res.error.key, res.error.params));
+          setD((cur) => ({ ...cur, contestId: res.contestId }));
+          await afterSave(res.contestId);
+        });
+      }
+      // A new client: the account is made here, with the password set on this step (as in the logo contest).
       return start(async () => {
         const push = await subscribeToPush();
-        const res = await createAccountAndDraft({ push, mobile, country, whatsapp, email, password, brief, order, service: svc });
-        if (!res.ok) return setError(t(res.error.key, res.error.params));
+        const res = await createAccountAndDraft({ push, name: personName, mobile, country, whatsapp, email, password, brief, order, service: svc });
+        if (!res.ok) {
+          // The mobile or email was taken in the meantime: back to step 1 to change it.
+          if (res.error.key === "auth.errors.phoneTaken" || res.error.key === "wizard.errors.emailTaken") {
+            setAccountError({ field: res.error.key === "auth.errors.phoneTaken" ? "mobile" : "email", message: t(res.error.key), taken: true });
+            return go("you");
+          }
+          return setError(t(res.error.key, res.error.params));
+        }
         setD((cur) => ({ ...cur, contestId: res.contestId }));
         setPassword("");
         router.refresh();
-        if (inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
-        go("pay");
+        await afterSave(res.contestId);
       });
     }
     return start(async () => {
@@ -173,7 +240,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
 
   const setAnswer = (k: string, v: string | string[]) => setD((cur) => ({ ...cur, answers: { ...cur.answers, [k]: v } }));
   const fieldError = (f: BriefField) => (touched && errors[f.key] ? t(`services.wizard.errors.${errors[f.key]}`) : undefined);
-  const heading = step === "brief" ? l(service.name) : t(`services.wizard.steps.${step}`);
+  const heading = step === "brief" ? l(service.name) : step === "you" ? t("wizard.you.heading") : t(`services.wizard.steps.${step}`);
   const showPrice = step === "order" || step === "pay";
   // A promo code was checked against the total at that moment; after the order changes it no longer counts.
   const promoNow = promo && price && promo.total + promo.saves === price.total ? promo : null;
@@ -202,23 +269,51 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
             <span className="rounded-full bg-tint px-3 py-1 text-[13px] font-bold text-primary">{l(service.name)}</span>
             <h1 className="m-0 mt-3 text-[clamp(28px,3.4vw,40px)] font-semibold leading-[1.08] tracking-[-0.035em] text-ink">{heading}</h1>
 
+            {/* 1. About you (visitors): real name, mobile and email, as in the logo contest (owner, 2026-10-17) */}
+            {step === "you" && (
+              <div className="mt-4 space-y-5">
+                <p className="m-0 text-[17px] leading-relaxed text-muted">{t("wizard.you.helper")}</p>
+                <TextField
+                  mark
+                  label={t("wizard.you.nameLabel")}
+                  hint={t("wizard.you.nameHint")}
+                  autoComplete="name"
+                  value={name}
+                  maxLength={NAME_MAX}
+                  onChange={(e) => setName(e.target.value)}
+                  error={touched && !nameOk ? t("wizard.you.nameError") : undefined}
+                  autoFocus
+                />
+                <AccountStep
+                  mobile={mobile}
+                  email={email}
+                  country={country}
+                  onCountry={(iso) => {
+                    setCountry(iso);
+                    setAccountError(null);
+                  }}
+                  whatsapp={whatsapp}
+                  onWhatsapp={setWhatsapp}
+                  onMobile={(v) => {
+                    setMobile(v);
+                    setAccountError(null);
+                  }}
+                  onEmail={(v) => {
+                    setEmail(v);
+                    setAccountError(null);
+                  }}
+                  mobileError={accountError?.field === "mobile" ? accountError.message : undefined}
+                  emailError={accountError?.field === "email" ? accountError.message : undefined}
+                  taken={Boolean(accountError?.taken)}
+                  autoFocus={false}
+                />
+              </div>
+            )}
+
             {step === "brief" && (
               <div className="mt-4 space-y-5">
                 {l(service.clientInstruction) && <p className="m-0 whitespace-pre-line text-[17px] leading-relaxed text-muted">{l(service.clientInstruction)}</p>}
                 {sizeText(service) && <p className="m-0 rounded-[14px] bg-frame px-4 py-3 text-[14.5px] text-ink">{t("services.wizard.size", { size: sizeText(service) })}</p>}
-                {!user && (
-                  <PhoneField
-                    label={t("wizard.lead.label")}
-                    hint={t("wizard.lead.hint")}
-                    placeholder={country === "BD" ? t("auth.phone.placeholder") : undefined}
-                    country={country}
-                    onCountryChange={setCountry}
-                    countryLabel={t("auth.phone.country")}
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    error={(touched || mobile.replace(/\D/g, "").length >= (country === "BD" ? 11 : 8)) && toE164(mobile, country) === null && (touched || mobile) ? t("wizard.lead.error") : undefined}
-                  />
-                )}
                 <TextField label={t("services.wizard.title")} hint={t("services.wizard.titleHint")} value={d.title} maxLength={LIMITS.title.max} onChange={(e) => setD({ ...d, title: e.target.value })} error={touched && titleError ? t("services.wizard.errors.title") : undefined} />
                 <TextAreaField
                   label={t("services.wizard.description")}
@@ -233,8 +328,29 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                   }}
                 />
                 {service.fields.map((f) => (
-                  <FieldInput key={f.key} f={f} value={d.answers[f.key]} onChange={(v) => setAnswer(f.key, v)} error={fieldError(f)} l={l} />
+                  <div key={f.key} className={f.section ? "space-y-5 pt-4" : undefined}>
+                    {f.section && <h2 className="m-0 border-t border-line pt-6 text-[20px] font-semibold leading-tight tracking-[-0.02em] text-ink">{l(f.section)}</h2>}
+                    <FieldInput f={f} value={d.answers[f.key]} onChange={(v) => setAnswer(f.key, v)} error={fieldError(f)} l={l} />
+                  </div>
                 ))}
+                {/* Reference images (owner, 2026-10-17): every contest, like the logo contest. Sent once the contest is saved. */}
+                <div className="pt-4">
+                  <Part title={t("services.wizard.references")} sub={t("services.wizard.referencesHint", { max: fileLimits.maxFiles, mb: fileLimits.maxMb })}>
+                    <FilesStep
+                      localFiles={localFiles}
+                      serverFiles={serverFiles}
+                      limits={fileLimits}
+                      currentLogo={false}
+                      onChange={(files) => setD((cur) => ({ ...cur, localFiles: files }))}
+                      onRemoveServerFile={(id) =>
+                        start(async () => {
+                          if (d.contestId) await removeBriefFile({ contestId: d.contestId, fileId: id });
+                          setServerFiles((f) => f.filter((x) => x.id !== id));
+                        })
+                      }
+                    />
+                  </Part>
+                </div>
               </div>
             )}
 
@@ -286,38 +402,12 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                     ))}
                   </div>
                 </fieldset>
-              </div>
-            )}
-
-            {step === "account" && (
-              <div className="mt-6">
-                <AccountStep
-                  mobile={mobile}
-                  email={email}
-                  country={country}
-                  onCountry={(iso) => {
-                    setCountry(iso);
-                    setAccountError(null);
-                  }}
-                  whatsapp={whatsapp}
-                  onWhatsapp={setWhatsapp}
-                  onMobile={(v) => {
-                    setMobile(v);
-                    setAccountError(null);
-                  }}
-                  onEmail={(v) => {
-                    setEmail(v);
-                    setAccountError(null);
-                  }}
-                  mobileError={accountError?.field === "mobile" ? accountError.message : undefined}
-                  emailError={accountError?.field === "email" ? accountError.message : undefined}
-                  taken={Boolean(accountError?.taken)}
-                />
-              </div>
-            )}
-            {step === "password" && (
-              <div className="mt-6">
-                <PasswordStep password={password} onPassword={setPassword} min={passwordMin} />
+                {/* A new client sets a password with the prize (as in the logo contest); the account is made on Next. */}
+                {!user && (
+                  <Part title={t("wizard.c10.heading")} sub={t("wizard.c10.helper")}>
+                    <PasswordStep password={password} onPassword={setPassword} min={passwordMin} autoFocus={false} />
+                  </Part>
+                )}
               </div>
             )}
 

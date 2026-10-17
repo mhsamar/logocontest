@@ -1,5 +1,6 @@
 "use server";
 
+import { contestHref } from "@/lib/client/rules";
 import { randomUUID } from "node:crypto";
 import { refresh } from "next/cache";
 import { headers } from "next/headers";
@@ -255,7 +256,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     // The client hears about it once the team approves it; the team gets a bell and a push now.
     await notifyWithPush(await adminIdsWith("designs.manage"), "entry_held_admin", { brand: contest.brand, number: entry.number, name: user!.name }, "/admin/entries?tab=held", user!.id);
   } else {
-    await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, `/dashboard/contests/${contest.slug}?entry=${entry.number}`, user!.id);
+    await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, contestHref(contest.slug, "designs", { entry: entry.number }), user!.id);
   }
   refresh();
   return { ok: true, number: entry.number, slug: contest.slug, held: waits };
@@ -318,7 +319,7 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   if (error) return commentFail("auth.errors.generic");
   const n = { brand: c.brand_name, number: data.number as number };
   // Who wrote it decides the kind (owner, 2026-10-09): the client's feedback, the designer's reply, or someone else's comment.
-  const clientLink = `/dashboard/contests/${c.slug}?entry=${data.number}`;
+  const clientLink = contestHref(c.slug, "designs", { entry: data.number });
   const designerLink = `/contest/${c.slug}?tab=entries&entry=${data.number}`;
   // chat-message.html (owner, 2026-10-15) between the client and the designer, at most one per design every 30 minutes.
   const chat = { contestId: c.id, entryNo: data.number as number, message: body, thread: `comments:${entryId}` };
@@ -475,7 +476,7 @@ export async function removeEntryPicture(entryId: string, imageId: string): Prom
   const res = await removePicture(entryId, imageId);
   if (!res.ok) return fail(res.why === "last" ? "entry.picture.last" : "auth.errors.generic");
   if (res.published) {
-    await notify([c.client_id], "entry_new", { brand: c.brand_name, number: data.number }, `/dashboard/contests/${c.slug}?entry=${data.number}`, user.id);
+    await notify([c.client_id], "entry_new", { brand: c.brand_name, number: data.number }, contestHref(c.slug, "designs", { entry: data.number }), user.id);
   }
   refresh();
   return { ok: true, picture: res.picture, published: res.published };

@@ -1,3 +1,4 @@
+import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -79,7 +80,7 @@ const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] te
 
 function primaryAction(contest: ContestDetail, user: CurrentUser | null, t: Translate) {
   const open = contest.status === "open";
-  if (contest.isOwner) return { href: `/dashboard/contests/${contest.slug}`, label: t("dashboard.manage") };
+  if (contest.isOwner) return { href: contestHref(contest.slug), label: t("dashboard.manage") };
   if (open && !user) return { href: `/login?next=${encodeURIComponent(`/contest/${contest.slug}`)}`, label: t("contest.actions.login") };
   if (open && user?.role === "designer") return { href: `/contest/${contest.slug}/submit`, label: t("contest.actions.submit") };
   // A finished contest only points to the open ones (owner, 2026-10-11).
@@ -244,7 +245,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           {/* What the client wants (owner, 2026-10-10: one tidy card with no empty middle; the full brief is in the Brief tab) */}
           {contest.brief && svc && (
             <div className="mt-3.5">
-              <ServiceBrief service={svc} answers={contest.serviceBrief} />
+              <ServiceBrief service={svc} answers={contest.serviceBrief} hidden={contest.hiddenPrivate} />
             </div>
           )}
           {contest.brief && !svc && (
@@ -450,7 +451,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
         ) : tab === "brief" ? (
           contest.brief && svc ? (
             <div className="mx-auto max-w-3xl">
-              <ServiceBrief service={svc} answers={contest.serviceBrief} full />
+              <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
             </div>
           ) : contest.brief ? (
             <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />

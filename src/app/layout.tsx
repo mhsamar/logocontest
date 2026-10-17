@@ -74,7 +74,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <ImpersonationBar />
             {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero.
                 It stays in one place, so the bars come after it (owner, 2026-10-10: the menu bar never moves). */}
-            <SiteChrome hideOnHome={guestHome} hideOnClient>
+            <SiteChrome hideOnHome={guestHome} hideOnClient client={user?.role === "client"}>
               <div className="lc-nav-slot">
                 <SiteNav user={user} />
               </div>
@@ -89,7 +89,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </div>
             </SiteChrome>
             <main className="flex flex-1 flex-col">{children}</main>
-            <SiteChrome hideOnClient>
+            <SiteChrome hideOnClient client={user?.role === "client"}>
               <div className="lc-footer-slot">
                 <SiteFooter />
               </div>

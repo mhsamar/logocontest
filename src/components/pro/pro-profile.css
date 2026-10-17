@@ -467,10 +467,17 @@
     display: none;
   }
   .pp-id {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): the buttons below never make the page wider than the phone (owner, 2026-10-17). */
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     margin-top: -56px;
     padding: 0 6px 10px;
+  }
+  .pp-act {
+    flex-wrap: wrap;
+  }
+  .pp-act > * {
+    flex: 1 1 auto;
   }
   .pp-av {
     width: 104px;

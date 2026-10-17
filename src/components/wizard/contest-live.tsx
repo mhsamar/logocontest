@@ -105,7 +105,7 @@ export function ContestLive({ url, pickBy }: { url: string; pickBy: string }) {
             </ol>
           </div>
 
-          <ButtonLink href="/dashboard" size="lg" block className="mt-10">
+          <ButtonLink href="/client" size="lg" block className="mt-10">
             {t("wizard.result.dashboard")}
           </ButtonLink>
           </div>

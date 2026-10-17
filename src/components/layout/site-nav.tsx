@@ -22,12 +22,13 @@ import { SiteNavDrawer } from "./site-nav-drawer";
 export function accountItems(user: CurrentUser, t: Translate) {
   const items: { href: string; label: string }[] = [];
   if (can(user, "admin.access")) items.push({ href: "/admin", label: t("nav.admin") });
-  if (user.role !== "admin") items.push({ href: "/dashboard", label: t("nav.dashboard") });
+  // A client's pages are in the client workspace (owner, 2026-10-17).
+  if (user.role !== "admin") items.push({ href: user.role === "client" ? "/client" : "/dashboard", label: t("nav.dashboard") });
   // AI copyright checker results and certificates (owner, 2026-10-10).
-  if (user.role === "client") items.push({ href: "/dashboard/logo-checks", label: t("nav.logoChecks") });
+  if (user.role === "client") items.push({ href: "/client/checks", label: t("nav.logoChecks") });
   if (can(user, "contest.save")) items.push({ href: "/dashboard/saved", label: t("nav.saved") });
   if (user.role === "designer") items.push({ href: "/dashboard/wallet", label: t("nav.wallet") });
-  if (user.role !== "admin") items.push({ href: "/dashboard/profile", label: t("nav.profile") });
+  if (user.role !== "admin") items.push({ href: user.role === "client" ? "/client/settings" : "/dashboard/profile", label: t("nav.profile") });
   return items;
 }
 
@@ -111,7 +112,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
       <div className="flex items-center gap-1.5">
         {user ? (
           <>
-            <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} />
+            <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now, user.role))} unread={unread} />
             <AvatarMenu name={user.name} avatarUrl={user.avatarUrl} label={t("nav.account")} items={topItems} footer={logoutForm} nameHref={pro ? "/dashboard" : undefined} />
           </>
         ) : (

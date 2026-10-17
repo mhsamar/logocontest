@@ -680,3 +680,26 @@ body:has([data-client-shell]) :is(.lc-nav-slot, .lc-footer-slot) { display:none 
 @media (max-width:700px) { .cwx .cload .cl3 { grid-template-columns:1fr } }
 /* The site's page frame inside the workspace: no extra side padding (pay, notifications, edit brief…) */
 .cwx .cmn > .lc-page { padding-left:0; padding-right:0; padding-bottom:0 }
+/* Phones (owner, 2026-10-17): the search box and the sort list take a full tap, the progress steps stay readable */
+.cwx .psr input { align-self:stretch; min-height:44px }
+.cwx .psel select { min-height:40px }
+@media (max-width:700px) { .cwx .mst li span { font-size:11px } }
+/* Contest tabs and actions (owner, 2026-10-17): one line on wide screens; on phones the tabs slide and the actions
+   go under them */
+.cwx .dtbar { display:flex; align-items:center; gap:12px; border-bottom:1px solid #E4E5EA }
+.cwx .dtbar .dtt { flex:1; min-width:0; border-bottom:0 }
+.cwx .dtbar .dtact { flex:none }
+.cwx .dch { flex-wrap:wrap }
+.cwx .dch > h2 { flex:none }
+@media (max-width:700px) {
+  .cwx .dtbar { flex-direction:column; align-items:stretch; gap:6px }
+  .cwx .dtbar .dtt { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch }
+  .cwx .dtbar .dtt::-webkit-scrollbar { display:none }
+  .cwx .dtbar .dtact { width:100%; flex-wrap:wrap; margin-left:0; padding:2px 0 12px }
+  /* Dashboard: the three numbers in one row instead of three tall boxes */
+  .cwx .chr { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px }
+  .cwx .chg { padding:10px 10px; border-radius:14px }
+  .cwx .chg span { font-size:11.5px; line-height:1.25 }
+  .cwx .chg b { font-size:20px; margin-top:2px }
+  .cwx .chg em { display:none }
+}

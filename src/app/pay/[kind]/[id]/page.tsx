@@ -1,3 +1,4 @@
+import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CopyButton, PayForm } from "@/components/payments/pay-form";
@@ -128,7 +129,7 @@ export default async function PayPage({ params }: PageProps<"/pay/[kind]/[id]">)
                   {back.label}
                 </ButtonLink>
                 {kind !== "pro" && (
-                  <ButtonLink href="/dashboard" variant="secondary" size="lg">
+                  <ButtonLink href="/client" variant="secondary" size="lg">
                     {t("pay.page.toDashboard")}
                   </ButtonLink>
                 )}
@@ -216,7 +217,7 @@ function backLink(p: PayTarget, t: T): { href: string; label: string } {
   if (p.kind === "pro") return { href: "/pro", label: t("pay.page.toPro") };
   // A contest isn't open until its payment is approved, so its page would only send them back here (owner,
   // 2026-10-14): until then, My contests shows it with "Waiting for approval".
-  if (p.kind === "contest" && p.state !== "paid") return { href: "/my-contests", label: t("pay.page.toMyContests") };
-  if (p.contest) return { href: `/dashboard/contests/${p.contest.slug}`, label: t("pay.page.toContest") };
-  return { href: "/dashboard", label: t("pay.page.toDashboard") };
+  if (p.kind === "contest" && p.state !== "paid") return { href: "/client/contests", label: t("pay.page.toMyContests") };
+  if (p.contest) return { href: contestHref(p.contest.slug, p.kind === "addon" ? "payment" : "overview"), label: t("pay.page.toContest") };
+  return { href: "/client", label: t("pay.page.toDashboard") };
 }

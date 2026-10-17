@@ -54,7 +54,7 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/st
             <ButtonLink href={`/start?draft=${contest.id}&step=11`} size="lg">
               {t("wizard.result.tryAgain")}
             </ButtonLink>
-            <ButtonLink href="/dashboard" variant="secondary" size="lg">
+            <ButtonLink href="/client" variant="secondary" size="lg">
               {t("wizard.result.dashboard")}
             </ButtonLink>
           </div>

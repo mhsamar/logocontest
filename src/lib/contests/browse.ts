@@ -13,8 +13,8 @@ import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, ENDING_SOON_DAYS, TAB_STA
 
 import { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 import { contestServiceInfo } from "@/lib/services/contest-service";
-import { allServices } from "@/lib/services/store";
-import type { Answers } from "@/lib/services/types";
+import { allServices, getService } from "@/lib/services/store";
+import { privateKeys, visibleAnswers, type Answers } from "@/lib/services/types";
 
 export { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 
@@ -301,6 +301,8 @@ export type ContestDetail = ContestRow & {
   /** Contest service (owner, 2026-10-13): "logo", or another service with the client's answers (only with the brief). */
   service: string;
   serviceBrief: Answers;
+  /** Private questions that were answered but are hidden from this viewer (owner, 2026-10-17; only the client, the team and the winner see them). */
+  hiddenPrivate: string[];
   rawStatus: string;
   ownerId: string;
   isOwner: boolean;
@@ -389,10 +391,26 @@ export async function getContestBySlug(slug: string, viewer: CurrentUser | null)
     }));
   }
 
+  // Private answers (owner, 2026-10-17): the business card's phone, email and address go only to the client, the
+  // admin team and the winning designer, and never leave the server for anyone else.
+  let serviceBrief: Answers = canSeeBrief ? svc.serviceBrief : {};
+  let hiddenPrivate: string[] = [];
+  if (canSeeBrief && svc.service !== "logo") {
+    const def = await getService(svc.service);
+    if (def && privateKeys(def).length) {
+      const winner =
+        !isOwner && !isAdmin && viewer
+          ? Boolean((await db.from("entries").select("id", { count: "exact", head: true }).eq("contest_id", data.id).eq("designer_id", viewer.id).eq("status", "winner")).count)
+          : false;
+      ({ answers: serviceBrief, hidden: hiddenPrivate } = visibleAnswers(def, svc.serviceBrief, isOwner || isAdmin || winner));
+    }
+  }
+
   return {
     ...row,
     service: svc.service,
-    serviceBrief: canSeeBrief ? svc.serviceBrief : {},
+    serviceBrief,
+    hiddenPrivate,
     rawStatus: data.status,
     ownerId: data.client_id,
     isOwner,

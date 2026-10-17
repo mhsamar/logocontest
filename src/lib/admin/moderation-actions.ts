@@ -1,5 +1,6 @@
 "use server";
 
+import { contestHref } from "@/lib/client/rules";
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { tellUser } from "@/lib/moderation/suspension";
@@ -58,7 +59,7 @@ export async function approveEntry(entryId: string): Promise<Result> {
   if (error) return fail("admin.errors.generic");
   if (!data) return fail("admin.entries.held.notHeld");
   await audit(admin.id, "approve_entry", "entry", e.id, { contest: e.slug, number: e.number });
-  if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, `/dashboard/contests/${e.slug}?entry=${e.number}`, e.designerId);
+  if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, contestHref(e.slug, "designs", { entry: e.number }), e.designerId);
   await notify([e.designerId], "entry_approved", { brand: e.brand, number: e.number }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
   refresh();
   return { ok: true };
@@ -79,7 +80,7 @@ export async function removeHeldPicture(entryId: string, imageId: string): Promi
   await audit(admin.id, "remove_picture", "entry", e.id, { contest: e.slug, number: e.number, picture: res.picture, published: res.published || undefined });
   await notify([e.designerId], "entry_picture_removed", { brand: e.brand, number: e.number, picture: res.picture }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
   if (res.published) {
-    if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, `/dashboard/contests/${e.slug}?entry=${e.number}`, e.designerId);
+    if (e.clientId) await notify([e.clientId], "entry_new", { brand: e.brand, number: e.number }, contestHref(e.slug, "designs", { entry: e.number }), e.designerId);
     await notify([e.designerId], "entry_approved", { brand: e.brand, number: e.number }, `/contest/${e.slug}?tab=entries&entry=${e.number}`, admin.id);
   }
   refresh();

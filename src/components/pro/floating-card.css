@@ -253,6 +253,33 @@
   .fc-pill em {
     white-space: nowrap;
   }
+  /* Owner, 2026-10-17 (phones first): the folded card is a small "Try Pro" button bottom left, not a bar across the
+     screen, so it covers as little of the page as possible. */
+  .fc-dock:not(.open) {
+    right: auto;
+  }
+  .fc-pill {
+    gap: 8px;
+    padding: 4px 12px 4px 4px;
+    min-height: 44px;
+  }
+  .fc-pill em,
+  .fc-pill .go {
+    display: none;
+  }
+  .fc-pill b {
+    font-size: 13.5px;
+  }
+  .fc-pill .fc-id {
+    width: 34px;
+    height: 34px;
+  }
+}
+/* Room at the end of every page on phones, so the last lines are never stuck under the floating buttons. */
+@media (max-width: 700px) {
+  body:has(.fc-dock) main {
+    padding-bottom: 76px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-card::before,

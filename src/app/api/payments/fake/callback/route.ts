@@ -1,3 +1,4 @@
+import { contestHref } from "@/lib/client/rules";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAddonPayment, settleAddonPayment } from "@/lib/contests/addon-payments";
 import { announceForPayment } from "@/lib/contests/announce";
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
   if (verified && (await isAddonPayment(verified.paymentId))) {
     const settled = await settleAddonPayment(verified);
-    const to = settled.slug ? `/dashboard/contests/${settled.slug}?payment=${settled.status}` : "/dashboard";
+    const to = settled.slug ? contestHref(settled.slug, "payment", { payment: settled.status }) : "/client";
     return NextResponse.redirect(new URL(to, request.url), 303);
   }
 

@@ -22,8 +22,9 @@ import type { Wallet } from "@/lib/wallet/queries";
 function Block({ title, action, children, className }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
     <section className={cx("lc-card p-5 sm:p-7", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
+      {/* Phones (owner, 2026-10-17): the links go under the title instead of squeezing it onto two lines. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 className="m-0 shrink-0 text-[22px] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
         {action}
       </div>
       <div className="mt-4">{children}</div>

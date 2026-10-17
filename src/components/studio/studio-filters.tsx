@@ -36,7 +36,7 @@ export function StudioFilters({ query, counts, types }: { query: StudioQuery; co
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3.5-3.5" />
         </svg>
-        <input type="search" name="q" defaultValue={query.q} maxLength={60} aria-label={t("studio.searchLabel")} placeholder={t("studio.search")} className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none" />
+        <input type="search" name="q" defaultValue={query.q} maxLength={60} aria-label={t("studio.searchLabel")} placeholder={t("studio.search")} className="min-w-0 flex-1 self-stretch border-0 bg-transparent text-[15px] text-ink outline-none" />
       </form>
       <div className="flex gap-2.5 max-[640px]:flex-col">
         <label className="sr-only" htmlFor="ds-type">

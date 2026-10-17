@@ -41,7 +41,7 @@ export async function ClientHome({ user }: { user: { id: string; name: string } 
               <ButtonLink href="/start" size="lg">
                 {t("clientHome.startShort")} <Arrow />
               </ButtonLink>
-              <ButtonLink href="/dashboard" variant="secondary" size="lg">
+              <ButtonLink href="/client" variant="secondary" size="lg">
                 {t("clientHome.dashboard")}
               </ButtonLink>
             </div>

@@ -1,3 +1,4 @@
+import { clientPathFor } from "@/lib/client/rules";
 import { timeAgo } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
@@ -13,8 +14,11 @@ export function monthLabel(month: string, locale: Locale): string {
 
 export type ShownNotification = { id: string; type: NotificationType; category: NotificationCategory; text: string; ago: string; link: string | null; read: boolean };
 
-/** The text and "time ago" of a notification in the reader's language. */
-export function renderNotification(n: AppNotification, t: Translate, locale: Locale, now: Date): ShownNotification {
+/**
+ * The text and "time ago" of a notification in the reader's language. A client's links go straight to the client
+ * workspace (owner, 2026-10-17), also for notifications saved before it existed.
+ */
+export function renderNotification(n: AppNotification, t: Translate, locale: Locale, now: Date, role?: string): ShownNotification {
   const fmt = (v: number | undefined) => (typeof v === "number" ? new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(v) : "");
   const text = t(`notifications.types.${n.type}`, {
     brand: n.data.brand ?? "",
@@ -28,5 +32,6 @@ export function renderNotification(n: AppNotification, t: Translate, locale: Loc
     month: n.data.month ? monthLabel(n.data.month, locale) : "",
     picture: fmt(n.data.picture),
   });
-  return { id: n.id, type: n.type, category: categoryOf(n.type), text, ago: timeAgo(n.createdAt, now, locale), link: n.link, read: n.read };
+  const link = n.link && role === "client" ? clientPathFor(n.link) : n.link;
+  return { id: n.id, type: n.type, category: categoryOf(n.type), text, ago: timeAgo(n.createdAt, now, locale), link, read: n.read };
 }

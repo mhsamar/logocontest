@@ -1,5 +1,6 @@
 "use server";
 
+import { contestHref } from "@/lib/client/rules";
 import { randomUUID } from "node:crypto";
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -139,7 +140,7 @@ export async function submitHandover(input: { handoverId: string; fontsNote: str
   const days = await getSetting("timers.client_response_days");
   const { error } = await createAdminClient().rpc("submit_handover", { p_handover_id: own.h.id, p_designer_id: own.user.id, p_fonts_note: fonts, p_review_days: days });
   if (error) return fail(error.code === "23514" ? "handover.errors.missing" : "handover.errors.closed");
-  await notify([own.h.contest?.client_id], "handover_submitted", { brand: own.h.contest?.brand_name }, `/dashboard/contests/${own.h.contest?.slug}`, own.user.id);
+  await notify([own.h.contest?.client_id], "handover_submitted", { brand: own.h.contest?.brand_name }, `${contestHref(own.h.contest?.slug ?? "", "payment")}#files`, own.user.id);
   refresh();
   return { ok: true };
 }

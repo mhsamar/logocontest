@@ -64,8 +64,10 @@ export async function sendChatMessage(input: { entryId: string; body: string; fi
     });
   if (error) return { ok: false, error: "pro.chat.errors.generic" };
   if (flags.length) await logProActivity(user.id, "chat_flagged", ctx.designerId, null, { entry: ctx.entryId, flags });
-  await notifyWithPush([ctx.other.id], "pro_message", { name: user.name, number: ctx.entryNumber, brand: ctx.brand }, `/dashboard/messages?entry=${ctx.entryId}`, user.id);
-  await emailChat({ to: ctx.other.id, senderName: user.name, contestId: ctx.contestId, entryNo: ctx.entryNumber, message: body, path: `/dashboard/messages?entry=${ctx.entryId}`, thread: `messages:${ctx.entryId}`, notice: "pro_message" });
+  // The client reads it in the client workspace, the designer in their messages (owner, 2026-10-17).
+  const chatPath = ctx.other.id === ctx.clientId ? `/client/messages?entry=${ctx.entryId}` : `/dashboard/messages?entry=${ctx.entryId}`;
+  await notifyWithPush([ctx.other.id], "pro_message", { name: user.name, number: ctx.entryNumber, brand: ctx.brand }, chatPath, user.id);
+  await emailChat({ to: ctx.other.id, senderName: user.name, contestId: ctx.contestId, entryNo: ctx.entryNumber, message: body, path: chatPath, thread: `messages:${ctx.entryId}`, notice: "pro_message" });
   refresh();
   return { ok: true };
 }

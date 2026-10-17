@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -128,6 +129,37 @@ describe("contest tabs deep links", () => {
     expect(rules.oldContestLink("nodi", { payment: "paid" })).toBe("/client/contests/nodi?tab=payment&payment=paid");
     expect(rules.oldContestLink("nodi", { won: "4" })).toBe("/client/contests/nodi?won=4");
   });
+  it("old client addresses go straight to the client workspace (owner, 2026-10-17: no empty page after login)", () => {
+    expect(rules.clientPathFor("/dashboard")).toBe("/client");
+    expect(rules.clientPathFor("/dashboard/")).toBe("/client");
+    expect(rules.clientPathFor("/my-contests?tab=done")).toBe("/client/contests?tab=completed");
+    expect(rules.clientPathFor("/dashboard/messages?entry=abc")).toBe("/client/messages?entry=abc");
+    expect(rules.clientPathFor("/dashboard/messages")).toBe("/client/messages");
+    expect(rules.clientPathFor("/dashboard/profile#email")).toBe("/client/settings#email");
+    expect(rules.clientPathFor("/dashboard/logo-checks")).toBe("/client/checks");
+    expect(rules.clientPathFor("/support")).toBe("/client/help");
+    expect(rules.clientPathFor("/dashboard/contests/nodi?entry=3")).toBe("/client/contests/nodi?tab=designs&entry=3");
+    expect(rules.clientPathFor("/dashboard/contests/nodi#files")).toBe("/client/contests/nodi?tab=payment#files");
+    expect(rules.clientPathFor("/dashboard/contests/nodi")).toBe("/client/contests/nodi");
+    // Pages that stay where they are, and anything outside the site.
+    expect(rules.clientPathFor("/dashboard/contests/nodi/edit")).toBe("/dashboard/contests/nodi/edit");
+    expect(rules.clientPathFor("/contest/nodi")).toBe("/contest/nodi");
+    expect(rules.clientPathFor("https://example.com/dashboard")).toBe("https://example.com/dashboard");
+    expect(rules.clientPathFor("//evil.com/dashboard")).toBe("//evil.com/dashboard");
+  });
+
+  it("the server sends a client on from every old address, and draws the workspace on every site page (owner, 2026-10-17)", () => {
+    for (const p of ["/dashboard", "/dashboard/", "/dashboard/contests", "/dashboard/contests/nodi-tea", "/dashboard/messages", "/dashboard/profile", "/dashboard/logo-checks", "/my-contests", "/support"]) expect(rules.OLD_CLIENT_PATH.test(p)).toBe(true);
+    for (const p of ["/dashboard/contests/nodi-tea/edit", "/dashboard/wallet", "/client", "/contests", "/supporting"]) expect(rules.OLD_CLIENT_PATH.test(p)).toBe(false);
+    for (const p of ["/client", "/client/messages", "/start", "/start/business_card", "/pay/contest/x", "/notifications", "/verify-email", "/dashboard/rewards/x", "/dashboard/contests/nodi/edit", "/contests", "/design-studio", "/logo-checker", "/leaderboard", "/how-it-works", "/help", "/winners", "/guides/brief", "/contest/nodi", "/c/anika009", "/d/das006", "/designer/das006", "/legal/terms", "/wins/nodi"])
+      expect(rules.inClientArea(p)).toBe(true);
+    // The home page (the server sends a client to /client), the admin and the designers' own pages stay as they are.
+    for (const p of ["/", "/admin", "/dashboard", "/dashboard/wallet", "/pro", "/login", "/contestant"]) expect(rules.inClientArea(p)).toBe(false);
+    const proxy = readFileSync("src/proxy.ts", "utf8");
+    expect(proxy).toContain('OLD_CLIENT_PATH.test(pathname) || pathname === "/"');
+    expect(proxy).not.toContain("PREVIEW_CLIENT_ID");
+  });
+
   it("old My contests links keep their tab, sort and search", () => {
     expect(rules.oldMyContestsLink({})).toBe("/client/contests");
     expect(rules.oldMyContestsLink({ tab: "done" })).toBe("/client/contests?tab=completed");

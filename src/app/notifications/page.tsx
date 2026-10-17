@@ -24,7 +24,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<"/no
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   if (!user) redirect("/login?next=/notifications");
   const now = new Date();
-  const all = (await listNotifications(user.id, 200)).map((n) => renderNotification(n, t, locale, now));
+  const all = (await listNotifications(user.id, 200)).map((n) => renderNotification(n, t, locale, now, user.role));
   const present = CATEGORIES.filter((c) => all.some((n) => n.category === c));
   const active = typeof sp.type === "string" && isCategory(sp.type) && present.includes(sp.type) ? sp.type : null;
   const items = active ? all.filter((n) => n.category === active) : all;

@@ -119,6 +119,48 @@ export function oldMyContestsLink(sp: Query): string {
   return `/client/contests${s ? `?${s}` : ""}`;
 }
 
+/**
+ * Where an old client address goes now (owner, 2026-10-17: after logging in, a client saw an empty page with the site
+ * menu and footer while /dashboard sent them on to /client). Login, notification links and buttons use the new
+ * address straight away. Anything else (another site, a designer page) is left as it is.
+ */
+export function clientPathFor(link: string): string {
+  if (!link.startsWith("/") || link.startsWith("//")) return link;
+  const url = new URL(link, "https://x.invalid");
+  const p = url.pathname.replace(/\/+$/, "") || "/";
+  const sp: Query = Object.fromEntries(url.searchParams);
+  const hash = url.hash;
+  if (p === "/dashboard") return `/client${hash}`;
+  if (p === "/dashboard/contests") return "/client/contests";
+  if (p === "/my-contests") return oldMyContestsLink(sp);
+  if (p === "/dashboard/messages") return typeof sp.entry === "string" ? `/client/messages?entry=${encodeURIComponent(sp.entry)}` : "/client/messages";
+  if (p === "/dashboard/profile") return `/client/settings${hash}`;
+  if (p === "/dashboard/logo-checks") return "/client/checks";
+  if (p === "/support") return "/client/help";
+  const m = /^\/dashboard\/contests\/([a-z0-9-]{1,120})$/.exec(p);
+  if (m) return hash === "#files" || hash === "#addons" ? `${contestHref(m[1], "payment")}${hash}` : `${oldContestLink(m[1], sp)}${hash}`;
+  return link;
+}
+
+/** The old client addresses the server sends a signed-in client on from before any page is drawn (owner, 2026-10-17). */
+export const OLD_CLIENT_PATH = /^\/(?:dashboard(?:\/(?:contests(?:\/[a-z0-9-]{1,120})?|messages|profile|logo-checks))?|my-contests|support)\/?$/;
+
+/**
+ * Pages outside /client that a signed-in client sees inside the workspace (their layouts use ClientArea). The site's
+ * own menu bar and footer are left out of these pages on the server, so nothing old shows first (owner, 2026-10-17).
+ */
+const CLIENT_AREA = [
+  /^\/start(\/|$)/,
+  /^\/pay(\/|$)/,
+  /^\/notifications\/?$/,
+  /^\/verify-email\/?$/,
+  /^\/dashboard\/rewards(\/|$)/,
+  /^\/dashboard\/contests\/[a-z0-9-]+\/edit\/?$/,
+  // The site's other pages, for a signed-in client (owner, 2026-10-17: "go all of the menu and all of pages").
+  /^\/(contests|design-studio|logo-checker|leaderboard|how-it-works|help|winners|guides|contest|c|d|designer|legal|wins)(\/|$)/,
+];
+export const inClientArea = (path: string) => path === "/client" || path.startsWith("/client/") || CLIENT_AREA.some((re) => re.test(path));
+
 // ---- My contests ---------------------------------------------------------------------------------------------------
 
 export const MY_TABS = ["all", "open", "pick", "unpaid", "completed"] as const;

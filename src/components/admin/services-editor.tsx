@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { moveService, saveService, setServiceOn } from "@/lib/services/admin-actions";
-import { ENTRY_FILE_TYPES, FINAL_FILE_TYPES, sizeText, type Lang, type ServiceDef } from "@/lib/services/types";
+import { ENTRY_FILE_TYPES, FINAL_FILE_TYPES, LIMITS, sizeText, type Lang, type ServiceDef } from "@/lib/services/types";
 import { ADM_INPUT } from "./ui";
 import { LangPair, QuestionFields } from "./question-fields";
 import { useReadOnly } from "./read-only";
@@ -270,7 +270,26 @@ function ServiceForm({ initial, isNew, readOnly, busy, onClose, onSave }: { init
           <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
             <legend className="mb-1 text-[14px] font-bold text-ink">{t("admin.services.fields")}</legend>
             <p className="m-0 text-[13px] text-muted">{t("admin.services.fieldsHint")}</p>
-            <QuestionFields fields={s.fields} onChange={(fields) => set("fields", fields)} readOnly={readOnly} />
+            <QuestionFields
+              fields={s.fields}
+              onChange={(fields) => set("fields", fields)}
+              readOnly={readOnly}
+              max={LIMITS.fields}
+              // Owner, 2026-10-17: a private answer is seen only by the client, the team and the winning designer.
+              extra={(f, setF) => (
+                <>
+                  {(f.type === "text" || f.type === "long_text" || f.type === "link") && (
+                    <label className="flex items-center gap-2 text-[14px] font-bold">
+                      <input type="checkbox" checked={f.private === true} disabled={readOnly} onChange={(e) => setF({ private: e.target.checked })} className="size-[18px] accent-[#8B0000]" />
+                      {t("admin.services.private")}
+                      <span className="font-normal text-[#6A6D78]">{t("admin.services.privateHint")}</span>
+                    </label>
+                  )}
+                  {/* A heading above this question starts a new part of the brief (owner, 2026-10-17). */}
+                  <LangPair label={t("admin.services.section")} value={f.section ?? { en: "", bn: "" }} onChange={(v) => setF({ section: v.en || v.bn ? v : undefined })} max={80} disabled={readOnly} />
+                </>
+              )}
+            />
           </fieldset>
         )}
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { contestHref } from "@/lib/client/rules";
 import Link from "next/link";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
@@ -57,7 +58,7 @@ function Body({ checks, contests }: { checks: MyCheck[]; contests: ContestCheckC
             <ShieldIcon className="mx-auto size-7 text-primary" />
             <p className="m-0 mt-3 text-[17px] font-semibold text-ink">{t("checker.my.emptyTitle")}</p>
             <p className="m-0 mt-1 text-[15px] text-muted">{t("checker.my.emptyBody")}</p>
-            <Link href="/dashboard" className="mt-4 inline-flex min-h-11 items-center rounded-[12px] bg-primary px-5 text-[15px] font-bold text-white hover:bg-primary-dark">
+            <Link href="/client/contests" className="mt-4 inline-flex min-h-11 items-center rounded-[12px] bg-primary px-5 text-[15px] font-bold text-white hover:bg-primary-dark">
               {t("checker.my.toContests")}
             </Link>
           </div>
@@ -132,7 +133,7 @@ function Body({ checks, contests }: { checks: MyCheck[]; contests: ContestCheckC
           <ul className="m-0 mt-3 grid list-none gap-3 p-0 sm:grid-cols-2">
             {contests.map((c) => (
               <li key={c.id} className="rounded-[18px] bg-surface p-4 ring-1 ring-line">
-                <Link href={`/dashboard/contests/${c.slug}`} className="flex flex-wrap items-center gap-2 text-[16px] font-semibold text-ink hover:text-primary">
+                <Link href={contestHref(c.slug)} className="flex flex-wrap items-center gap-2 text-[16px] font-semibold text-ink hover:text-primary">
                   {c.brand}
                   {lc(c.number) && <span className="rounded-[7px] border border-line px-1.5 font-mono text-[12px] font-semibold">{lc(c.number)}</span>}
                 </Link>
