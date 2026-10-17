@@ -19,12 +19,12 @@ export const MENU_HREF: Record<ClientMenuKey, string> = {
   review: "/client/contests",
   messages: "/client/messages",
   shortlist: "/client/contests",
-  checks: "/dashboard/logo-checks",
+  checks: "/client/checks",
   files: "/client/files",
   payments: "/client/payments",
   profile: "/client/profile",
-  settings: "/dashboard/profile",
-  help: "/support",
+  settings: "/client/settings",
+  help: "/client/help",
 };
 
 /**

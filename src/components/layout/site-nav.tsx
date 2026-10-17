@@ -53,17 +53,24 @@ async function NavLogo() {
  * Site nav (owner, 2026-10-10; the home page design, on every page): floating on wide screens, one line with logo,
  * Log in and a menu button on phones. Links come from Lists → Header menu (A-15).
  */
-export async function SiteNav({ user }: { user: CurrentUser | null }) {
+/** The menu bar's links from Lists → Header menu; also used by the client workspace's top bar (owner, 2026-10-17). */
+export async function siteMenuLinks(user: CurrentUser | null): Promise<{ href: string; label: string; badge?: string }[]> {
   const { t, locale } = await getI18n();
-  // Owner, 2026-10-11: a signed-in client gets "My contests" (P-14) where the menu has Browse Contests.
   const now = new Date();
   const [menu, offers] = await Promise.all([visibleList("header_menu", locale), visibleOffers()]);
+  // Owner, 2026-10-11: a signed-in client gets "My contests" (P-14) where the menu has Browse Contests.
   // Owner, 2026-10-13: the leaderboard link leaves the menu while the monthly prizes program is off.
-  const links = menu.filter((item) => showsLink(item.href, offers)).map((item) =>
+  return menu.filter((item) => showsLink(item.href, offers)).map((item) =>
     user?.role === "client" && item.href === "/contests"
       ? { href: "/client/contests", label: t("nav.myContests") }
       : { href: item.href ?? "/", label: item.text.label, badge: isNewLink(item.href, now) ? t("nav.new") : undefined },
   );
+}
+
+export async function SiteNav({ user }: { user: CurrentUser | null }) {
+  const { t, locale } = await getI18n();
+  const now = new Date();
+  const links = await siteMenuLinks(user);
   const [latest, unread] = user ? await Promise.all([listNotifications(user.id, 8), unreadCount(user.id)]) : [[], 0];
   // Owner, 2026-10-16: a Pro designer has every page in the workspace's left menu, so the account menu at the top
   // only logs out (the name leads back to the dashboard); on phones the menu keeps the way to the dashboard.

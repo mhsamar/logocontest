@@ -19,6 +19,8 @@ export default async function SupportPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=%2Fsupport");
   if (user.role === "admin") redirect("/admin/support");
+  // Premium client workspace (owner, 2026-10-17): a client's help chat is at /client/help.
+  if (user.role === "client") redirect("/client/help");
   const [{ t }, chat, assistant] = await Promise.all([getI18n(), myConversation(user.id), assistantOn()]);
   if (chat.thread && chat.thread.unreadByUser > 0) await createAdminClient().from("support_threads").update({ unread_by_user: 0 }).eq("id", chat.thread.id);
   return (

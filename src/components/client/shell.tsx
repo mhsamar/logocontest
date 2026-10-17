@@ -7,6 +7,13 @@ import { clientShell } from "@/lib/client/workspace";
 import { brandPictures } from "@/lib/content/brand";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
+import { NavLinks } from "@/components/layout/nav-links";
+import { NotificationBell } from "@/components/layout/notification-bell";
+import { siteMenuLinks } from "@/components/layout/site-nav";
+import { SiteNavDrawer } from "@/components/layout/site-nav-drawer";
+import { setLocale } from "@/lib/i18n/actions";
+import { listNotifications, unreadCount } from "@/lib/notifications";
+import { renderNotification } from "@/lib/notifications/render";
 import { ClientAvatarMenu } from "./avatar-menu";
 import { CwIcon, type CwIconName } from "./icons";
 import { MenuScroll } from "./menu-scroll";
@@ -33,8 +40,25 @@ const ICON: Record<ClientMenuKey, CwIconName> = {
  * On phones the menu moves to the top as a row of icons.
  */
 export async function ClientShell({ user, active, children }: { user: CurrentUser; active: ClientMenuKey | null; children: ReactNode }) {
-  const [{ t, locale }, shell, pictures] = await Promise.all([getI18n(), clientShell(user), brandPictures()]);
+  const [{ t, locale }, shell, pictures, links, latest, unread] = await Promise.all([
+    getI18n(),
+    clientShell(user),
+    brandPictures(),
+    siteMenuLinks(user),
+    listNotifications(user.id, 8),
+    unreadCount(user.id),
+  ]);
   const items = clientMenu(shell.counts, shell.links);
+  const now = new Date();
+  const otherLocale = locale === "en" ? "bn" : "en";
+  const languageForm = (className: string) => (
+    <form action={setLocale}>
+      <input type="hidden" name="locale" value={otherLocale} />
+      <button type="submit" lang={otherLocale} aria-label={t("nav.switchToLabel")} className={className}>
+        {t("nav.switchTo")}
+      </button>
+    </form>
+  );
   const num = (n: number) => formatNumber(n, locale);
   const c = shell.checks;
   return (
@@ -46,7 +70,19 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
               <img src={pictures.logo ?? "/brand/logo-icon-tile.png"} alt="" />
               {!pictures.logo && <b>{t("brand.name")}</b>}
             </Link>
-            <ClientAvatarMenu name={shell.name} business={shell.business} avatarUrl={shell.avatarUrl} news={hasNews(shell.counts)} accountLabel={t("cw.shell.account")} logoutLabel={t("nav.logout")} />
+            {/* The site's menu (owner, 2026-10-17: "there is no menu bar for clients"): the same links as everywhere
+                else, the language switch and the bell; on smaller screens they move into the menu button. */}
+            <nav className="ctn" aria-label={t("nav.main")} data-no-fx>
+              <NavLinks links={links} />
+              {languageForm("lc-nv-link py-[11px] font-medium")}
+            </nav>
+            <div className="ctx">
+              <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now))} unread={unread} />
+              <ClientAvatarMenu name={shell.name} business={shell.business} avatarUrl={shell.avatarUrl} news={hasNews(shell.counts)} accountLabel={t("cw.shell.account")} logoutLabel={t("nav.logout")} />
+              <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
+                {languageForm("inline-flex min-h-11 w-full items-center justify-center rounded-[14px] bg-chip px-4 font-semibold")}
+              </SiteNavDrawer>
+            </div>
           </header>
           <div className="dp cw">
             <main className="cmn">{children}</main>
@@ -86,7 +122,7 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
               <div className="csh">
                 <b>{t("cw.shell.helpTitle")}</b>
                 <em>{t("cw.shell.helpLead")}</em>
-                <Link href="/support" className="dout sm wide">
+                <Link href="/client/help" className="dout sm wide">
                   <CwIcon name="chat" size={16} />
                   {t("cw.shell.helpButton")}
                 </Link>
