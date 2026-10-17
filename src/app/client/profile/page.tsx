@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { profileTab, ClientProfileView } from "@/components/client/profile-view";
-import { ClientShell } from "@/components/client/shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clientProfileData } from "@/lib/client/workspace";
 import { siteOrigin } from "@/lib/email";
@@ -22,8 +21,8 @@ export default async function ClientOwnProfilePage({ searchParams }: PageProps<"
   const [{ t, locale }, p, origin] = await Promise.all([getI18n(), clientProfileData({ id: user.id }), siteOrigin()]);
   if (!p) redirect("/client");
   return (
-    <ClientShell user={user} active="profile">
+    <>
       <ClientProfileView p={p} owner tab={profileTab(sp.tab)} base="/client/profile" publicUrl={`${origin}/c/${p.username ?? ""}`} t={t} locale={locale} />
-    </ClientShell>
+    </>
   );
 }

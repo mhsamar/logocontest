@@ -16,7 +16,7 @@ import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { ClientAvatarMenu } from "./avatar-menu";
 import { CwIcon, type CwIconName } from "./icons";
-import { MenuScroll } from "./menu-scroll";
+import { ClientMenuNav } from "./menu-nav";
 import "./client.css";
 
 const ICON: Record<ClientMenuKey, CwIconName> = {
@@ -39,7 +39,7 @@ const ICON: Record<ClientMenuKey, CwIconName> = {
  * logo and the client's photo, the page, and the menu on the right with live counts, the logo checks card and help.
  * On phones the menu moves to the top as a row of icons.
  */
-export async function ClientShell({ user, active, children }: { user: CurrentUser; active: ClientMenuKey | null; children: ReactNode }) {
+export async function ClientShell({ user, active, children }: { user: CurrentUser; active?: ClientMenuKey | null; children: ReactNode }) {
   const [{ t, locale }, shell, pictures, links, latest, unread] = await Promise.all([
     getI18n(),
     clientShell(user),
@@ -92,16 +92,11 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
                   <CwIcon name="crown" size={14} />
                   {t("cw.shell.kicker")}
                 </span>
-                <nav aria-label={t("cw.shell.menu")} data-client-menu>
-                  {items.map((i) => (
-                    <Link key={i.key} href={i.href} className={i.key === active ? "on" : undefined} aria-current={i.key === active ? "page" : undefined} title={t(`cw.menu.${i.key}`)} data-menu={i.key}>
-                      <CwIcon name={ICON[i.key]} size={19} />
-                      <span>{t(`cw.menu.${i.key}`)}</span>
-                      {i.badge && <em className={i.badge.tone === "r" ? "cr" : "cn"}>{num(i.badge.n)}</em>}
-                    </Link>
-                  ))}
-                </nav>
-                <MenuScroll />
+                <ClientMenuNav
+                  label={t("cw.shell.menu")}
+                  active={active}
+                  items={items.map((i) => ({ key: i.key, href: i.href, text: t(`cw.menu.${i.key}`), icon: ICON[i.key], badge: i.badge ? { text: num(i.badge.n), tone: i.badge.tone } : null }))}
+                />
               </div>
               {c && (
                 <div className="csc" data-checks-card>

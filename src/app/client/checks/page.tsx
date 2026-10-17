@@ -3,7 +3,6 @@ import { after } from "next/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { MyChecksList } from "@/components/logo-check/my-checks";
-import { ClientShell } from "@/components/client/shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { myChecks } from "@/lib/logo-check/queries";
@@ -33,7 +32,7 @@ export default async function ClientChecksPage() {
   }
 
   return (
-    <ClientShell user={user} active="checks">
+    <>
       <div className="phd2">
         <div>
           <div className="dnl">
@@ -43,6 +42,6 @@ export default async function ClientChecksPage() {
         </div>
       </div>
       <MyChecksList checks={data.checks} contests={data.contests} lens={Boolean(process.env.SEARCHAPI_API_KEY)} />
-    </ClientShell>
+    </>
   );
 }

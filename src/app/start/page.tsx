@@ -7,7 +7,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { getService } from "@/lib/services/store";
 import { isLogo, LOGO } from "@/lib/services/types";
-import { cannotStart, ComingSoon, inWorkspace, logoWizard, serviceDraftOf, serviceWizard } from "./start-flow";
+import { cannotStart, ComingSoon, logoWizard, serviceDraftOf, serviceWizard } from "./start-flow";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -35,12 +35,12 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     // A saved draft opens at "Review and pay" (owner, 2026-10-14: "Finish payment" went back to step 1). A service
     // draft is only saved with a complete brief; a logo draft that isn't complete opens at its first unfinished step.
     if (service && !isLogo(service.slug))
-      return inWorkspace(user, await serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined));
+      return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined);
   }
   if (draft || params.step !== undefined || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
-    return inWorkspace(user, await logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user));
+    return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);
   }
 
   const picker = (
@@ -55,6 +55,6 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
       <p className="dt-note">{t("services.types.samples")}</p>
     </div>
   );
-  // A signed-in client picks inside the client workspace (owner, 2026-10-17).
-  return user?.role === "client" ? inWorkspace(user, picker) : <PageShell>{picker}</PageShell>;
+  // A signed-in client picks inside the client workspace (start/layout.tsx), so the page frame isn't needed there.
+  return user?.role === "client" ? picker : <PageShell>{picker}</PageShell>;
 }

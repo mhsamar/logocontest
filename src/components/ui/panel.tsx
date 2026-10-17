@@ -23,5 +23,5 @@ export function Card({ as: Tag = "div", lift = false, className, children, ...re
 
 /** Page wrapper for inner pages: the light grey page with the side padding of the home page. */
 export function PageShell({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cx("flex w-full flex-1 flex-col gap-3.5 px-3.5 pb-3.5 max-[720px]:gap-2 max-[720px]:px-2 max-[720px]:pb-2", className)}>{children}</div>;
+  return <div className={cx("lc-page flex w-full flex-1 flex-col gap-3.5 px-3.5 pb-3.5 max-[720px]:gap-2 max-[720px]:px-2 max-[720px]:pb-2", className)}>{children}</div>;
 }

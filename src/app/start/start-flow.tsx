@@ -2,7 +2,6 @@ import "server-only";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell, Panel } from "@/components/ui/panel";
-import { ClientShell } from "@/components/client/shell";
 import type { ServerFile } from "@/components/wizard/state";
 import { ServiceWizard, type ServiceWizardProps } from "@/components/services/service-wizard";
 import { Wizard, type WizardProps } from "@/components/wizard/wizard";
@@ -30,20 +29,6 @@ import { getOnboarding } from "@/lib/onboarding/store";
 export type StartParams = Record<string, string | string[] | undefined>;
 
 /** Designers (and anyone else who can't create contests) get this instead of a wizard. */
-/**
- * A signed-in client starts a contest inside the client workspace (owner, 2026-10-17: the right-side menu and the
- * top bar stay); visitors and everyone else get the page as it is.
- */
-export function inWorkspace(user: CurrentUser | null, page: React.ReactNode) {
-  return user?.role === "client" ? (
-    <ClientShell user={user} active="start">
-      {page}
-    </ClientShell>
-  ) : (
-    page
-  );
-}
-
 export async function cannotStart(user: CurrentUser | null) {
   if (can(user, "contest.create")) return null;
   const { t } = await getI18n();
