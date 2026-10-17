@@ -50,6 +50,8 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: openGraphFor({ title: t("meta.title"), description: t("meta.description"), path: "/", locale }),
     twitter: { card: "summary_large_image" },
     robots: searchIndexingOn() ? undefined : { index: false, follow: false },
+    // Pinterest "Claim your website" (owner, 2026-10-18): proves logocontest.bd is ours. Public by design.
+    other: { "p:domain_verify": "cb536e9e87dbc7662f94b8400e106a79" },
   };
 }
 
