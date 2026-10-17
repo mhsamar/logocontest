@@ -11,7 +11,6 @@ import {
   changeEmail,
   changeMobile,
   changePassword,
-  changeUsername,
   prepareAvatarUpload,
   removeAvatar,
   saveAvatar,
@@ -207,39 +206,6 @@ export function ProfileForm({
         <div className="flex justify-end">
           <SaveButton unsaved={unsaved} loading={pending}>
             {t("settings.save")}
-          </SaveButton>
-        </div>
-      )}
-    </form>
-  );
-}
-
-/** Anyone changes their username (owner, 2026-10-15): once every 60 days; the old link keeps working. */
-export function UsernameForm({ username, nextChange }: { username: string; /** When it can change again; null = now. */ nextChange: string | null }) {
-  const { t } = useI18n();
-  const [state, action, pending] = useActionState(changeUsername, IDLE);
-  const [value, setValue] = useState(username);
-  const { unsaved, changed } = useUnsaved(state);
-  useSavedToast(state, t("settings.username.saved"));
-  const err = useFieldError(state);
-  return (
-    <form action={action} onChange={changed} className="space-y-4">
-      <TextField
-        name="username"
-        label={t("settings.username.newLabel")}
-        value={value}
-        onChange={(e) => setValue(e.target.value.toLowerCase())}
-        maxLength={20}
-        autoComplete="off"
-        spellCheck={false}
-        disabled={Boolean(nextChange)}
-        error={err("username")}
-        hint={nextChange ? t("settings.username.wait", { date: nextChange }) : t("settings.username.proHint")}
-      />
-      {!nextChange && (
-        <div className="flex justify-end">
-          <SaveButton unsaved={unsaved} loading={pending}>
-            {t("settings.username.save")}
           </SaveButton>
         </div>
       )}

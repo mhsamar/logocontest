@@ -1,9 +1,5 @@
 "use server";
 
-import { checkUsernameFormat } from "@/lib/designers/signup";
-import { formatDate } from "@/lib/dates";
-import { canChangeUsername, nextUsernameChange } from "./username-rules";
-import { usernameTaken } from "./usernames";
 import { randomUUID } from "node:crypto";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { refresh } from "next/cache";
@@ -56,37 +52,6 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
 
   const { error } = await createAdminClient().from("profiles").update(update).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
-  refresh();
-  return { status: "ok" };
-}
-
-/**
- * Changing a username (owner, 2026-10-16: clients and every designer, not only Pro): once every 60 days. The old name
- * keeps leading to the profile and stays reserved (migration 0063).
- */
-export async function changeUsername(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  const user = await me();
-  if (!user || (user.role !== "designer" && user.role !== "client")) return fail("auth.errors.generic");
-  const format = checkUsernameFormat(String(formData.get("username") ?? "").replace(/^@/, ""));
-  if (!format.ok) return fail(`designerSignup.username.${format.error}`, "username");
-  const db = createAdminClient();
-  const { data: p, error: readError } = await db.from("profiles").select("username, username_changed_at").eq("id", user.id).single();
-  if (readError || !p) return fail("auth.errors.generic");
-  if (p.username === format.username) return { status: "ok" };
-  const last = p.username_changed_at ? new Date(p.username_changed_at as string) : null;
-  if (!canChangeUsername(last, new Date())) {
-    const { locale } = await getI18n();
-    return fail("settings.username.wait", "username", { date: formatDate(nextUsernameChange(last)!, locale, "long") });
-  }
-  if (await usernameTaken(format.username, user.id)) return fail("designerSignup.username.taken", "username");
-  // The old name is kept for old links; going back to one of their own old names takes it out of the list.
-  if (p.username) {
-    const { error } = await db.from("username_history").upsert({ old_username: (p.username as string).toLowerCase(), profile_id: user.id, changed_at: new Date().toISOString() });
-    if (error) return fail("auth.errors.generic");
-  }
-  await db.from("username_history").delete().eq("old_username", format.username).eq("profile_id", user.id);
-  const { error } = await db.from("profiles").update({ username: format.username, username_changed_at: new Date().toISOString() }).eq("id", user.id);
-  if (error) return fail(/duplicate|unique/i.test(error.message) ? "designerSignup.username.taken" : "auth.errors.generic", "username");
   refresh();
   return { status: "ok" };
 }
