@@ -25,7 +25,7 @@ export function FieldInput({ f, value, onChange, error, l }: { f: BriefField; va
   if (f.type === "long_text") return <TextAreaField label={label} hint={hint} optionalLabel={optional} value={str} maxLength={LIMITS.longText} onChange={(e) => onChange(e.target.value)} error={error} ideas={ideas} />;
   if (f.type === "colours")
     return (
-      <fieldset className="m-0 border-0 p-0">
+      <fieldset className="min-w-0 border-0 p-0">
         <legend className="mb-1 text-sm font-medium text-ink">
           {label} {optional && <span className="text-muted">({optional})</span>}
         </legend>
@@ -49,7 +49,7 @@ export function FieldInput({ f, value, onChange, error, l }: { f: BriefField; va
     );
   const multi = f.type === "multi_choice";
   return (
-    <fieldset className="m-0 border-0 p-0">
+    <fieldset className="min-w-0 border-0 p-0">
       <legend className="mb-1 text-sm font-medium text-ink">
         {label} {optional && <span className="text-muted">({optional})</span>}
       </legend>

@@ -22,12 +22,15 @@ export function FilesStep({
   limits,
   onChange,
   onRemoveServerFile,
+  currentLogo = true,
 }: {
   localFiles: LocalFile[];
   serverFiles: ServerFile[];
   limits: { maxFiles: number; maxMb: number };
   onChange: (files: LocalFile[]) => void;
   onRemoveServerFile: (id: string) => void;
+  /** "This is my current logo" on each file: logo contests only (owner, 2026-10-17: other contests have reference images). */
+  currentLogo?: boolean;
 }) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
@@ -126,12 +129,14 @@ export function FilesStep({
               removeLabel={t("wizard.c07.remove", { name: f.name })}
               onRemove={() => void remove(f.id)}
               extra={
-                <Checkbox
-                  className="py-0"
-                  label={<span className="text-sm">{t("wizard.c07.currentLogo")}</span>}
-                  checked={f.isCurrentLogo}
-                  onChange={(e) => onChange(localFiles.map((x) => (x.id === f.id ? { ...x, isCurrentLogo: e.target.checked } : x)))}
-                />
+                currentLogo ? (
+                  <Checkbox
+                    className="py-0"
+                    label={<span className="text-sm">{t("wizard.c07.currentLogo")}</span>}
+                    checked={f.isCurrentLogo}
+                    onChange={(e) => onChange(localFiles.map((x) => (x.id === f.id ? { ...x, isCurrentLogo: e.target.checked } : x)))}
+                  />
+                ) : undefined
               }
             />
           ))}

@@ -78,8 +78,31 @@ const profileOf = async (user: CurrentUser | null) => {
 
 /** The wizard of a non-logo service (fresh, or resuming one of the client's drafts). */
 export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null, startAtPay = false) {
-  const [pricing, s, svcUser, inviteFirst, methods] = await Promise.all([getPricingConfig(), getSettings(["auth.password_min_length"]), profileOf(user), invitesAvailable(), payMethods()]);
-  return <ServiceWizard key={service.slug} service={service} user={svcUser} pricing={pricing} passwordMin={s["auth.password_min_length"]} resume={resume} inviteFirst={inviteFirst} startAtPay={startAtPay} methods={methods} />;
+  const [pricing, s, svcUser, inviteFirst, methods] = await Promise.all([
+    getPricingConfig(),
+    getSettings(["auth.password_min_length", "limits.brief_max_files", "limits.brief_file_max_mb"]),
+    profileOf(user),
+    invitesAvailable(),
+    payMethods(),
+  ]);
+  // A saved draft's reference images (owner, 2026-10-17: every contest has them).
+  const files: ServerFile[] = resume
+    ? ((await createAdminClient().from("contest_files").select("id, original_name, mime_type, type").eq("contest_id", resume.contestId).order("created_at")).data ?? []).map((f) => ({ id: f.id as string, name: f.original_name as string, type: f.mime_type as string, isCurrentLogo: false }))
+    : [];
+  return (
+    <ServiceWizard
+      key={service.slug}
+      service={service}
+      user={svcUser}
+      pricing={pricing}
+      passwordMin={s["auth.password_min_length"]}
+      resume={resume ? { ...resume, files } : null}
+      inviteFirst={inviteFirst}
+      startAtPay={startAtPay}
+      methods={methods}
+      fileLimits={{ maxFiles: s["limits.brief_max_files"], maxMb: s["limits.brief_file_max_mb"] }}
+    />
+  );
 }
 
 /** The payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14), in the visitor's language. */

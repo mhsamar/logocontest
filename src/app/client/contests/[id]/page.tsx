@@ -7,6 +7,7 @@ import { ShortlistHeart } from "@/components/client/review-buttons";
 import { ClientAvatar } from "@/components/client/avatar-menu";
 import { CopyClaim } from "@/components/claims/copy-claim";
 import { ContestBrief } from "@/components/contests/contest-brief";
+import { ServiceBrief } from "@/components/services/service-brief";
 import { EntryComments } from "@/components/entries/entry-comments";
 import { EntryViewer } from "@/components/entries/entry-viewer";
 import { VoteButtons } from "@/components/entries/vote-buttons";
@@ -444,7 +445,14 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   </Link>
                 )}
               </div>
-              {contest.brief ? <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} /> : <Empty title={t("cw.detail.noBrief")} />}
+              {/* A non-logo contest shows its own questions and reference images (owner, 2026-10-17). */}
+              {contest.brief && svc ? (
+                <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief.files} hidden={contest.hiddenPrivate} />
+              ) : contest.brief ? (
+                <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />
+              ) : (
+                <Empty title={t("cw.detail.noBrief")} />
+              )}
             </section>
           </section>
         )}
