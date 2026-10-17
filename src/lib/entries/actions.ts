@@ -184,8 +184,8 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     files.push({ path, bytes, hash: await differenceHash(bytes) });
   }
 
-  // Design check (owner, 2026-10-15): a logo design whose pictures aren't designs (a screenshot, a random photo)
-  // waits in Admin › Designs › To approve; the designer's other designs publish as usual. No brand name is sent.
+  // Design check (owner, 2026-10-15; 2026-10-17: nudity only): a logo design with a nude or sexual picture, or one
+  // the AI isn't sure about, waits in Admin › Designs › To approve; any mockup is fine. No brand name is sent.
   const check = rules ? null : await checkDesignPictures({ brand: null, files: files.map((f) => f.bytes) });
 
   const h = await headers();

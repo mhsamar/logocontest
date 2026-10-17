@@ -8,14 +8,15 @@ import { readRelevance, RELEVANCE_TOOL, relevancePrompt, type RelevanceAnswer } 
 const CHECK_MS = 25_000;
 
 /**
- * Design check (owner, 2026-10-15): asks the AI whether each picture of a new logo design is a design at all.
- * null = not checked (switched off in Settings, no AI key, or the AI failed or was slow): the design is published.
+ * Design check (owner, 2026-10-15; 2026-10-17: nudity only): asks the AI whether any picture of a new logo design is
+ * nude or sexual, or might be. null = not checked (switched off in Settings, no AI key, or the AI failed or was slow):
+ * the design is published.
  */
 export async function checkDesignPictures(input: { brand: string | null; files: Uint8Array[] }): Promise<RelevanceAnswer | null> {
   if (!aiConfigured() || input.files.length === 0) return null;
   try {
     if (!(await getSetting("designs.relevance_check"))) return null;
-    // Small copies: enough to tell a design from a screenshot, and cheap.
+    // Small copies: enough to see what a picture shows, and cheap.
     const small = await Promise.all(input.files.map((f) => sharp(f).resize(448, 448, { fit: "inside" }).flatten({ background: "#ffffff" }).jpeg({ quality: 72 }).toBuffer()));
     const content = [textBlock(`Pictures 1 to ${small.length} follow.`), ...small.flatMap((jpg, i) => [textBlock(`Picture ${i + 1}:`), jpegBlock(jpg)])];
     const system = relevancePrompt({ service: "a logo design", brand: input.brand, count: small.length });
