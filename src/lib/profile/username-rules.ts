@@ -1,26 +1,37 @@
 import { checkUsernameFormat, suggestUsername, USERNAME_MAX } from "@/lib/designers/signup";
 
 /**
- * Usernames (owner, 2026-10-15): every client and designer has one, made once and fixed. Clients get one from their
- * name; designers pick theirs at sign-up. Only Pro designers can change it, once every 60 days. Pure: tested.
+ * Usernames (owner, 2026-10-15; 2026-10-17: name + account number). Every client and designer gets one, made by the
+ * site and fixed: the first name and the account's number in its group, e.g. client 10 "Anika Jaman" is anika010 and
+ * designer 8 "Das" is das008, so the number shows how many clients or designers have joined. Pure: tested.
  */
 
-export const USERNAME_CHANGE_DAYS = 60;
-const DAY = 86_400_000;
+/** Titles and short forms that come before the name in Bangladesh: the name after them is used. */
+const SKIP = new Set(["md", "mohammad", "mohammed", "muhammad", "muhammed", "mohammod", "mohd", "mst", "mosammat", "mosamat", "most", "mr", "mrs", "ms", "miss", "dr", "engr", "sk", "sheikh", "shaikh"]);
+const BASE_MAX = 12;
 
-/** When a Pro designer may change their username again: now if never changed, else 60 days after the last change. */
-export function nextUsernameChange(lastChangedAt: Date | null): Date | null {
-  return lastChangedAt ? new Date(lastChangedAt.getTime() + USERNAME_CHANGE_DAYS * DAY) : null;
+/** The name part: the first real word of the name in Latin letters ("Md. Asif Khan" → "asif"); else "client"/"designer". */
+export function usernameBase(name: string, role: "client" | "designer"): string {
+  const words = name
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((w) => w.replace(/\d+$/, ""))
+    .filter((w) => /^[a-z]/.test(w) && w.length >= 2);
+  const pick = words.find((w) => !SKIP.has(w)) ?? words[0] ?? "";
+  return pick.slice(0, BASE_MAX) || role;
 }
 
-export function canChangeUsername(lastChangedAt: Date | null, now: Date): boolean {
-  const next = nextUsernameChange(lastChangedAt);
-  return !next || now >= next;
-}
+/** The username for a name and an account number: three digits at least ("anika" + 10 → "anika010"). */
+export const memberUsername = (base: string, n: number): string => `${base}${String(Math.max(1, Math.floor(n))).padStart(3, "0")}`;
+
+/** The username if the plain one is taken (for example a client and a designer with the same name and number). */
+export const memberUsernameAlt = (base: string, n: number, role: "client" | "designer"): string => `${memberUsername(base, n)}_${role[0]}`;
 
 /**
- * Usernames to try for a person, best first: "anika_jaman", then "anika_jaman2", "anika_jaman3"… A name with no Latin
- * letters (e.g. Bangla only) or a reserved word starts from "client"/"designer" plus a number.
+ * Before migration 0065 there are no account numbers: usernames to try from the person's name, best first:
+ * "anika_jaman", then "anika_jaman2"… A name with no Latin letters starts from "client"/"designer" plus a number.
  */
 export function usernameCandidates(name: string, role: "client" | "designer", random: () => number = Math.random): string[] {
   const fromName = suggestUsername(name);

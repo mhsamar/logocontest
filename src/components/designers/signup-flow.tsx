@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox, PasswordField, PhoneField, TextAreaField, TextField } from "@/components/ui/field";
@@ -12,12 +12,12 @@ import {
   checkDesignerBasics,
   checkDesignerLogin,
   checkDesignerProfile,
-  checkUsername,
   createDesignerAccount,
   type StepField,
   type StepResult,
 } from "@/lib/designers/actions";
-import { suggestUsername, USERNAME_MAX, type PayoutInput } from "@/lib/designers/signup";
+import { type PayoutInput } from "@/lib/designers/signup";
+import { usernameBase } from "@/lib/profile/username-rules";
 import { useI18n } from "@/lib/i18n/client";
 import { subscribeToPush } from "@/lib/push/client";
 import { FieldInput } from "@/components/services/field-input";
@@ -37,7 +37,6 @@ type Form = {
   answers: Answers;
   email: string;
   password: string;
-  username: string;
   bio: string;
   payoutType: "bkash" | "bank";
   bkashNumber: string;
@@ -58,7 +57,6 @@ const EMPTY: Form = {
   answers: {},
   email: "",
   password: "",
-  username: "",
   bio: "",
   payoutType: "bkash",
   bkashNumber: "",
@@ -70,8 +68,6 @@ const EMPTY: Form = {
   routingNumber: "",
   acceptedRules: false,
 };
-
-type UsernameState = { status: "idle" | "checking" | "ok" | "error"; message?: string };
 
 /** D-01 designer sign-up: four short steps (UI-JOURNEY). */
 export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONBOARDING }: { passwordMin: number; bioMax: number; onboarding?: OnboardingConfig }) {
@@ -105,38 +101,12 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(EMPTY);
   const [result, setResult] = useState<StepResult | null>(null);
-  const [usernameState, setUsernameState] = useState<UsernameState>({ status: "idle" });
   const [busy, start] = useTransition();
 
   const set = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setResult(null);
   };
-
-  // Suggest a username from the name when the designer reaches step 3.
-  useEffect(() => {
-    if (step === 3 && !form.username) {
-      const suggestion = suggestUsername(form.name);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time suggestion when the step opens
-      if (suggestion) setForm((f) => ({ ...f, username: suggestion }));
-    }
-  }, [step, form.username, form.name]);
-
-  // Live username check, a moment after typing stops.
-  useEffect(() => {
-    if (step !== 3 || !form.username) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when there is nothing to check
-      setUsernameState({ status: "idle" });
-      return;
-    }
-    setUsernameState({ status: "checking" });
-    const timer = setTimeout(async () => {
-      const r = await checkUsername(form.username).catch(() => null);
-      if (!r) return setUsernameState({ status: "idle" });
-      setUsernameState(r.ok ? { status: "ok", message: r.username } : { status: "error", message: t(r.error) });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [form.username, step, t]);
 
   const fieldError = (field: StepField) =>
     result && !result.ok && result.field === field ? t(result.error.key, result.error.params) : undefined;
@@ -159,7 +129,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
           router.refresh();
         } else if (r.field) {
           // Jump back to the step that holds the wrong field.
-          const at: Partial<Record<StepField, number>> = { name: 1, mobile: 1, email: 2, password: 2, username: 3, bio: 3 };
+          const at: Partial<Record<StepField, number>> = { name: 1, mobile: 1, email: 2, password: 2, bio: 3 };
           if (at[r.field]) setStep(at[r.field]!);
         }
       });
@@ -175,7 +145,7 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
           ? await checkDesignerBasics({ name: form.name, mobile: form.mobile, country: form.country, answers: form.answers })
           : step === 2
             ? await checkDesignerLogin({ email: form.email, password: form.password })
-            : await checkDesignerProfile({ username: form.username, bio: form.bio, answers: form.answers });
+            : await checkDesignerProfile({ bio: form.bio, answers: form.answers });
       setResult(r);
       if (r.ok) setStep((s) => s + 1);
     });
@@ -256,30 +226,10 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
 
       {step === 3 && (
         <div className="space-y-4">
-          <div>
-            <TextField
-              label={t("designerSignup.username.label")}
-              hint={fieldError("username") ? undefined : t("designerSignup.username.hint")}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={USERNAME_MAX}
-              value={form.username}
-              onChange={(e) => set("username", e.target.value.toLowerCase())}
-              error={fieldError("username") ?? (usernameState.status === "error" ? usernameState.message : undefined)}
-              autoFocus
-            />
-            <p className="mt-1.5 text-sm" aria-live="polite">
-              {usernameState.status === "checking" && <span className="text-muted">{t("designerSignup.username.checking")}</span>}
-              {usernameState.status === "ok" && (
-                <span className="font-medium text-success">✓ {t("designerSignup.username.available", { username: usernameState.message! })}</span>
-              )}
-            </p>
-            {form.username && (
-              <p className="mt-1.5 truncate rounded-[12px] bg-chip px-3 py-2 font-mono text-xs text-muted">
-                {t("designerSignup.username.preview", { username: form.username })}
-              </p>
-            )}
+          {/* The username is made by the site (owner, 2026-10-17): first name + designer number, e.g. das008. */}
+          <div className="rounded-[14px] bg-chip px-4 py-3 text-[15px] text-ink" data-username-auto>
+            <b className="block font-semibold">{t("designerSignup.username.label")}</b>
+            <span className="text-muted">{t("designerSignup.username.auto", { example: `${usernameBase(form.name, "designer")}012` })}</span>
           </div>
           {!hidden("bio") && (
             <>

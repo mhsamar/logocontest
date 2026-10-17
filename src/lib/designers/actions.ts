@@ -1,6 +1,6 @@
 "use server";
 
-import { usernameTaken as usernameUsedBefore } from "@/lib/profile/usernames";
+import { assignUsername } from "@/lib/profile/usernames";
 import { headers } from "next/headers";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
 import { emailRejection } from "@/lib/auth/email-check";
@@ -20,7 +20,7 @@ import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import { isPersonName } from "@/lib/profile/name-rules";
-import { checkPayout, checkUsernameFormat, type PayoutInput } from "./signup";
+import { checkPayout, type PayoutInput } from "./signup";
 import { checkExtraAnswers } from "@/lib/onboarding/config";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { emailWelcome } from "@/lib/email/events";
@@ -78,22 +78,8 @@ export async function checkDesignerLogin(input: { email: string; password: strin
   return { ok: true };
 }
 
-/** Taken now, or once used by someone (old usernames stay reserved for old links, owner 2026-10-15). */
-const usernameTaken = (username: string) => usernameUsedBefore(username);
-
-/** Step 3: live username check while typing. */
-export async function checkUsername(input: string): Promise<{ ok: true; username: string } | { ok: false; error: MessageKey }> {
-  const format = checkUsernameFormat(input);
-  if (!format.ok) return { ok: false, error: `designerSignup.username.${format.error}` };
-  if (!isSupabaseConfigured()) return { ok: true, username: format.username };
-  if (await usernameTaken(format.username)) return { ok: false, error: "designerSignup.username.taken" };
-  return { ok: true, username: format.username };
-}
-
-/** Step 3: username and bio before going on. */
-export async function checkDesignerProfile(input: { username: string; bio: string; answers?: unknown }): Promise<StepResult> {
-  const u = await checkUsername(input.username);
-  if (!u.ok) return fail(u.error, "username");
+/** Step 3: the bio before going on. The username is made by the site (owner, 2026-10-17: first name + number). */
+export async function checkDesignerProfile(input: { bio: string; answers?: unknown }): Promise<StepResult> {
   const max = await getSetting("limits.designer_bio_max_length");
   const bio = input.bio.trim();
   if (bio.length > max) return fail("designerSignup.errors.bioLong", "bio", { max });
@@ -112,7 +98,6 @@ export async function createDesignerAccount(input: {
   answers?: unknown;
   email: string;
   password: string;
-  username: string;
   bio: string;
   payout: PayoutInput;
   acceptedRules: boolean;
@@ -135,8 +120,6 @@ export async function createDesignerAccount(input: {
   const name = input.name.trim().replace(/\s+/g, " ");
   const mobile = toE164(input.mobile, input.country)!;
   const email = normalizeEmail(input.email)!;
-  const username = checkUsernameFormat(input.username);
-  if (!username.ok) return fail("designerSignup.username.format", "username");
   const onboarding = await getOnboarding("designer");
   const extra = await extraProblem(input.answers);
   if (extra) return extra;
@@ -159,7 +142,6 @@ export async function createDesignerAccount(input: {
     .from("profiles")
     .update({
       role: "designer",
-      username: username.username,
       bio: input.bio.trim() || null,
       rules_accepted_at: new Date().toISOString(),
       whatsapp: input.whatsapp === true,
@@ -169,10 +151,12 @@ export async function createDesignerAccount(input: {
     .eq("id", userId);
   const { error: payoutError } = profileError ? { error: null } : await admin.from("designer_payout_methods").insert({ user_id: userId, ...payout.payout });
   if (profileError || payoutError) {
-    // Don't leave a half-made account behind (for example if someone took the username a moment ago).
+    // Don't leave a half-made account behind.
     await admin.auth.admin.deleteUser(userId);
-    return /username/i.test(profileError?.message ?? "") ? fail("designerSignup.username.taken", "username") : fail("auth.errors.generic");
+    return fail("auth.errors.generic");
   }
+  // First name + designer number, e.g. das008 (owner, 2026-10-17); given once the profile is a designer.
+  await assignUsername(userId, name, "designer").catch((e) => console.error("[designer-signup] username:", e instanceof Error ? e.message : e));
 
   // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
   await saveSignupSource(userId, await takeSignupSource());

@@ -50,9 +50,10 @@ export function EmailCodeForm({ length, variant, onConfirmed }: { length: number
   );
 
   if (variant === "compact") {
+    // Owner, 2026-10-17: bigger buttons in the banner; Resend code is a button, not a small link.
     return (
-      <div className="w-full space-y-1">
-        <form action={action} className="mx-auto flex w-full max-w-xs gap-2">
+      <div className="w-full space-y-2.5">
+        <form action={action} className="mx-auto flex w-full max-w-md gap-2.5">
           <input
             name="code"
             type="text"
@@ -63,11 +64,11 @@ export function EmailCodeForm({ length, variant, onConfirmed }: { length: number
             aria-label={t("auth.verify.codeLabel")}
             aria-invalid={error ? true : undefined}
             className={cx(
-              "min-h-11 w-0 flex-1 rounded-[14px] bg-surface px-3 text-center font-mono text-lg tracking-[0.35em] text-ink ring-1 ring-inset ring-line placeholder:text-line focus:outline-none focus:ring-2 focus:ring-primary",
+              "min-h-[52px] w-0 flex-1 rounded-2xl bg-surface px-3 text-center font-mono text-xl tracking-[0.35em] text-ink ring-1 ring-inset ring-line placeholder:text-line focus:outline-none focus:ring-2 focus:ring-primary",
               error && "ring-2 ring-danger",
             )}
           />
-          <Button type="submit" loading={pending} className="px-4">
+          <Button type="submit" loading={pending} size="lg">
             {t("auth.verify.confirm")}
           </Button>
         </form>
@@ -76,8 +77,15 @@ export function EmailCodeForm({ length, variant, onConfirmed }: { length: number
             {error}
           </p>
         )}
-        <div className="flex flex-wrap items-center justify-center gap-x-2">
-          {resendButton}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+          <button
+            type="button"
+            disabled={resending}
+            onClick={() => startResend(async () => setResent(await resendVerification()))}
+            className="inline-flex min-h-12 items-center rounded-full border border-primary/30 bg-white px-6 text-[15px] font-semibold text-primary transition-colors hover:bg-tint disabled:opacity-60"
+          >
+            {t("auth.verify.resend")}
+          </button>
           {resendNote}
         </div>
       </div>

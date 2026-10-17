@@ -946,6 +946,7 @@ const en = {
     password: "Password",
     username: {
       label: "Username",
+      auto: "Made for you from your first name and your designer number, for example {example}. You can log in with it, your email or your mobile number.",
       hint: "3–20 lowercase letters, numbers or _ , starting with a letter. You can change it once every 60 days, and log in with it too.",
       preview: "Your profile: logocontest.bd/d/{username}",
       checking: "Checking…",
@@ -1426,7 +1427,7 @@ const en = {
     },
     nameFixed: "Your name can't be changed. If it is wrong, write to us in Support and we will correct it.",
     username: {
-      note: "You can log in with it, your email or your mobile number. You can change it once every 60 days; your old profile link keeps working.",
+      note: "Your username is your first name and your account number. You can log in with it, your email or your mobile number.",
       newLabel: "Change username",
       proHint: "Letters, numbers and _ only. After a change, the next one is possible in 60 days.",
       wait: "You can change it again on {date}.",

@@ -56,13 +56,15 @@ export async function findProfileByEmail(email: string) {
 }
 
 export async function findProfileByUsername(username: string) {
-  const { data, error } = await createAdminClient()
-    .from("profiles")
-    .select("id, email, role, status")
-    .eq("username", username.toLowerCase())
-    .maybeSingle<ProfileStatus>();
+  const db = createAdminClient();
+  const { data, error } = await db.from("profiles").select("id, email, role, status").eq("username", username.toLowerCase()).maybeSingle<ProfileStatus>();
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+  // An old username still logs in (owner, 2026-10-17: every account got a new name + number username).
+  const { data: old } = await db.from("username_history").select("profile_id").eq("old_username", username.toLowerCase()).maybeSingle();
+  if (!old) return null;
+  const { data: p } = await db.from("profiles").select("id, email, role, status").eq("id", old.profile_id).maybeSingle<ProfileStatus>();
+  return p ?? null;
 }
 
 /** The address Supabase Auth knows this mobile number by (real email, or the legacy internal one). */

@@ -645,3 +645,26 @@
 /* Long stat values ("Under a day") wrap instead of running out of the card */
 .cwx .cps.four b { overflow-wrap:anywhere }
 @media(max-width:700px){ .cwx .cps.four b { font-size:22px } }
+/* Top bar menu (owner, 2026-10-17): the site's links, language and bell between the logo and the photo */
+.cwx .ctn { position:relative; isolation:isolate; display:flex; align-items:center; gap:4px 22px; margin:0 auto; padding:0 8px; font-size:16px; font-weight:500; color:#111216 }
+.cwx .ctn .lc-nv-link { white-space:nowrap }
+.cwx .ctx { display:flex; align-items:center; gap:8px; margin-left:auto }
+.cwx .ctx .ctr { margin-left:0 }
+.cwx .ctop .lc-mb { display:none }
+@media (max-width:1240px) { .cwx .ctn { gap:4px 16px; font-size:15px } }
+@media (max-width:1060px) {
+  .cwx .ctn { display:none }
+  .cwx .ctop .lc-mb { display:inline-flex }
+}
+/* The bars above (email code, notice) sit right at the top: the space under the site's floating menu isn't needed
+   here, because the workspace has its own top bar */
+body:has([data-client-shell]) [data-top-bars] { padding-top:0 !important }
+/* Phones: the logo without the site name, so the bell, photo and menu button fit on one line */
+@media (max-width:520px) {
+  .cwx .clogo b { display:none }
+  .cwx .ctop { gap:8px }
+  .cwx .ctx { gap:6px }
+}
+/* Any page that shows the workspace (the client pages, and Start a contest for a signed-in client: owner, 2026-10-17)
+   hides the site's own floating menu bar and footer; the workspace brings its own top bar */
+body:has([data-client-shell]) :is(.lc-nav-slot, .lc-footer-slot) { display:none !important }

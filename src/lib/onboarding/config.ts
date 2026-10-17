@@ -73,7 +73,7 @@ export const FLOWS: Record<OnboardingFlow, { steps: FlowStep[]; questions: Built
       { key: "whatsapp", step: 1, hideable: true, texts: ["auth.phone.whatsapp", "auth.phone.whatsappHint"] },
       { key: "email", step: 2, hideable: false, texts: ["designerSignup.email"] },
       { key: "password", step: 2, hideable: false, texts: ["designerSignup.password"] },
-      { key: "username", step: 3, hideable: false, texts: ["designerSignup.username.label", "designerSignup.username.hint"] },
+      { key: "username", step: 3, hideable: false, texts: ["designerSignup.username.label", "designerSignup.username.auto"] },
       { key: "bio", step: 3, hideable: true, texts: ["designerSignup.bio.label", "designerSignup.bio.hint"] },
       { key: "payout", step: 4, hideable: false, texts: ["designerSignup.payout.title"] },
       { key: "rules", step: 4, hideable: false, texts: ["designerSignup.rules.title", "designerSignup.rules.accept"] },

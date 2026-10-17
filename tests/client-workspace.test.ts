@@ -67,6 +67,11 @@ describe("menu counts", () => {
     expect(href("contests")).toBe("/client/contests");
     expect(href("messages")).toBe("/client/messages");
     expect(href("profile")).toBe("/client/profile");
+    // Owner, 2026-10-17: Logo checks, Settings and Help stay inside the workspace, so the menu never disappears.
+    expect(href("checks")).toBe("/client/checks");
+    expect(href("settings")).toBe("/client/settings");
+    expect(href("help")).toBe("/client/help");
+    expect(menu.every((i) => i.key === "start" || i.href.startsWith("/client"))).toBe(true);
     expect(href("review")).toBe("/client/contests/abc?tab=designs&filter=unrated");
   });
   it("the avatar's red dot shows only when there are new designs or unread messages", () => {
