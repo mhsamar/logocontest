@@ -170,6 +170,13 @@ const PATHS = {
       <path d="M17.5 4.5l1.5 1.5 3-3" />
     </>
   ),
+  // Pinterest auto-posting (owner, 2026-10-19): a "P" in a circle.
+  pinterest: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10.2 20.5 12 13M11 7.5h2.2a2.9 2.9 0 0 1 0 5.8H12" />
+    </>
+  ),
   trash: (
     <>
       <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
