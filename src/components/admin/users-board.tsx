@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { QuickDelete } from "@/components/admin/quick-delete";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -86,6 +87,11 @@ export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canMan
                 <th scope="col" className="p-2.5 font-bold">{t("admin.users.x.cols.role")}</th>
                 <th scope="col" className="p-2.5 font-bold">{t("admin.users.x.cols.status")}</th>
                 <th scope="col" className="py-3 pl-2.5 pr-5 font-bold">{t("admin.users.x.cols.last")}</th>
+                {canManage && (
+                  <th scope="col" className="w-14 py-3 pr-4">
+                    <span className="sr-only">{t("admin.trash.quick.actions")}</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -96,7 +102,7 @@ export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canMan
                     key={u.id}
                     onMouseEnter={() => setHover(u.id)}
                     onClick={(e) => {
-                      if ((e.target as HTMLElement).closest("a")) return;
+                      if ((e.target as HTMLElement).closest("a,button")) return;
                       // Touch screens and narrow windows: the Quick view opens as a bottom sheet.
                       if (window.matchMedia("(hover: none)").matches || window.innerWidth < 1020) setSheet(u.id);
                       else setPinned(u.id);
@@ -128,6 +134,8 @@ export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canMan
                     <td className="py-3 pl-2.5 pr-5">
                       <LastActive u={u} />
                     </td>
+                    {/* One-click delete (owner, 2026-10-18): never for admins or yourself. */}
+                    {canManage && <td className="py-3 pr-4 text-right">{u.role !== "admin" && u.id !== meId && <QuickDelete kind="user" id={u.id} name={u.name} />}</td>}
                   </tr>
                 );
               })}

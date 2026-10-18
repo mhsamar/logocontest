@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
+import { QuickDelete } from "@/components/admin/quick-delete";
 import { pageNum, Pager, qs, str } from "@/components/admin/table-bits";
 import { AdmCard, AdmEmpty, ADM_INPUT, IdChip, KpiGrid, KpiTile, Pill, StageSteps, TimeLeft } from "@/components/admin/ui";
 import { contestStage, LIVE_STATUSES, OLD_STATUSES } from "@/lib/admin/contest-stage";
 import { adminContestOverview, type AdminContestOverviewRow } from "@/lib/admin/contests";
 import { requirePermission } from "@/lib/admin/core";
+import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -30,7 +32,9 @@ const SECTION = 12;
 // A-02 Contests (BLUEPRINT §13.3; design/admin/contests.html, owner 2026-10-10): live, featured and old contests apart,
 // each with its stage and time left.
 export default async function AdminContestsPage({ searchParams }: PageProps<"/admin/contests">) {
-  await requirePermission("contests.view");
+  const admin = await requirePermission("contests.view");
+  // One-click delete (owner, 2026-10-18) for staff who may delete contests.
+  const canDelete = hasPermission(admin, "contests.manage");
   const sp = await searchParams;
   // ?status=open (from the Dashboard tile) still works: it opens the Live tab at "Open for designs".
   const legacy = str(sp.status);
@@ -131,6 +135,11 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
               <th scope="col" className="py-3.5 pl-3 pr-5 font-bold">
                 {t("admin.contests.time")}
               </th>
+              {canDelete && (
+                <th scope="col" className="w-14 py-3.5 pr-4">
+                  <span className="sr-only">{t("admin.trash.quick.actions")}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -158,6 +167,11 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
                   <strong className="tabular-nums">{num(c.entries)}</strong>
                 </td>
                 <td className="py-4 pl-3 pr-5">{timeCell(c)}</td>
+                {canDelete && (
+                  <td className="py-4 pr-4 text-right">
+                    <QuickDelete kind="contest" id={c.id} name={c.brand} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -169,41 +183,45 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
   const cards = (list: AdminContestOverviewRow[]) => (
     <div className="grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))]">
       {list.map((c) => (
-        <Link key={c.id} href={`/admin/contests/${c.slug}`} className="flex flex-col gap-[18px] rounded-[16px] border border-adm-line bg-surface p-5 shadow-[0_1px_2px_rgb(17_18_22/0.03)] hover:border-[#d6d8de] sm:p-[22px]">
-          <div className="flex items-start gap-3.5">
-            {avatar(c, true)}
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="lc-d text-xl font-semibold tracking-[-0.02em]">{c.brand}</strong>
-                <IdChip prefix="LC" n={c.number} />
-              </div>
-              <span className="text-[15px] text-muted">{t("admin.contests.clientIs", { name: c.client.name })}</span>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {c.featured && <Pill tone="dark">{t("admin.contests.badges.featured")}</Pill>}
-                {c.urgent && <Pill tone="red">{t("admin.contests.badges.urgent")}</Pill>}
-                {c.highlighted && <Pill tone="gold">{t("admin.contests.badges.highlighted")}</Pill>}
-                {c.isPrivate && <Pill>{t("admin.contests.badges.private")}</Pill>}
-                <Pill tone="brand">{t(`wizard.packages.${c.package}.name` as MessageKey)}</Pill>
+        <div key={c.id} className="relative flex">
+          <Link href={`/admin/contests/${c.slug}`} className="flex w-full flex-col gap-[18px] rounded-[16px] border border-adm-line bg-surface p-5 shadow-[0_1px_2px_rgb(17_18_22/0.03)] hover:border-[#d6d8de] sm:p-[22px]">
+            <div className="flex items-start gap-3.5">
+              {avatar(c, true)}
+              <div className={cx("flex min-w-0 flex-1 flex-col gap-1", canDelete && "pr-9")}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="lc-d text-xl font-semibold tracking-[-0.02em]">{c.brand}</strong>
+                  <IdChip prefix="LC" n={c.number} />
+                </div>
+                <span className="text-[15px] text-muted">{t("admin.contests.clientIs", { name: c.client.name })}</span>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {c.featured && <Pill tone="dark">{t("admin.contests.badges.featured")}</Pill>}
+                  {c.urgent && <Pill tone="red">{t("admin.contests.badges.urgent")}</Pill>}
+                  {c.highlighted && <Pill tone="gold">{t("admin.contests.badges.highlighted")}</Pill>}
+                  {c.isPrivate && <Pill>{t("admin.contests.badges.private")}</Pill>}
+                  <Pill tone="brand">{t(`wizard.packages.${c.package}.name` as MessageKey)}</Pill>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2.5 rounded-[12px] bg-adm-bg p-3.5">
-            {[
-              { label: t("admin.contests.prize"), value: taka(c.prize), red: true },
-              { label: t("admin.contests.designs"), value: num(c.entries) },
-              { label: t("admin.contests.ends"), value: c.endsAt ? day(c.endsAt) : "—" },
-            ].map((x) => (
-              <div key={x.label} className="flex min-w-0 flex-col">
-                <span className="text-[13.5px] text-muted">{x.label}</span>
-                <strong className={cx("lc-d truncate text-lg font-semibold tracking-[-0.02em] sm:text-[22px]", x.red && "text-primary")}>{x.value}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {stageCell(c, true)}
-            {timeCell(c)}
-          </div>
-        </Link>
+            <div className="grid grid-cols-3 gap-2.5 rounded-[12px] bg-adm-bg p-3.5">
+              {[
+                { label: t("admin.contests.prize"), value: taka(c.prize), red: true },
+                { label: t("admin.contests.designs"), value: num(c.entries) },
+                { label: t("admin.contests.ends"), value: c.endsAt ? day(c.endsAt) : "—" },
+              ].map((x) => (
+                <div key={x.label} className="flex min-w-0 flex-col">
+                  <span className="text-[13.5px] text-muted">{x.label}</span>
+                  <strong className={cx("lc-d truncate text-lg font-semibold tracking-[-0.02em] sm:text-[22px]", x.red && "text-primary")}>{x.value}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {stageCell(c, true)}
+              {timeCell(c)}
+            </div>
+          </Link>
+          {/* Beside the card's link, not inside it (a button can't sit in a link). */}
+          {canDelete && <QuickDelete kind="contest" id={c.id} name={c.brand} className="absolute right-3 top-3" />}
+        </div>
       ))}
     </div>
   );

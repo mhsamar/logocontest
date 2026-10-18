@@ -4,9 +4,11 @@ import { createContext, useCallback, useContext, useState } from "react";
 import { cx } from "@/lib/cx";
 
 type Tone = "success" | "danger" | "info";
-type Toast = { id: number; message: string; tone: Tone };
+/** A button in the toast, like Undo (owner, 2026-10-18: one-click delete in Admin). The toast then stays 8 seconds. */
+type ToastAction = { label: string; run: () => void };
+type Toast = { id: number; message: string; tone: Tone; action?: ToastAction };
 
-const ToastContext = createContext<((message: string, tone?: Tone) => void) | null>(null);
+const ToastContext = createContext<((message: string, tone?: Tone, action?: ToastAction) => void) | null>(null);
 
 const TONES: Record<Tone, string> = {
   success: "bg-ink text-white",
@@ -17,11 +19,15 @@ const TONES: Record<Tone, string> = {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const show = useCallback((message: string, tone: Tone = "success") => {
-    const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, message, tone }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
-  }, []);
+  const close = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+  const show = useCallback(
+    (message: string, tone: Tone = "success", action?: ToastAction) => {
+      const id = Date.now() + Math.random();
+      setToasts((t) => [...t, { id, message, tone, action }]);
+      setTimeout(() => close(id), action ? 8000 : 4000);
+    },
+    [close],
+  );
 
   return (
     <ToastContext.Provider value={show}>
@@ -40,7 +46,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             )}
           >
             {t.tone === "success" && <span className="text-success" aria-hidden>✓</span>}
-            {t.message}
+            <span className="min-w-0 flex-1">{t.message}</span>
+            {t.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  close(t.id);
+                  t.action!.run();
+                }}
+                className="-my-1 shrink-0 rounded-md px-2.5 py-1.5 font-bold text-[#FFD9A8] underline-offset-2 hover:underline"
+              >
+                {t.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

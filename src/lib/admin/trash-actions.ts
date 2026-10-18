@@ -24,6 +24,20 @@ export async function deleteContest(contestId: string, f: Fields): Promise<Resul
   return { ok: true };
 }
 
+/** The reason kept for a one-click delete from the Contests or Users list (owner, 2026-10-18). */
+const QUICK_REASON = "Deleted from the list with one click";
+
+/** One click from Admin › Contests (owner, 2026-10-18): straight to the Trash, Undo in the toast. Same rules as Delete. */
+export async function quickDeleteContest(contestId: string): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  if (!admin || !UUID.test(contestId)) return fail("auth.errors.generic");
+  const res = await trashContest(contestId, admin.id, QUICK_REASON);
+  if (!res.ok) return trashFail(res.error);
+  await audit(admin.id, "trash_contest", "contest", contestId, { reason: QUICK_REASON, quick: true });
+  refresh();
+  return { ok: true };
+}
+
 export async function restoreContestFromTrash(contestId: string): Promise<Result> {
   const admin = await adminUser("contests.manage");
   if (!admin || !UUID.test(contestId)) return fail("auth.errors.generic");
@@ -51,6 +65,17 @@ export async function deleteUser(userId: string, f: Fields): Promise<Result> {
   const res = await trashUser(userId, admin.id, reason);
   if (!res.ok) return trashFail(res.error);
   await audit(admin.id, "trash_user", "user", userId, { reason });
+  refresh();
+  return { ok: true };
+}
+
+/** One click from Admin › Users (owner, 2026-10-18). Same rules as Delete: never admins, yourself, or accounts with live work or money. */
+export async function quickDeleteUser(userId: string): Promise<Result> {
+  const admin = await adminUser("users.manage");
+  if (!admin || !UUID.test(userId)) return fail("auth.errors.generic");
+  const res = await trashUser(userId, admin.id, QUICK_REASON);
+  if (!res.ok) return trashFail(res.error);
+  await audit(admin.id, "trash_user", "user", userId, { reason: QUICK_REASON, quick: true });
   refresh();
   return { ok: true };
 }
