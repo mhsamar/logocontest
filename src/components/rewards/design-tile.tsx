@@ -6,11 +6,11 @@ import type { WinningDesign } from "@/lib/rewards/queries";
 const MEDAL = ["from-[#f6d98b] to-[#f4bd2f] text-[#5b3a00]", "from-[#eef1f5] to-[#cfd6e0] text-ink", "from-[#f3d2b3] to-[#d89a66] text-[#5b2c06]"];
 
 /** A winning design (winners gallery). `rank` shows a medal number on the corner. Owner, 2026-10-11: no heart likes any more. */
-export function DesignTile({ d, t, rank, tall = false }: { d: WinningDesign; t: Translate; rank?: number; tall?: boolean }) {
+export function DesignTile({ d, t, rank }: { d: WinningDesign; t: Translate; rank?: number }) {
   return (
     <div className="group relative overflow-clip rounded-2xl bg-surface shadow-card ring-1 ring-line transition-[box-shadow,translate] duration-300 hover:-translate-y-1 hover:shadow-raised">
       <Link href={`/contest/${d.contestSlug}?tab=entries&entry=${d.number}`} className="block">
-        <span className={cx("block overflow-clip bg-canvas", tall ? "aspect-[4/5]" : "aspect-square")}>
+        <span className="block aspect-square overflow-clip bg-canvas">
           {d.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={d.coverUrl} alt={t("winners.alt", { brand: d.brandName })} loading="lazy" className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.05]" />

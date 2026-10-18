@@ -8,7 +8,7 @@ export function proEvent(event: "card_seen" | "upgrade_clicked" | "checkout_clos
   try {
     const body = JSON.stringify({ event, step });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/pro/event", new Blob([body], { type: "application/json" }));
-    else void fetch("/api/pro/event", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true });
+    else void fetch("/api/pro/event", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
   } catch {
     /* the funnel is best effort */
   }

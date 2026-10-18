@@ -53,7 +53,7 @@ function send(event: PopupEvent) {
   const vid = visitorId();
   if (!vid) return;
   try {
-    void fetch("/api/popup-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event, vid }), keepalive: true, credentials: "same-origin" });
+    void fetch("/api/popup-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event, vid }), keepalive: true, credentials: "same-origin" }).catch(() => {});
   } catch {
     // Counting must never get in the way.
   }

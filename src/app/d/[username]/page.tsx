@@ -29,11 +29,13 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
   if (!designer) return { title: t("notFound.title"), robots: { index: false } };
   const title = t("designerProfile.metaTitle", { name: designer.name });
   const path = `/d/${username.toLowerCase()}`;
+  // Without a bio the page still has a description (QA, 2026-10-18).
+  const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
   return {
     title,
-    description: designer.bio ?? undefined,
+    description,
     alternates: { canonical: path },
-    openGraph: openGraphFor({ title, description: designer.bio ?? undefined, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
+    openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
   };
 }
 

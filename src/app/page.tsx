@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ClientHome } from "@/components/home/client-home";
 import { DesignerHome } from "@/components/home/designer-home";
 import { AiChecker } from "@/components/home/landing/ai-checker";
@@ -23,6 +24,9 @@ import { earlyCutoff } from "@/lib/pro/limits";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
+
+// The home page's own address for search engines (QA, 2026-10-18).
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 // P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
 // Design/logocontest-home-design.html; Design/home-page 2026-10-13): hero, live contests, design types, AI checker,

@@ -8,7 +8,7 @@ let last = { path: "", at: 0 };
 
 const send = (body: object) => {
   try {
-    void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true, credentials: "same-origin" });
+    void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true, credentials: "same-origin" }).catch(() => {});
   } catch {
     // Tracking must never get in the way.
   }

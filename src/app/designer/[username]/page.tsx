@@ -29,7 +29,9 @@ export async function generateMetadata({ params }: PageProps<"/designer/[usernam
   if (!designer || !(await isPro(designer.id))) return { title: t("pro.profile.notPublicTitle"), robots: { index: false } };
   const title = t("designerProfile.metaTitle", { name: designer.name });
   const path = `/designer/${designer.username}`;
-  return { title, description: designer.bio ?? undefined, alternates: { canonical: path }, openGraph: openGraphFor({ title, description: designer.bio ?? undefined, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
+  // Without a bio the page still has a description (QA, 2026-10-18).
+  const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
+  return { title, description, alternates: { canonical: path }, openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
 }
 
 const TABS = ["work", "winners", "reviews", "about"] as const;
