@@ -55,10 +55,11 @@ export default async function WinnersPage({ searchParams }: PageProps<"/winners"
           <EmptyState title={t(type ? "winners.emptyType" : "winners.empty")} body={t("winners.emptyBody")} action={<ButtonLink href="/start">{t("home.cta")}</ButtonLink>} />
         </div>
       ) : (
-        <ul className="m-0 mt-8 list-none columns-2 gap-3.5 p-0 sm:columns-3 lg:columns-4 [&>li]:mb-3.5">
-          {logos.map((d, i) => (
-            <li key={d.entryId} className="lc-rv break-inside-avoid">
-              <DesignTile d={d} t={t} tall={i % 3 === 1} />
+        // Every card square, in reading order (QA, 2026-10-18): taller cards left grey bars around square logos.
+        <ul className="m-0 mt-8 grid list-none grid-cols-2 gap-3.5 p-0 sm:grid-cols-3 lg:grid-cols-4">
+          {logos.map((d) => (
+            <li key={d.entryId} className="lc-rv">
+              <DesignTile d={d} t={t} />
             </li>
           ))}
         </ul>

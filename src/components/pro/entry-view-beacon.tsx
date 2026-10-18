@@ -25,7 +25,7 @@ export function EntryViewBeacon({ entryId }: { entryId: string }) {
     try {
       const body = JSON.stringify({ entryId, source: sourceOf(document.referrer) });
       if (navigator.sendBeacon) navigator.sendBeacon("/api/pro/view", new Blob([body], { type: "application/json" }));
-      else void fetch("/api/pro/view", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true });
+      else void fetch("/api/pro/view", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
     } catch {
       /* best effort */
     }

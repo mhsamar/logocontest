@@ -38,6 +38,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // A logged-out visitor opening the client workspace goes to the client login at once (QA, 2026-10-18): before, the
+  // page drew nothing for a second and then moved on.
+  if (!userId && isPage && (pathname === "/client" || pathname.startsWith("/client/"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?as=client&next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
+
   // Optimistic check only. Real authorization happens in each page via policies.
   if (!userId && SIGNED_IN_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();

@@ -65,7 +65,8 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
   const contest = await getContestBySlug(slug, user);
   if (!contest) return { title: t("notFound.title"), robots: { index: false } };
   const title = contestTitle(contest, t);
-  const description = contest.brief?.description.slice(0, 160);
+  // Private contests and briefs a visitor can't read still get a description (QA, 2026-10-18).
+  const description = contest.brief?.description.slice(0, 160) || t("contest.metaDescription", { title });
   return {
     title,
     description,

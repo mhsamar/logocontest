@@ -759,6 +759,7 @@ const en = {
     },
   },
   contest: {
+    metaDescription: "{title}: a design contest on logocontest.bd. Designers from across Bangladesh send ideas and the client picks the winner.",
     by: "by {name}",
     share: {
       title: "Share this contest",
@@ -1335,6 +1336,7 @@ const en = {
   designerProfile: {
     suspended: "Suspended until {date}",
     metaTitle: "{name} · Logo designer",
+    metaDescription: "{name}'s logo designs and contest wins on logocontest.bd.",
     topDesigner: "Top Designer",
     share: "Share profile",
     wins: "Wins",

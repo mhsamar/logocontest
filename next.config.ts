@@ -1,6 +1,27 @@
 import type { NextConfig } from "next";
 
+/**
+ * Security headers on every response (QA, 2026-10-18). Other sites may not show our pages in a frame (stops click
+ * tricks on the login and payment pages); browsers must trust our file types; links to other sites carry only
+ * "logocontest.bd", not the full address; camera, microphone and location stay off (the site never uses them).
+ * HTTPS-only (HSTS) is already sent by Vercel.
+ */
+const SECURITY_HEADERS = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
+  // Browsers and apps that ask for /favicon.ico get the site icon (QA, 2026-10-18); the icon itself is set in Admin.
+  async redirects() {
+    return [{ source: "/favicon.ico", destination: "/icon", permanent: false }];
+  },
   // Every page reads per-request cookies (locale, Supabase session), so we use
   // the regular dynamic rendering model instead of Cache Components.
   cacheComponents: false,

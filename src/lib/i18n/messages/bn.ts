@@ -758,6 +758,7 @@ const bn: Messages = {
     },
   },
   contest: {
+    metaDescription: "{title}: logocontest.bd-তে একটি ডিজাইন কনটেস্ট। বাংলাদেশের ডিজাইনাররা আইডিয়া পাঠান, ক্লায়েন্ট বিজয়ী বেছে নেন।",
     by: "{name}-এর কনটেস্ট",
     share: {
       title: "প্রতিযোগিতাটি শেয়ার করুন",
@@ -1334,6 +1335,7 @@ const bn: Messages = {
   designerProfile: {
     suspended: "{date} পর্যন্ত সাসপেন্ড",
     metaTitle: "{name} · লোগো ডিজাইনার",
+    metaDescription: "logocontest.bd-তে {name}-এর লোগো ডিজাইন ও কনটেস্ট জয়।",
     topDesigner: "টপ ডিজাইনার",
     share: "প্রোফাইল শেয়ার",
     wins: "জয়",
