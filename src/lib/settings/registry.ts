@@ -687,6 +687,15 @@ export const SETTINGS = {
   // Monthly rewards and win cards (owner, 2026-10-11; migration 0035; Admin → Monthly winner)
   // Owner, 2026-10-13: one switch for the whole monthly prizes program (smartphone and gift box). Off hides every
   // offer, race, leaderboard link, claim and champion badge on the site, and the month closes with no winner.
+  // ---- Pinterest auto-posting (owner, 2026-10-19; Admin › Pinterest) --------------------------------
+  "pinterest.on": {
+    group: "pinterest", type: "bool", schema: z.boolean(), default: false,
+    description: "Pin designs to the site's Pinterest board automatically.",
+  },
+  "pinterest.rule": {
+    group: "pinterest", type: "string", schema: z.enum(["winners", "winners_public"]), default: "winners",
+    description: "What is pinned: winners only, or winners plus designs from public contests.",
+  },
   "rewards.program_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
     description: "Run the monthly prizes program (smartphone for clients, gift box for designers). Off hides it everywhere.",
