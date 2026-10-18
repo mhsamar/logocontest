@@ -3111,6 +3111,8 @@ const en = {
       eraseBody: "Everything about it is erased for good right now, with no Restore. Only the Super admin can do this.",
       restored: "Restored.",
       erased: "Erased for good.",
+      // One-click delete from the Contests and Users lists (owner, 2026-10-18).
+      quick: { label: "Delete {name}", title: "Move to the Trash (you can restore it)", done: "{name} moved to the Trash.", undo: "Undo", actions: "Actions" },
       deleteContest: "Delete contest",
       deleteContestBody: "The contest leaves the site and goes to the Trash. It can be restored for {days} days; then it is erased for good with its designs, files and payments.",
       deleteUser: "Delete user",
