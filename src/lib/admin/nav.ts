@@ -55,6 +55,9 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/support", icon: "support", label: "admin.nav.support", perm: "support.view", badge: "support" },
       { href: "/admin/messages", icon: "send", label: "admin.nav.messages", perm: "messages.view" },
+      // Auto share (owner, 2026-10-19): Pinterest and the Facebook contest cards, both Content permissions.
+      { href: "/admin/pinterest", icon: "pinterest", label: "admin.nav.pinterest", perm: "content.view" },
+      { href: "/admin/contest-cards", icon: "cards", label: "admin.nav.contestCards", perm: "content.view" },
       // Who gets which notice, how and when (owner, 2026-10-15).
       { href: "/admin/notifications", icon: "bell", label: "admin.nav.notifications", perm: "settings.view" },
     ],
@@ -71,7 +74,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/brand", icon: "brand", label: "admin.nav.brand", perm: "content.view" },
       { href: "/admin/homepage", icon: "homepage", label: "admin.nav.homepage", perm: "content.view" },
       { href: "/admin/hero", icon: "hero", label: "admin.nav.hero", perm: "content.view" },
-      { href: "/admin/pinterest", icon: "pinterest", label: "admin.nav.pinterest", perm: "content.view" },
       { href: "/admin/blocked-terms", icon: "blocked", label: "admin.nav.blockedTerms", perm: "content.view" },
     ],
   },

@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
     "/api/logo-checks/**": ["./node_modules/@sparticuz/chromium/bin/**"],
     // Win cards and monthly prize cards (owner, 2026-10-11) are pictures made the same way.
     "/api/cards/**": ["./node_modules/@sparticuz/chromium/bin/**"],
+    // Contest cards (owner, 2026-10-19): drawn by the 15-minute job and by Admin › Contest cards.
+    "/api/cron/lifecycle": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/admin/contest-cards": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
   // Lets `NEXT_DIST_DIR=.next-check next build` run without touching a running dev server.
   distDir: process.env.NEXT_DIST_DIR || ".next",

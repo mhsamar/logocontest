@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_CAPTION, DEFAULT_HASHTAGS } from "@/lib/cards/rules";
 import { howVideoSchema, NO_VIDEO } from "@/lib/home/how-video";
 
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
@@ -687,6 +688,43 @@ export const SETTINGS = {
   // Monthly rewards and win cards (owner, 2026-10-11; migration 0035; Admin → Monthly winner)
   // Owner, 2026-10-13: one switch for the whole monthly prizes program (smartphone and gift box). Off hides every
   // offer, race, leaderboard link, claim and champion badge on the site, and the month closes with no winner.
+  // ---- Contest cards (owner, 2026-10-19; Admin › Contest cards) -----------------------------------
+  "cards.auto_post": {
+    group: "cards", type: "bool", schema: z.boolean(), default: true,
+    description: "Post each new contest card to the Facebook page by itself.",
+  },
+  "cards.check_first": {
+    group: "cards", type: "bool", schema: z.boolean(), default: true,
+    description: "Cards wait in Admin › Contest cards for an admin's OK before they are posted.",
+  },
+  "cards.last24": {
+    group: "cards", type: "bool", schema: z.boolean(), default: false,
+    description: "Post the card again 24 hours before the contest ends, with a \"Last 24 hours\" ribbon.",
+  },
+  "cards.post_when": {
+    group: "cards", type: "string", schema: z.enum(["now", "best", "custom"]), default: "now",
+    description: "When automatic posts go out: right away, in the best window (8–10 pm), or at the custom time.",
+  },
+  "cards.custom_time": {
+    group: "cards", type: "string", schema: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/), default: "20:30",
+    description: "Custom posting time (Bangladesh time, HH:MM).",
+  },
+  "cards.style": {
+    group: "cards", type: "string", schema: z.enum(["auto", "maroon", "light", "big"]), default: "auto",
+    description: "Card style: Auto (Big prize from the amount below, otherwise Maroon night and Clean light in turn) or one style.",
+  },
+  "cards.big_prize_from": {
+    group: "cards", type: "int", schema: int(1), default: 20000,
+    description: "Big prize style from this prize (taka) up.",
+  },
+  "cards.caption": {
+    group: "cards", type: "string", schema: z.string().min(1).max(2000), default: DEFAULT_CAPTION,
+    description: "Facebook caption template.",
+  },
+  "cards.hashtags": {
+    group: "cards", type: "json", schema: z.array(z.string().max(60)).max(12), default: DEFAULT_HASHTAGS,
+    description: "Hashtags added to every post.",
+  },
   // ---- Pinterest auto-posting (owner, 2026-10-19; Admin › Pinterest) --------------------------------
   "pinterest.on": {
     group: "pinterest", type: "bool", schema: z.boolean(), default: false,

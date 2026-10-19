@@ -1,6 +1,8 @@
 "use client";
 
 import { recordWizardStep, saveWizardLead } from "@/lib/wizard-tracking";
+import { ShareOnFacebook } from "@/components/wizard/share-facebook";
+import { setContestShare } from "@/lib/cards/actions";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
@@ -59,6 +61,9 @@ export type WizardProps = {
   methods: PublicMethod[];
   /** Questions the owner hid or added (Admin › Onboarding, owner 2026-10-14). */
   onboarding?: OnboardingConfig;
+  /** "Share my contest on Facebook" (owner, 2026-10-19), once migration 0067 has run; the resumed draft's choice. */
+  shareSwitch?: boolean;
+  resumeShare?: boolean;
 };
 
 
@@ -102,7 +107,7 @@ export function Wizard(props: WizardProps) {
     const saved = loadState();
     let next: WizardState;
     if (props.resume) {
-      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId };
+      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId, shareFb: props.resumeShare ?? true };
     } else {
       // A new contest starts blank (owner, 2026-10-14). What this device kept is only reused while that contest isn't
       // saved yet; a saved one is a draft on the server, opened from the dashboard instead.
@@ -177,9 +182,11 @@ export function Wizard(props: WizardProps) {
       }
       const { contestId } = result;
       setState((cur) => (cur ? { ...cur, contestId } : cur));
+      // The Facebook switch is saved on its own (owner, 2026-10-19), so the draft itself stays as it was.
+      if (props.shareSwitch) void setContestShare({ contestId, on: s.shareFb !== false });
       return result;
     },
-    [t],
+    [t, props.shareSwitch],
   );
 
   const uploadPending = useCallback(
@@ -322,6 +329,7 @@ export function Wizard(props: WizardProps) {
           return;
         }
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
+        if (props.shareSwitch) void setContestShare({ contestId: res.contestId, on: state.shareFb !== false });
         setPassword("");
         router.refresh(); // header and server props now see the signed-in client
         if (props.inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
@@ -533,6 +541,11 @@ export function Wizard(props: WizardProps) {
                 </div>
               )}
               {step === S.prize && <PackageStep order={state.order} update={updateOrder} config={props.pricing} />}
+              {step === S.prize && props.shareSwitch && (
+                <div className="mt-4">
+                  <ShareOnFacebook on={state.shareFb !== false} isPrivate={state.order.upgrades.private || state.order.upgrades.nda} onChange={(on) => setState((cur) => (cur ? { ...cur, shareFb: on } : cur))} />
+                </div>
+              )}
               {/* A new client sets a password with the prize (owner, 2026-10-15); the account is made on Next. */}
               {step === S.prize && !props.user && (
                 <div className="mt-10">

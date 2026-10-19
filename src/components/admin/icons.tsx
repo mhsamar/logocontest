@@ -170,6 +170,21 @@ const PATHS = {
       <path d="M17.5 4.5l1.5 1.5 3-3" />
     </>
   ),
+  download: <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14" />,
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  // Contest cards (owner, 2026-10-19): a picture card.
+  cards: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="M20.5 15.5 15 11l-8 8.5" />
+    </>
+  ),
   // Pinterest auto-posting (owner, 2026-10-19): a "P" in a circle.
   pinterest: (
     <>
