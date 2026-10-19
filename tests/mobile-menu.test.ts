@@ -21,3 +21,13 @@ describe("phone menu", () => {
     expect(readFileSync("src/components/pro/workspace.tsx", "utf8")).toContain("proMenu(user, f)");
   });
 });
+
+describe("client workspace menu row on phones", () => {
+  it("keeps every name, a 44px tap and faded edges (owner, 2026-10-20)", () => {
+    const css = readFileSync("src/components/client/client.css", "utf8");
+    const phone = css.slice(css.indexOf("@media(max-width:700px) {\n  .cwx .ctop"), css.indexOf(".cwx .csk { display:none }"));
+    expect(phone).toContain("min-height:44px");
+    expect(phone).toContain("mask-image");
+    expect(phone).not.toMatch(/nav a span, \.cwx \.cside nav a em \{ display:none \}/);
+  });
+});

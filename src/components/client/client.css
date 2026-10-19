@@ -385,10 +385,12 @@
 @media(max-width:700px) {
   .cwx .ctop { padding:10px 12px }
   .cwx .cdd { width:220px }
-  .cwx .cside nav { flex-wrap:nowrap;overflow:hidden }
-  .cwx .cside nav a { flex:none;padding:9px 10px }
-  .cwx .cside nav a span, .cwx .cside nav a em { display:none }
-  .cwx .cside nav a.on span { display:inline }
+  /* Owner, 2026-10-20 (client pages on phones): every item keeps its name, a full 44px tap, and the edges fade so the
+     row clearly slides; the open page is scrolled into view (menu-nav.tsx). The menu button (☰) lists them all too. */
+  .cwx .cside nav { flex-wrap:nowrap;overflow:hidden;gap:6px;mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 28px),transparent 100%);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 28px),transparent 100%);padding:0 14px }
+  .cwx .cside nav a { flex:none;min-height:44px;padding:10px 12px;gap:8px;font-size:14px;white-space:nowrap;background:#F6F6F8 }
+  .cwx .cside nav a.on { background:linear-gradient(120deg,#0F3D27,#14633C 55%,#2BB673) }
+  .cwx .cside nav a:hover { transform:none }
   .cwx .csk { display:none }
   .cwx .chero { padding:24px 20px }
   .cwx .chl h1 { font-size:30px }
