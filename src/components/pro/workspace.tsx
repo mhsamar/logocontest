@@ -5,18 +5,20 @@ import { PageShell } from "@/components/ui/panel";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
-import type { MessageKey } from "@/lib/i18n/translate";
 import { unreadChats } from "@/lib/pro/chat";
 import { designerCheckUsage } from "@/lib/pro/logo-checks";
 import { getProSettings } from "@/lib/pro/settings";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getSubscription, getTrial, proKind } from "@/lib/pro/status";
 import { portfolioLimit } from "@/lib/pro/trial-rules";
+import { proMenu, type WsPage } from "@/lib/pro/menu";
 import { earlyContests, portfolioCount } from "@/lib/pro/workspace";
 import { Icon, ProAvatar, ProBadge, Slot, type ProIconName } from "./parts";
 import "./pro.css";
 
-export type WsPage = "dashboard" | "contests" | "saved" | "messages" | "insights" | "wallet" | "profile" | "settings" | "support" | "checker";
+export type { WsPage } from "@/lib/pro/menu";
+
+const ICONS: Record<WsPage, ProIconName> = { dashboard: "grid", contests: "trophy", saved: "heart", messages: "chat", insights: "chart", checker: "shield", wallet: "wallet", profile: "user", settings: "gear", support: "help" };
 
 /**
  * The Pro workspace (owner, 2026-10-13; Design/pro/pro-*.html): the left menu on every Pro designer page, with the
@@ -39,18 +41,11 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
   const onTrial = kind === "trial" && trial;
   const slotMax = portfolioLimit(onTrial ? "trial" : "pro", settings);
   const badgeLabel = onTrial ? t("pro.trial.badge") : undefined;
-  const items: { key: WsPage; href: string; icon: ProIconName; label: MessageKey; badge?: { text: string; cls: string }; show?: boolean }[] = [
-    { key: "dashboard", href: "/dashboard", icon: "grid", label: "pro.ws.dashboard" },
-    { key: "contests", href: "/dashboard/contests", icon: "trophy", label: "pro.ws.contests", badge: early.length ? { text: t("pro.ws.early", { n: early.length }), cls: "nb" } : undefined },
-    { key: "saved", href: "/dashboard/saved", icon: "heart", label: "pro.ws.saved" },
-    { key: "messages", href: "/dashboard/messages", icon: "chat", label: "pro.ws.messages", badge: unread ? { text: String(unread), cls: "nc" } : undefined, show: f.client_chat },
-    { key: "insights", href: "/dashboard/insights", icon: "chart", label: "pro.ws.insights", show: f.insights },
-    { key: "checker", href: "/dashboard/logo-checks", icon: "shield", label: "pro.ws.checker" },
-    { key: "wallet", href: "/dashboard/wallet", icon: "wallet", label: "pro.ws.wallet" },
-    { key: "profile", href: user.username ? `/designer/${user.username}` : "/dashboard/profile", icon: "user", label: "pro.ws.profile" },
-    { key: "settings", href: "/dashboard/profile", icon: "gear", label: "pro.ws.settings" },
-    { key: "support", href: "/dashboard/support", icon: "help", label: "pro.ws.support", show: f.priority_support },
-  ];
+  const badges: Partial<Record<WsPage, { text: string; cls: string }>> = {
+    contests: early.length ? { text: t("pro.ws.early", { n: early.length }), cls: "nb" } : undefined,
+    messages: unread ? { text: String(unread), cls: "nc" } : undefined,
+  };
+  const items = proMenu(user, f).map((i) => ({ ...i, icon: ICONS[i.key], badge: badges[i.key] }));
   return (
     <PageShell>
       <div className="pr pr-ws">
@@ -63,9 +58,7 @@ export async function ProWorkspace({ user, active, children }: { user: CurrentUs
             </div>
           </div>
           <nav className="pr-nav" aria-label={t("pro.ws.label")}>
-            {items
-              .filter((i) => i.show !== false)
-              .map((i) => (
+            {items.map((i) => (
                 <Link key={i.key} href={i.href} className={i.key === active ? "on" : undefined} aria-current={i.key === active ? "page" : undefined}>
                   <Icon name={i.icon} />
                   <span>{t(i.label)}</span>

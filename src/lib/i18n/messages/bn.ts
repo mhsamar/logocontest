@@ -33,6 +33,7 @@ const bn: Messages = {
     menu: "মেনু খুলুন",
     close: "মেনু বন্ধ করুন",
     account: "অ্যাকাউন্ট মেনু",
+    yourAccount: "আপনার অ্যাকাউন্ট",
     admin: "অ্যাডমিন",
     logoChecks: "আমার লোগো চেক",
     saved: "সেভ করা কনটেস্ট",
