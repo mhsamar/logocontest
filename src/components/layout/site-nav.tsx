@@ -13,9 +13,12 @@ import { visibleOffers } from "@/lib/rewards/visible";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
+import { proMenu } from "@/lib/pro/menu";
+import { getProSettings } from "@/lib/pro/settings";
 import { isPro } from "@/lib/pro/status";
 import { renderNotification } from "@/lib/notifications/render";
 import { NavLinks, Roll } from "./nav-links";
+import { DrawerAccount } from "./drawer-account";
 import { SiteNavDrawer } from "./site-nav-drawer";
 
 /** Account menu items (UI-JOURNEY §2.1). */
@@ -77,7 +80,9 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   // only logs out (the name leads back to the dashboard); on phones the menu keeps the way to the dashboard.
   const pro = user?.role === "designer" && (await isPro(user.id));
   const topItems = user ? (pro ? [] : accountItems(user, t)) : [];
-  const drawerItems = user ? (pro ? [{ href: "/dashboard", label: t("nav.dashboard") }] : accountItems(user, t)) : [];
+  // Owner, 2026-10-20: on phones a Pro designer's sliding workspace row hid Saved, Wallet and Settings, so the phone
+  // menu lists every workspace page (with names), as for everyone else.
+  const drawerItems = user ? (pro ? proMenu(user, (await getProSettings()).settings.features).map((i) => ({ href: i.href, label: t(i.label) })) : accountItems(user, t)) : [];
   const otherLocale = locale === "en" ? "bn" : "en";
   const languageForm = (className: string, roll = false) => (
     <form action={setLocale}>
@@ -130,11 +135,7 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
         )}
         <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
           {user ? (
-            drawerItems.map((item) => (
-              <Link key={item.href} href={item.href} className={`${pill} justify-center border border-line px-4`}>
-                {item.label}
-              </Link>
-            ))
+            <DrawerAccount title={t("nav.yourAccount")} items={drawerItems} />
           ) : (
             <Link href="/designers/signup" className={`${pill} justify-center border border-line px-4`}>
               {t("nav.becomeDesigner")}

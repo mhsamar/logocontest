@@ -10,7 +10,9 @@ import { formatNumber } from "@/lib/money";
 import { NavLinks } from "@/components/layout/nav-links";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { siteMenuLinks } from "@/components/layout/site-nav";
+import { DrawerAccount } from "@/components/layout/drawer-account";
 import { SiteNavDrawer } from "@/components/layout/site-nav-drawer";
+import { logout } from "@/lib/auth/actions";
 import { setLocale } from "@/lib/i18n/actions";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
@@ -80,6 +82,13 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
               <NotificationBell items={latest.map((n) => renderNotification(n, t, locale, now, "client"))} unread={unread} />
               <ClientAvatarMenu name={shell.name} business={shell.business} avatarUrl={shell.avatarUrl} news={hasNews(shell.counts)} accountLabel={t("cw.shell.account")} logoutLabel={t("nav.logout")} />
               <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
+                {/* Every workspace page with its name (owner, 2026-10-20): on phones the left menu is a row of icons. */}
+                <DrawerAccount title={t("nav.yourAccount")} items={items.map((i) => ({ href: i.href, label: t(`cw.menu.${i.key}`), badge: i.badge ? num(i.badge.n) : null }))} />
+                <form action={logout} className="mt-2">
+                  <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center rounded-[14px] border border-line px-4 font-semibold text-danger" data-drawer-logout>
+                    {t("nav.logout")}
+                  </button>
+                </form>
                 {languageForm("inline-flex min-h-11 w-full items-center justify-center rounded-[14px] bg-chip px-4 font-semibold")}
               </SiteNavDrawer>
             </div>

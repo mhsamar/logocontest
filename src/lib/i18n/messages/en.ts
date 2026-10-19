@@ -32,6 +32,7 @@ const en = {
     menu: "Open menu",
     close: "Close menu",
     account: "Account menu",
+    yourAccount: "Your account",
     admin: "Admin",
     logoChecks: "My logo checks",
     saved: "Saved contests",
