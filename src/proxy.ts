@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SHORT_LINK } from "@/lib/cards/rules";
 import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -11,6 +12,14 @@ export async function proxy(request: NextRequest) {
 
   const { response, userId, ended } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
+
+  // The short link on contest cards (owner, 2026-10-19): /c/LC-0012 opens contest number 12. Client profiles
+  // (/c/<username>) never look like this, so they are untouched.
+  const short = request.method === "GET" ? SHORT_LINK.exec(pathname) : null;
+  if (short) {
+    const { data: c } = await createAdminClient().from("contests").select("slug").eq("contest_number", Number(short[1])).maybeSingle();
+    if (c?.slug) return NextResponse.redirect(new URL(`/contest/${c.slug}`, request.url), 307);
+  }
 
   // This login was signed out (owner, 2026-10-14): a page goes to the sign-in page with the reason; anything else just
   // carries on signed out.

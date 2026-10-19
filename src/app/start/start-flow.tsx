@@ -9,6 +9,7 @@ import { can } from "@/lib/auth/policies";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { getPricingConfig } from "@/lib/contests/pricing-config";
 import { visibleList } from "@/lib/content/lists";
+import { cardsReady } from "@/lib/cards/store";
 import { contestRepository } from "@/lib/contests/services";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
@@ -27,6 +28,14 @@ import { getOnboarding } from "@/lib/onboarding/store";
  */
 
 export type StartParams = Record<string, string | string[] | undefined>;
+
+/** Whether the Facebook switch can be saved yet (migration 0067), and a resumed draft's choice. */
+async function shareChoice(contestId: string | null): Promise<{ ready: boolean; resumed: boolean }> {
+  if (!isSupabaseConfigured() || !(await cardsReady()).shareColumn) return { ready: false, resumed: true };
+  if (!contestId) return { ready: true, resumed: true };
+  const { data } = await createAdminClient().from("contests").select("share_on_facebook").eq("id", contestId).maybeSingle();
+  return { ready: true, resumed: (data?.share_on_facebook as boolean | undefined) !== false };
+}
 
 /** Designers (and anyone else who can't create contests) get this instead of a wizard. */
 export async function cannotStart(user: CurrentUser | null) {
@@ -85,6 +94,7 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
     invitesAvailable(),
     payMethods(),
   ]);
+  const share = await shareChoice(resume?.contestId ?? null);
   // A saved draft's reference images (owner, 2026-10-17: every contest has them).
   const files: ServerFile[] = resume
     ? ((await createAdminClient().from("contest_files").select("id, original_name, mime_type, type").eq("contest_id", resume.contestId).order("created_at")).data ?? []).map((f) => ({ id: f.id as string, name: f.original_name as string, type: f.mime_type as string, isCurrentLogo: false }))
@@ -93,6 +103,8 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
     <ServiceWizard
       key={service.slug}
       service={service}
+      shareSwitch={share.ready}
+      resumeShare={share.resumed}
       user={svcUser}
       pricing={pricing}
       passwordMin={s["auth.password_min_length"]}
@@ -167,6 +179,8 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
     }
   }
 
+  // "Share my contest on Facebook" (owner, 2026-10-19): shown once migration 0067 has run; a resumed draft keeps its choice.
+  const share = await shareChoice(resume?.contestId ?? null);
   // 8 steps since 2026-10-15 (owner); older links to "?step=11" (the review) open the review.
   const asked = Number(params.step);
   const step = asked > 8 ? 8 : asked;
@@ -184,6 +198,8 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       inviteFirst={inviteFirst}
       methods={methods}
       onboarding={onboarding}
+      shareSwitch={share.ready}
+      resumeShare={share.resumed}
     />
   );
 }

@@ -26,6 +26,8 @@ export type WizardState = {
   localFiles: LocalFile[];
   /** The client agreed: no nude or sexual content in this contest (owner, 2026-10-12). */
   contentOk?: boolean;
+  /** "Share my contest on Facebook" (owner, 2026-10-19): on unless the client switched it off. */
+  shareFb?: boolean;
 };
 
 const KEY = "lc-wizard";

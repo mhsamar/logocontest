@@ -1,5 +1,7 @@
 "use client";
 
+import { ShareOnFacebook } from "@/components/wizard/share-facebook";
+import { setContestShare } from "@/lib/cards/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
@@ -37,7 +39,7 @@ import { cleanAnswers, LIMITS, sizeText, type Answers, type BriefField, type Lan
 const SERVICE_UPGRADES: UpgradeKey[] = ["promoted", "highlight", "urgent", "private", "blind", "nda"];
 
 /** Reference images wait in this browser (IndexedDB) until the contest is saved, then go up (as in the logo wizard). */
-type Draft = { title: string; description: string; answers: Answers; prize: number; days: number; upgrades: Order["upgrades"]; contestId: string | null; localFiles?: LocalFile[] };
+type Draft = { title: string; description: string; answers: Answers; prize: number; days: number; upgrades: Order["upgrades"]; contestId: string | null; localFiles?: LocalFile[]; shareFb?: boolean };
 const BUCKET = "contest-files";
 const NAME_MAX = 60;
 
@@ -55,6 +57,9 @@ export type ServiceWizardProps = {
   startAtPay?: boolean;
   /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
   methods: PublicMethod[];
+  /** "Share my contest on Facebook" (owner, 2026-10-19), once migration 0067 has run; the resumed draft's choice. */
+  shareSwitch?: boolean;
+  resumeShare?: boolean;
 };
 
 /**
@@ -64,7 +69,7 @@ export type ServiceWizardProps = {
  * in the logo contest, with "Tell us about you" (real name, mobile and email, asked once), sets a password with the
  * prize, and every contest has reference images.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits }: ServiceWizardProps) {
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits, shareSwitch, resumeShare }: ServiceWizardProps) {
   // The prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
   const { t, locale, price: money } = useI18n();
   const router = useRouter();
@@ -76,7 +81,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
 
   const [d, setD] = useState<Draft>(() =>
     resume
-      ? { title: resume.title, description: resume.description, answers: resume.answers, prize: resume.order.customPrize ?? service.defaultPrize, days: resume.order.durationDays, upgrades: resume.order.upgrades, contestId: resume.contestId }
+      ? { title: resume.title, description: resume.description, answers: resume.answers, prize: resume.order.customPrize ?? service.defaultPrize, days: resume.order.durationDays, upgrades: resume.order.upgrades, contestId: resume.contestId, shareFb: resumeShare ?? true }
       : { title: "", description: "", answers: {}, prize: service.defaultPrize, days: Math.min(cfg.durationMax, Math.max(cfg.durationMin, service.defaultDays)), upgrades: noUpgrades(), contestId: null },
   );
   const [step, setStep] = useState<Step>(resume && startAtPay ? "pay" : user ? "brief" : "you");
@@ -211,6 +216,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           const res = await saveDraft({ brief, order, contestId: d.contestId, service: svc });
           if (!res.ok) return setError(t(res.error.key, res.error.params));
           setD((cur) => ({ ...cur, contestId: res.contestId }));
+          if (shareSwitch) void setContestShare({ contestId: res.contestId, on: d.shareFb !== false });
           await afterSave(res.contestId);
         });
       }
@@ -227,6 +233,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           return setError(t(res.error.key, res.error.params));
         }
         setD((cur) => ({ ...cur, contestId: res.contestId }));
+        if (shareSwitch) void setContestShare({ contestId: res.contestId, on: d.shareFb !== false });
         setPassword("");
         router.refresh();
         await afterSave(res.contestId);
@@ -402,6 +409,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                     ))}
                   </div>
                 </fieldset>
+                {shareSwitch && <ShareOnFacebook on={d.shareFb !== false} isPrivate={d.upgrades.private || d.upgrades.nda} onChange={(on) => setD({ ...d, shareFb: on })} />}
                 {/* A new client sets a password with the prize (as in the logo contest); the account is made on Next. */}
                 {!user && (
                   <Part title={t("wizard.c10.heading")} sub={t("wizard.c10.helper")}>
