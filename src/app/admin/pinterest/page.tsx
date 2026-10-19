@@ -12,7 +12,7 @@ import { formatDate, timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { disconnectPinterest } from "@/lib/pinterest/actions";
-import { boardsOf, pinterestConfigured, type Board } from "@/lib/pinterest/api";
+import { boardsOf, pinterestConfigured, pinterestKeyCheck, type Board } from "@/lib/pinterest/api";
 import { pinCandidates } from "@/lib/pinterest/job";
 import { CALLBACK_PATH, pinUrl } from "@/lib/pinterest/rules";
 import { accessToken, connectionSummary, pinLog } from "@/lib/pinterest/store";
@@ -37,6 +37,7 @@ export default async function AdminPinterestPage({ searchParams }: PageProps<"/a
   const sp = await searchParams;
   const [{ t, locale }, { tableReady, conn }, s] = await Promise.all([getI18n(), connectionSummary(), getSettings(["pinterest.on", "pinterest.rule"])]);
   const configured = pinterestConfigured();
+  const keys = pinterestKeyCheck();
   const now = new Date();
   const num = (n: number) => formatNumber(n, locale);
 
@@ -60,7 +61,12 @@ export default async function AdminPinterestPage({ searchParams }: PageProps<"/a
       <AdminHead title={t("admin.pinterest.title")} lead={t("admin.pinterest.lead")} />
 
       {sp.connected === "1" && <Alert tone="success">{t("admin.pinterest.connectedOk")}</Alert>}
-      {error && <Alert tone="danger">{t(`admin.pinterest.errors.${error}`)}</Alert>}
+      {error && (
+        <Alert tone="danger">
+          {t(`admin.pinterest.errors.${error}`)}
+          {error === "connect" && typeof sp.why === "string" && sp.why && <span className="mt-1 block font-semibold">{t("admin.pinterest.errors.why", { message: sp.why.slice(0, 200) })}</span>}
+        </Alert>
+      )}
 
       {/* What's still needed before it can work */}
       {!ready && (
@@ -99,6 +105,12 @@ export default async function AdminPinterestPage({ searchParams }: PageProps<"/a
           <p className="m-0 text-[15px] text-muted">{t("admin.pinterest.notConnected")}</p>
         )}
         <p className="m-0 rounded-xl bg-[#FFF7E8] px-4 py-3 text-[14px] text-[#7A4A00]">{t("admin.pinterest.trial")}</p>
+        {configured && (
+          <p className="m-0 text-[13.5px] text-muted" data-pinterest-keys>
+            {t("admin.pinterest.keys", { id: keys.appId, n: num(keys.secretLength) })}
+            {keys.hadSpaces && ` ${t("admin.pinterest.keysSpaces")}`}
+          </p>
+        )}
       </AdmCard>
 
       {conn && (
