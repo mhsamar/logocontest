@@ -102,6 +102,24 @@ describe("caption and card text", () => {
   });
 });
 
+describe("the card on the server", () => {
+  it("every text falls back to Hind Siliguri, so ৳ and Bangla draw on a server without Bangla fonts", async () => {
+    const { CARD_CSS } = await import("@/lib/cards/card-css");
+    expect(CARD_CSS).not.toMatch(/'Urbanist',sans-serif/);
+    expect(CARD_CSS).toContain("font-family:Urbanist,'Hind Siliguri',sans-serif");
+    const { cardPage, CARD_TEMPLATE_VERSION } = await import("@/lib/cards/template");
+    expect(CARD_TEMPLATE_VERSION).toBeGreaterThanOrEqual(2);
+    const html = cardPage({ brand: "X", kicker: "Logo design", lineBn: "", words: [], colors: [], prize: 5000, daysLeft: 2, endText: "21 Oct", code: "LC-0008", link: "logocontest.bd/c/LC-0008", last24: false }, "light", "1080x1350");
+    expect(html).toContain("family=Hind+Siliguri");
+    expect(html).toContain("family=JetBrains+Mono");
+  });
+  it("cards drawn with an older look, or missing a picture, are drawn again before posting", () => {
+    const job = readFileSync("src/lib/cards/job.ts", "utf8");
+    expect(job).toMatch(/images\.t \?\? 1\) >= CARD_TEMPLATE_VERSION/);
+    expect(readFileSync("src/lib/cards/store.ts", "utf8")).toContain("t: CARD_TEMPLATE_VERSION");
+  });
+});
+
 describe("when posts go out, and retries", () => {
   it("right away, best window (8–10 pm Dhaka) or the custom time", () => {
     expect(autoPostTime("now", "20:30", NOW)).toBeNull();

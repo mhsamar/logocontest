@@ -51,7 +51,13 @@ export function cardMarkup(d: CardData, style: CardStyle, size: CardSizeKey): st
   return `<div class="frame" style="width:${s.width}px;height:${s.height}px"><div class="pcd ${s.ratio} ${STYLE_CLASS[style]}" role="img" aria-label="${esc(`Contest post card for ${d.brand}, prize ${prize}`)}"><i class="pbg"></i>${SHAPES}<i class="pgl"></i><i class="pgr"></i><div class="pin"><div class="ptop"><span class="pbr"><img src="${style === "light" ? LOGO_ON_LIGHT : LOGO_ON_DARK}" alt="">logocontest.bd</span><span class="ptag"><i></i>New contest</span></div><div class="pmid">${ribbon}<span class="pkk">${esc(d.kicker)}</span><h3 class="pnm ${nameSize(d.brand)}">${esc(d.brand)}</h3>${d.lineBn ? `<p class="pbn">${esc(d.lineBn)}</p>` : ""}${chips}</div><div class="ppz"><span>Prize money</span><b>${prize}</b><em>Paid to the winner</em></div><div class="pmt"><span>${CLOCK}${left}</span><span>${CAL}Ends ${esc(d.endText)}</span><span class="pid">${esc(d.code)}</span></div><div class="pct"><div><b>Join the contest</b><em>${esc(d.link)}</em></div><span>${ARROW}</span></div></div></div></div>`;
 }
 
-/** A whole page for the renderer: the fonts (Latin and Bangla), the card's look and one card. */
+/**
+ * Bumped whenever the card's look changes; cards not posted yet are drawn again with the new look by the job
+ * (owner, 2026-10-20: 2 fixed the ৳ sign on the server).
+ */
+export const CARD_TEMPLATE_VERSION = 2;
+
+/** A whole page for the renderer: the fonts (Latin, Bangla and the link's typewriter font), the card's look and one card. */
 export function cardPage(d: CardData, style: CardStyle, size: CardSizeKey): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Hind+Siliguri:wght@500;600&display=swap" rel="stylesheet"><style>${CARD_CSS}</style></head><body>${cardMarkup(d, style, size)}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Hind+Siliguri:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"><style>${CARD_CSS}</style></head><body>${cardMarkup(d, style, size)}</body></html>`;
 }

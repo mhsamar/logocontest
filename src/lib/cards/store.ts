@@ -25,7 +25,7 @@ import {
   type CardStatus,
   type CardStyle,
 } from "./rules";
-import type { CardData } from "./template";
+import { CARD_TEMPLATE_VERSION, type CardData } from "./template";
 
 /** Contest cards in the database and in Storage (owner, 2026-10-19; migration 0067). */
 
@@ -122,7 +122,8 @@ export async function makeCaption(c: CardContestRow, now: Date): Promise<string>
   });
 }
 
-export type CardImages = Partial<Record<CardSizeKey, string>> & { v?: number };
+/** The four stored pictures, when they were drawn (v, for fresh links) and with which template version (t). */
+export type CardImages = Partial<Record<CardSizeKey, string>> & { v?: number; t?: number };
 
 export const publicUrl = (path: string, v?: number) => `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "")}/storage/v1/object/public/${CARDS_BUCKET}/${path}${v ? `?v=${v}` : ""}`;
 export const imageUrl = (images: CardImages, size: CardSizeKey) => (images[size] ? publicUrl(images[size]!, images.v) : null);
@@ -131,7 +132,7 @@ export const imageUrl = (images: CardImages, size: CardSizeKey) => (images[size]
 export async function drawCard(c: CardContestRow, kind: CardKind, style: CardStyle, lineBn: string | null, now: Date): Promise<CardImages> {
   const { data } = await cardFacts(c, now, lineBn, kind === "last24");
   const pngs = await renderCard(data, style);
-  const images: CardImages = { v: now.getTime() };
+  const images: CardImages = { v: now.getTime(), t: CARD_TEMPLATE_VERSION };
   for (const s of CARD_SIZES) {
     const path = `${c.id}/${kind}-${style}-${s.key}.png`;
     const { error } = await db().storage.from(CARDS_BUCKET).upload(path, pngs[s.key], { contentType: "image/png", upsert: true, cacheControl: "300" });
