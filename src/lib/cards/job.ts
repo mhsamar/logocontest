@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { FacebookError, facebookConfigured, postPhoto } from "./facebook";
 import { autoPostTime, cardEligibility, MAIN_SIZE, MAX_ATTEMPTS, pickStyle, retryDue, type CardKind, type CardStyle } from "./rules";
 import { cardsReady, CONTEST_COLUMNS, contestForCard, drawCard, imageUrl, makeCaption, updateCard, type CardContestRow, type CardRow } from "./store";
+import { CARD_TEMPLATE_VERSION } from "./template";
 
 /**
  * Contest cards in the 15-minute job (owner, 2026-10-19). New live contests get a card (one per contest: the row is
@@ -126,6 +127,26 @@ export async function runContestCards(now = new Date(), budgetMs = 40_000): Prom
         }
       } catch (e) {
         note(`card ${c.slug}`, e);
+      }
+    }
+  }
+
+  // 1b. Cards not posted yet that miss a picture (a run that stopped half-way) or were drawn with an older look get
+  // drawn again, within the same two drawings per run.
+  if (drawings < 2) {
+    const { data: stale } = await db().from("contest_cards").select("*").in("status", ["waiting", "failed"]).lt("created_at", new Date(now.getTime() - 3 * 60_000).toISOString()).order("created_at", { ascending: true }).limit(20);
+    for (const card of (stale ?? []) as CardRow[]) {
+      if (drawings >= 2 || left() < 15_000) break;
+      const fresh = (card.images.t ?? 1) >= CARD_TEMPLATE_VERSION && Boolean(card.images[MAIN_SIZE]);
+      if (fresh || (card.status === "failed" && card.attempts > 0)) continue;
+      const c = await contestForCard(card.contest_id);
+      if (!c || eligibility(c, now) !== "ok") continue;
+      try {
+        const images = await drawCard(c, card.kind, card.style, card.line_bn, now);
+        await updateCard(card.id, card.status === "failed" ? { images, status: "waiting", error: null } : { images });
+        drawings++;
+      } catch (e) {
+        note(`redraw ${c.slug}`, e);
       }
     }
   }
