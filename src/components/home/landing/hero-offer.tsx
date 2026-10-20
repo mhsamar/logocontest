@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { GiftBox } from "@/components/rewards/gift-art";
 import type { Translate } from "@/lib/i18n/translate";
 
 /**
  * The monthly prizes section under the live contests (owner, 2026-10-11; Design/rewards/home-hero-offer-slide.html). Left, for
- * business owners (smartphone, red); right, for designers (gift box, cream). Both drawings are CSS, as in the design.
+ * business owners (red, a gold gift box); right, for designers (cream, a red gift box). Both drawings are CSS. Owner,
+ * 2026-10-20: both prizes are gift boxes now (the smartphone is gone).
  * What the prizes are is never shown. Owner, 2026-10-13: each half only shows while its offer runs.
  */
 export function HeroOffer({ t, smartphone, giftBox }: { t: Translate; smartphone: boolean; giftBox: boolean }) {
@@ -30,13 +32,10 @@ export function HeroOffer({ t, smartphone, giftBox }: { t: Translate; smartphone
           </div>
         </div>
         <div className="lc-offer-art lc-bob [animation-delay:-2s]" aria-hidden>
-          <span className="relative block h-[232px] w-[124px] rotate-[8deg] rounded-[26px] bg-[#111216] shadow-[0_24px_40px_rgba(0,0,0,.35)]">
-            <span className="absolute inset-[7px] flex items-center justify-center rounded-[20px] bg-[linear-gradient(160deg,#FFE27A,#F6A93A)]">
-              <svg width="56" height="56" viewBox="0 0 24 24" fill="#111216">
-                <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z" />
-              </svg>
+          <span className="block h-[180px] w-[171px]">
+            <span className="block origin-top-left scale-90">
+              <GiftBox gold />
             </span>
-            <span className="absolute left-[38%] right-[38%] top-[13px] h-[7px] rounded-[9px] bg-[#111216]" />
           </span>
         </div>
       </section>
@@ -61,12 +60,10 @@ export function HeroOffer({ t, smartphone, giftBox }: { t: Translate; smartphone
           </div>
         </div>
         <div className="lc-offer-art lc-bob [animation-delay:-4s]" aria-hidden>
-          <span className="relative block h-[178px] w-[170px] -rotate-6 [filter:drop-shadow(0_22px_26px_rgba(92,10,12,.28))]">
-            <span className="absolute bottom-0 left-2 right-2 top-[62px] rounded-[6px_6px_14px_14px] bg-[#8B0000]" />
-            <span className="absolute left-0 right-0 top-[34px] h-9 rounded-[10px] bg-[#A30F0F]" />
-            <span className="absolute bottom-0 left-1/2 top-[34px] -ml-[13px] w-[26px] bg-[#D08A1E]" />
-            <span className="absolute left-1/2 top-0 -ml-12 h-[38px] w-[46px] rounded-[50%_50%_0_50%] border-[9px] border-[#D08A1E]" />
-            <span className="absolute left-1/2 top-0 ml-0.5 h-[38px] w-[46px] rounded-[50%_50%_50%_0] border-[9px] border-[#D08A1E]" />
+          <span className="block h-[180px] w-[171px]">
+            <span className="block origin-top-left scale-90">
+              <GiftBox />
+            </span>
           </span>
         </div>
       </section>

@@ -740,7 +740,7 @@ export const SETTINGS = {
   },
   "rewards.program_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
-    description: "Run the monthly prizes program (smartphone for clients, gift box for designers). Off hides it everywhere.",
+    description: "Run the monthly prizes program (a gift box for the top client and one for the top designer). Off hides it everywhere.",
   },
   "rewards.win_card_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
@@ -748,7 +748,7 @@ export const SETTINGS = {
   },
   "rewards.smartphone_card_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
-    description: "Send the smartphone card to the top client when the month closes.",
+    description: "Send the gift box card to the top client when the month closes.",
   },
   "rewards.gift_box_card_on": {
     group: "rewards", type: "bool", schema: z.boolean(), default: true,
@@ -772,7 +772,7 @@ export const SETTINGS = {
   },
   "home.hero_offer_slide": {
     group: "home", type: "bool", schema: z.boolean(), default: true,
-    description: "Show the monthly prizes section (smartphone and gift box) under the live contests on the home page.",
+    description: "Show the monthly prizes section (the two gift boxes) under the live contests on the home page.",
   },
   // Admin → Home hero (owner, 2026-10-11; migration 0034)
   "home.hero_slide_seconds": {

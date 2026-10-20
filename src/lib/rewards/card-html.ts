@@ -38,7 +38,7 @@ const DOTS: [number, number, number, number][] = [
   [30, 9, 1.5, 0.8],
 ];
 
-/** The two looks: red (contest win, smartphone) and gold (gift box), as in the design files. */
+/** The two looks: red (contest win, the client's gift box) and gold (the designer's gift box), as in the design files. */
 type Theme = { bg: string; ink: string; dot: string; pillBg: string; pillInk: string; ring: string; kick: string; soft: string; strong: string };
 const RED: Theme = { bg: "linear-gradient(150deg,#A30F0F,#8B0000 52%,#4A0709)", ink: "#fff", dot: "#FFE27A", pillBg: "#FFE27A", pillInk: "#111216", ring: "#FFE27A", kick: "#FFE27A", soft: "#F6DAD8", strong: "#fff" };
 const GOLD: Theme = { bg: "linear-gradient(150deg,#FFF3D6,#FFDF9C)", ink: "#111216", dot: "#D08A1E", pillBg: "#8B0000", pillInk: "#fff", ring: "#D08A1E", kick: "#8B0000", soft: "#4A3700", strong: "#111216" };
@@ -120,15 +120,16 @@ export type MonthlyCardContent = {
 
 /**
  * The monthly prize cards (owner, 2026-10-11; Design/rewards/client-smartphone-claim.html and
- * designer-gift-box-claim.html): red with a drawn phone for the top client, gold with a drawn gift box for the top
- * designer. The pictures are drawn shapes, never a real phone model (what the prize is stays a surprise).
+ * designer-gift-box-claim.html): red with a drawn gold gift box for the top client, gold with a drawn red gift box for
+ * the top designer (owner, 2026-10-20: the client's smartphone became a gift box too). Drawn shapes only: what is
+ * inside stays a surprise. ("smartphone" stays the client prize's name inside the code and the database.)
  */
 export function monthlyCardHtml(c: MonthlyCardContent): string {
   // The picture grows with the photo on the story size.
   const k = c.size === "story" ? 46 / 34 : 1;
   const u = (n: number) => `${(n * k).toFixed(2)}cqw`;
-  const phone = `<span class="art" style="padding-left:${u(9)}"><span class="ph"><span class="scr"><svg viewBox="0 0 24 24" fill="#111216"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z"/></svg></span><span class="notch"></span></span></span>`;
-  const box = `<span class="art" style="padding-left:${u(7)}"><span class="gb"><span class="body"></span><span class="lid"></span><span class="rib"></span><span class="bow l"></span><span class="bow r"></span></span></span>`;
+  const gold = c.kind === "smartphone";
+  const box = `<span class="art" style="padding-left:${u(7)}"><span class="gb${gold ? " gold" : ""}"><span class="body"></span><span class="lid"></span><span class="rib"></span><span class="bow l"></span><span class="bow r"></span></span></span>`;
   return cardHtml({
     size: c.size,
     origin: c.origin,
@@ -140,18 +141,16 @@ export function monthlyCardHtml(c: MonthlyCardContent): string {
     lineHtml: esc(c.line),
     footer: c.footer,
     photoUrl: c.photoUrl,
-    art: c.kind === "smartphone" ? phone : box,
+    art: box,
     css: `.art{margin-left:-5cqw;display:flex;align-items:center;justify-content:center}
-.ph{position:relative;display:block;width:${u(17)};height:${u(31.62)};border-radius:${u(3.57)};background:#111216;box-shadow:0 4cqw 7cqw rgba(0,0,0,.4);transform:rotate(8deg)}
-.scr{position:absolute;inset:${u(1.1)};border-radius:${u(2.72)};background:linear-gradient(160deg,#FFE27A,#F6A93A);display:flex;align-items:center;justify-content:center}.scr svg{width:45%;height:auto}
-.notch{position:absolute;left:38%;right:38%;top:${u(2.2)};height:${u(1.1)};border-radius:2cqw;background:#111216}
 .gb{position:relative;display:block;width:${u(27)};height:${u(28.27)};transform:rotate(-6deg);filter:drop-shadow(0 3cqw 4cqw rgba(92,10,12,.3))}
 .gb span{position:absolute}
 .gb .body{left:${u(1.27)};right:${u(1.27)};top:${u(9.85)};bottom:0;border-radius:${u(0.95)} ${u(0.95)} ${u(2.22)} ${u(2.22)};background:linear-gradient(180deg,#A30F0F,#8B0000)}
 .gb .lid{left:0;right:0;top:${u(5.4)};height:${u(5.72)};border-radius:${u(1.59)};background:#B3201B}
 .gb .rib{left:50%;top:${u(5.4)};bottom:0;width:${u(4.13)};margin-left:-${u(2.06)};background:#D08A1E}
 .gb .bow{left:50%;top:0;width:${u(7.31)};height:${u(6.04)};border:${u(1.43)} solid #D08A1E}
-.gb .bow.l{margin-left:-${u(7.62)};border-radius:50% 50% 0 50%}.gb .bow.r{margin-left:${u(0.32)};border-radius:50% 50% 50% 0}`,
+.gb .bow.l{margin-left:-${u(7.62)};border-radius:50% 50% 0 50%}.gb .bow.r{margin-left:${u(0.32)};border-radius:50% 50% 50% 0}
+.gb.gold{filter:drop-shadow(0 3cqw 4cqw rgba(0,0,0,.38))}.gb.gold .body{background:linear-gradient(180deg,#FFD65C,#F2A33A)}.gb.gold .lid{background:#FFE27A}.gb.gold .rib{background:#fff}.gb.gold .bow{border-color:#fff}`,
   });
 }
 

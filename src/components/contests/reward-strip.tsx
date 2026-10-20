@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GiftBox, Phone } from "@/components/home/prize-panel";
+import { GiftBox } from "@/components/rewards/gift-art";
 import { cx } from "@/lib/cx";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
@@ -20,7 +20,7 @@ const Arrow = () => (
   </svg>
 );
 
-/** Guests: "For clients · Win a smartphone" and "For designers · Win a gift box", both to the leaderboard. */
+/** Guests: "For clients · Win a gift box" and "For designers · Win a gift box", both to the leaderboard. */
 export async function OfferCards({ t }: { t: Translate }) {
   const on = await visibleOffers();
   const cards = [
@@ -48,8 +48,8 @@ export async function OfferCards({ t }: { t: Translate }) {
             {t(`browse.x.${c.key}.link`)}
             <Arrow />
           </span>
-          <span aria-hidden className={cx("absolute right-[4%] top-1/2 -translate-y-1/2", c.phone ? "origin-right scale-[.42]" : "origin-right scale-[.4]")}>
-            <span className="block animate-float-soft motion-reduce:animate-none">{c.phone ? <Phone /> : <GiftBox />}</span>
+          <span aria-hidden className={cx("absolute right-[4%] top-1/2 -translate-y-1/2", "origin-right scale-[.4]")}>
+            <span className="block animate-float-soft motion-reduce:animate-none"><GiftBox gold={c.phone} /></span>
           </span>
         </Link>
       ))}
@@ -57,7 +57,7 @@ export async function OfferCards({ t }: { t: Translate }) {
   );
 }
 
-/** Signed-in designer (gift box) or client (smartphone): their own number, the leader's, and how many more to lead. */
+/** Signed-in designer or client (both win a gift box): their own number, the leader's, and how many more to lead. */
 export async function RacePanel({ kind, userId, t, locale }: { kind: "smartphone" | "gift_box"; userId: string; t: Translate; locale: Locale }) {
   const phone = kind === "smartphone";
   const on = await visibleOffers();
@@ -108,7 +108,7 @@ export async function RacePanel({ kind, userId, t, locale }: { kind: "smartphone
         </Link>
       </div>
       <span aria-hidden className="absolute -right-2 top-1/2 origin-right -translate-y-1/2 scale-[.5] max-[640px]:hidden">
-        <span className="block animate-float-soft motion-reduce:animate-none">{phone ? <Phone /> : <GiftBox />}</span>
+        <span className="block animate-float-soft motion-reduce:animate-none"><GiftBox gold={phone} /></span>
       </span>
     </div>
   );

@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { GiftBox } from "@/components/rewards/gift-art";
 import { PageShell } from "@/components/ui/panel";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
@@ -246,15 +247,10 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
                 ))}
               </dl>
             </div>
-            {/* The phone drawing from the design (hidden on phones) */}
-            <div className="hidden w-[92px] flex-none [container-type:inline-size] sm:block" aria-hidden>
-              <span className="lc-bob relative block h-[141.36cqw] w-[76cqw] rotate-[8deg] rounded-[15.96cqw] bg-[#111216] shadow-[0_4cqw_7cqw_rgba(0,0,0,.4)]">
-                <span className="absolute inset-[1.1cqw] flex items-center justify-center rounded-[12.16cqw] bg-[linear-gradient(160deg,#FFE27A,#F6A93A)]">
-                  <svg className="h-auto w-[45%]" viewBox="0 0 24 24" fill="#111216">
-                    <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z" />
-                  </svg>
-                </span>
-                <span className="absolute left-[38%] right-[38%] top-[2.2cqw] h-[1.1cqw] rounded-[2cqw] bg-[#111216]" />
+            {/* The client's gift box (owner, 2026-10-20: it took the smartphone's place; hidden on phones) */}
+            <div className="lc-bob hidden h-[97px] w-[92px] flex-none sm:block" aria-hidden>
+              <span className="block origin-top-left scale-[.484]">
+                <GiftBox gold />
               </span>
             </div>
           </div>
