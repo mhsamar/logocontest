@@ -6,33 +6,11 @@ import { raceTally } from "@/lib/rewards/leaderboard";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { daysLeft } from "@/lib/rewards/race-rules";
 import { monthKey, monthRange } from "@/lib/rewards/rules";
-
-/** The drawn phone: never a real model (what the prize is stays a surprise). */
-export const Phone = () => (
-  <span className="relative block h-[240px] w-[128px] rotate-[8deg] rounded-[27px] bg-[#111216] shadow-[0_26px_42px_rgba(0,0,0,.4)]">
-    <span className="absolute inset-[7px] flex items-center justify-center rounded-[21px] bg-[linear-gradient(160deg,#FFE27A,#F6A93A)]">
-      <svg viewBox="0 0 24 24" className="w-[45%]" fill="#111216" aria-hidden>
-        <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z" />
-      </svg>
-    </span>
-    <span className="absolute inset-x-[38%] top-[13px] h-[7px] rounded-[9px] bg-[#111216]" />
-  </span>
-);
-
-export const GiftBox = () => (
-  <span className="relative block h-[200px] w-[190px] -rotate-6 drop-shadow-[0_24px_28px_rgba(92,10,12,.3)]">
-    <span className="absolute inset-x-[9px] bottom-0 top-[70px] rounded-[6px_6px_16px_16px] bg-[linear-gradient(180deg,#A30F0F,#8B0000)]" />
-    <span className="absolute inset-x-0 top-[38px] h-10 rounded-[11px] bg-[#B3201B]" />
-    <span className="absolute bottom-0 left-1/2 top-[38px] -ml-[15px] w-[30px] bg-[#D08A1E]" />
-    <span className="absolute left-1/2 top-0 -ml-[54px] h-[42px] w-[52px] rounded-[50%_50%_0_50%] border-[10px] border-[#D08A1E]" />
-    <span className="absolute left-1/2 top-0 ml-0.5 h-[42px] w-[52px] rounded-[50%_50%_50%_0] border-[10px] border-[#D08A1E]" />
-    <span className="absolute left-[22px] top-24 h-2 w-[34px] rounded-[9px] bg-white/30" />
-  </span>
-);
+import { GiftBox } from "@/components/rewards/gift-art";
 
 /**
  * "This month" on the client and designer homes (owner, 2026-10-11; Design/rewards/buyer-home-smartphone.html and
- * designer-home-gift-box.html): the smartphone race for a client, the gift box race for a designer. The person's own
+ * designer-home-gift-box.html): the gift box race for a client and for a designer (owner, 2026-10-20: no smartphone). The person's own
  * number, the leader's number, how many more to take the lead, days left and the rules. Real numbers (cached a few
  * minutes, like the leaderboard); hidden while that prize is switched off.
  */
@@ -112,7 +90,7 @@ export async function PrizePanel({ kind, userId }: { kind: "smartphone" | "gift_
         </div>
       </div>
       <div aria-hidden className="absolute right-1 top-2 flex-none origin-top-right scale-[.55] sm:static sm:scale-100 sm:px-3">
-        <span className="block animate-float-soft motion-reduce:animate-none">{phone ? <Phone /> : <GiftBox />}</span>
+        <span className="block animate-float-soft motion-reduce:animate-none"><GiftBox gold={phone} /></span>
       </div>
     </div>
   );

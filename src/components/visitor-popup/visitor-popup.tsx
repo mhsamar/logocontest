@@ -257,17 +257,18 @@ export function VisitorPopup({ config, signedIn }: { config: PopupConfig; signed
               </span>
               {config.smartphone && (
                 <span className="vp-ph">
-                  <svg width="74" height="140" viewBox="0 0 74 140">
+                  {/* A gold gift box (owner, 2026-10-20: it took the smartphone's place) */}
+                  <svg width="112" height="112" viewBox="0 0 96 96">
                     <defs>
-                      <linearGradient id="vp-phg" x1="0" y1="0" x2="1" y2="1">
+                      <linearGradient id="vp-phg" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0" stopColor="#FFE27A" />
                         <stop offset="1" stopColor="#F29A1A" />
                       </linearGradient>
                     </defs>
-                    <rect x="2" y="2" width="70" height="136" rx="16" fill="#111216" />
-                    <rect x="7" y="8" width="60" height="124" rx="11" fill="url(#vp-phg)" />
-                    <rect x="27" y="13" width="20" height="5" rx="2.5" fill="#111216" />
-                    <path d="M37 52l5 10 11 1.5-8 7.5 2 11-10-5.5-10 5.5 2-11-8-7.5 11-1.5z" fill="#8B0000" />
+                    <rect x="10" y="38" width="76" height="52" rx="8" fill="url(#vp-phg)" />
+                    <rect x="6" y="28" width="84" height="16" rx="6" fill="#FFE27A" />
+                    <rect x="42" y="28" width="12" height="62" fill="#FFFFFF" />
+                    <path d="M48 28c-6-14-24-16-22-4 2 7 14 6 22 4zM48 28c6-14 24-16 22-4-2 7-14 6-22 4z" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinejoin="round" />
                   </svg>
                 </span>
               )}
