@@ -17,6 +17,9 @@ export const SHOWN_STATUSES: EntryStatus[] = ["active", "winner", "forfeited"];
  */
 export const GONE_STATUSES: EntryStatus[] = ["removed", "withdrawn"];
 
+/** The hold reason of a design that waits only because every design waits for approval (owner, 2026-10-20). */
+export const APPROVE_ALL_REASON = "approve_all";
+
 /** Designs their designer may still take back, whole or picture by picture, while the contest is open. */
 export const WITHDRAWABLE: EntryStatus[] = ["active", "rejected", "held"];
 

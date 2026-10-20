@@ -6,7 +6,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { proFeatureOn } from "@/lib/pro/settings";
 import { proIdsAmong } from "@/lib/pro/status";
-import { canSeeEntry, entryScope, GONE_STATUSES, HIDING_STATUSES, seesHiddenPicture, SHOWN_STATUSES, showDesignerName, sortEntries, stillHidden, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
+import { APPROVE_ALL_REASON, canSeeEntry, entryScope, GONE_STATUSES, HIDING_STATUSES, seesHiddenPicture, SHOWN_STATUSES, showDesignerName, sortEntries, stillHidden, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
 
 /** Designs (entries) on the contest page: the grid, the viewer and their comments (UI-JOURNEY P-03, P-04). */
 
@@ -44,6 +44,8 @@ export type EntryCard = {
   hidden: boolean;
   /** This viewer may not see the picture (previews are empty): a locked card instead. */
   locked: boolean;
+  /** Waiting only because every design waits for approval (owner, 2026-10-20). */
+  heldAll: boolean;
 };
 
 export type EntryComment = {
@@ -67,6 +69,7 @@ type Row = {
   designer: { name: string; username: string | null } | { name: string; username: string | null }[] | null;
   images: { id: string; position: number; preview_path: string; label?: string | null }[];
   held_positions?: number[] | null;
+  held_reason?: string | null;
   check_id: string | null;
   file_sha256: string | null;
   is_hidden: boolean | null;
@@ -147,10 +150,11 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
     fileSha256: r.file_sha256 ?? null,
     hidden: hidden.has(r.id),
     locked: locked.has(r.id),
+    heldAll: r.status === "held" && r.held_reason === APPROVE_ALL_REASON,
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, held_positions, designer:profiles!designer_id(name, username), images:entry_images!entry_id(id, position, preview_path, label)";
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, held_positions, held_reason, designer:profiles!designer_id(name, username), images:entry_images!entry_id(id, position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {

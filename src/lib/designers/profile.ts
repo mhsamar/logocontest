@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
-import { isPublicDesign, type EntryStatus } from "@/lib/entries/rules";
+import { APPROVE_ALL_REASON, isPublicDesign, type EntryStatus } from "@/lib/entries/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getSetting } from "@/lib/settings";
@@ -52,6 +52,8 @@ type EntryRow = {
   imageCount: number;
   /** Every picture in order (owner, 2026-10-16: the dashboard shows them all); doubted = the design check's doubt. */
   pictures: { id: string; path: string; label: string | null; doubted: boolean }[];
+  /** Waiting only because every design waits for approval (owner, 2026-10-20). */
+  heldAll: boolean;
 };
 
 const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> => {
@@ -59,7 +61,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
   const { data, error } = await createAdminClient()
     .from("entries")
     .select(
-      "id, number, status, rating, is_hidden, held_positions, created_at, contest:contests!contest_id(id, slug, brand_name, status, ends_at, prize_amount, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(id, position, preview_path, label)",
+      "id, number, status, rating, is_hidden, held_positions, held_reason, created_at, contest:contests!contest_id(id, slug, brand_name, status, ends_at, prize_amount, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(id, position, preview_path, label)",
     )
     .eq("designer_id", designerId)
     .not("status", "in", "(removed,withdrawn)")
@@ -86,6 +88,7 @@ const designerEntries = cache(async (designerId: string): Promise<EntryRow[]> =>
         coverPath: images[0]?.preview_path ?? null,
         imageCount: images.length,
         pictures: images.map((i) => ({ id: i.id, path: i.preview_path, label: i.label?.trim() || null, doubted: doubtedAt.includes(i.position) })),
+        heldAll: r.status === "held" && r.held_reason === APPROVE_ALL_REASON,
       },
     ];
   });
@@ -197,6 +200,7 @@ export type MyDesign = {
   pictures: { id: string; url: string; label: string | null; doubted: boolean }[];
   /** Share buttons (owner, 2026-10-18): visitors see this design too (contest isPrivate here includes NDA). */
   shareable: boolean;
+  heldAll: boolean;
 };
 
 /** The dashboard signs at most this many pictures, newest contests first; older ones show their cover only. */
@@ -223,7 +227,7 @@ export async function designerContests(userId: string): Promise<DesignerContest[
       latestCoverUrl: list[0].coverPath ? (urls.get(list[0].coverPath) ?? null) : null,
       designs: list.flatMap((e) => {
         const shown = e.pictures.flatMap((p) => (urls.has(p.path) ? [{ id: p.id, url: urls.get(p.path)!, label: p.label, doubted: p.doubted }] : []));
-        return shown.length ? [{ id: e.id, number: e.number, status: e.status, pictures: shown, shareable: isPublic(e) }] : [];
+        return shown.length ? [{ id: e.id, number: e.number, status: e.status, pictures: shown, shareable: isPublic(e), heldAll: e.heldAll }] : [];
       }),
       open: c.status === "open" && (!c.endsAt || new Date(c.endsAt) > now),
       prize: c.prize,

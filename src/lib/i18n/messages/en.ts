@@ -2787,6 +2787,11 @@ const en = {
         off: "The design check is off: every new design is published straight away.",
         settings: "Change in Settings",
         none: "Nothing to approve. Designs the check holds show up here.",
+        // Owner, 2026-10-20: every design waits for approval (Settings › designs.approve_all).
+        all: "Every new design waits here for your OK: Approve publishes it, Remove takes it out.",
+        noneAll: "Nothing to approve. Every new design shows up here first.",
+        whyAll: "Every design waits for your OK (Settings).",
+        leadAll: "Look at the pictures, then Approve to publish it, or Remove it with a reason. You can also take off a single picture; the design keeps waiting for your OK.",
         doubted: "Doubted",
         why: "Why it was held:",
         lead: "The check thinks a picture may be nude or sexual. Remove only the doubted picture and keep the rest (when no doubted picture is left, the design is published), approve it as it is, or remove the whole design with a reason.",
@@ -5271,6 +5276,8 @@ const en = {
       title: "Design submitted",
       body: "Your design is #{n} in this contest.",
       heldTitle: "Design sent for a quick check",
+      heldAllTitle: "Design sent for approval",
+      heldAllBody: "Design #{n} goes into the contest as soon as our team approves it: every new design is checked first. You'll get a notification when it's published.",
       heldBody: "Design #{n} is waiting for a quick check by our team, because a picture may break the picture rules (no nude or sexual pictures). You'll get a notification when it's published.",
       next: "Open it on the contest page, or send another design.",
       view: "View design",
@@ -5391,6 +5398,9 @@ const en = {
       title: "Waiting for approval",
       mine: "We have a doubt about the marked picture: it may break the picture rules (no nude or sexual pictures). Our team will check it soon; until then only you can see this design. Uploaded a wrong picture? Remove it and your design goes into the contest straight away.",
       team: "The design check doubted the marked pictures. Decide in Admin › Designs › To approve.",
+      // Owner, 2026-10-20: every design waits for approval (nothing is wrong with it).
+      mineAll: "Our team checks every new design before it goes into the contest. Until then only you can see this design; you'll get a notification when it's published.",
+      teamAll: "Every new design waits for approval. Decide in Admin › Designs › To approve.",
     },
     sort: {
       label: "Sort",

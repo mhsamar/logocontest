@@ -1,4 +1,5 @@
 import "server-only";
+import { getSetting } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ENTRY_FILES_BUCKET } from "./queries";
@@ -38,7 +39,9 @@ export async function removePicture(entryId: string, imageId: string): Promise<P
 
   let published = false;
   if (entry.status === "held") {
-    const after = heldAfterRemoval({ positions: (entry.held_positions as number[] | null) ?? [], reason: (entry.held_reason as string | null) ?? "" }, rest.map((i) => i.position));
+    // While every design waits for approval (owner, 2026-10-20), taking a picture off never publishes the design.
+    const keepWaiting = await getSetting("designs.approve_all").catch(() => false);
+    const after = heldAfterRemoval({ positions: (entry.held_positions as number[] | null) ?? [], reason: (entry.held_reason as string | null) ?? "" }, rest.map((i) => i.position), keepWaiting);
     const { data } = await db
       .from("entries")
       .update({ held_positions: after.positions, held_reason: after.reason || null, ...(after.clear ? { status: "active" } : {}) })

@@ -306,6 +306,10 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(), default: 0,
     description: "Entries one designer can submit to one contest. 0 = unlimited.",
   },
+  "designs.approve_all": {
+    group: "limits", type: "bool", schema: z.boolean(), default: false,
+    description: "Every new design waits in Admin › Designs › To approve until an admin approves it (owner, 2026-10-20). The client sees it only after that. Off: only designs the design check holds wait.",
+  },
   "designs.relevance_check": {
     group: "limits", type: "bool", schema: z.boolean(), default: true,
     description: "Design check (owner, 2026-10-15; 2026-10-17: nudity only): the AI looks at each new logo design; one with a nude or sexual picture, or one it isn't sure about, waits in Admin › Designs › To approve. Every kind of mockup is allowed.",

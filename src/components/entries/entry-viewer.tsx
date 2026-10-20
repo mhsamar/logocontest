@@ -18,7 +18,11 @@ import { useI18n } from "@/lib/i18n/client";
  * Waiting for approval (owner, 2026-10-16): large, under the design's title. Its designer reads why and that removing
  * the doubted picture publishes it; the team is sent to To approve.
  */
-export function HeldNotice({ who }: { who: "mine" | "team" }) {
+/** "_all": it waits only because every design waits for approval (owner, 2026-10-20), not because of a picture. */
+export type HeldWho = "mine" | "team" | "mine_all" | "team_all";
+const HELD_TEXT = { mine: "entry.heldNotice.mine", team: "entry.heldNotice.team", mine_all: "entry.heldNotice.mineAll", team_all: "entry.heldNotice.teamAll" } as const;
+
+export function HeldNotice({ who }: { who: HeldWho }) {
   const { t } = useI18n();
   return (
     <div role="status" className="rounded-2xl border-2 border-gold bg-[#fff6d6] px-4 py-3" data-held-notice>
@@ -29,7 +33,7 @@ export function HeldNotice({ who }: { who: "mine" | "team" }) {
         </svg>
         {t("entry.heldNotice.title")}
       </p>
-      <p className="m-0 mt-1 text-[15px] leading-relaxed text-ink">{t(who === "mine" ? "entry.heldNotice.mine" : "entry.heldNotice.team")}</p>
+      <p className="m-0 mt-1 text-[15px] leading-relaxed text-ink">{t(HELD_TEXT[who])}</p>
     </div>
   );
 }
@@ -69,7 +73,7 @@ export function EntryViewer({
   start?: number;
   byline: React.ReactNode;
   /** Waiting for approval (owner, 2026-10-16): the large note for its designer ("mine") or the team. */
-  held?: "mine" | "team" | null;
+  held?: HeldWho | null;
   /** Which pictures the design check doubted, same order as `images`. */
   doubted?: boolean[];
   /** Its designer may take single pictures off while the contest is open (owner, 2026-10-16); ids in `images` order. */
