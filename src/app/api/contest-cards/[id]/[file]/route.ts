@@ -7,10 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-/** "Download PNG" (one size) and "All sizes (.zip)" for Admin › Contest cards (owner, 2026-10-19). Content · view. */
+/** "Download PNG" (one size) and "All sizes (.zip)" for Admin › Contest cards (owner, 2026-10-19). Auto share · view. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; file: string }> }) {
   const { id, file } = await params;
-  const admin = await adminUser("content.view");
+  const admin = await adminUser("autoshare.view");
   if (!admin || !UUID.test(id)) return new NextResponse("Not found", { status: 404 });
   const card = await cardById(id);
   if (!card) return new NextResponse("Not found", { status: 404 });

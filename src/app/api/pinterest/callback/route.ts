@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     res.cookies.set("lc_pin_state", "", { path: "/api/pinterest", maxAge: 0 });
     return res;
   };
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return new NextResponse("Not found", { status: 404 });
   if (!pinterestConfigured()) return back("error=keys");
   const sp = req.nextUrl.searchParams;

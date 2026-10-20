@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Admin → Services (owner, 2026-10-13): which kinds of contest clients can start, and how each one is set up.
 export default async function AdminServicesPage() {
-  await requirePermission("settings.view");
+  await requirePermission("services.view");
   const [{ t }, services, ready] = await Promise.all([getI18n(), allServices(), servicesReady()]);
   return (
     <div className="flex flex-col gap-4">

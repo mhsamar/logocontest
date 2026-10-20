@@ -96,7 +96,7 @@ describe("settings and safety", () => {
   });
   it("the login callback checks the one-time state and admin rights; keys stay on the server", () => {
     const cb = readFileSync("src/app/api/pinterest/callback/route.ts", "utf8");
-    expect(cb).toContain('adminUser("content.manage")');
+    expect(cb).toContain('adminUser("autoshare.manage")');
     expect(cb).toContain("timingSafeEqual");
     expect(cb).toContain('req.cookies.get("lc_pin_state")');
     const api = readFileSync("src/lib/pinterest/api.ts", "utf8");

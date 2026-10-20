@@ -39,7 +39,8 @@ export async function quickDeleteContest(contestId: string): Promise<Result> {
 }
 
 export async function restoreContestFromTrash(contestId: string): Promise<Result> {
-  const admin = await adminUser("contests.manage");
+  // Contests · manage (the one-click delete's Undo) or Trash · manage (owner, 2026-10-20).
+  const admin = (await adminUser("contests.manage")) ?? (await adminUser("trash.manage"));
   if (!admin || !UUID.test(contestId)) return fail("auth.errors.generic");
   const res = await restoreContest(contestId);
   if (!res.ok) return trashFail(res.error);
@@ -81,7 +82,7 @@ export async function quickDeleteUser(userId: string): Promise<Result> {
 }
 
 export async function restoreUserFromTrash(userId: string): Promise<Result> {
-  const admin = await adminUser("users.manage");
+  const admin = (await adminUser("users.manage")) ?? (await adminUser("trash.manage"));
   if (!admin || !UUID.test(userId)) return fail("auth.errors.generic");
   const res = await restoreUser(userId);
   if (!res.ok) return trashFail(res.error);

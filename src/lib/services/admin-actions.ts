@@ -28,7 +28,7 @@ async function write(s: ServiceDef, adminId: string) {
 
 /** Admin → Services (owner, 2026-10-13): switch a service on or off. At least one service always stays on. */
 export async function setServiceOn(slug: string, on: boolean): Promise<Result> {
-  const admin = await adminUser("settings.manage");
+  const admin = await adminUser("services.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!(await servicesReady())) return fail("admin.services.errors.notReady");
   const list = await allServices();
@@ -45,7 +45,7 @@ export async function setServiceOn(slug: string, on: boolean): Promise<Result> {
 
 /** Saves a service's texts, sizes, files, brief questions and defaults; a new slug adds a service (off). */
 export async function saveService(raw: unknown, isNew: boolean): Promise<Result> {
-  const admin = await adminUser("settings.manage");
+  const admin = await adminUser("services.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!(await servicesReady())) return fail("admin.services.errors.notReady");
   const list = await allServices();
@@ -73,7 +73,7 @@ export async function saveService(raw: unknown, isNew: boolean): Promise<Result>
 
 /** Moves a service one place up or down in the list (the order clients see). */
 export async function moveService(slug: string, dir: -1 | 1): Promise<Result> {
-  const admin = await adminUser("settings.manage");
+  const admin = await adminUser("services.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!(await servicesReady())) return fail("admin.services.errors.notReady");
   const list = await allServices();

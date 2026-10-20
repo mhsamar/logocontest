@@ -21,7 +21,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "admin.groups.work",
     items: [
       { href: "/admin/contests", icon: "contests", label: "admin.nav.contests", perm: "contests.view" },
-      { href: "/admin/services", icon: "services", label: "admin.nav.services", perm: "settings.view" },
+      { href: "/admin/services", icon: "services", label: "admin.nav.services", perm: "services.view" },
       { href: "/admin/pro", icon: "pro", label: "admin.nav.pro", perm: "pro.view" },
       { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view", badge: "designs" },
       { href: "/admin/reports", icon: "reports", label: "admin.nav.reports", perm: "reports.view", badge: "reports" },
@@ -56,10 +56,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/support", icon: "support", label: "admin.nav.support", perm: "support.view", badge: "support" },
       { href: "/admin/messages", icon: "send", label: "admin.nav.messages", perm: "messages.view" },
       // Auto share (owner, 2026-10-19): Pinterest and the Facebook contest cards, both Content permissions.
-      { href: "/admin/pinterest", icon: "pinterest", label: "admin.nav.pinterest", perm: "content.view" },
-      { href: "/admin/contest-cards", icon: "cards", label: "admin.nav.contestCards", perm: "content.view" },
+      { href: "/admin/pinterest", icon: "pinterest", label: "admin.nav.pinterest", perm: "autoshare.view" },
+      { href: "/admin/contest-cards", icon: "cards", label: "admin.nav.contestCards", perm: "autoshare.view" },
       // Who gets which notice, how and when (owner, 2026-10-15).
-      { href: "/admin/notifications", icon: "bell", label: "admin.nav.notifications", perm: "settings.view" },
+      { href: "/admin/notifications", icon: "bell", label: "admin.nav.notifications", perm: "notifications.view" },
     ],
   },
   {
@@ -86,7 +86,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/sign-ins", icon: "signins", label: "admin.nav.signIns", perm: "audit.view" },
       { href: "/admin/staff-activity", icon: "staff", label: "admin.nav.staffActivity", perm: "super" },
       // Deleted contests and users (owner, 2026-10-14).
-      { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "contests.view" },
+      { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "trash.view" },
     ],
   },
 ];

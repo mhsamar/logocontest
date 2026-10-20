@@ -13,7 +13,7 @@ import { cleanHashtags, cleanText, DEFAULT_CAPTION, DEFAULT_HASHTAGS, isCardStyl
 import { cardById, cardsReady, contestForCard, drawCard, makeCaption, updateCard } from "./store";
 
 /**
- * Admin › Contest cards (owner, 2026-10-19). Same admin roles as Admin › Pinterest (Content · manage). Every action is
+ * Admin › Contest cards (owner, 2026-10-19). Same admin roles as Admin › Pinterest (Auto share · manage). Every action is
  * in the audit log: post, schedule, skip, make again, caption and settings changes.
  */
 
@@ -21,7 +21,7 @@ type Result = { ok: true; message?: MessageKey; params?: Record<string, string> 
 const fail = (error: MessageKey, params?: Record<string, string>): Result => ({ ok: false, error, params });
 
 async function manager() {
-  return adminUser("content.manage");
+  return adminUser("autoshare.manage");
 }
 
 async function withCard(id: string) {
