@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
     await audit(admin.id, "pinterest_connect", "settings", "pinterest", { username: account.username ?? null });
     return back("connected=1");
   } catch (e) {
-    console.error("[pinterest] connect:", e instanceof Error ? e.message : e);
-    return back("error=connect");
+    // Pinterest's own reason goes on the page too (owner, 2026-10-19), so nobody has to dig in the logs.
+    const why = (e instanceof Error ? e.message : String(e)).slice(0, 200);
+    console.error("[pinterest] connect:", why);
+    return back(`error=connect&why=${encodeURIComponent(why)}`);
   }
 }

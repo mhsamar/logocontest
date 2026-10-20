@@ -94,6 +94,16 @@ describe("settings and safety", () => {
     vi.stubEnv("PINTEREST_APP_SECRET", "another-secret");
     expect(openToken(sealed)).toBeNull();
   });
+  it("keys pasted with spaces or line breaks still work, and the page never shows the secret", async () => {
+    vi.stubEnv("PINTEREST_APP_ID", " 1626344\n");
+    vi.stubEnv("PINTEREST_APP_SECRET", "abc123secret\n");
+    const { pinterestAppId, pinterestConfigured, pinterestKeyCheck } = await import("@/lib/pinterest/api");
+    expect(pinterestAppId()).toBe("1626344");
+    expect(pinterestConfigured()).toBe(true);
+    expect(pinterestKeyCheck()).toEqual({ appId: "1626344", secretLength: 12, hadSpaces: true });
+    expect(JSON.stringify(pinterestKeyCheck())).not.toContain("abc123secret");
+  });
+
   it("the login callback checks the one-time state and admin rights; keys stay on the server", () => {
     const cb = readFileSync("src/app/api/pinterest/callback/route.ts", "utf8");
     expect(cb).toContain('adminUser("autoshare.manage")');

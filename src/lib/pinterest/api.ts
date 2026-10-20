@@ -7,10 +7,14 @@ import { PINTEREST_API } from "./rules";
  * they never reach the browser. Tokens are stored encrypted with a key made from the app secret.
  */
 
-export const pinterestConfigured = () => Boolean(process.env.PINTEREST_APP_ID && process.env.PINTEREST_APP_SECRET);
-export const pinterestAppId = () => process.env.PINTEREST_APP_ID ?? "";
+/** The keys as pasted in Vercel, without stray spaces or line breaks around them (owner, 2026-10-19: a pasted line break broke the login). */
+export const pinterestAppId = () => (process.env.PINTEREST_APP_ID ?? "").trim();
+const appSecret = () => (process.env.PINTEREST_APP_SECRET ?? "").trim();
+export const pinterestConfigured = () => Boolean(pinterestAppId() && appSecret());
+/** For Admin › Pinterest: which App ID is in use and how long the saved secret is (never the secret itself). */
+export const pinterestKeyCheck = () => ({ appId: pinterestAppId(), secretLength: appSecret().length, hadSpaces: (process.env.PINTEREST_APP_ID ?? "") !== pinterestAppId() || (process.env.PINTEREST_APP_SECRET ?? "") !== appSecret() });
 
-const key = () => createHash("sha256").update(`logocontest-pinterest:${process.env.PINTEREST_APP_SECRET ?? ""}`).digest();
+const key = () => createHash("sha256").update(`logocontest-pinterest:${appSecret()}`).digest();
 
 /** AES-256-GCM: iv.tag.data, base64url. A new app secret makes old tokens unreadable (connect again). */
 export function sealToken(plain: string): string {
@@ -49,7 +53,10 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
     signal: AbortSignal.timeout(20_000),
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) throw new PinterestError(res.status, String(body.message ?? body.error_description ?? body.error ?? res.statusText).slice(0, 300));
+  if (!res.ok) {
+    const why = String(body.message ?? body.error_description ?? body.error ?? res.statusText);
+    throw new PinterestError(res.status, `${res.status}${body.code !== undefined ? ` (code ${String(body.code)})` : ""}: ${why}`.slice(0, 300));
+  }
   return body as T;
 }
 
@@ -57,11 +64,11 @@ export type Tokens = { access_token: string; refresh_token?: string; expires_in?
 
 /** Code → tokens, or refresh token → new tokens. The app keys go in the Basic header, never in the URL. */
 function tokenRequest(form: Record<string, string>): Promise<Tokens> {
-  const basic = Buffer.from(`${process.env.PINTEREST_APP_ID}:${process.env.PINTEREST_APP_SECRET}`).toString("base64");
+  const basic = Buffer.from(`${pinterestAppId()}:${appSecret()}`).toString("base64");
   return call<Tokens>("/oauth/token", { method: "POST", headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(form).toString() });
 }
 
-export const exchangeCode = (code: string, redirectUri: string) => tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
+export const exchangeCode = (code: string, redirectUri: string) => tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri, continuous_refresh: "true" });
 export const refreshTokens = (refreshToken: string) => tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
 
 export const accountOf = (token: string) => call<{ username?: string }>("/user_account", { token });
