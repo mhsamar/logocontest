@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Admin › Notifications (owner, 2026-10-15): who gets which notice, how (bell, push, email) and when.
 export default async function AdminNotificationsPage() {
-  await requirePermission("settings.view");
+  await requirePermission("notifications.view");
   const keys = [...new Set(NOTICE_ROWS.flatMap((r) => r.timing ?? []))] as TimingKey[];
   const [{ t }, off, tierOff, values, pro] = await Promise.all([getI18n(), channelsOff(), designerEmailsOff(), getSettings(keys), getProSettings()]);
   const timings = Object.fromEntries(keys.map((k) => [k, timingText(values[k])]));

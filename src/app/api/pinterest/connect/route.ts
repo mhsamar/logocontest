@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** "Connect Pinterest" (owner, 2026-10-19): off to Pinterest's own login and permission page, with a one-time state. */
 export async function GET() {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return new NextResponse("Not found", { status: 404 });
   if (!pinterestConfigured()) return NextResponse.redirect(new URL("/admin/pinterest?error=keys", siteUrl()));
   const state = randomBytes(24).toString("base64url");

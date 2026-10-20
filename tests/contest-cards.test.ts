@@ -293,15 +293,15 @@ describe("Facebook posting (mocked)", () => {
   });
 });
 
-describe("admin access: the same roles as Auto share (Admin › Pinterest)", () => {
-  it("page, actions and downloads check Content permissions; the menu item sits with Pinterest", () => {
-    expect(readFileSync("src/app/admin/contest-cards/page.tsx", "utf8")).toContain('requirePermission("content.view")');
+describe("admin access: Auto share roles (same as Admin › Pinterest)", () => {
+  it("page, actions and downloads check Auto share permissions; the menu item sits with Pinterest", () => {
+    expect(readFileSync("src/app/admin/contest-cards/page.tsx", "utf8")).toContain('requirePermission("autoshare.view")');
     const actions = readFileSync("src/lib/cards/actions.ts", "utf8");
-    expect(actions).toContain('adminUser("content.manage")');
+    expect(actions).toContain('adminUser("autoshare.manage")');
     for (const fn of ["postCardNow", "scheduleCard", "skipCard", "remakeCard", "saveCardCaption", "saveCardSettings", "saveCaptionTemplate", "saveHashtags"]) expect(actions).toMatch(new RegExp(`export async function ${fn}\\(`));
-    expect(readFileSync("src/app/api/contest-cards/[id]/[file]/route.ts", "utf8")).toContain('adminUser("content.view")');
+    expect(readFileSync("src/app/api/contest-cards/[id]/[file]/route.ts", "utf8")).toContain('adminUser("autoshare.view")');
     const nav = readFileSync("src/lib/admin/nav.ts", "utf8");
-    expect(nav).toMatch(/\/admin\/pinterest".*perm: "content\.view"[\s\S]*\/admin\/contest-cards".*perm: "content\.view"/);
+    expect(nav).toMatch(/\/admin\/pinterest".*perm: "autoshare\.view"[\s\S]*\/admin\/contest-cards".*perm: "autoshare\.view"/);
     // Every admin action is in the audit log.
     expect(actions.match(/await audit\(/g)?.length).toBeGreaterThanOrEqual(9);
   });

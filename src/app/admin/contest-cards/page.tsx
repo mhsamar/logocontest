@@ -47,7 +47,7 @@ function statusOf(c: CardListItem, t: Translate, locale: "en" | "bn"): { label: 
  * for new live contests, their Facebook posts, and the card settings. Same admin roles as Admin › Pinterest.
  */
 export default async function AdminContestCardsPage({ searchParams }: PageProps<"/admin/contest-cards">) {
-  await requirePermission("content.view");
+  await requirePermission("autoshare.view");
   const sp = await searchParams;
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? "all";
   const [{ t, locale }, ready, s] = await Promise.all([

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BarRow } from "@/components/admin/charts";
+import { AdminAction } from "@/components/admin/admin-action";
 import { CopyLink } from "@/components/admin/copy-link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
+import { QuickDelete } from "@/components/admin/quick-delete";
 import { AdmCard, AdmEmpty, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
 import { dhakaStart, unpaidContests, type UnpaidContest } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
 import { dashboardStats } from "@/lib/admin/dashboard";
 import { wizardLeads } from "@/lib/admin/leads";
 import { hasPermission } from "@/lib/admin/permissions";
+import { addUnpaidNote } from "@/lib/admin/unpaid-actions";
+import { UNPAID_OUTCOMES, unpaidNotes } from "@/lib/admin/unpaid-notes";
 import { cx } from "@/lib/cx";
 import { siteOrigin } from "@/lib/email";
 import { getI18n } from "@/lib/i18n/server";
@@ -35,7 +39,12 @@ const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia
 export default async function AdminUnpaidPage() {
   const me = await requirePermission("unpaid.view");
   const canMessage = hasPermission(me, "messages.manage");
+  // Call notes and Delete (owner, 2026-10-20): Unpaid contests · manage.
+  const canManage = hasPermission(me, "unpaid.manage");
   const [{ t, locale }, rows, stats, origin, leads] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), siteOrigin(), wizardLeads()]);
+  const notes = await unpaidNotes(rows.map((r) => r.id));
+  // A contest waiting for payment reached the payment page, even when the wizard didn't record the step.
+  const stepOf = (r: UnpaidContest) => r.step ?? (r.status === "pending_payment" ? AT_PAYMENT : null);
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const now = new Date();
@@ -45,12 +54,13 @@ export default async function AdminUnpaidPage() {
   const stepName = (n: number) => t(`admin.dashboard.steps.s${n}` as MessageKey);
 
   const waiting = rows.reduce((a, r) => a + r.amount, 0);
-  const atPayment = rows.filter((r) => (r.step ?? 0) >= AT_PAYMENT).length;
+  const atPayment = rows.filter((r) => (stepOf(r) ?? 0) >= AT_PAYMENT).length;
   const longest = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
   const funnelTop = Math.max(1, stats?.funnel[0]?.visits ?? 0);
 
   const advice = (r: UnpaidContest) => {
-    const step = r.step ?? 0;
+    const step = stepOf(r) ?? 0;
+    if (!step) return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.unknownBody", { brand: r.brand || "—" }) };
     if (step >= AT_PAYMENT) return { title: t("admin.unpaid.next.call"), body: t("admin.unpaid.next.callBody", { brand: r.brand || "—" }) };
     if (step === REVIEW) return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.reviewBody", { brand: r.brand || "—" }) };
     return { title: t("admin.unpaid.next.message"), body: t("admin.unpaid.next.stepBody", { brand: r.brand || "—", step: step ? stepName(step) : "—" }) };
@@ -85,8 +95,9 @@ export default async function AdminUnpaidPage() {
             </AdmCard>
           ) : (
             rows.map((r) => {
-              const step = r.step ?? 0;
+              const step = stepOf(r) ?? 0;
               const a = advice(r);
+              const said = notes?.get(r.id) ?? [];
               const payLink = `${origin}/start?draft=${r.id}&step=11`;
               return (
                 <AdmCard key={r.id} as="article" className="flex flex-col gap-5 p-5 sm:p-6">
@@ -176,7 +187,40 @@ export default async function AdminUnpaidPage() {
                       </Link>
                     )}
                     <CopyLink value={payLink} label={t("admin.unpaid.copyLink")} done={t("admin.unpaid.copied")} />
+                    {canManage && (
+                      <AdminAction
+                        label={t("admin.unpaid.notes.button")}
+                        title={t("admin.unpaid.notes.title")}
+                        body={t("admin.unpaid.notes.body")}
+                        done={t("admin.unpaid.notes.saved")}
+                        fields={[
+                          { name: "outcome", kind: "select", label: t("admin.unpaid.notes.outcomeLabel"), options: UNPAID_OUTCOMES.map((o) => ({ value: o, label: t(`admin.unpaid.notes.outcomes.${o}`) })) },
+                          { name: "note", kind: "text", label: t("admin.unpaid.notes.noteLabel"), hint: t("admin.unpaid.notes.noteHint") },
+                        ]}
+                        run={addUnpaidNote.bind(null, r.id)}
+                      />
+                    )}
+                    {canManage && <QuickDelete kind="unpaid" id={r.id} name={r.brand || "—"} label={t("admin.unpaid.notes.delete")} />}
                   </div>
+
+                  {/* What the client said, newest first (owner, 2026-10-20). */}
+                  {said.length > 0 && (
+                    <div className="flex flex-col gap-2 rounded-[12px] border border-adm-line-soft p-3.5" data-unpaid-notes>
+                      <span className="text-sm font-bold text-muted">{t("admin.unpaid.notes.history")}</span>
+                      {said[0].outcome === "mistake" && canManage && <span className="text-[14px] font-semibold text-[#A3121B]">{t("admin.unpaid.notes.mistakeHint")}</span>}
+                      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                        {said.slice(0, 4).map((n) => (
+                          <li key={n.id} className="flex flex-col gap-0.5">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <Pill tone={n.outcome === "later" || n.outcome === "help" ? "warn" : n.outcome === "mistake" || n.outcome === "not_interested" ? "bad" : "neutral"}>{t(`admin.unpaid.notes.outcomes.${n.outcome}`)}</Pill>
+                              <span className="text-[13px] text-muted">{t("admin.unpaid.notes.by", { name: n.by ?? "—", when: when(n.at) })}</span>
+                            </span>
+                            {n.note && <span className="text-[14.5px] text-ink">{n.note}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <div className="flex gap-3 rounded-[12px] bg-adm-sample-bg p-3.5 text-adm-sample">
                     <AdminIcon name="revenue" className="mt-0.5 shrink-0" />

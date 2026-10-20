@@ -32,8 +32,8 @@ const ERRORS = ["keys", "state", "denied", "connect"] as const;
  * switch automatic pinning on and choose what is pinned. Winners only is the default.
  */
 export default async function AdminPinterestPage({ searchParams }: PageProps<"/admin/pinterest">) {
-  const admin = await requirePermission("content.view");
-  const canManage = hasPermission(admin, "content.manage");
+  const admin = await requirePermission("autoshare.view");
+  const canManage = hasPermission(admin, "autoshare.manage");
   const sp = await searchParams;
   const [{ t, locale }, { tableReady, conn }, s] = await Promise.all([getI18n(), connectionSummary(), getSettings(["pinterest.on", "pinterest.rule"])]);
   const configured = pinterestConfigured();

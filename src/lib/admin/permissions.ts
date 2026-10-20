@@ -14,7 +14,8 @@ export const ADMIN_AREAS = {
   /** AI copyright checker (owner, 2026-10-10): view only. */
   copyright: { manage: false },
   users: { manage: true },
-  unpaid: { manage: false },
+  /** Owner, 2026-10-20: manage = write call notes and delete unpaid contests. */
+  unpaid: { manage: true },
   /** Owner, 2026-10-14: manage = approve manual bKash payments, payment methods, promo codes. */
   payments: { manage: true },
   withdrawals: { manage: true },
@@ -25,6 +26,14 @@ export const ADMIN_AREAS = {
   support: { manage: true },
   messages: { manage: true },
   content: { manage: true },
+  /** Owner, 2026-10-20: every feature gets its own tick box. Pinterest and the Facebook contest cards. */
+  autoshare: { manage: true },
+  /** Admin › Services (design types and their questions). */
+  services: { manage: true },
+  /** Admin › Notifications (email and push messages). */
+  notifications: { manage: true },
+  /** Admin › Trash; manage = restore (erasing for good stays with the Super admin). */
+  trash: { manage: true },
   settings: { manage: true },
   audit: { manage: false },
 } as const;
@@ -45,7 +54,7 @@ const viewOnly = (...areas: AdminArea[]): Permission[] => areas.map((a) => `${a}
 
 export const PRESETS = {
   /** Runs the site day to day: everything except fees/settings and full ID numbers. */
-  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "copyright", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit"), ...viewOnly("agreements", "settings")],
+  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "copyright", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit", "autoshare", "notifications", "trash"), ...viewOnly("agreements", "settings", "services", "pro")],
   /** Answers people: support chat, messages to one person, unpaid contests, read-only context. */
   support: [...both("support", "unpaid"), ...viewOnly("dashboard", "live", "contests", "designs", "users", "messages", "payments")],
   /** Keeps designs clean: reports, copy claims, designs and strikes. */

@@ -18,7 +18,7 @@ const TIMING_KEYS = new Set<TimingKey>(NOTICE_ROWS.flatMap((r) => r.timing ?? []
  * save needs a reason and goes to the audit log.
  */
 export async function saveNotifications(input: { off: unknown; tierOff?: unknown; timings: Record<string, string> }, reasonText: string): Promise<Result> {
-  const admin = await adminUser("settings.manage");
+  const admin = await adminUser("notifications.manage");
   if (!admin) return { ok: false, error: "auth.errors.generic" };
   const reason = cleanReason(reasonText);
   if (!reason) return { ok: false, error: "admin.errors.reason" };

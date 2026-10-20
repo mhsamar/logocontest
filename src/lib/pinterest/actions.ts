@@ -23,7 +23,7 @@ async function saveSetting(key: "pinterest.on" | "pinterest.rule", value: boolea
 }
 
 export async function setPinterestOn(on: boolean): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return fail("auth.errors.generic");
   await saveSetting("pinterest.on", on, admin.id);
   refresh();
@@ -31,7 +31,7 @@ export async function setPinterestOn(on: boolean): Promise<Result> {
 }
 
 export async function setPinterestRule(rule: string): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin || !(PINTEREST_RULES as readonly string[]).includes(rule)) return fail("auth.errors.generic");
   await saveSetting("pinterest.rule", rule as PinterestRule, admin.id);
   refresh();
@@ -40,7 +40,7 @@ export async function setPinterestRule(rule: string): Promise<Result> {
 
 /** Only one of the account's own boards can be chosen (checked with Pinterest). */
 export async function choosePinterestBoard(boardId: string): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin || !pinterestConfigured() || !/^\d{1,30}$/.test(boardId)) return fail("auth.errors.generic");
   try {
     const board = (await boardsOf(await accessToken(new Date()))).find((b) => b.id === boardId);
@@ -56,7 +56,7 @@ export async function choosePinterestBoard(boardId: string): Promise<Result> {
 
 /** "Pin now": the next design right away, even while auto-posting is off (also for Pinterest's review video). */
 export async function pinNow(): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return fail("auth.errors.generic");
   const res = await runPinterest(new Date(), { force: true, limit: 1 });
   await audit(admin.id, "pinterest_pin_now", "settings", "pinterest", { posted: res.posted, failed: res.failed });
@@ -69,7 +69,7 @@ export async function pinNow(): Promise<Result> {
 
 /** Failed pins get three fresh tries, starting now. */
 export async function retryFailedPins(): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return fail("auth.errors.generic");
   await createAdminClient().from("pinterest_pins").update({ attempts: 0, tried_at: null }).eq("status", "failed");
   await audit(admin.id, "pinterest_retry", "settings", "pinterest", {});
@@ -79,7 +79,7 @@ export async function retryFailedPins(): Promise<Result> {
 }
 
 export async function disconnectPinterest(): Promise<Result> {
-  const admin = await adminUser("content.manage");
+  const admin = await adminUser("autoshare.manage");
   if (!admin) return fail("auth.errors.generic");
   await clearConnection();
   await saveSetting("pinterest.on", false, admin.id);

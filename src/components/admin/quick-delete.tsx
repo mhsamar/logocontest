@@ -5,6 +5,7 @@ import { AdminIcon } from "@/components/admin/icons";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { quickDeleteContest, quickDeleteUser, restoreContestFromTrash, restoreUserFromTrash } from "@/lib/admin/trash-actions";
+import { deleteUnpaidContest, restoreUnpaidContest } from "@/lib/admin/unpaid-actions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 
@@ -13,19 +14,20 @@ import { useI18n } from "@/lib/i18n/client";
  * the detail page, and the toast offers Undo; the Trash page can still restore it later. The server keeps every rule
  * (no admins, not yourself, no account with live contests, files to deliver or wallet money) and says why.
  */
-export function QuickDelete({ kind, id, name, className }: { kind: "contest" | "user"; id: string; name: string; className?: string }) {
+/** "unpaid" (owner, 2026-10-20): Admin › Unpaid contests, with Unpaid contests · manage. `label` shows a word next to the icon. */
+export function QuickDelete({ kind, id, name, className, label }: { kind: "contest" | "user" | "unpaid"; id: string; name: string; className?: string; label?: string }) {
   const { t } = useI18n();
   const toast = useToast();
   const [busy, start] = useTransition();
 
   const undo = async () => {
-    const back = kind === "contest" ? await restoreContestFromTrash(id) : await restoreUserFromTrash(id);
+    const back = kind === "contest" ? await restoreContestFromTrash(id) : kind === "unpaid" ? await restoreUnpaidContest(id) : await restoreUserFromTrash(id);
     toast(back.ok ? t("admin.trash.restored") : t(back.error), back.ok ? "success" : "danger");
   };
 
   const run = () =>
     start(async () => {
-      const res = kind === "contest" ? await quickDeleteContest(id) : await quickDeleteUser(id);
+      const res = kind === "contest" ? await quickDeleteContest(id) : kind === "unpaid" ? await deleteUnpaidContest(id) : await quickDeleteUser(id);
       if (!res.ok) return void toast(t(res.error), "danger");
       toast(t("admin.trash.quick.done", { name }), "success", { label: t("admin.trash.quick.undo"), run: () => void undo() });
     });
@@ -44,11 +46,13 @@ export function QuickDelete({ kind, id, name, className }: { kind: "contest" | "
       title={t("admin.trash.quick.title")}
       data-quick-delete={kind}
       className={cx(
-        "inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-[#FDE3E1] hover:text-[#A3121B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3121B] disabled:opacity-60",
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl text-muted transition-colors hover:bg-[#FDE3E1] hover:text-[#A3121B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3121B] disabled:opacity-60",
+        label ? "h-11 border border-adm-line bg-surface px-4 text-[15px] font-bold text-[#A3121B]" : "size-10",
         className,
       )}
     >
-      {busy ? <Spinner className="size-4" /> : <AdminIcon name="trash" size={19} />}
+      {busy ? <Spinner className="size-4" /> : <AdminIcon name="trash" size={label ? 17 : 19} />}
+      {label}
     </button>
   );
 }

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Admin › Trash (owner, 2026-10-14): deleted contests and users, Restore within 90 days, then erased for good.
 export default async function AdminTrashPage() {
-  const me = await requirePermission("contests.view");
+  const me = await requirePermission("trash.view");
   const [{ t, locale }, s] = await Promise.all([getI18n(), getSettings(["trash.keep_days", "trash.unpaid_hours"])]);
   const days = s["trash.keep_days"];
   const hours = s["trash.unpaid_hours"];
@@ -67,8 +67,8 @@ export default async function AdminTrashPage() {
   return (
     <div className="flex flex-col gap-5">
       <AdminHead title={t("admin.trash.title")} lead={t("admin.trash.lead", { days: formatNumber(days, locale), hours: formatNumber(hours, locale) })} />
-      {section(list.contests, t("admin.trash.contests"), { restore: hasPermission(me, "contests.manage"), erase: me.isSuperAdmin }, (id) => restoreContestFromTrash.bind(null, id), (id) => eraseContestNow.bind(null, id))}
-      {canUsers && section(list.users, t("admin.trash.users"), { restore: hasPermission(me, "users.manage"), erase: me.isSuperAdmin }, (id) => restoreUserFromTrash.bind(null, id), (id) => eraseUserNow.bind(null, id))}
+      {section(list.contests, t("admin.trash.contests"), { restore: hasPermission(me, "contests.manage") || hasPermission(me, "trash.manage"), erase: me.isSuperAdmin }, (id) => restoreContestFromTrash.bind(null, id), (id) => eraseContestNow.bind(null, id))}
+      {canUsers && section(list.users, t("admin.trash.users"), { restore: hasPermission(me, "users.manage") || hasPermission(me, "trash.manage"), erase: me.isSuperAdmin }, (id) => restoreUserFromTrash.bind(null, id), (id) => eraseUserNow.bind(null, id))}
     </div>
   );
 }
