@@ -6,6 +6,8 @@
  * can't run the design is published (never blocked). Pure: the prompt, the answer's shape and its reading are tested.
  */
 
+import { APPROVE_ALL_REASON } from "./rules";
+
 export const ADULT_LEVELS = ["no", "unsure", "yes"] as const;
 export type AdultLevel = (typeof ADULT_LEVELS)[number];
 
@@ -74,7 +76,11 @@ export function readRelevance(raw: unknown, count: number): RelevanceAnswer | nu
  * The doubted pictures and the reason follow: the removed picture drops out and the rest are renumbered.
  * No doubted picture left means the design no longer needs a check.
  */
-export function heldAfterRemoval(held: { positions: number[]; reason: string }, remaining: number[]): { positions: number[]; reason: string; clear: boolean } {
+/**
+ * `keepWaiting` (owner, 2026-10-20): while every design waits for approval, removing a picture never publishes the
+ * design; it keeps waiting for an admin's OK.
+ */
+export function heldAfterRemoval(held: { positions: number[]; reason: string }, remaining: number[], keepWaiting = false): { positions: number[]; reason: string; clear: boolean } {
   const next = new Map(remaining.map((old, i) => [old, i]));
   const positions = held.positions.flatMap((p) => (next.has(p) ? [next.get(p)!] : [])).sort((a, b) => a - b);
   const reason = held.reason
@@ -86,5 +92,6 @@ export function heldAfterRemoval(held: { positions: number[]; reason: string }, 
       return to === undefined || !positions.includes(to) ? [] : [`Picture ${to + 1}: ${m[2]}`];
     })
     .join("; ");
+  if (keepWaiting || held.reason === APPROVE_ALL_REASON) return { positions, reason: reason || APPROVE_ALL_REASON, clear: false };
   return { positions, reason, clear: positions.length === 0 };
 }

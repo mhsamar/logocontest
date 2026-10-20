@@ -106,7 +106,7 @@ export function MyContestDesigns({ slug, brand, designs, open, className }: { sl
           onClose={() => setView(null)}
           winner={current.status === "winner"}
           byline={brand}
-          held={current.status === "held" ? "mine" : null}
+          held={current.status === "held" ? (current.heldAll ? "mine_all" : "mine") : null}
           removable={open && WITHDRAWABLE.includes(current.status) ? { entryId: current.id, pictureIds: current.pictures.map((p) => p.id) } : null}
         >
           {current.status !== "held" && <p className="m-0 mb-4 text-[15px] font-semibold text-ink">{statusText(current)}</p>}

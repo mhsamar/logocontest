@@ -31,7 +31,7 @@ import { ENTRY_FILES_BUCKET } from "./queries";
 import { linkEntryCheck, sha256Hex } from "@/lib/logo-check/entry-links";
 import { mockupLimit } from "./limits";
 import { REPORT_MAX_LINKS, REPORT_NOTE_MAX, REPORT_REASONS } from "./report-reasons";
-import { canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES, WITHDRAWABLE } from "./rules";
+import { APPROVE_ALL_REASON, canSeeEntry, canVote, canWithdraw, entryScope, GONE_STATUSES, HIDING_STATUSES, WITHDRAWABLE } from "./rules";
 import { removePicture } from "./pictures";
 import { emailChat } from "@/lib/email/events";
 import { adminIdsWith } from "@/lib/admin/recipients";
@@ -113,7 +113,7 @@ const MOCKUP_LABEL_MAX = 60;
  * D-04 step 2: checks every mockup again on the server (exactly N×N, not nude),
  * numbers the design, makes clean previews and flags near-duplicates.
  */
-export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string; held: boolean } | Fail> {
+export async function submitEntry(input: SubmitInput): Promise<{ ok: true; number: number; slug: string; held: boolean; heldAll: boolean } | Fail> {
   if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
   const user = await getCurrentUser();
   const held = suspendedError(user);
@@ -203,7 +203,14 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     declared_ip: ip,
     declared_at: now,
   };
-  const heldFields = check?.held ? { status: "held", held_at: now, held_reason: check.reason, held_positions: check.positions } : null;
+  // Every design waits for an admin's OK when Admin › Settings says so (owner, 2026-10-20); the design check's own
+  // holds (with the doubted pictures) come first.
+  const approveAll = await getSetting("designs.approve_all").catch(() => false);
+  const heldFields = check?.held
+    ? { status: "held", held_at: now, held_reason: check.reason, held_positions: check.positions }
+    : approveAll
+      ? { status: "held", held_at: now, held_reason: APPROVE_ALL_REASON, held_positions: [] }
+      : null;
   let { data: entry, error } = await db
     .from("entries")
     .insert({ ...row, ...heldFields })
@@ -259,7 +266,7 @@ export async function submitEntry(input: SubmitInput): Promise<{ ok: true; numbe
     await notify([contest.ownerId], "entry_new", { brand: contest.brand, number: entry.number }, contestHref(contest.slug, "designs", { entry: entry.number }), user!.id);
   }
   refresh();
-  return { ok: true, number: entry.number, slug: contest.slug, held: waits };
+  return { ok: true, number: entry.number, slug: contest.slug, held: waits, heldAll: waits && !check?.held };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APPROVE_ALL_REASON } from "@/lib/entries/rules";
 import { DesignLink } from "@/components/admin/design-viewer";
 import Link from "next/link";
 import { AdminAction } from "@/components/admin/admin-action";
@@ -39,7 +40,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
   const sort = SORTS.find((x) => x === sp.sort) ?? "newest";
   const contest = str(sp.contest);
   const q = str(sp.q).trim().toLowerCase().replace(/^lc-?0*/, "");
-  const [{ t, locale }, all, pairs, held, checkOn] = await Promise.all([getI18n(), recentEntries(READ), duplicatePairs(), heldEntries(), getSetting("designs.relevance_check").catch(() => true)]);
+  const [{ t, locale }, all, pairs, held, checkOn, approveAll] = await Promise.all([getI18n(), recentEntries(READ), duplicatePairs(), heldEntries(), getSetting("designs.relevance_check").catch(() => true), getSetting("designs.approve_all").catch(() => false)]);
   const num = (n: number) => formatNumber(n, locale);
   const now = new Date();
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
@@ -197,7 +198,9 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
 
       {tab === "held" ? (
         <>
-          <p className={cx("m-0 rounded-[12px] px-4 py-3 text-[14.5px] font-semibold", checkOn ? "bg-adm-good-bg text-adm-good" : "bg-adm-sample-bg text-adm-sample")}>
+          <p className={cx("m-0 rounded-[12px] px-4 py-3 text-[14.5px] font-semibold", checkOn || approveAll ? "bg-adm-good-bg text-adm-good" : "bg-adm-sample-bg text-adm-sample")} data-approve-all={approveAll ? "on" : "off"}>
+            {/* Owner, 2026-10-20: when every design waits, say so first. */}
+            {approveAll && <span className="mb-1 block">{t("admin.entries.held.all")}</span>}
             {t(checkOn ? "admin.entries.held.on" : "admin.entries.held.off")}{" "}
             <Link href="/admin/settings#limits" className="underline">
               {t("admin.entries.held.settings")}
@@ -205,7 +208,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
           </p>
           {held.length === 0 ? (
             <AdmCard className="p-5">
-              <p className="m-0 rounded-[12px] bg-adm-bg px-4 py-8 text-center text-[15px] text-muted">{t("admin.entries.held.none")}</p>
+              <p className="m-0 rounded-[12px] bg-adm-bg px-4 py-8 text-center text-[15px] text-muted">{t(approveAll ? "admin.entries.held.noneAll" : "admin.entries.held.none")}</p>
             </AdmCard>
           ) : (
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
@@ -256,12 +259,12 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
                     </ul>
                     {e.reason && (
                       <p className="m-0 rounded-[12px] bg-adm-sample-bg px-3.5 py-2.5 text-[14px] text-adm-sample">
-                        <strong>{t("admin.entries.held.why")}</strong> {e.reason}
+                        <strong>{t("admin.entries.held.why")}</strong> {e.reason === APPROVE_ALL_REASON ? t("admin.entries.held.whyAll") : e.reason.replace(/;?\s*approve_all$/, "")}
                       </p>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <p className="m-0 text-[14px] text-muted">{t("admin.entries.held.lead")}</p>
+                    <p className="m-0 text-[14px] text-muted">{t(approveAll || e.reason === APPROVE_ALL_REASON ? "admin.entries.held.leadAll" : "admin.entries.held.lead")}</p>
                     <AdminAction label={t("admin.entries.held.approve")} title={t("admin.entries.held.approveTitle", { n: num(e.number) })} body={t("admin.entries.held.approveBody")} confirm={t("admin.entries.held.approve")} done={t("admin.entries.held.approved")} tone="primary" fields={[]} run={approveEntry.bind(null, e.id)} />
                     <AdminAction label={t("admin.entries.remove")} body={t("admin.entries.removeBody")} tone="danger" fields={[{ name: "reason", kind: "reason" }, { name: "adult", kind: "select", label: t("admin.entries.adult.label"), options: [{ value: "0", label: t("admin.entries.adult.no") }, { value: "1", label: t("admin.entries.adult.yes") }] }]} run={removeEntry.bind(null, e.id)} />
                   </div>

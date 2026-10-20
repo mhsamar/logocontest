@@ -525,7 +525,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           closeHref={entriesHref}
           locked={entry.locked}
           byline={entry.designer ? t("entry.by", { name: entry.designer.username ? `@${entry.designer.username}` : entry.designer.name }) : t("entry.hiddenName")}
-          held={entry.status === "held" ? (entry.mine ? "mine" : "team") : null}
+          held={entry.status === "held" ? (entry.mine ? (entry.heldAll ? "mine_all" : "mine") : entry.heldAll ? "team_all" : "team") : null}
           doubted={entry.doubted}
           removable={entryRemovable ? { entryId: entry.id, pictureIds: entry.pictureIds } : null}
         >
