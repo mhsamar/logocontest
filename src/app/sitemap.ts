@@ -4,7 +4,7 @@ import { hasBangla, localizedPath } from "@/lib/i18n/lang-path";
 import { publishedGuides } from "@/lib/guides/queries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { searchIndexingOn, siteUrl } from "@/lib/seo";
-import { listingCounts } from "@/lib/seo/listings";
+import { safeListingCounts } from "@/lib/seo/listings";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Rebuilt at most once an hour.
@@ -46,7 +46,8 @@ const logError = (what: string, error: { message: string } | null) => {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!searchIndexingOn()) return [];
   const base = siteUrl();
-  const counts = await listingCounts();
+  // When the counts can't be read, every list is listed (better than leaving real pages out).
+  const counts = (await safeListingCounts()) ?? { contests: 1, winners: 1, designs: 1 };
   const pages: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: "daily", priority: 1 },
     { url: `${base}/logo-design-price`, lastModified: LANDING_UPDATED, changeFrequency: "monthly", priority: 0.9 },

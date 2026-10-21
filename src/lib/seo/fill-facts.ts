@@ -13,7 +13,6 @@ export type SiteFacts = {
   minDays: number;
   maxDays: number;
   judgingDays: number;
-  checkerFreeFrom: number;
   packages: { key: "economy" | "standard" | "pro" | "premium" | "elite"; prize: number; feePercent: number; total: number }[];
   /** The 3-design guarantee (owner, 2026-10-21): shown only once its claim flow is live. */
   guaranteeOn: boolean;
@@ -34,7 +33,6 @@ export function fillFacts(text: string, f: SiteFacts, locale: Locale, year: numb
     minDays: num(f.minDays),
     maxDays: num(f.maxDays),
     judgingDays: num(f.judgingDays),
-    checkerFreeFrom: taka(f.checkerFreeFrom),
     guaranteeDesigners: num(f.guaranteeDesigners),
     year: locale === "bn" ? new Intl.NumberFormat("bn-BD", { useGrouping: false }).format(year) : String(year),
   };

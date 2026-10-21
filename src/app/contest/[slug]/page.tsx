@@ -69,11 +69,11 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
   const title = contestTitle(contest, t);
   // Pro early access (owner, 2026-10-14): while only Pro designers may see a new contest, its brief stays out of
   // everyone else's page source and search engines (owner, 2026-10-21).
-  const cutoff = await earlyCutoff(user);
+  const [cutoff, clientIsTest] = await Promise.all([earlyCutoff(user), isTestAccount(contest.ownerId)]);
   const early = Boolean(cutoff && contest.startsAt && contest.startsAt > cutoff);
   // Private contests and briefs a visitor can't read still get a description (QA, 2026-10-18).
   const description = (!early && contest.brief?.description.slice(0, 160)) || t("contest.metaDescription", { title });
-  const indexable = !early && contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest: await isTestAccount(contest.ownerId) });
+  const indexable = !early && contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest });
   return {
     title,
     description,

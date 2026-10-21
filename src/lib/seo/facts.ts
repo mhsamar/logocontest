@@ -29,7 +29,6 @@ export const siteFacts = cache(async (): Promise<SiteFacts> => {
     minDays: pricing.durationMin,
     maxDays: pricing.durationMax,
     judgingDays: s["timers.judging_window_days"],
-    checkerFreeFrom: pricing.checkerFreeFrom ?? 0,
     packages: PACKAGE_KEYS.map((key) => {
       const prize = pricing.packagePrizes[key];
       return { key, prize, feePercent: feePercentFor(prize, fee), total: prizeWithFee(prize, fee) };
