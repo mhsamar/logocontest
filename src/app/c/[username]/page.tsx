@@ -8,10 +8,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { profileVisible } from "@/lib/client/rules";
 import { clientProfileData } from "@/lib/client/workspace";
 import { linkOrigin } from "@/lib/site-origin";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { currentUsernameFor } from "@/lib/profile/usernames";
 import { openGraphFor } from "@/lib/seo";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/c/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -20,7 +19,7 @@ export async function generateMetadata({ params }: PageProps<"/c/[username]">): 
   if (!profileVisible({ hidden: p.hidden, viewerId: viewer?.id, ownerId: p.id, staff: hasPermission(viewer, "users.view") })) return { title: t("cw.profile.privateTitle"), robots: { index: false } };
   const title = t("clientProfile.metaTitle", { name: p.business });
   const path = `/c/${username.toLowerCase()}`;
-  return { title, alternates: { canonical: canonicalUrl(path) }, openGraph: openGraphFor({ title, path, locale }), robots: p.hidden ? { index: false } : undefined };
+  return { title, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, path, locale }), robots: p.hidden ? { index: false } : undefined };
 }
 
 // P-12 Client public profile, premium (owner, 2026-10-16; Design/client-premium/client-profile.html). Business name,

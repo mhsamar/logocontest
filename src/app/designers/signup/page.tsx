@@ -4,13 +4,13 @@ import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { DesignerSignupFlow } from "@/components/designers/signup-flow";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
 import { getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("designerSignup.meta.title") };
+  return { title: t("designerSignup.meta.title"), alternates: await pageAlternates("/designers/signup") };
 }
 
 // D-01 Designer sign-up

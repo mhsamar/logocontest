@@ -6,12 +6,11 @@ import { PageShell } from "@/components/ui/panel";
 import { StatusChip } from "@/components/ui/status-chip";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { linkOrigin } from "@/lib/site-origin";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { openGraphFor } from "@/lib/seo";
 import { sharedDesign, type SharedDesign } from "@/lib/share/design";
 import { designPath, designPinPath } from "@/lib/share/links";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted";
 
@@ -28,7 +27,7 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]/de
   const description = name ? t("share.page.description", { n, brand, name }) : t("share.page.descriptionNoName", { n, brand });
   const path = designPath(shared.contest.slug, shared.entry.number);
   // The picture comes from this page's opengraph-image (the design itself).
-  return { title, description, openGraph: openGraphFor({ title, description, path, locale }), alternates: { canonical: canonicalUrl(path) } };
+  return { title, description, openGraph: openGraphFor({ title, description, path, locale }), alternates: await pageAlternates(path) };
 }
 
 /**

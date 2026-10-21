@@ -16,13 +16,12 @@ import { isLanguageKey, isSkillKey, isToolKey } from "@/lib/designers/portfolio-
 import { designerByUsername } from "@/lib/designers/profile";
 import { designerProfileData } from "@/lib/designers/public-profile";
 import { linkOrigin } from "@/lib/site-origin";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { proProfileExtras } from "@/lib/pro/profile";
 import { isPro } from "@/lib/pro/status";
 import { openGraphFor } from "@/lib/seo";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/designer/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -32,7 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/designer/[usernam
   const path = `/designer/${designer.username}`;
   // Without a bio the page still has a description (QA, 2026-10-18).
   const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
-  return { title, description, alternates: { canonical: canonicalUrl(path) }, openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
+  return { title, description, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
 }
 
 const TABS = ["work", "winners", "reviews", "about"] as const;

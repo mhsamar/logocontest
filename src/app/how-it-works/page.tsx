@@ -7,7 +7,7 @@ import { visibleList } from "@/lib/content/lists";
 import { pictureUrl } from "@/lib/content/pictures";
 import { cx } from "@/lib/cx";
 import { faqParams } from "@/lib/home/faq-params";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { fillLegal } from "@/lib/legal/types";
 import { formatNumber } from "@/lib/money";
@@ -42,7 +42,7 @@ const Line = ({ d, className }: { d: string; className?: string }) => (
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("howPage.meta.title"), description: t("howPage.meta.description") };
+  return { title: t("howPage.meta.title"), description: t("howPage.meta.description"), alternates: await pageAlternates("/how-it-works") };
 }
 
 // P-08 How It Works (UI-JOURNEY; redesign owner 2026-10-11, Design/how-it-works): one page, For clients | For designers

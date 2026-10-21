@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { Suspense } from "react";
 import { AvatarMenu } from "@/components/layout/avatar-menu";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { logout } from "@/lib/auth/actions";
@@ -10,13 +11,13 @@ import { isNewLink } from "@/lib/content/list-defs";
 import { visibleList } from "@/lib/content/lists";
 import { showsLink } from "@/lib/rewards/program";
 import { visibleOffers } from "@/lib/rewards/visible";
-import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { proMenu } from "@/lib/pro/menu";
 import { getProSettings } from "@/lib/pro/settings";
 import { isPro } from "@/lib/pro/status";
 import { renderNotification } from "@/lib/notifications/render";
+import { LanguageLink } from "./language-link";
 import { NavLinks, Roll } from "./nav-links";
 import { DrawerAccount } from "./drawer-account";
 import { SiteNavDrawer } from "./site-nav-drawer";
@@ -84,13 +85,13 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
   // menu lists every workspace page (with names), as for everyone else.
   const drawerItems = user ? (pro ? proMenu(user, (await getProSettings()).settings.features).map((i) => ({ href: i.href, label: t(i.label) })) : accountItems(user, t)) : [];
   const otherLocale = locale === "en" ? "bn" : "en";
+  // A link to this page in the other language (owner, 2026-10-21): search engines follow it to the Bangla pages.
   const languageForm = (className: string, roll = false) => (
-    <form action={setLocale}>
-      <input type="hidden" name="locale" value={otherLocale} />
-      <button type="submit" lang={otherLocale} aria-label={t("nav.switchToLabel")} className={className}>
+    <Suspense fallback={<span className={className}>{t("nav.switchTo")}</span>}>
+      <LanguageLink locale={otherLocale} label={t("nav.switchToLabel")} className={className}>
         {roll ? <Roll>{t("nav.switchTo")}</Roll> : t("nav.switchTo")}
-      </button>
-    </form>
+      </LanguageLink>
+    </Suspense>
   );
   const logoutForm = (
     <form action={logout}>

@@ -19,15 +19,16 @@ import { liveContests } from "@/lib/contests/browse";
 import { faqParams } from "@/lib/home/faq-params";
 import { showsLanding } from "@/lib/home/landing";
 import { homeLogos } from "@/lib/home/logos";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { earlyCutoff } from "@/lib/pro/limits";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 // The home page's own address for search engines (QA, 2026-10-18).
-export const metadata: Metadata = { alternates: { canonical: canonicalUrl("/") } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { alternates: await pageAlternates("/") };
+}
 
 // P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
 // Design/logocontest-home-design.html; Design/home-page 2026-10-13): hero, live contests, design types, AI checker,
