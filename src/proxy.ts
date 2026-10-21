@@ -3,7 +3,7 @@ import { SHORT_LINK } from "@/lib/cards/rules";
 import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
-import { langOf, LOCALE_HEADER } from "@/lib/i18n/lang-path";
+import { langOf, localizedPath, LOCALE_HEADER } from "@/lib/i18n/lang-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -40,7 +40,8 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const short = request.method === "GET" ? SHORT_LINK.exec(pathname) : null;
   if (short) {
     const { data: c } = await createAdminClient().from("contests").select("slug").eq("contest_number", Number(short[1])).maybeSingle();
-    if (c?.slug) return NextResponse.redirect(new URL(`/contest/${c.slug}`, request.url), 307);
+    // Keeps ?lang=bn, so a Bangla card's link opens the Bangla page (owner, 2026-10-21).
+    if (c?.slug) return NextResponse.redirect(new URL(localizedPath(`/contest/${c.slug}`, langOf(request.nextUrl.searchParams) ?? "en"), request.url), 307);
   }
 
   // This login was signed out (owner, 2026-10-14): a page goes to the sign-in page with the reason; anything else just

@@ -8,9 +8,10 @@ import { TrophyIcon } from "@/components/ui/trophy";
 import { linkOrigin } from "@/lib/site-origin";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
-import { openGraphFor } from "@/lib/seo";
+import { openGraphFor, robotsUnless } from "@/lib/seo";
 import { sharedDesign, type SharedDesign } from "@/lib/share/design";
 import { designPath, designPinPath } from "@/lib/share/links";
+import { isTestAccount } from "@/lib/seo/test-accounts";
 
 const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted";
 
@@ -27,7 +28,9 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]/de
   const description = name ? t("share.page.description", { n, brand, name }) : t("share.page.descriptionNoName", { n, brand });
   const path = designPath(shared.contest.slug, shared.entry.number);
   // The picture comes from this page's opengraph-image (the design itself).
-  return { title, description, openGraph: openGraphFor({ title, description, path, locale }), alternates: await pageAlternates(path) };
+  // Only winning designs are worth a search result on their own (owner, 2026-10-21); every design can still be shared.
+  const indexable = shared.entry.status === "winner" && !(await isTestAccount(shared.contest.ownerId));
+  return { title, description, openGraph: openGraphFor({ title, description, path, locale }), alternates: await pageAlternates(path), ...robotsUnless(indexable) };
 }
 
 /**

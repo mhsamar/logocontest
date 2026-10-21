@@ -8,10 +8,12 @@ import { visibleBusinessTypes } from "@/lib/content/lists";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { parseStudioQuery, studioHref } from "@/lib/studio/options";
 import { getStudioDesign, listStudio, studioHero, studioStats } from "@/lib/studio/queries";
+import { robotsUnless } from "@/lib/seo";
+import { listingCounts } from "@/lib/seo/listings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
-  return { title: t("studio.metaTitle"), description: t("studio.metaDescription"), alternates: await pageAlternates("/design-studio") };
+  const [{ t }, counts] = await Promise.all([getI18n(), listingCounts()]);
+  return { title: t("studio.metaTitle"), description: t("studio.metaDescription"), alternates: await pageAlternates("/design-studio"), ...robotsUnless(counts.designs > 0) };
 }
 
 /**

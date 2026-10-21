@@ -13,6 +13,7 @@ import { fillLegal } from "@/lib/legal/types";
 import { formatNumber } from "@/lib/money";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { getSettings } from "@/lib/settings";
+import { openGraphFor } from "@/lib/seo";
 
 type StepFaq = { q: string; a: string };
 
@@ -41,9 +42,13 @@ const Line = ({ d, className }: { d: string; className?: string }) => (
 );
 
 export async function generateMetadata({ searchParams }: PageProps<"/how-it-works">): Promise<Metadata> {
-  const [{ t }, sp] = await Promise.all([getI18n(), searchParams]);
+  const [{ t, locale }, sp] = await Promise.all([getI18n(), searchParams]);
   // The designers' side is its own page for search engines (it is in the sitemap too).
-  return { title: t("howPage.meta.title"), description: t("howPage.meta.description"), alternates: await pageAlternates(sp.for === "designers" ? "/how-it-works?for=designers" : "/how-it-works") };
+  const designers = sp.for === "designers";
+  const title = t(designers ? "howPage.meta.designersTitle" : "howPage.meta.title");
+  const description = t(designers ? "howPage.meta.designersDescription" : "howPage.meta.description");
+  const path = designers ? "/how-it-works?for=designers" : "/how-it-works";
+  return { title: { absolute: title }, description, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, description, path, locale }) };
 }
 
 // P-08 How It Works (UI-JOURNEY; redesign owner 2026-10-11, Design/how-it-works): one page, For clients | For designers

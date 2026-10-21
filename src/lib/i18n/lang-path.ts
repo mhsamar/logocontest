@@ -26,6 +26,18 @@ export function localizedPath(path: string, locale: Locale): string {
   return `${base || "/"}${q ? `?${q}` : ""}`;
 }
 
+/**
+ * Whether people's own text is written in Bangla (owner, 2026-10-21): at least about 30% of its letters are Bengali
+ * script. A contest brief in English makes the Bangla address of its page mostly the same text, so that page is only
+ * offered to search engines in English.
+ */
+export function hasBangla(text: string | null | undefined): boolean {
+  const letters = (text ?? "").match(/\p{L}/gu) ?? [];
+  if (letters.length < 20) return false;
+  const bangla = letters.filter((ch) => /[\u0980-\u09FF]/.test(ch)).length;
+  return bangla / letters.length >= 0.3;
+}
+
 /** A language switch link: the same page with ?lang= set either way, so the choice sticks. */
 export function switchHref(pathname: string, search: string, locale: Locale): string {
   const params = new URLSearchParams(search);

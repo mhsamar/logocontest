@@ -19,7 +19,7 @@ import { isMonthKey, monthKey, monthRange } from "@/lib/rewards/rules";
 export async function generateMetadata(): Promise<Metadata> {
   const [{ t }, offers] = await Promise.all([getI18n(), visibleOffers()]);
   if (!offers.program) return { title: t("leaderboard.soon.title"), robots: { index: false } };
-  return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription"), alternates: banglaOnlyAlternates("/leaderboard") };
+  return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription"), alternates: banglaOnlyAlternates("/leaderboard"), robots: { index: false, follow: true } };
 }
 
 /** Owner, 2026-10-13: while the monthly prizes program is off, the leaderboard says it is coming soon. */

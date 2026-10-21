@@ -2,7 +2,7 @@ import { canonicalUrl } from "@/lib/site-hosts";
 import type { Locale } from "./config";
 import { localizedPath } from "./lang-path";
 
-export { LANG_PARAM, LOCALE_HEADER, langOf, localizedPath, switchHref } from "./lang-path";
+export { hasBangla, LANG_PARAM, LOCALE_HEADER, langOf, localizedPath, switchHref } from "./lang-path";
 
 /**
  * Canonical and language versions for a public page (hreflang; owner, 2026-10-21): this page's own address in its
@@ -13,6 +13,12 @@ export function seoAlternates(path: string, locale: Locale) {
     canonical: canonicalUrl(localizedPath(path, locale)),
     languages: { en: canonicalUrl(localizedPath(path, "en")), bn: canonicalUrl(localizedPath(path, "bn")), "x-default": canonicalUrl(localizedPath(path, "en")) },
   };
+}
+
+/** A page whose own text is English only (a contest brief written in English): both addresses point to the English one. */
+export function englishOnlyAlternates(path: string) {
+  const en = canonicalUrl(localizedPath(path, "en"));
+  return { canonical: en, languages: { en, "x-default": en } };
 }
 
 /**

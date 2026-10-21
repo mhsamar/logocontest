@@ -10,7 +10,7 @@ import { getOnboarding } from "@/lib/onboarding/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("designerSignup.meta.title"), alternates: await pageAlternates("/designers/signup") };
+  return { title: { absolute: t("designerSignup.meta.title") }, description: t("designerSignup.meta.description"), alternates: await pageAlternates("/designers/signup") };
 }
 
 // D-01 Designer sign-up

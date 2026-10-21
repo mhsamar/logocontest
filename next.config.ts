@@ -15,7 +15,16 @@ const SECURITY_HEADERS = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
+/**
+ * Bots that get each page's title, description and links in the <head> at once instead of streamed later (owner,
+ * 2026-10-21): Next.js's own list (copied from next/dist/shared/lib/router/utils/html-bots.js, Next 16) plus the AI
+ * search and answer bots, so ChatGPT, Claude, Perplexity and the others read the same metadata as Google.
+ */
+const HTML_LIMITED_BOTS =
+  /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|CCBot|TelegramBot|Pinterestbot/i;
+
 const nextConfig: NextConfig = {
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },

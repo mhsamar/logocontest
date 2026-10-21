@@ -14,9 +14,17 @@ export function searchIndexingOn(): boolean {
   return process.env.SEO_NOINDEX !== "true";
 }
 
-/** Contests search engines may list: public statuses only, never private or NDA ones. */
-export function contestIndexable(c: { status: string; isPrivate: boolean; isNda: boolean }): boolean {
-  return ["open", "judging", "winner_selected", "handover", "completed", "no_result"].includes(c.status) && !c.isPrivate && !c.isNda;
+/** Contests search engines may list: public statuses only, never private or NDA ones, nor a test client's. */
+export function contestIndexable(c: { status: string; isPrivate: boolean; isNda: boolean; clientIsTest?: boolean }): boolean {
+  return ["open", "judging", "winner_selected", "handover", "completed", "no_result"].includes(c.status) && !c.isPrivate && !c.isNda && !c.clientIsTest;
+}
+
+/**
+ * "Keep this page out of search engines", to spread into a page's metadata (owner, 2026-10-21). An indexable page adds
+ * nothing, so the site-wide setting from the layout (SEO_NOINDEX) is never replaced by an empty value.
+ */
+export function robotsUnless(indexable: boolean): { robots?: { index: false; follow: true } } {
+  return indexable ? {} : { robots: { index: false, follow: true } };
 }
 
 /** Paths kept out of search engines (robots.txt). */

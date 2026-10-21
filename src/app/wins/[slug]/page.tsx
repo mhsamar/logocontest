@@ -24,6 +24,8 @@ export async function generateMetadata({ params }: PageProps<"/wins/[slug]">): P
     description: t("winCard.public.description"),
     openGraph: { title, description: t("winCard.public.description"), images: [{ url: image, width: 1080, height: 1080 }] },
     twitter: { card: "summary_large_image", title, images: [image] },
+    // A share card: for Facebook and WhatsApp previews, not a search result (owner, 2026-10-21).
+    robots: { index: false, follow: true },
   };
 }
 

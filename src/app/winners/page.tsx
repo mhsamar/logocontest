@@ -10,12 +10,13 @@ import { cx } from "@/lib/cx";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { DesignTile } from "@/components/rewards/design-tile";
 import { winningDesigns } from "@/lib/rewards/queries";
-import { openGraphFor } from "@/lib/seo";
+import { openGraphFor, robotsUnless } from "@/lib/seo";
+import { listingCounts } from "@/lib/seo/listings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t, locale } = await getI18n();
+  const [{ t, locale }, counts] = await Promise.all([getI18n(), listingCounts()]);
   const title = t("winners.metaTitle");
-  return { title, description: t("winners.metaDescription"), alternates: await pageAlternates("/winners"), openGraph: openGraphFor({ title, description: t("winners.metaDescription"), path: "/winners", locale }) };
+  return { title, description: t("winners.metaDescription"), alternates: await pageAlternates("/winners"), openGraph: openGraphFor({ title, description: t("winners.metaDescription"), path: "/winners", locale }), ...robotsUnless(counts.winners > 0) };
 }
 
 // P-05 Winners gallery (UI-JOURNEY): winning logos in a masonry grid, with business-type chips.
