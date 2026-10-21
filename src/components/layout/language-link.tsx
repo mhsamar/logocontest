@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n/config";
-import { switchHref } from "@/lib/i18n/url";
+import { switchHref } from "@/lib/i18n/lang-path";
 
 /**
  * A language switch (owner, 2026-10-21): a plain link to this page with ?lang=, so search engines can follow it to

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { getSettings } from "@/lib/settings";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALE_HEADER } from "@/lib/i18n/lang-path";
 import { BDT, CURRENCY_COOKIE, currencyFor, type Currency } from "./rules";
 
 /**
@@ -12,7 +13,8 @@ import { BDT, CURRENCY_COOKIE, currencyFor, type Currency } from "./rules";
  */
 export const getCurrency = cache(async (): Promise<Currency> => {
   const [jar, h] = await Promise.all([cookies(), headers()]);
-  const lang = jar.get(LOCALE_COOKIE)?.value;
+  // The page's ?lang= first (owner, 2026-10-21), as getLocale does: a Bangla address always shows taka.
+  const lang = h.get(LOCALE_HEADER) ?? jar.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(lang) ? lang : DEFAULT_LOCALE;
   const code = currencyFor({ locale, chosen: jar.get(CURRENCY_COOKIE)?.value, country: h.get("x-vercel-ip-country") });
   if (code === "BDT") return BDT;

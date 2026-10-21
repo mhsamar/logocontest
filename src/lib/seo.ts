@@ -1,5 +1,7 @@
 /** SEO basics (BLUEPRINT §15.1). */
 
+import { localizedPath } from "./i18n/lang-path";
+
 const DEFAULT_SITE_URL = "https://logocontest.bd";
 
 /** The public origin, without a trailing slash: SITE_URL, or the live domain. */
@@ -21,14 +23,17 @@ export function contestIndexable(c: { status: string; isPrivate: boolean; isNda:
 export const PRIVATE_PATHS = ["/dashboard", "/admin", "/api", "/dev", "/auth", "/notifications", "/support", "/start/result", "/verify-email", "/reset-password", "/forgot-password", "/styleguide"];
 
 /** Open Graph for one page. A page that sets openGraph replaces the layout's, so this keeps the shared fields. */
-export function openGraphFor(o: { title: string; description?: string; path: string; locale: "en" | "bn"; images?: string[] }) {
+export function openGraphFor(o: { title: string; description?: string; path?: string; locale: "en" | "bn"; images?: string[] }) {
   return {
     type: "website" as const,
     siteName: "logocontest.bd",
     locale: o.locale === "bn" ? "bn_BD" : "en_US",
+    alternateLocale: o.locale === "bn" ? "en_US" : "bn_BD",
     title: o.title,
     description: o.description,
-    url: o.path,
+    // The page's own address in its language (owner, 2026-10-21); without a path (the site-wide default) there is
+    // none, so a shared page is never described as the home page.
+    ...(o.path ? { url: localizedPath(o.path, o.locale) } : {}),
     ...(o.images ? { images: o.images } : {}),
   };
 }

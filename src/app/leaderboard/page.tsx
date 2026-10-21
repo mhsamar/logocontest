@@ -7,7 +7,8 @@ import { PageShell } from "@/components/ui/panel";
 import { cx } from "@/lib/cx";
 import { formatDate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";
-import { getI18n, pageAlternates } from "@/lib/i18n/server";
+import { getI18n } from "@/lib/i18n/server";
+import { banglaOnlyAlternates } from "@/lib/i18n/url";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { pastMonthWinners, publicRace, raceMonths, type PastWinners, type PublicPerson } from "@/lib/rewards/leaderboard";
@@ -18,7 +19,7 @@ import { isMonthKey, monthKey, monthRange } from "@/lib/rewards/rules";
 export async function generateMetadata(): Promise<Metadata> {
   const [{ t }, offers] = await Promise.all([getI18n(), visibleOffers()]);
   if (!offers.program) return { title: t("leaderboard.soon.title"), robots: { index: false } };
-  return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription"), alternates: await pageAlternates("/leaderboard") };
+  return { title: t("leaderboard.metaTitle"), description: t("leaderboard.metaDescription"), alternates: banglaOnlyAlternates("/leaderboard") };
 }
 
 /** Owner, 2026-10-13: while the monthly prizes program is off, the leaderboard says it is coming soon. */

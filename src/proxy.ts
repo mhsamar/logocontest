@@ -3,7 +3,7 @@ import { SHORT_LINK } from "@/lib/cards/rules";
 import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
-import { langOf, LOCALE_HEADER } from "@/lib/i18n/url";
+import { langOf, LOCALE_HEADER } from "@/lib/i18n/lang-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateSession } from "@/lib/supabase/proxy";
 
