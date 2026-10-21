@@ -8,9 +8,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { profileVisible } from "@/lib/client/rules";
 import { clientProfileData } from "@/lib/client/workspace";
 import { linkOrigin } from "@/lib/site-origin";
-import { getI18n, pageAlternates } from "@/lib/i18n/server";
+import { getI18n, getLocale, pageAlternates } from "@/lib/i18n/server";
 import { currentUsernameFor } from "@/lib/profile/usernames";
 import { openGraphFor } from "@/lib/seo";
+import { localizedPath } from "@/lib/i18n/lang-path";
 
 export async function generateMetadata({ params }: PageProps<"/c/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -31,7 +32,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   if (!p) {
     // An old username: on to the new one (owner, 2026-10-15).
     const moved = await currentUsernameFor(username);
-    if (moved) permanentRedirect(`/c/${moved}`);
+    if (moved) permanentRedirect(localizedPath(`/c/${moved}`, await getLocale())); // keeps ?lang=bn (owner, 2026-10-21)
     notFound();
   }
   const owner = viewer?.id === p.id;

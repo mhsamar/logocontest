@@ -49,15 +49,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/help`, changeFrequency: "monthly", priority: 0.5 },
     ...LEGAL_SLUGS.map((slug) => ({ url: `${base}/legal/${slug}`, changeFrequency: "yearly" as const, priority: 0.3 })),
   ];
-  // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide.
+  // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide. A guide without its
+  // Bangla text yet only has its English address (owner, 2026-10-21).
   const guides = await publishedGuides();
+  const englishOnly: MetadataRoute.Sitemap = [];
   if (guides.length) {
     pages.push({ url: `${base}/guides`, lastModified: new Date(guides[0].published_at), changeFrequency: "weekly", priority: 0.6 });
-    for (const g of guides) pages.push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
+    for (const g of guides) (g.bn_ready ? pages : englishOnly).push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
   }
   // The leaderboard is for Bangladesh only: just its Bangla address (search engines mostly crawl from abroad).
   const leaderboard: MetadataRoute.Sitemap = (await offersOn()).program ? [{ url: `${base}/leaderboard?lang=bn`, lastModified: now, changeFrequency: "daily", priority: 0.5, alternates: { languages: { bn: `${base}/leaderboard?lang=bn` } } }] : [];
-  if (!isSupabaseConfigured()) return [...bothLanguages(pages), ...leaderboard];
+  if (!isSupabaseConfigured()) return [...bothLanguages(pages), ...englishOnly, ...leaderboard];
 
   const db = createAdminClient();
   const [contests, entries] = await Promise.all([
@@ -88,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ? await db.from("profiles").select("id, username").in("id", [...latest.keys()]).eq("role", "designer").eq("status", "active").eq("is_test", false).not("username", "is", null)
     : { data: [] };
 
-  return [...leaderboard, ...bothLanguages([
+  return [...leaderboard, ...englishOnly, ...bothLanguages([
     ...pages,
     ...(contests.data ?? []).map((c) => ({
       url: `${base}/contest/${c.slug}`,

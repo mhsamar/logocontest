@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
 import { AdminBar } from "@/components/layout/admin-bar";
 import { BackupBar } from "@/components/layout/backup-bar";
+import { LangCookieSync } from "@/components/layout/lang-cookie-sync";
 import { SuspendedBar } from "@/components/layout/suspended-bar";
 import { MotionFx } from "@/components/layout/motion-fx";
 import { PointerFx } from "@/components/layout/pointer-fx";
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </SiteChrome>
             <SiteChrome>
               <VisitTracker />
+              <LangCookieSync />
               <SupportSlot />
               <VisitorPopupSlot signedIn={Boolean(user)} />
               <FloatingProCardSlot />
