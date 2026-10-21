@@ -7,6 +7,8 @@ export type EmailMessage = {
   replyTo?: string;
   /** Extra headers, e.g. List-Unsubscribe for one-click unsubscribe in Gmail. */
   headers?: Record<string, string>;
+  /** Another sender than EMAIL_FROM (the .bd watch's alerts come from the backup domain, owner 2026-10-21). */
+  from?: string;
 };
 
 /** What the provider answered: its id for the message, kept in the email log. */

@@ -11,8 +11,8 @@ export class ResendEmailSender implements EmailSender {
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
-  async send({ to, subject, text, html, replyTo, headers }: EmailMessage): Promise<EmailReceipt> {
-    const body: Record<string, unknown> = { from: this.from, to: [to], subject, text };
+  async send({ to, subject, text, html, replyTo, headers, from }: EmailMessage): Promise<EmailReceipt> {
+    const body: Record<string, unknown> = { from: from || this.from, to: [to], subject, text };
     if (html) body.html = html;
     if (replyTo) body.reply_to = replyTo;
     if (headers && Object.keys(headers).length) body.headers = headers;

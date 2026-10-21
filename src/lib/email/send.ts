@@ -33,6 +33,8 @@ export type SendInput = {
   security?: boolean;
   /** Its row in Admin › Notifications, where the owner can turn its email off (owner, 2026-10-15). */
   notice?: string;
+  /** Another sender than EMAIL_FROM (owner, 2026-10-21: the .bd watch's alerts). */
+  from?: string;
 };
 
 /** The Admin › Notifications row of emails that belong to one row only. */
@@ -171,7 +173,7 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
     for (;;) {
       attempts++;
       try {
-        const receipt = await sender.send({ to: p.email, subject: mail.subject, text: mail.text, html: mail.html, replyTo: REPLY_TO, headers });
+        const receipt = await sender.send({ to: p.email, subject: mail.subject, text: mail.text, html: mail.html, replyTo: REPLY_TO, headers, from: input.from });
         if (isSupabaseConfigured()) await log({ user_id: userId, template: key, ref, security, status: "sent", provider_id: receipt.id, attempts });
         return "sent";
       } catch (e) {

@@ -405,6 +405,7 @@ export async function emailNotification(input: {
   greets?: boolean;
   /** Its row in Admin › Notifications. */
   notice?: string;
+  from?: string;
 }): Promise<SendStatus> {
   const origin = await emailOrigin().catch(() => "");
   // The first link to this site in the text becomes the button when none is given.
@@ -416,6 +417,7 @@ export async function emailNotification(input: {
     security: input.security,
     ref: input.ref,
     notice: input.notice,
+    from: input.from,
     data: {
       title: input.title,
       body: input.body,
@@ -438,6 +440,8 @@ export async function emailText(input: {
   security?: boolean;
   ref?: string;
   notice?: string;
+  /** Another sender than EMAIL_FROM (owner, 2026-10-21: the .bd watch's alerts). */
+  from?: string;
 }): Promise<SendStatus> {
   const t = await translatorFor(input.locale);
   return emailNotification({
@@ -448,6 +452,7 @@ export async function emailText(input: {
     security: input.security,
     ref: input.ref,
     notice: input.notice,
+    from: input.from,
   });
 }
 

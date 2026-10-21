@@ -26,13 +26,16 @@ const db = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_R
 });
 
 async function seedSettings() {
-  const rows = Object.entries(SETTINGS).map(([key, def]) => ({
-    key,
-    value: def.default,
-    type: def.type,
-    group: def.group,
-    description: def.description,
-  }));
+  // A setting without a default (the .bd watch's state) is written by its job, never seeded: the column can't be null.
+  const rows = Object.entries(SETTINGS)
+    .filter(([, def]) => def.default !== null)
+    .map(([key, def]) => ({
+      key,
+      value: def.default,
+      type: def.type,
+      group: def.group,
+      description: def.description,
+    }));
   const { error } = await db.from("settings").upsert(rows, { onConflict: "key", ignoreDuplicates: true });
   if (error) throw new Error(`settings: ${error.message}`);
   console.log(`✓ settings: ${rows.length} keys present`);
