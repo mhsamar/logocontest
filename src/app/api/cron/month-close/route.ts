@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { closeMonth } from "@/lib/rewards/month-close";
 import { closableMonth } from "@/lib/rewards/race-rules";
+import { linkOrigin } from "@/lib/site-origin";
 
 // Picking the winners and sending can take a little while.
 export const maxDuration = 60;
@@ -19,7 +20,8 @@ async function handle(req: NextRequest) {
   const month = closableMonth(new Date());
   if (!month) return NextResponse.json({ skipped: "not the end of the month" });
   try {
-    const origin = process.env.SITE_URL?.replace(/\/$/, "") || req.nextUrl.origin;
+    // Winner emails follow Admin › Settings › Backup links (owner, 2026-10-21).
+    const origin = process.env.SITE_URL ? await linkOrigin() : req.nextUrl.origin;
     return NextResponse.json(await closeMonth(month, { origin }));
   } catch (err) {
     console.error("[month-close]", err);

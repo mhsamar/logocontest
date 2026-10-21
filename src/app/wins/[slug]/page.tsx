@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/ui/panel";
-import { siteOrigin } from "@/lib/email";
+import { requestOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { winCardBySlug, winCardImage } from "@/lib/rewards/win-cards";
 
 /** The card picture as an absolute link, for Facebook and other previews. */
 async function absoluteSquare(slug: string, path: string | null) {
   const src = winCardImage(slug, "square", path);
-  return src.startsWith("http") ? src : `${await siteOrigin()}${src}`;
+  return src.startsWith("http") ? src : `${await requestOrigin()}${src}`;
 }
 
 export async function generateMetadata({ params }: PageProps<"/wins/[slug]">): Promise<Metadata> {

@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { findContactDetails, type ContactKind } from "@/lib/moderation/contact-filter";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
+import { forgetBackupLinks } from "@/lib/site-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
 
@@ -55,6 +56,7 @@ export async function saveSettings(group: string, values: Record<string, string>
   );
   if (error) return fail("admin.errors.generic");
   await audit(admin.id, "update_settings", "settings", group, { reason, changes: Object.fromEntries(changed.map((c) => [c.key, { from: before.get(c.key) ?? null, to: c.value }])) });
+  if (changed.some((c) => c.key === "site.backup_links")) forgetBackupLinks();
   refresh();
   return { ok: true };
 }

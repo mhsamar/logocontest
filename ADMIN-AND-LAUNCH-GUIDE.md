@@ -173,11 +173,13 @@ select cron.schedule(
   'logocontest-lifecycle',
   '*/15 * * * *',
   $$ select net.http_get(
-       url := 'https://logocontest.bd/api/cron/lifecycle',
+       url := 'https://logocontest.vercel.app/api/cron/lifecycle',
        headers := jsonb_build_object('Authorization', 'Bearer YOUR_CRON_SECRET')
      ); $$
 );
 ```
+
+The jobs call the Vercel address, not logocontest.bd, so they keep running when BTCL's .bd servers have trouble (2026-10-20).
 
 Check it works: Supabase → **Integrations → Cron** (or run `select * from cron.job_run_details order by start_time desc limit 5;`).
 To stop it: `select cron.unschedule('logocontest-lifecycle');`

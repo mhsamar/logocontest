@@ -11,7 +11,8 @@ import { openHandovers } from "@/lib/handover/queries";
 import { myUnclaimedRewards } from "@/lib/rewards/claims";
 import { designerWinCards, winCardImage } from "@/lib/rewards/win-cards";
 import { getWallet } from "@/lib/wallet/queries";
-import { siteOrigin } from "@/lib/email";
+import { printedOrigin } from "@/lib/site-hosts";
+import { linkOrigin, requestOrigin } from "@/lib/site-origin";
 import { qrSvg } from "@/lib/profile/qr";
 import { getI18n } from "@/lib/i18n/server";
 import { profileSteps } from "@/lib/profile/completeness";
@@ -32,11 +33,13 @@ export default async function DashboardPage() {
     if (await isPro(user.id)) return <ProDashboard user={user} />;
     const designer = await designerById(user.id);
     if (!designer) notFound();
-    const profileUrl = `${await siteOrigin()}/d/${designer.username}`;
+    // Share buttons follow Backup links; the QR code always prints the main address (owner, 2026-10-21).
+    const [shareOrigin, here] = await Promise.all([linkOrigin(), requestOrigin()]);
+    const profileUrl = `${shareOrigin}/d/${designer.username}`;
     const [contests, savedCount, qr, handovers, wallet, cards, prizes, langs] = await Promise.all([
       designerContests(user.id),
       countSaved(user.id),
-      qrSvg(profileUrl),
+      qrSvg(`${printedOrigin(here)}/d/${designer.username}`),
       openHandovers(user.id),
       getWallet(user.id),
       designerWinCards(user.id),

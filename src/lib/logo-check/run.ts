@@ -14,6 +14,7 @@ import { checkHeadline, sourceRows } from "./present";
 import { certNumber, hostOf, isOnHosts, overallScore, uniquenessScore, verdictFor, type CheckLimits, type MatchSource } from "./rules";
 import { lensSearch, visionSearch, type Candidate, type SourceRun } from "./search";
 import { emailCheckReady } from "@/lib/email/events";
+import { ownOrigins, printedOrigin } from "@/lib/site-hosts";
 
 /**
  * The background job for one check (owner, 2026-10-10; handoff "How a check runs"). Steps:
@@ -154,7 +155,7 @@ async function work(check: CheckRow, origin: string) {
   const [lens, vision] = await Promise.all([signed ? lensSearch(signed) : Promise.resolve({ run: { ran: false, found: 0, costUsd: 0 }, candidates: [] }), visionSearch(logo)]);
   if (!lens.run.ran && !vision.run.ran) throw new CheckError("search_unavailable");
   cost += searchCost(lens.run, vision.run, rates);
-  const hosts = [hostOf(origin), "logocontest.bd", "logocontest.vercel.app", hostOf(contest?.website_url as string | null)];
+  const hosts = [hostOf(origin), ...ownOrigins().map(hostOf), hostOf(contest?.website_url as string | null)];
   const seen = new Set<string>();
   const web = [...lens.candidates, ...vision.candidates]
     .filter((c) => !isOnHosts(c.pageUrl, hosts) && !c.imageUrls.some((u) => isOnHosts(u, hosts)))
@@ -366,7 +367,7 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
     ],
     searched: sourceRows(sources),
     // The winning entry's own report (owner, 2026-10-14): the designer's check, while the entry still uses that file.
-    report: c.entry_id ? await validReportOf(c.entry_id as string).then((r) => (r ? { id: r.reportId, url: `${origin}/verify/${r.reportId}` } : null)) : null,
+    report: c.entry_id ? await validReportOf(c.entry_id as string).then((r) => (r ? { id: r.reportId, url: `${printedOrigin(origin)}/verify/${r.reportId}` } : null)) : null,
   };
   const { pdf, png } = await renderCertificate(await certificateHtml(data));
   const paths = { pdf: `${id}/certificate.pdf`, png: `${id}/certificate.png` };

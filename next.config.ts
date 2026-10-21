@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { canonicalHostPattern } from "./src/lib/site-hosts";
 
 /**
  * Security headers on every response (QA, 2026-10-18). Other sites may not show our pages in a frame (stops click
@@ -16,7 +17,12 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // The same site on the backup and Vercel addresses (owner, 2026-10-21) stays out of search engines: only
+      // logocontest.bd is listed.
+      { source: "/:path*", missing: [{ type: "host", value: canonicalHostPattern() }], headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
+    ];
   },
   // Browsers and apps that ask for /favicon.ico get the site icon (QA, 2026-10-18); the icon itself is set in Admin.
   async redirects() {

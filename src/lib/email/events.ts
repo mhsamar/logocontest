@@ -6,6 +6,7 @@ import { SHOWN_STATUSES } from "@/lib/entries/rules";
 import { certNumber, type Verdict } from "@/lib/logo-check/rules";
 import { getService } from "@/lib/services/store";
 import { getSettings } from "@/lib/settings";
+import { isOwnUrl, ownOrigins } from "@/lib/site-hosts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
 import { chatEmailDue, digestDue, spanText, taka } from "./catalog";
@@ -407,7 +408,8 @@ export async function emailNotification(input: {
 }): Promise<SendStatus> {
   const origin = await emailOrigin().catch(() => "");
   // The first link to this site in the text becomes the button when none is given.
-  const link = input.buttonUrl ?? input.body.match(/https?:\/\/\S+/g)?.find((u) => !origin || u.startsWith(origin))?.replace(/[.,;:!?)]+$/, "");
+  const own = [...(origin ? [origin] : []), ...ownOrigins()];
+  const link = input.buttonUrl ?? input.body.match(/https?:\/\/\S+/g)?.map((u) => u.replace(/[.,;:!?)]+$/, "")).find((u) => isOwnUrl(u, own));
   return sendEmail({
     key: "notification",
     to: input.to,

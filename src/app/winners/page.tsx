@@ -11,11 +11,12 @@ import { getI18n } from "@/lib/i18n/server";
 import { DesignTile } from "@/components/rewards/design-tile";
 import { winningDesigns } from "@/lib/rewards/queries";
 import { openGraphFor } from "@/lib/seo";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getI18n();
   const title = t("winners.metaTitle");
-  return { title, description: t("winners.metaDescription"), alternates: { canonical: "/winners" }, openGraph: openGraphFor({ title, description: t("winners.metaDescription"), path: "/winners", locale }) };
+  return { title, description: t("winners.metaDescription"), alternates: { canonical: canonicalUrl("/winners") }, openGraph: openGraphFor({ title, description: t("winners.metaDescription"), path: "/winners", locale }) };
 }
 
 // P-05 Winners gallery (UI-JOURNEY): winning logos in a masonry grid, with business-type chips.

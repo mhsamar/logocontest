@@ -3,7 +3,7 @@ import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { ProfileProgress } from "@/components/settings/profile-progress";
 import { Panel } from "@/components/ui/panel";
 import type { CurrentUser } from "@/lib/auth/policies";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { formatBdMobile } from "@/lib/phone";
 import { bioIdeas } from "@/lib/profile/bio-ideas";
@@ -58,7 +58,7 @@ export async function SettingsBody({ user, bare = false }: { user: CurrentUser; 
       : null;
   // Designers have a public profile page (P-06); the client one (P-12) comes later.
   // The public profile: /d/ for designers, /c/ for clients (P-06, P-12).
-  const profileUrl = user.username ? `${await siteOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
+  const profileUrl = user.username ? `${await linkOrigin()}/${user.role === "designer" ? "d" : "c"}/${user.username}` : null;
 
 
   const content = <div className={bare ? "space-y-4" : "mx-auto max-w-3xl space-y-3.5"}>

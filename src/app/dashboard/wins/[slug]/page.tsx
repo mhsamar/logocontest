@@ -5,7 +5,7 @@ import { CardShare } from "@/components/rewards/win-card-share";
 import { BackLink } from "@/components/ui/back-link";
 import { PageShell } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { prizeText, winCardBySlug, winCardImage, winsThisMonth } from "@/lib/rewards/win-cards";
@@ -22,7 +22,7 @@ export default async function WinCardPage({ params }: PageProps<"/dashboard/wins
   if (!user) redirect(`/login?as=designer&next=${encodeURIComponent(`/dashboard/wins/${slug}`)}`);
   const card = await winCardBySlug(slug);
   if (!card || card.designer.id !== user.id) notFound();
-  const [{ t, locale }, wins, origin] = await Promise.all([getI18n(), winsThisMonth(user.id), siteOrigin()]);
+  const [{ t, locale }, wins, origin] = await Promise.all([getI18n(), winsThisMonth(user.id), linkOrigin()]);
   const square = winCardImage(card.slug, "square", card.squarePath);
   const story = winCardImage(card.slug, "story", card.storyPath);
   const brand = card.hiddenLogo ? t("winCard.page.hiddenBrand") : card.contest.brand;

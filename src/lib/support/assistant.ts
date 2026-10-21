@@ -1,7 +1,7 @@
 import "server-only";
 import { adminIdsWith } from "@/lib/admin/recipients";
 import { translatorFor } from "@/lib/content/texts";
-import { siteOrigin } from "@/lib/email";
+import { requestOrigin } from "@/lib/site-origin";
 import { isSupabaseConfigured } from "@/lib/env";
 import { aiConfigured, callTool, textBlock } from "@/lib/logo-check/ai";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
@@ -39,7 +39,7 @@ async function cachedSiteInfo(): Promise<string> {
 
 async function origin(): Promise<string> {
   try {
-    return process.env.SITE_URL ? siteUrl() : await siteOrigin();
+    return await requestOrigin();
   } catch {
     return siteUrl();
   }

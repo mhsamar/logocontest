@@ -47,7 +47,7 @@ import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
 import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, isShareableDesign, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { HideToggle } from "@/components/entries/hidden-bits";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { contestIndexable, openGraphFor } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
@@ -58,6 +58,7 @@ import { isLogo, type Lang } from "@/lib/services/types";
 import { getSetting } from "@/lib/settings";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/contest/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -71,7 +72,7 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
     title,
     description,
     openGraph: openGraphFor({ title, description, path: `/contest/${contest.slug}`, locale }),
-    alternates: { canonical: `/contest/${contest.slug}` },
+    alternates: { canonical: canonicalUrl(`/contest/${contest.slug}`) },
     // Private and NDA contests, and anything not yet live, are hidden from search engines (BLUEPRINT §15.1).
     robots: contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda }) ? undefined : { index: false },
   };
@@ -159,7 +160,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   });
   const ordered = sort === "top" && proSet.features.highlighted_entries ? [...entries].sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner") || Number(proMark(b).highlight) - Number(proMark(a).highlight)) : entries;
   const fmt = (n: number) => formatNumber(n, locale);
-  const origin = await siteOrigin();
+  const origin = await linkOrigin();
   const contestUrl = `${origin}/contest/${contest.slug}`;
   // Facebook and Pinterest (owner, 2026-10-18): only what a logged-out visitor sees may be shared.
   const indexable = contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda });

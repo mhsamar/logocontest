@@ -24,9 +24,10 @@ import { earlyCutoff } from "@/lib/pro/limits";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 // The home page's own address for search engines (QA, 2026-10-18).
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = { alternates: { canonical: canonicalUrl("/") } };
 
 // P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
 // Design/logocontest-home-design.html; Design/home-page 2026-10-13): hero, live contests, design types, AI checker,

@@ -1,4 +1,6 @@
 import "server-only";
+import { LOGO_ON_LIGHT } from "@/lib/cards/logos";
+import { printedOrigin } from "@/lib/site-hosts";
 import { launchChrome } from "@/lib/render/chrome";
 import QRCode from "qrcode";
 import { certNumber, type Verdict } from "./rules";
@@ -43,7 +45,7 @@ const TONE: Record<Verdict, { bar: string; bg: string; label: string }> = {
 
 export async function certificateHtml(d: CertificateData): Promise<string> {
   const no = certNumber(d.number);
-  const verifyUrl = `${d.origin}/verify/${no}`;
+  const verifyUrl = `${printedOrigin(d.origin)}/verify/${no}`;
   const qr = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 220, color: { dark: "#111216", light: "#FFFDF8" } });
   const tone = TONE[d.verdict];
   const row = (k: string, v: string) =>
@@ -111,7 +113,7 @@ h1{margin:0;font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.035
 .note strong{color:#111216}
 .qr{width:92px;height:92px;flex:none}
 </style></head><body><div class="page"><div class="frame">
-<div class="top"><span class="brand d"><img src="${esc(d.origin)}/brand/logo-icon-tile.png" alt="">logocontest.bd</span><span class="no">Certificate no.<span class="cid">${no}</span></span></div>
+<div class="top"><span class="brand d"><img src="${LOGO_ON_LIGHT}" alt="">logocontest.bd</span><span class="no">Certificate no.<span class="cid">${no}</span></span></div>
 <div class="head"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8B0000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="kick">AI logo research</span><h1 class="d">${CERT_TITLE}</h1><p class="lead">This logo was checked for similar logos on ${esc(dhaka(d.checkedAt, { day: "numeric", month: "long", year: "numeric" }))}. The findings are below.</p></div>
 <div class="who"><div class="logo"><img src="${d.logoDataUri}" alt=""><span>The logo that was checked</span></div><div class="facts">${row("Contest", d.contest)}${row("Design", d.design)}${d.designer ? row("Designer", d.designer) : ""}${row("Checked for", d.checkedFor)}${row("Date and time", dhaka(d.checkedAt, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }))}</div></div>
 <div class="res"><span class="l">Result</span><strong class="d">${esc(d.headline)}</strong><span class="sub">${esc(d.subline)}</span></div>

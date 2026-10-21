@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { emailNotification } from "@/lib/email/events";
 import { sendEmail } from "@/lib/email/send";
 import { requireEnv } from "@/lib/env";
@@ -169,7 +169,7 @@ export async function sendPasswordResetEmail(input: { email: string; locale: Loc
     return "sent";
   }
   const t = await translatorFor(input.locale);
-  const link = `${await siteOrigin()}/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}`;
+  const link = `${await linkOrigin()}/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}`;
   // A security email (owner, 2026-10-15): always sent, no Unsubscribe.
   await emailNotification({
     to: { userId: profile.id as string, email: input.email },

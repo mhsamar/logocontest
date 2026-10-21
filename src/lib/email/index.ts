@@ -1,5 +1,4 @@
 import "server-only";
-import { headers } from "next/headers";
 import { LogEmailSender } from "./log-sender";
 import { ResendEmailSender } from "./resend-sender";
 import type { EmailSender } from "./types";
@@ -19,11 +18,4 @@ export function getEmailSender(): EmailSender {
     default:
       throw new Error(`Unknown EMAIL_DRIVER "${driver}". Use "log" or "resend".`);
   }
-}
-
-/** Absolute origin for links in emails: SITE_URL if set, otherwise the current request's host. */
-export async function siteOrigin(): Promise<string> {
-  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
-  const h = await headers();
-  return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }

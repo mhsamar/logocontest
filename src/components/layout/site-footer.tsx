@@ -9,6 +9,8 @@ import { setCurrency } from "@/lib/currency/actions";
 import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
+import { backupOrigin } from "@/lib/site-hosts";
+import { requestOrigin } from "@/lib/site-origin";
 import { Svg } from "@/components/ui/svg";
 
 const SOCIAL = [
@@ -66,6 +68,8 @@ const SOCIAL = [
 /** Site footer (owner, 2026-10-10; the home page design, on every page): links from Lists → Footer links, social links and phone from Settings. */
 export async function SiteFooter() {
   const { t, locale, currency } = await getI18n();
+  const backup = backupOrigin();
+  const onBackup = backup !== null && (await requestOrigin()) === backup;
   const [links, contact, allFooterLinks, offers, guides] = await Promise.all([
     getSettings(SOCIAL.map((x) => x.key)),
     getContact(locale),
@@ -178,6 +182,15 @@ export async function SiteFooter() {
           )}
         </span>
         <span>{t("footer.madeIn")}</span>
+        {/* The backup address (owner, 2026-10-21), so people know it is really us when logocontest.bd is down. */}
+        {backup && !onBackup && (
+          <span className="w-full">
+            {t("backup.alsoAt", { backup: "" })}
+            <a href={backup} className="font-semibold text-ink underline-offset-2 hover:underline">
+              {new URL(backup).host}
+            </a>
+          </span>
+        )}
       </div>
       <div aria-hidden className="lc-ft-word lc-d lc-rv lc-big mb-[-0.16em] mt-7 whitespace-nowrap text-center text-[clamp(54px,14.5vw,212px)] font-semibold leading-[0.82] tracking-[-0.06em] text-primary">
         {/* One span per letter so each can jump on hover; only for plain Latin text (Bangla letters must stay joined). */}

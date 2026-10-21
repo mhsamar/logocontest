@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { adminUser, audit } from "@/lib/admin/core";
 import { translatorFor } from "@/lib/content/texts";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { emailText } from "@/lib/email/events";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
@@ -75,7 +75,7 @@ async function tellDesigner(designerId: string, type: "agreement_photo_requested
   if (!p?.email) return;
   const lang = p.locale === "bn" ? "bn" : "en";
   const t = await translatorFor(lang);
-  const link = `${await siteOrigin()}/dashboard/agreement`;
+  const link = `${await linkOrigin()}/dashboard/agreement`;
   const key = type === "agreement_rejected" ? "rejected" : "photo";
   await emailText({ userId: designerId, email: p.email as string, locale: lang, subject: t(`admin.agreements.mail.${key}.subject`), body: t(`admin.agreements.mail.${key}.body`, { name: ((p.name as string | null) ?? "").trim(), reason: params.reason ?? "", link }), security: true });
 }

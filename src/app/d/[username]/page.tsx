@@ -15,13 +15,14 @@ import { formatDate, timeAgo } from "@/lib/dates";
 import { isLanguageKey, isSkillKey, isToolKey, levelPercent, SKILL_BARS_MAX, SKILL_LEVELS, toolTile } from "@/lib/designers/portfolio-options";
 import { designerByUsername } from "@/lib/designers/profile";
 import { designerProfileData } from "@/lib/designers/public-profile";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { championMonths } from "@/lib/rewards/queries";
 import { openGraphFor } from "@/lib/seo";
 import { getSetting } from "@/lib/settings";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/d/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: canonicalUrl(path) },
     openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
   };
 }
@@ -69,7 +70,7 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
   const [data, champion, origin, codeLength] = await Promise.all([
     designerProfileData({ id: designer.id, username: designer.username, avatarUrl: designer.avatarUrl, winsCount: designer.stats.wins, skills: designer.skills, tools: designer.tools }),
     championMonths(designer.id),
-    siteOrigin(),
+    linkOrigin(),
     getSetting("auth.email_code_length"),
   ]);
   const url = `${origin}/d/${designer.username}`;
