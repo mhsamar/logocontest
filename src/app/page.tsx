@@ -22,12 +22,18 @@ import { homeLogos } from "@/lib/home/logos";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { earlyCutoff } from "@/lib/pro/limits";
 import { visibleOffers } from "@/lib/rewards/visible";
-import { siteUrl } from "@/lib/seo";
+import { openGraphFor, siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
+import { ldJson, organization, sameAsOf, website } from "@/lib/seo/jsonld";
+import { formatTaka } from "@/lib/money";
+import { siteFacts } from "@/lib/seo/facts";
 
 // The home page's own address for search engines (QA, 2026-10-18).
 export async function generateMetadata(): Promise<Metadata> {
-  return { alternates: await pageAlternates("/") };
+  const [{ t, locale }, facts] = await Promise.all([getI18n(), siteFacts()]);
+  // Always in taka with the fee included, whoever is looking (owner, 2026-10-21).
+  const description = t("meta.homeDescription", { minTotal: formatTaka(facts.minTotal, locale) });
+  return { title: { absolute: t("meta.title") }, description, alternates: await pageAlternates("/"), openGraph: openGraphFor({ title: t("meta.title"), description, path: "/", locale }) };
 }
 
 // P-01 Home for visitors (and admins), from the approved design (owner, 2026-10-10;
@@ -51,25 +57,15 @@ export default async function HomePage() {
     getContact(locale),
     brandPictures(),
   ]);
-  // Structured data for search engines (BLUEPRINT §15.1): who we are and the site itself.
+  // Structured data for search engines and AI tools (BLUEPRINT §15.1; owner, 2026-10-21): who we are and the site,
+  // with one fixed id each; only our own profiles, never the Facebook group.
   const base = siteUrl();
-  const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      name: "logocontest.bd",
-      url: base,
-      logo: `${base}/brand/logo-icon.png`,
-      contactPoint: { "@type": "ContactPoint", telephone: "+88" + contact.phone, contactType: "customer support", areaServed: "BD", availableLanguage: ["en", "bn"] },
-      sameAs: Object.values(social).filter(Boolean),
-    },
-    { "@context": "https://schema.org", "@type": "WebSite", name: "logocontest.bd", url: base, inLanguage: ["en", "bn"] },
-  ];
+  const jsonLd = [organization({ logo: `${base}/brand/logo-icon.png`, phone: contact.phone ? `+88${contact.phone}` : null, sameAs: sameAsOf(social) }), website()];
 
   return (
     <div data-lc-landing className="lc-landing flex flex-1 flex-col gap-3.5 px-3.5 pt-3.5">
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
       <LandingHero picture={pictures.hero} nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
       {/* Owner, 2026-10-11: the two monthly prizes (Design/rewards/home-hero-offer-slide.html) as their own section under the

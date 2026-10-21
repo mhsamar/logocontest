@@ -10,8 +10,9 @@ import { clientProfileData } from "@/lib/client/workspace";
 import { linkOrigin } from "@/lib/site-origin";
 import { getI18n, getLocale, pageAlternates } from "@/lib/i18n/server";
 import { currentUsernameFor } from "@/lib/profile/usernames";
-import { openGraphFor } from "@/lib/seo";
+import { openGraphFor, robotsUnless } from "@/lib/seo";
 import { localizedPath } from "@/lib/i18n/lang-path";
+import { isTestAccount } from "@/lib/seo/test-accounts";
 
 export async function generateMetadata({ params }: PageProps<"/c/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -20,7 +21,9 @@ export async function generateMetadata({ params }: PageProps<"/c/[username]">): 
   if (!profileVisible({ hidden: p.hidden, viewerId: viewer?.id, ownerId: p.id, staff: hasPermission(viewer, "users.view") })) return { title: t("cw.profile.privateTitle"), robots: { index: false } };
   const title = t("clientProfile.metaTitle", { name: p.business });
   const path = `/c/${username.toLowerCase()}`;
-  return { title, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, path, locale }), robots: p.hidden ? { index: false } : undefined };
+  // In search engines only with a finished contest to show, never a hidden profile or a test account (owner, 2026-10-21).
+  const indexable = !p.hidden && p.winners.length > 0 && !(await isTestAccount(p.id));
+  return { title, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, path, locale }), ...robotsUnless(indexable) };
 }
 
 // P-12 Client public profile, premium (owner, 2026-10-16; Design/client-premium/client-profile.html). Business name,

@@ -79,7 +79,13 @@ export async function SiteFooter() {
     publishedGuides(),
   ]);
   // Owner, 2026-10-13: no leaderboard link while the monthly prizes program is off.
-  const footerLinks = allFooterLinks.filter((l) => showsLink(l.href, offers));
+  // The search landing pages (owner, 2026-10-21) are on every page for clients, unless Admin › Lists already has them.
+  const landing = [
+    { href: "/logo-design-price", label: t("landing.related.price") },
+    { href: "/logo-design", label: t("landing.related.service") },
+    { href: "/about", label: t("landing.related.about") },
+  ].filter((l) => !allFooterLinks.some((x) => x.href === l.href));
+  const footerLinks = [...allFooterLinks, ...landing.map((l) => ({ id: `landing${l.href}`, on: true, href: l.href, column: "clients", text: { label: l.label } }))].filter((l) => showsLink(l.href, offers));
   const social = SOCIAL.filter((x) => links[x.key]);
   const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));
   const columns = (["clients", "designers", "legal"] as const)

@@ -20,7 +20,7 @@ import { getI18n, getLocale, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { championMonths } from "@/lib/rewards/queries";
-import { openGraphFor } from "@/lib/seo";
+import { openGraphFor, robotsUnless } from "@/lib/seo";
 import { getSetting } from "@/lib/settings";
 import { localizedPath } from "@/lib/i18n/lang-path";
 
@@ -37,7 +37,8 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
     description,
     alternates: await pageAlternates(path),
     openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
-    ...(designer.isTest ? { robots: { index: false } } : {}),
+    // In search engines only with public designs to show, never a test account (owner, 2026-10-21).
+    ...robotsUnless(!designer.isTest && designer.stats.designs > 0),
   };
 }
 

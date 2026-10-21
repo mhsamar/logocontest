@@ -11,8 +11,10 @@ const en = {
   cw: clientEn,
   share: shareEn,
   meta: {
-    title: "logocontest.bd — Logo design contests in Bangladesh",
-    description: "Many designers. Many ideas. One perfect logo. Get your logo from Bangladesh's best designers.",
+    title: "Logo Design Contests in Bangladesh | logocontest.bd",
+    description: "Get logo ideas from many Bangladeshi designers for one fixed prize. Pay in taka by bKash; the winner hands over every file and the full copyright.",
+    // The home page's own description, with the live smallest total (owner, 2026-10-21).
+    homeDescription: "Get logo ideas from many Bangladeshi designers for one fixed prize. Contests from {minTotal} in total, paid by bKash. Full copyright and every file.",
   },
   brand: {
     name: "logocontest.bd",
@@ -80,6 +82,20 @@ const en = {
   notice: {
     label: "Notice",
     close: "Close notice",
+  },
+  // Search landing pages (owner, 2026-10-21): /logo-design-price, /logo-design, /about.
+  landing: {
+    home: "Home",
+    breadcrumb: "You are here",
+    updated: "Updated {date}",
+    related: {
+      label: "More to read",
+      price: "Logo design price",
+      service: "Logo design service",
+      how: "How it works",
+      winners: "Winning logos",
+      about: "About us",
+    },
   },
   // The backup address (owner, 2026-10-21): the same site on logocontestbd.com while BTCL's .bd servers have trouble.
   backup: {
@@ -662,7 +678,7 @@ const en = {
   browse: {
     featuredCard: { prize: "Prize for the winner", designs: "designs", designOne: "design", designers: "designers", designerOne: "designer", cta: "Submit", beFirst: "Be first", ctaClosed: "See designs" },
     clientBar: { text: "Need another logo for your business?", cta: "Create now" },
-    meta: { title: "Browse logo contests", description: "Live logo design contests from businesses across Bangladesh." },
+    meta: { title: "Live Logo Design Contests – Prize Money in Taka", description: "Logo design contests from businesses in Bangladesh. Designers send ideas, the client picks a winner and the prize is paid in taka." },
     hero: {
       eyebrow: "Logo contests",
       title: "Start a logo contest. Get designs from Bangladesh's best designers.",
@@ -948,7 +964,7 @@ const en = {
     emptyTab: "Nothing here yet.",
   },
   designerSignup: {
-    meta: { title: "Become a designer" },
+    meta: { title: "Join as a Logo Designer – Win Prize Money", description: "Sign up as a logo designer on logocontest.bd: join contests from businesses in Bangladesh and win prize money in taka." },
     title: "Join as a logo designer",
     subtitle: "Win contests and get paid in bKash.",
     steps: { s1: "About you", s2: "Log in details", s3: "Your designer profile", s4: "Payout and rules" },
@@ -1344,7 +1360,7 @@ const en = {
   },
   designerProfile: {
     suspended: "Suspended until {date}",
-    metaTitle: "{name} · Logo designer",
+    metaTitle: "{name} – Logo Designer in Bangladesh",
     metaDescription: "{name}'s logo designs and contest wins on logocontest.bd.",
     topDesigner: "Top Designer",
     share: "Share profile",
@@ -1510,7 +1526,12 @@ const en = {
     },
   },
   howPage: {
-    meta: { title: "How it works", description: "How a logo contest works on logocontest.bd, for clients and for designers." },
+    meta: {
+      title: "How a Logo Contest Works – Price, Steps, Files",
+      description: "How a logo contest works on logocontest.bd: write a brief, set a prize in taka, get designs from many designers, pick a winner and get every file.",
+      designersTitle: "Earn from Logo Design – Contests Paid in Taka",
+      designersDescription: "Join logo design contests on logocontest.bd, send your ideas and win prize money in taka. Free to join for designers in Bangladesh.",
+    },
     eyebrow: "How it works",
     titleLead: "How it",
     titleAccent: "works",
@@ -4488,7 +4509,7 @@ const en = {
   },
   // Public Logo Checker page (owner, 2026-10-13; Design/logo-checker).
   checkerPage: {
-    metaTitle: "AI Logo Checker – check if your logo is original | logocontest.bd",
+    metaTitle: "AI Logo Copyright Checker – Is Your Logo Original?",
     metaDescription: "Check a logo before you pick a winner or send it to a contest: our AI searches the web by image, compares every look-alike, checks the font and gives you a PDF certificate.",
     startContest: "Start a contest",
     onWeb: "On the web",
@@ -5567,8 +5588,8 @@ const en = {
     },
   },
   studio: {
-    metaTitle: "Design Studio",
-    metaDescription: "Every logo design sent on logocontest.bd, the moment it arrives. New designs every day from Bangladesh's designers.",
+    metaTitle: "Logo Design Ideas from Bangladeshi Designers",
+    metaDescription: "Logo designs sent to contests on logocontest.bd by designers in Bangladesh. Browse ideas for your own logo.",
     // Redesign (owner, 2026-10-12; Design/design-studio)
     live: "Live · designs coming in",
     titleStart: "Design",
@@ -6146,7 +6167,7 @@ const en = {
     },
   },
   winners: {
-    metaTitle: "Winning logos",
+    metaTitle: "Winning Logo Designs by Bangladeshi Designers",
     metaDescription: "Logos that won contests on logocontest.bd, made by Bangladeshi designers.",
     eyebrow: "Winners",
     title: "Winning logos",

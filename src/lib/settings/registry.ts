@@ -507,7 +507,7 @@ export const SETTINGS = {
   // ---- Site: social links in the footer (owner, 2026-10-08) --------------
   // Empty = the icon is hidden. Only links on the platform's own domain are accepted.
   "social.facebook": {
-    group: "site", type: "string", schema: socialUrl(["facebook.com", "fb.com"]), default: "https://www.facebook.com/Businessviewbd/",
+    group: "site", type: "string", schema: socialUrl(["facebook.com", "fb.com"]), default: "https://www.facebook.com/logocontest.bd/",
     description: "Facebook page link (https://facebook.com/…). Empty hides the icon.",
   },
   "social.facebook_group": {

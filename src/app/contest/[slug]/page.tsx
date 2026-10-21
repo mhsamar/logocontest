@@ -33,7 +33,7 @@ import { TrophyIcon } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
 import { EarlyAccessGate } from "@/components/pro/early-gate";
-import { contestVisibleTo } from "@/lib/pro/limits";
+import { contestVisibleTo, earlyCutoff } from "@/lib/pro/limits";
 import { EntryViewBeacon } from "@/components/pro/entry-view-beacon";
 import { chattableEntries } from "@/lib/pro/chat";
 import { invitedPairs } from "@/lib/pro/invites";
@@ -49,7 +49,7 @@ import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, isShare
 import { HideToggle } from "@/components/entries/hidden-bits";
 import { linkOrigin } from "@/lib/site-origin";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
-import { contestIndexable, openGraphFor } from "@/lib/seo";
+import { contestIndexable, openGraphFor, robotsUnless } from "@/lib/seo";
 import type { Translate } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { suspendedError } from "@/lib/moderation/suspension";
@@ -58,6 +58,8 @@ import { isLogo, type Lang } from "@/lib/services/types";
 import { getSetting } from "@/lib/settings";
 import { can, type CurrentUser } from "@/lib/auth/policies";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
+import { isTestAccount } from "@/lib/seo/test-accounts";
+import { englishOnlyAlternates, hasBangla } from "@/lib/i18n/url";
 
 export async function generateMetadata({ params }: PageProps<"/contest/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -65,15 +67,21 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
   const contest = await getContestBySlug(slug, user);
   if (!contest) return { title: t("notFound.title"), robots: { index: false } };
   const title = contestTitle(contest, t);
+  // Pro early access (owner, 2026-10-14): while only Pro designers may see a new contest, its brief stays out of
+  // everyone else's page source and search engines (owner, 2026-10-21).
+  const cutoff = await earlyCutoff(user);
+  const early = Boolean(cutoff && contest.startsAt && contest.startsAt > cutoff);
   // Private contests and briefs a visitor can't read still get a description (QA, 2026-10-18).
-  const description = contest.brief?.description.slice(0, 160) || t("contest.metaDescription", { title });
+  const description = (!early && contest.brief?.description.slice(0, 160)) || t("contest.metaDescription", { title });
+  const indexable = !early && contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest: await isTestAccount(contest.ownerId) });
   return {
     title,
     description,
     openGraph: openGraphFor({ title, description, path: `/contest/${contest.slug}`, locale }),
-    alternates: await pageAlternates(`/contest/${contest.slug}`),
-    // Private and NDA contests, and anything not yet live, are hidden from search engines (BLUEPRINT §15.1).
-    robots: contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda }) ? undefined : { index: false },
+    // A brief written in English makes the Bangla address mostly the same text: offered in English only (owner, 2026-10-21).
+    alternates: !contest.brief || hasBangla(contest.brief.description) ? await pageAlternates(`/contest/${contest.slug}`) : englishOnlyAlternates(`/contest/${contest.slug}`),
+    // Private and NDA contests, test clients' contests, and anything not yet live stay out of search engines.
+    ...robotsUnless(indexable),
   };
 }
 

@@ -21,7 +21,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { proProfileExtras } from "@/lib/pro/profile";
 import { isPro } from "@/lib/pro/status";
-import { openGraphFor } from "@/lib/seo";
+import { openGraphFor, robotsUnless } from "@/lib/seo";
 import { localizedPath } from "@/lib/i18n/lang-path";
 
 export async function generateMetadata({ params }: PageProps<"/designer/[username]">): Promise<Metadata> {
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/designer/[usernam
   const path = `/designer/${designer.username}`;
   // Without a bio the page still has a description (QA, 2026-10-18).
   const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
-  return { title, description, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
+  return { title, description, alternates: await pageAlternates(path), openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }), ...robotsUnless(!designer.isTest && designer.stats.designs > 0) };
 }
 
 const TABS = ["work", "winners", "reviews", "about"] as const;
