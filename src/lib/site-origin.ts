@@ -11,17 +11,18 @@ import { backupOrigin, canonicalOrigin, internalProductionOrigin, originForHost 
  * - internalOrigin(): for the server calling itself, which must work while .bd is down.
  */
 
-async function hostHeader(): Promise<string | null> {
+async function hostHeader(): Promise<{ host: string | null; proto: string | null }> {
   try {
     const h = await headers();
-    return h.get("x-forwarded-host") ?? h.get("host");
+    return { host: h.get("x-forwarded-host") ?? h.get("host"), proto: h.get("x-forwarded-proto") };
   } catch {
-    return null;
+    return { host: null, proto: null };
   }
 }
 
 export async function requestOrigin(): Promise<string> {
-  return originForHost(await hostHeader()) ?? canonicalOrigin();
+  const { host, proto } = await hostHeader();
+  return originForHost(host, undefined, proto) ?? canonicalOrigin();
 }
 
 // The switch is read at most every 30 seconds per server (route handlers and background work don't share React's

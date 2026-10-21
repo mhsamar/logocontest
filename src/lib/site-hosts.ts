@@ -56,9 +56,9 @@ export function isOwnUrl(href: string, origins: string[] = ownOrigins()): boolea
 
 /**
  * The origin for a request's Host header, when it is one of ours: the main and backup addresses (with or without www),
- * the Vercel address, and localhost while developing. Anything else (Vercel previews, made-up hosts) is null.
+ * the Vercel address, and any host while developing. Anything else (Vercel previews, made-up hosts) is null.
  */
-export function originForHost(rawHost: string | null | undefined, dev = process.env.NODE_ENV !== "production"): string | null {
+export function originForHost(rawHost: string | null | undefined, dev = process.env.NODE_ENV !== "production", proto?: string | null): string | null {
   const host = (rawHost ?? "").trim().toLowerCase().replace(/\.$/, "");
   if (!host) return null;
   const bare = host.replace(/^www\./, "");
@@ -66,7 +66,8 @@ export function originForHost(rawHost: string | null | undefined, dev = process.
   const backup = backupOrigin();
   if (backup && bare === BACKUP_HOST) return backup;
   if (host === INTERNAL_HOST) return internalProductionOrigin;
-  if (dev && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) return `http://${host}`;
+  // While developing, any plain host (localhost, a LAN address, a tunnel) is the address being used.
+  if (dev && /^(\[[0-9a-f:]+\]|[a-z0-9.-]+)(:\d+)?$/.test(host)) return `${proto === "https" ? "https" : "http"}://${host}`;
   return null;
 }
 

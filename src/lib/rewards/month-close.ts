@@ -1,6 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { adminIdsWith } from "@/lib/admin/recipients";
+import { linkOrigin } from "@/lib/site-origin";
 import { audit } from "@/lib/admin/core";
 import { translatorFor } from "@/lib/content/texts";
 import { emailText } from "@/lib/email/events";
@@ -35,9 +36,12 @@ export type CloseResult = { month: string; isTest: boolean; status: CloseStatus 
 /** Where a monthly card picture can be loaded: the stored file, or the route that draws it the first time. */
 export const monthlyCardImage = (id: string, size: CardSize, path: string | null) => (path ? cardPictureUrl(path) : `/api/cards/monthly/${id}/${size}`);
 
-/** The site's address for links and card pictures when there is no request (the scheduled jobs). */
-export const jobOrigin = () =>
-  process.env.SITE_URL?.replace(/\/$/, "") || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+/**
+ * The site's address for links when there is no request (the scheduled jobs): logocontest.bd, or the backup address
+ * while Admin › Settings › Backup links is on (owner, 2026-10-21).
+ */
+export const jobOrigin = async () =>
+  process.env.SITE_URL ? await linkOrigin() : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
 
 /** The winner's page for their prize (the claim, Phase 6). */
 export const rewardLink = (id: string) => `/dashboard/rewards/${id}`;

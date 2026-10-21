@@ -29,6 +29,9 @@ describe("site hosts", () => {
     expect(originForHost("evil.example", false)).toBeNull();
     expect(originForHost("localhost:3100", false)).toBeNull();
     expect(originForHost("localhost:3100", true)).toBe("http://localhost:3100");
+    expect(originForHost("192.168.1.5:3100", true)).toBe("http://192.168.1.5:3100");
+    expect(originForHost("abc.trycloudflare.com", true, "https")).toBe("https://abc.trycloudflare.com");
+    expect(originForHost("evil.example/x", true)).toBeNull();
     vi.stubEnv("BACKUP_SITE_URL", "");
     expect(originForHost("logocontestbd.com", false)).toBeNull();
   });

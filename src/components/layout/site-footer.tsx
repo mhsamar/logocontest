@@ -10,6 +10,7 @@ import { setLocale } from "@/lib/i18n/actions";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
 import { backupOrigin } from "@/lib/site-hosts";
+import { requestOrigin } from "@/lib/site-origin";
 import { Svg } from "@/components/ui/svg";
 
 const SOCIAL = [
@@ -68,6 +69,7 @@ const SOCIAL = [
 export async function SiteFooter() {
   const { t, locale, currency } = await getI18n();
   const backup = backupOrigin();
+  const onBackup = backup !== null && (await requestOrigin()) === backup;
   const [links, contact, allFooterLinks, offers, guides] = await Promise.all([
     getSettings(SOCIAL.map((x) => x.key)),
     getContact(locale),
@@ -181,7 +183,7 @@ export async function SiteFooter() {
         </span>
         <span>{t("footer.madeIn")}</span>
         {/* The backup address (owner, 2026-10-21), so people know it is really us when logocontest.bd is down. */}
-        {backup && (
+        {backup && !onBackup && (
           <span className="w-full">
             {t("backup.alsoAt", { backup: "" })}
             <a href={backup} className="font-semibold text-ink underline-offset-2 hover:underline">

@@ -319,7 +319,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
   try {
     const month = missedMonth(now);
     if (month) {
-      const origin = jobOrigin();
+      const origin = await jobOrigin();
       const done = await closeMonth(month, { origin });
       if (done.status === "already") {
         const { data: m } = await db.from("reward_months").select("status").eq("month", month).eq("is_test", false).maybeSingle();
@@ -331,7 +331,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
   }
   // Winners who haven't claimed their monthly prize get a reminder every few days (Settings → Rewards).
   try {
-    report.claimReminders = await remindUnclaimed(jobOrigin(), now);
+    report.claimReminders = await remindUnclaimed(await jobOrigin(), now);
   } catch (e) {
     fail("claim_reminders", "-", e);
   }
