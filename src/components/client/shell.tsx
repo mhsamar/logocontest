@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { clientMenu, contestHref, hasNews, type ClientMenuKey } from "@/lib/client/rules";
 import { clientShell } from "@/lib/client/workspace";
@@ -13,7 +13,7 @@ import { siteMenuLinks } from "@/components/layout/site-nav";
 import { DrawerAccount } from "@/components/layout/drawer-account";
 import { SiteNavDrawer } from "@/components/layout/site-nav-drawer";
 import { logout } from "@/lib/auth/actions";
-import { setLocale } from "@/lib/i18n/actions";
+import { LanguageLink } from "@/components/layout/language-link";
 import { listNotifications, unreadCount } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { ClientAvatarMenu } from "./avatar-menu";
@@ -53,13 +53,13 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
   const items = clientMenu(shell.counts, shell.links);
   const now = new Date();
   const otherLocale = locale === "en" ? "bn" : "en";
+  // The same switch as the site's menu (owner, 2026-10-21): this page in the other language, kept in the address.
   const languageForm = (className: string) => (
-    <form action={setLocale}>
-      <input type="hidden" name="locale" value={otherLocale} />
-      <button type="submit" lang={otherLocale} aria-label={t("nav.switchToLabel")} className={className}>
+    <Suspense fallback={<span className={className}>{t("nav.switchTo")}</span>}>
+      <LanguageLink locale={otherLocale} label={t("nav.switchToLabel")} className={className}>
         {t("nav.switchTo")}
-      </button>
-    </form>
+      </LanguageLink>
+    </Suspense>
   );
   const num = (n: number) => formatNumber(n, locale);
   const c = shell.checks;

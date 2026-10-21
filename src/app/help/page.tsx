@@ -4,14 +4,14 @@ import { LiveChatButton } from "@/components/help/live-chat-button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { Arrow, IconBadge, PageTitle } from "@/components/ui/section-heading";
 import { cx } from "@/lib/cx";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
 import { getContact } from "@/lib/content/contact";
 import { liveChatConfig, messengerLink, whatsappLink } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("help.metaTitle"), description: t("help.metaDescription") };
+  return { title: t("help.metaTitle"), description: t("help.metaDescription"), alternates: await pageAlternates("/help") };
 }
 
 const ICONS = {

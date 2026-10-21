@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getContact } from "@/lib/content/contact";
 import { visibleList } from "@/lib/content/lists";
 import { publishedGuides } from "@/lib/guides/queries";
@@ -6,7 +7,7 @@ import { guideText } from "@/lib/guides/rules";
 import { showsLink } from "@/lib/rewards/program";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { setCurrency } from "@/lib/currency/actions";
-import { setLocale } from "@/lib/i18n/actions";
+import { LanguageLink } from "./language-link";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
 import { backupOrigin } from "@/lib/site-hosts";
@@ -86,10 +87,13 @@ export async function SiteFooter() {
     .filter((c) => c.links.length > 0);
   // Guides (owner, 2026-10-15): the ones marked "Show in the footer" in Admin › Guides, then "All guides".
   const footerGuides = guides.filter((g) => g.in_footer).slice(0, 5);
+  // Links to this page in each language (owner, 2026-10-21): search engines follow them to the Bangla pages.
   const languageButton = (l: "en" | "bn") => (
-    <button type="submit" name="locale" value={l} lang={l} aria-current={locale === l ? "true" : undefined} className={locale === l ? "lc-ft-lang font-semibold text-ink" : "lc-ft-lang hover:text-ink"}>
-      {t(l === "en" ? "home.landing.english" : "home.landing.bangla")}
-    </button>
+    <Suspense fallback={<span className="lc-ft-lang">{t(l === "en" ? "home.landing.english" : "home.landing.bangla")}</span>}>
+      <LanguageLink locale={l} current={locale === l} className={locale === l ? "lc-ft-lang font-semibold text-ink" : "lc-ft-lang hover:text-ink"}>
+        {t(l === "en" ? "home.landing.english" : "home.landing.bangla")}
+      </LanguageLink>
+    </Suspense>
   );
 
   return (
@@ -161,11 +165,11 @@ export async function SiteFooter() {
       <div className="lc-ft-bar lc-rv-soft relative mx-auto mt-12 flex max-w-[1160px] flex-wrap justify-between gap-x-6 gap-y-2 pt-5 text-[15px] text-muted">
         <span>{t("footer.rights", { year })}</span>
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <form action={setLocale} aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
+          <nav aria-label={t("home.landing.languages")} className="flex items-center gap-1.5">
             {languageButton("en")}
             <span aria-hidden>·</span>
             {languageButton("bn")}
-          </form>
+          </nav>
           {/* Prices in taka or US dollars (owner, 2026-10-14): set from the visitor's country, changeable here. Bangla
               pages are always in taka (owner, 2026-10-15), so the switch is on English pages only. */}
           {locale === "en" && (

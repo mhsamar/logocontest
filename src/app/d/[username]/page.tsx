@@ -16,13 +16,13 @@ import { isLanguageKey, isSkillKey, isToolKey, levelPercent, SKILL_BARS_MAX, SKI
 import { designerByUsername } from "@/lib/designers/profile";
 import { designerProfileData } from "@/lib/designers/public-profile";
 import { linkOrigin } from "@/lib/site-origin";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, getLocale, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { championMonths } from "@/lib/rewards/queries";
 import { openGraphFor } from "@/lib/seo";
 import { getSetting } from "@/lib/settings";
-import { canonicalUrl } from "@/lib/site-hosts";
+import { localizedPath } from "@/lib/i18n/lang-path";
 
 export async function generateMetadata({ params }: PageProps<"/d/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -35,8 +35,9 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
   return {
     title,
     description,
-    alternates: { canonical: canonicalUrl(path) },
+    alternates: await pageAlternates(path),
     openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
+    ...(designer.isTest ? { robots: { index: false } } : {}),
   };
 }
 
@@ -62,7 +63,7 @@ export default async function DesignerProfilePage({ params, searchParams }: Page
   if (!designer) {
     // An old username (a Pro designer changed theirs, or a client's was renewed): on to the new one (owner, 2026-10-15).
     const moved = await currentUsernameFor(username);
-    if (moved) permanentRedirect(`/d/${moved}`);
+    if (moved) permanentRedirect(localizedPath(`/d/${moved}`, await getLocale())); // keeps ?lang=bn (owner, 2026-10-21)
     notFound();
   }
   const isOwnerUser = user?.id === designer.id;

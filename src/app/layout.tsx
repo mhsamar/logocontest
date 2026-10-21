@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
 import { AdminBar } from "@/components/layout/admin-bar";
 import { BackupBar } from "@/components/layout/backup-bar";
+import { LangCookieSync } from "@/components/layout/lang-cookie-sync";
 import { SuspendedBar } from "@/components/layout/suspended-bar";
 import { MotionFx } from "@/components/layout/motion-fx";
 import { PointerFx } from "@/components/layout/pointer-fx";
@@ -51,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t("meta.description"),
     applicationName: t("brand.name"),
     // Share previews (BLUEPRINT §15.1); the card image comes from app/opengraph-image.tsx.
-    openGraph: openGraphFor({ title: t("meta.title"), description: t("meta.description"), path: "/", locale }),
+    openGraph: openGraphFor({ title: t("meta.title"), description: t("meta.description"), locale }),
     twitter: { card: "summary_large_image" },
     robots: searchIndexingOn() ? undefined : { index: false, follow: false },
     // Pinterest "Claim your website" (owner, 2026-10-18): proves logocontest.bd is ours. Public by design.
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </SiteChrome>
             <SiteChrome>
               <VisitTracker />
+              <LangCookieSync />
               <SupportSlot />
               <VisitorPopupSlot signedIn={Boolean(user)} />
               <FloatingProCardSlot />

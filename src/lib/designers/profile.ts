@@ -19,6 +19,8 @@ export type DesignerStats = {
 };
 
 export type DesignerProfile = {
+  /** A test account (Admin › Users): its page is kept out of search engines (owner, 2026-10-21). */
+  isTest?: boolean;
   id: string;
   name: string;
   username: string;
@@ -121,6 +123,7 @@ async function statsFor(designerId: string, winsCount: number, view: "own" | "pu
 }
 
 type Row = {
+  is_test?: boolean | null;
   id: string;
   name: string;
   username: string | null;
@@ -151,10 +154,11 @@ async function toProfile(r: Row, view: "own" | "public"): Promise<DesignerProfil
     skills: r.skills ?? [],
     tools: r.tools ?? [],
     experienceYears: r.experience_years,
+    isTest: Boolean(r.is_test),
   };
 }
 
-const COLUMNS = "id, name, username, bio, avatar_path, created_at, wins_count, counted_wins_count, skills, tools, experience_years, status, suspended_until";
+const COLUMNS = "id, name, username, bio, avatar_path, created_at, wins_count, counted_wins_count, skills, tools, experience_years, status, suspended_until, is_test";
 
 /** A designer by username (case-insensitive), or null. Banned accounts are gone; a suspended one shows its suspension. */
 export async function designerByUsername(username: string): Promise<DesignerProfile | null> {

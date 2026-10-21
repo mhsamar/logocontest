@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { isSupabaseConfigured } from "@/lib/env";
+import { localizedPath } from "@/lib/i18n/lang-path";
 import { publishedGuides } from "@/lib/guides/queries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { offersOn } from "@/lib/rewards/program";
@@ -10,6 +11,26 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const revalidate = 3600;
 
 const PUBLIC_CONTEST_STATUSES = ["open", "judging", "winner_selected", "handover", "completed", "no_result"];
+
+/**
+ * Every page twice (owner, 2026-10-21): the English address and the Bangla one (?lang=bn), each naming the other, so
+ * search engines find and match both languages.
+ */
+function bothLanguages(list: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  return list.flatMap((e) => {
+    const u = new URL(e.url);
+    const path = u.pathname + u.search;
+    // Next.js writes these as they are: an "&" between two settings must be escaped for the XML.
+    const xml = (url: string) => url.replace(/&/g, "&amp;");
+    const en = xml(`${u.origin}${localizedPath(path, "en")}`);
+    const bn = xml(`${u.origin}${localizedPath(path, "bn")}`);
+    const alternates = { languages: { en, bn, "x-default": en } };
+    return [
+      { ...e, url: en, alternates },
+      { ...e, url: bn, alternates },
+    ];
+  });
+}
 
 /** /sitemap.xml (BLUEPRINT §15.1): public pages, guides, public contests and designer profiles. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -22,20 +43,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/design-studio`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${base}/logo-checker`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/winners`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
-    ...((await offersOn()).program ? [{ url: `${base}/leaderboard`, lastModified: now, changeFrequency: "daily" as const, priority: 0.5 }] : []),
     { url: `${base}/how-it-works`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/how-it-works?for=designers`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/designers/signup`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/help`, changeFrequency: "monthly", priority: 0.5 },
     ...LEGAL_SLUGS.map((slug) => ({ url: `${base}/legal/${slug}`, changeFrequency: "yearly" as const, priority: 0.3 })),
   ];
-  // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide.
+  // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide. A guide without its
+  // Bangla text yet only has its English address (owner, 2026-10-21).
   const guides = await publishedGuides();
+  const englishOnly: MetadataRoute.Sitemap = [];
   if (guides.length) {
     pages.push({ url: `${base}/guides`, lastModified: new Date(guides[0].published_at), changeFrequency: "weekly", priority: 0.6 });
-    for (const g of guides) pages.push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
+    for (const g of guides) (g.bn_ready ? pages : englishOnly).push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
   }
-  if (!isSupabaseConfigured()) return pages;
+  // The leaderboard is for Bangladesh only: just its Bangla address (search engines mostly crawl from abroad).
+  const leaderboard: MetadataRoute.Sitemap = (await offersOn()).program ? [{ url: `${base}/leaderboard?lang=bn`, lastModified: now, changeFrequency: "daily", priority: 0.5, alternates: { languages: { bn: `${base}/leaderboard?lang=bn` } } }] : [];
+  if (!isSupabaseConfigured()) return [...bothLanguages(pages), ...englishOnly, ...leaderboard];
 
   const db = createAdminClient();
   const [contests, entries] = await Promise.all([
@@ -63,10 +87,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const latest = new Map<string, string>();
   for (const e of entries.data ?? []) if (!latest.has(e.designer_id as string)) latest.set(e.designer_id as string, e.created_at as string);
   const { data: designers } = latest.size
-    ? await db.from("profiles").select("id, username").in("id", [...latest.keys()]).eq("role", "designer").eq("status", "active").not("username", "is", null)
+    ? await db.from("profiles").select("id, username").in("id", [...latest.keys()]).eq("role", "designer").eq("status", "active").eq("is_test", false).not("username", "is", null)
     : { data: [] };
 
-  return [
+  return [...leaderboard, ...englishOnly, ...bothLanguages([
     ...pages,
     ...(contests.data ?? []).map((c) => ({
       url: `${base}/contest/${c.slug}`,
@@ -75,5 +99,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: c.status === "open" ? 0.8 : 0.5,
     })),
     ...(designers ?? []).map((d) => ({ url: `${base}/d/${d.username}`, lastModified: new Date(latest.get(d.id as string)!), changeFrequency: "weekly" as const, priority: 0.5 })),
-  ];
+  ])];
 }

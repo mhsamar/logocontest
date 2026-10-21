@@ -11,15 +11,14 @@ import { browseContests, designerFacts, featuredContests } from "@/lib/contests/
 import { savedContestIds } from "@/lib/contests/community";
 import { BROWSE_PAGE_SIZE, BROWSE_TABS, DESIGNER_TABS, browseHref, parseBrowseQuery, toggleQuick, type QuickFilter } from "@/lib/contests/browse-query";
 import { cx } from "@/lib/cx";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { getSetting } from "@/lib/settings";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: { canonical: canonicalUrl("/contests") } };
+  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: await pageAlternates("/contests") };
 }
 
 const CARD = "rounded-[24px] border border-[#E9EAEE] bg-white";

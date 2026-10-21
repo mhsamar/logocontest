@@ -5,13 +5,13 @@ import { StudioFilters } from "@/components/studio/studio-filters";
 import { StudioHero } from "@/components/studio/studio-hero";
 import { PageShell } from "@/components/ui/panel";
 import { visibleBusinessTypes } from "@/lib/content/lists";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { parseStudioQuery, studioHref } from "@/lib/studio/options";
 import { getStudioDesign, listStudio, studioHero, studioStats } from "@/lib/studio/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("studio.metaTitle"), description: t("studio.metaDescription") };
+  return { title: t("studio.metaTitle"), description: t("studio.metaDescription"), alternates: await pageAlternates("/design-studio") };
 }
 
 /**

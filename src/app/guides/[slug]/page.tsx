@@ -4,7 +4,7 @@ import { GuideArticle } from "@/components/guides/guide-article";
 import { pictureUrl } from "@/lib/content/pictures";
 import { publishedGuide, publishedGuides } from "@/lib/guides/queries";
 import { guideText } from "@/lib/guides/rules";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { openGraphFor } from "@/lib/seo";
 import { canonicalUrl } from "@/lib/site-hosts";
 
@@ -18,8 +18,9 @@ export async function generateMetadata({ params }: PageProps<"/guides/[slug]">):
   return {
     title: x.title.text,
     description: x.summary.text,
-    alternates: { canonical: canonicalUrl(path) },
-    openGraph: { ...openGraphFor({ title: x.title.text, description: x.summary.text, path, locale, ...(cover ? { images: [cover] } : {}) }), type: "article", publishedTime: g.published_at ?? undefined, modifiedTime: g.updated_at },
+    // A guide without its Bangla text yet is only offered in English (the Bangla address would repeat the English).
+    alternates: g.bn_ready ? await pageAlternates(path) : { canonical: canonicalUrl(path) },
+    openGraph: { ...openGraphFor({ title: x.title.text, description: x.summary.text, path: g.bn_ready ? path : undefined, locale, ...(cover ? { images: [cover] } : {}) }), type: "article", publishedTime: g.published_at ?? undefined, modifiedTime: g.updated_at },
   };
 }
 

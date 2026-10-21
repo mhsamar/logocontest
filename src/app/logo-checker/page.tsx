@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import "@/components/logo-checker/checker-page.css";
 import { LogoCheckerPage } from "@/components/logo-checker/checker-page";
 import { PageShell } from "@/components/ui/panel";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { checkLimits } from "@/lib/logo-check/run";
 import { getProSettings } from "@/lib/pro/settings";
 import { openGraphFor } from "@/lib/seo";
-import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getI18n();
   const title = t("checkerPage.metaTitle");
   const description = t("checkerPage.metaDescription");
-  return { title: { absolute: title }, description, alternates: { canonical: canonicalUrl("/logo-checker") }, openGraph: openGraphFor({ title, description, path: "/logo-checker", locale }) };
+  return { title: { absolute: title }, description, alternates: await pageAlternates("/logo-checker"), openGraph: openGraphFor({ title, description, path: "/logo-checker", locale }) };
 }
 
 /**

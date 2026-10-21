@@ -8,7 +8,7 @@ import "@/components/pro/pro.css";
 import "@/components/pro/go-pro.css";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { isProActive, priceQuote, type ProSettings } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
@@ -20,7 +20,7 @@ import { portfolioCount } from "@/lib/pro/workspace";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("pro.go.metaTitle"), description: t("pro.go.metaDescription") };
+  return { title: t("pro.go.metaTitle"), description: t("pro.go.metaDescription"), alternates: await pageAlternates("/pro") };
 }
 
 const BENEFITS: { key: "b1" | "b2" | "b3" | "b4" | "b5" | "b6" | "b7" | "b8" | "b9"; icon: ProIconName; color: string; feature?: keyof ProSettings["features"] }[] = [

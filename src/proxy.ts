@@ -2,13 +2,35 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SHORT_LINK } from "@/lib/cards/rules";
 import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
+import { LOCALE_COOKIE } from "@/lib/i18n/config";
+import { langOf, LOCALE_HEADER } from "@/lib/i18n/lang-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const SIGNED_IN_ONLY = ["/admin"];
 
+/**
+ * A public page opened with ?lang=bn or ?lang=en (owner, 2026-10-21: each language has its own address, so search
+ * engines can find the Bangla pages): this request is drawn in that language, and the visitor's choice is kept in the
+ * cookie. Only for reading a page (GET): a form or button posting from such an address follows the cookie.
+ */
+// Private areas never read ?lang= (Admin › Legal uses it for the document's language); their switches use the cookie.
+const NO_LANG_PARAM = /^\/(api|admin|admin-login|client|dashboard)(\/|$)/;
+
 export async function proxy(request: NextRequest) {
-  if (!isSupabaseConfigured()) return NextResponse.next();
+  const lang = request.method === "GET" && !NO_LANG_PARAM.test(request.nextUrl.pathname) ? langOf(request.nextUrl.searchParams) : null;
+  if (lang) request.headers.set(LOCALE_HEADER, lang);
+  else request.headers.delete(LOCALE_HEADER);
+  const response = await route(request);
+  // Only a page opened in the browser keeps the language, never Next.js fetching a link ahead of time (those don't ask
+  // for HTML). A browser's own early load of a Google result does count: its cookie is kept only if it is opened.
+  const opened = (request.headers.get("accept") ?? "").includes("text/html");
+  if (lang && opened && request.cookies.get(LOCALE_COOKIE)?.value !== lang) response.cookies.set(LOCALE_COOKIE, lang, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  return response;
+}
+
+async function route(request: NextRequest): Promise<NextResponse> {
+  if (!isSupabaseConfigured()) return NextResponse.next({ request });
 
   const { response, userId, ended } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
