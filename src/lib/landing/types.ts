@@ -7,7 +7,7 @@
  *   {fee}        service fee percent (25)         {largeFee}   fee percent for big prizes (15)
  *   {largeFrom}  prize above which it applies     {defaultDays} usual contest length in days (7)
  *   {minDays} / {maxDays}  shortest / longest contest   {judgingDays}  days the client has to pick a winner
- *   {checkerFreeFrom}  prize from which the AI logo checker is free
+ *   (The AI logo checker is free on every logo contest: no placeholder, just say so.)
  *   {guaranteeDesigners}  the guarantee's number of different designers (3)
  *   {year}       the year of the page's updatedAt
  * Amounts come out as "৳3,750" in English and "৳৩,৭৫০" in Bangla.

@@ -49,7 +49,7 @@ export function breadcrumbs(items: { name: string; path: string }[], locale: Loc
 }
 
 /** The logo design service, with one offer per package at the total a client really pays (prize + fee, in taka). */
-export function service(s: { name: string; description: string; path: string; locale: Locale; offers: { name: string; total: number }[] }) {
+export function service(s: { name: string; description: string; path: string; locale: Locale; offers?: { name: string; total: number }[] }) {
   return {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -57,10 +57,10 @@ export function service(s: { name: string; description: string; path: string; lo
     description: s.description,
     serviceType: "Logo design",
     url: url(s.path, s.locale),
-    inLanguage: s.locale,
     provider: { "@id": ORG_ID() },
     areaServed: { "@type": "Country", name: "Bangladesh" },
-    offers: s.offers.map((o) => ({ "@type": "Offer", name: o.name, price: o.total, priceCurrency: "BDT", url: url(s.path, s.locale) })),
+    // Only prices the page itself shows (its price table).
+    ...(s.offers?.length ? { offers: s.offers.map((o) => ({ "@type": "Offer", name: o.name, price: o.total, priceCurrency: "BDT", url: url(s.path, s.locale) })) } : {}),
   };
 }
 

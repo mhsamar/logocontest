@@ -6,24 +6,24 @@ export const content: LandingContent = {
   updatedAt: "2026-10-21",
   en: {
     title: "Logo Design Price in Bangladesh ({year}): Typical Costs",
-    description: "Logo design price in Bangladesh ({year}): typical costs compared. logocontest.bd contests from {minTotal} in total: many designs, full copyright, final files.",
+    description: "Logo design price in Bangladesh ({year}): typical costs, and logocontest.bd contests from {minTotal} in total: ideas from different designers, full copyright.",
     h1: "Logo design price in Bangladesh ({year})",
-    answer: "In {year}, a logo in Bangladesh typically costs from about ৳500 with a Facebook page seller to ৳100,000 or more at a design agency. On logocontest.bd, a contest starts at {minTotal} in total, fee included, and designers across Bangladesh send you designs to choose from.",
+    answer: "In {year}, a logo in Bangladesh typically costs from about ৳500 with a Facebook page seller to ৳100,000 or more at a design agency. On logocontest.bd, a contest starts at {minTotal} in total, fee included: designers across Bangladesh can send ideas, and you choose the one you like (you pay the prize upfront when you start).",
     breadcrumb: "Logo design price",
     sections: [
       {
         kind: "prices",
         heading: "Contest prices on logocontest.bd, fee included",
         columns: { package: "Package", prize: "Prize", fee: "Service fee", total: "You pay" },
-        note: "Want a different amount? Set your own prize from {minPrize}. Every total includes the {fee}% service fee ({largeFee}% for prizes above {largeFrom}). Add-ons are optional and cost extra.",
+        note: "Want a different amount? Set your own prize from {minPrize}. Every total includes the {fee}% service fee ({largeFee}% for prizes above {largeFrom}). Add-ons are optional and cost extra. You pay when you start the contest, and payments are not refunded.",
       },
       {
         kind: "text",
         heading: "What decides the price",
         paragraphs: [
-          "Most of a logo's price comes down to who designs it and what is included: one designer or many, how many ideas and changes you get, and whether you receive the source files and the copyright.",
+          "Most of a logo's price comes down to who designs it and what is included: one designer or several, how many ideas and changes you get, and whether you receive the source files and the copyright.",
           "In a contest, you set the prize yourself. Designers see it before they start, so a bigger prize can draw more designers and more careful work. The winner is paid from the prize, and the service fee is added on top.",
-          "Watch for costs that come later. Some sellers charge extra for vector files, the copyright or more changes. On logocontest.bd, the totals in the table already include the fee, and add-ons are added only if you choose them.",
+          "Watch for costs that come later. Some sellers charge extra for vector files, the copyright or more changes. On logocontest.bd, the totals in the table already include the fee, and add-ons at an extra price are added only if you choose them.",
           "You also choose the timing: a contest runs {defaultDays} days by default, or anything from {minDays} to {maxDays} days. The same kind of contest works for other designs too, such as business cards.",
         ],
       },
@@ -35,7 +35,7 @@ export const content: LandingContent = {
         rows: [
           {
             label: "Logo contest on logocontest.bd",
-            cells: ["From {minTotal} in total", "Designs from many different designers", "The total includes the fee; the winner hands over the full copyright and AI, EPS, SVG, PDF, PNG and JPG files"],
+            cells: ["From {minTotal} in total", "Ideas from different designers (you pay the prize upfront when you start)", "The total includes the fee and payments are final (no refunds); the winner hands over the full copyright and AI, EPS, SVG, PDF, PNG and JPG files"],
           },
           {
             label: "Facebook page seller",
@@ -60,14 +60,13 @@ export const content: LandingContent = {
         kind: "list",
         heading: "What you get for the price",
         items: [
-          "Logo designs from many designers across Bangladesh, so you compare real options instead of one person's ideas.",
+          "Ideas from different designers: designers across Bangladesh can send logo designs, so you can compare options instead of one person's ideas and choose the one you like (you pay the prize upfront when you start).",
           "Stars and comments to tell the designers what you like while the contest runs.",
-          "{judgingDays} days after the contest ends to pick your winner.",
+          "{judgingDays} days after the contest ends to pick your winner. If you don't pick one in time, the contest ends with no result and the prize is shared equally among the designers who took part; it is not refunded.",
           "The final files from the winner: AI, EPS, SVG, PDF, PNG and JPG.",
           "The full copyright, handed over to you through the site.",
           "No separate designer bill: the winner is paid from the prize.",
-          "The AI Logo Checker, which looks online for copies of your designs and very similar logos: free with a prize of {checkerFreeFrom} or more, a low-cost add-on below that.",
-          "A chance at the monthly gift box for the client who runs the most contests (Bangladesh only).",
+          "The AI Logo Checker, which looks online for copies of your designs and very similar logos: free on every logo contest.",
         ],
       },
       {
@@ -97,11 +96,11 @@ export const content: LandingContent = {
           },
           {
             q: "Are there any extra costs?",
-            a: "Only if you choose them. Optional add-ons, such as a private or blind contest, an NDA, a highlighted or urgent listing, or more days for a running contest, cost extra. The AI Logo Checker is free with a prize of {checkerFreeFrom} or more; below that it is a low-cost add-on.",
+            a: "Only if you choose them. Optional add-ons at an extra price, such as a private or blind contest, an NDA, a highlighted or urgent listing, or more days for a running contest, are added only if you pick them. The AI Logo Checker is free on every logo contest.",
           },
           {
             q: "Can I pay by bKash?",
-            a: "Yes. You pay in taka by bKash when you start your contest. If you are abroad, you can pay by card in US dollars.",
+            a: "Yes. You pay in taka by bKash when you start your contest. If you are abroad, you can pay by card in US dollars. Payments are not refunded (see the Payment & No-Refund Policy). The one exception is not a money refund: if the winning design is proven to be copied, you can pick another design. If you don't pick a winner within {judgingDays} days, or don't respond to the final files in time, the contest ends with no result and the prize is shared equally among the designers who took part.",
           },
           {
             q: "How long does a contest take?",
@@ -122,31 +121,31 @@ export const content: LandingContent = {
       },
     ],
     cta: {
-      heading: "Get logo ideas from many designers",
-      body: "Write your brief, pick a prize and pay by bKash. Designers across Bangladesh send you designs, and you choose the one you like.",
+      heading: "Get logo ideas from different designers",
+      body: "Write your brief, pick a prize and pay by bKash. Designers across Bangladesh can send ideas, and you choose the one you like (you pay the prize upfront when you start). Payments are final.",
       button: "Start a contest",
     },
   },
   bn: {
     title: "লোগো ডিজাইন করতে কত টাকা লাগে? ({year})",
-    description: "বাংলাদেশে লোগো ডিজাইনের দাম কত ({year})? বাজারের সাধারণ দামের তুলনা, আর logocontest.bd-তে মোট {minTotal} থেকে কনটেস্ট: অনেক ডিজাইন, পুরো কপিরাইট, চূড়ান্ত ফাইল।",
+    description: "বাংলাদেশে লোগো ডিজাইনের দাম কত ({year})? বাজারের সাধারণ দামের তুলনা, আর logocontest.bd-তে মোট {minTotal} থেকে কনটেস্ট: বিভিন্ন ডিজাইনারের আইডিয়া, পুরো কপিরাইট, চূড়ান্ত ফাইল।",
     h1: "বাংলাদেশে লোগো ডিজাইনের দাম ({year})",
-    answer: "{year} সালে বাংলাদেশে একটি লোগো বানাতে সাধারণত ফেসবুক পেজ থেকে প্রায় ৳৫০০ থেকে শুরু করে ডিজাইন এজেন্সিতে ১ লাখ টাকা বা তারও বেশি খরচ হয়। logocontest.bd-তে ফিসহ মোট {minTotal} থেকেই কনটেস্ট শুরু করা যায়, আর সারা বাংলাদেশের ডিজাইনাররা ডিজাইন পাঠান, যেখান থেকে আপনি পছন্দেরটি বেছে নেন।",
+    answer: "{year} সালে বাংলাদেশে একটি লোগো বানাতে সাধারণত ফেসবুক পেজ থেকে প্রায় ৳৫০০ থেকে শুরু করে ডিজাইন এজেন্সিতে ১ লাখ টাকা বা তারও বেশি খরচ হয়। logocontest.bd-তে ফিসহ মোট {minTotal} থেকেই কনটেস্ট শুরু করা যায়, আর সারা বাংলাদেশের ডিজাইনাররা আইডিয়া পাঠাতে পারেন, যেখান থেকে আপনি পছন্দেরটি বেছে নেন (পুরস্কার শুরুতেই দিতে হয়)।",
     breadcrumb: "লোগো ডিজাইনের দাম",
     sections: [
       {
         kind: "prices",
         heading: "logocontest.bd-তে কনটেস্টের দাম, ফিসহ",
         columns: { package: "প্যাকেজ", prize: "পুরস্কার", fee: "সার্ভিস ফি", total: "আপনি দেবেন" },
-        note: "অন্য অঙ্কের পুরস্কার দিতে চান? {minPrize} থেকে নিজের মতো পুরস্কার ঠিক করে নিন। টেবিলের প্রতিটি মোট দামে {fee}% সার্ভিস ফি ধরা আছে (পুরস্কার {largeFrom}-এর বেশি হলে {largeFee}%)। অ্যাড-অন চাইলে নিতে পারেন, সেগুলোর দাম আলাদা।",
+        note: "অন্য অঙ্কের পুরস্কার দিতে চান? {minPrize} থেকে নিজের মতো পুরস্কার ঠিক করে নিন। টেবিলের প্রতিটি মোট দামে {fee}% সার্ভিস ফি ধরা আছে (পুরস্কার {largeFrom}-এর বেশি হলে {largeFee}%)। আলাদা দামের অ্যাড-অন চাইলে নিতে পারেন। কনটেস্ট শুরুর সময়েই পেমেন্ট করতে হয়, আর পেমেন্ট ফেরত দেওয়া হয় না।",
       },
       {
         kind: "text",
         heading: "লোগোর দাম কিসের ওপর নির্ভর করে",
         paragraphs: [
-          "দাম মূলত নির্ভর করে কে ডিজাইন করছেন আর কাজে কী কী থাকছে তার ওপর: একজন ডিজাইনার নাকি অনেকে, কয়টা আইডিয়া আর কয়বার পরিবর্তন পাবেন, আর সোর্স ফাইল ও কপিরাইট আপনার হাতে আসবে কি না।",
+          "দাম মূলত নির্ভর করে কে ডিজাইন করছেন আর কাজে কী কী থাকছে তার ওপর: একজন ডিজাইনার নাকি কয়েকজন, কয়টা আইডিয়া আর কয়বার পরিবর্তন পাবেন, আর সোর্স ফাইল ও কপিরাইট আপনার হাতে আসবে কি না।",
           "কনটেস্টে পুরস্কারের অঙ্কটা আপনি নিজেই ঠিক করেন। ডিজাইনাররা কাজ শুরুর আগেই পুরস্কার দেখেন, তাই পুরস্কার বড় হলে আরও বেশি ডিজাইনার অংশ নিতে পারেন, কাজও হতে পারে আরও যত্ন নিয়ে। বিজয়ী ডিজাইনার পুরস্কারের টাকা পান; সার্ভিস ফি পুরস্কারের ওপর আলাদা করে যোগ হয়।",
-          "পরে যোগ হওয়া খরচের দিকে খেয়াল রাখুন। কিছু বিক্রেতা ভেক্টর ফাইল, কপিরাইট বা বাড়তি পরিবর্তনের জন্য আলাদা টাকা নেন। logocontest.bd-তে টেবিলের মোট দামেই ফি ধরা আছে, আর অ্যাড-অন শুধু আপনি নিলে যোগ হয়।",
+          "পরে যোগ হওয়া খরচের দিকে খেয়াল রাখুন। কিছু বিক্রেতা ভেক্টর ফাইল, কপিরাইট বা বাড়তি পরিবর্তনের জন্য আলাদা টাকা নেন। logocontest.bd-তে টেবিলের মোট দামেই ফি ধরা আছে, আর আলাদা দামের অ্যাড-অন শুধু আপনি নিলে যোগ হয়।",
           "সময়টাও আপনিই ঠিক করেন: কনটেস্ট সাধারণত {defaultDays} দিন চলে, চাইলে {minDays} থেকে {maxDays} দিনের মধ্যে যেকোনো মেয়াদ বেছে নিতে পারেন। লোগো ছাড়াও ভিজিটিং কার্ডের মতো অন্য ডিজাইনের জন্যও একইভাবে কনটেস্ট চালানো যায়।",
         ],
       },
@@ -158,7 +157,7 @@ export const content: LandingContent = {
         rows: [
           {
             label: "logocontest.bd-তে লোগো কনটেস্ট",
-            cells: ["মোট {minTotal} থেকে", "আলাদা আলাদা অনেক ডিজাইনারের ডিজাইন", "মোট দামে ফি ধরা আছে; বিজয়ী পুরো কপিরাইট আর AI, EPS, SVG, PDF, PNG ও JPG ফাইল বুঝিয়ে দেন"],
+            cells: ["মোট {minTotal} থেকে", "বিভিন্ন ডিজাইনারের আইডিয়া (পুরস্কার শুরুতেই দিতে হয়)", "মোট দামে ফি ধরা আছে, পেমেন্ট চূড়ান্ত (টাকা ফেরত নেই); বিজয়ী পুরো কপিরাইট আর AI, EPS, SVG, PDF, PNG ও JPG ফাইল বুঝিয়ে দেন"],
           },
           {
             label: "ফেসবুক পেজের লোগো বিক্রেতা",
@@ -183,14 +182,13 @@ export const content: LandingContent = {
         kind: "list",
         heading: "এই দামে যা পাবেন",
         items: [
-          "সারা বাংলাদেশের অনেক ডিজাইনারের লোগো ডিজাইন, তাই একজনের আইডিয়া নয়, অনেকগুলো মিলিয়ে দেখে বাছতে পারবেন।",
+          "বিভিন্ন ডিজাইনারের আইডিয়া: সারা বাংলাদেশের ডিজাইনাররা লোগো ডিজাইন পাঠাতে পারেন, তাই একজনের আইডিয়া নয়, কয়েকটি মিলিয়ে দেখে পছন্দেরটি বাছতে পারবেন (পুরস্কার শুরুতেই দিতে হয়)।",
           "কনটেস্ট চলার সময় স্টার আর মন্তব্য দিয়ে ডিজাইনারদের বুঝিয়ে দিতে পারবেন আপনার কী পছন্দ।",
-          "কনটেস্ট শেষ হওয়ার পর বিজয়ী বাছতে {judgingDays} দিন সময়।",
+          "কনটেস্ট শেষ হওয়ার পর বিজয়ী বাছতে {judgingDays} দিন সময়। সময়মতো না বাছলে কনটেস্ট কোনো ফল ছাড়াই শেষ হয়, আর পুরস্কার অংশ নেওয়া ডিজাইনারদের মধ্যে সমানভাবে ভাগ হয়ে যায়; টাকা ফেরত দেওয়া হয় না।",
           "বিজয়ীর কাছ থেকে চূড়ান্ত ফাইল: AI, EPS, SVG, PDF, PNG ও JPG।",
           "সাইটের মাধ্যমেই লোগোর পুরো কপিরাইট আপনাকে বুঝিয়ে দেওয়া হয়।",
           "ডিজাইনারকে আলাদা করে টাকা দিতে হয় না: বিজয়ী পুরস্কারের টাকাটাই পান।",
-          "AI লোগো চেকার, যা অনলাইনে খুঁজে দেখে আপনার ডিজাইনগুলো অন্য কোনো লোগোর নকল বা খুব কাছাকাছি কি না: পুরস্কার {checkerFreeFrom} বা তার বেশি হলে ফ্রি, কম হলে অল্প খরচের একটি অ্যাড-অন।",
-          "প্রতি মাসে সবচেয়ে বেশি কনটেস্ট চালানো ক্লায়েন্টের জন্য গিফট বক্স জেতার সুযোগ (শুধু বাংলাদেশে)।",
+          "AI লোগো চেকার, যা অনলাইনে খুঁজে দেখে আপনার ডিজাইনগুলো অন্য কোনো লোগোর নকল বা খুব কাছাকাছি কি না: প্রতিটি লোগো কনটেস্টে ফ্রি।",
         ],
       },
       {
@@ -220,11 +218,11 @@ export const content: LandingContent = {
           },
           {
             q: "এর বাইরে আর কোনো খরচ আছে?",
-            a: "শুধু আপনি নিলে। প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA, হাইলাইট, আর্জেন্ট, কিংবা চলতি কনটেস্টের সময় বাড়ানো: এ রকম অ্যাড-অনের দাম আলাদা। পুরস্কার {checkerFreeFrom} বা তার বেশি হলে AI লোগো চেকার ফ্রি; কম হলে এটি অল্প খরচের একটি অ্যাড-অন।",
+            a: "শুধু আপনি নিলে। প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA, হাইলাইট, আর্জেন্ট, কিংবা চলতি কনটেস্টের সময় বাড়ানো: এ রকম আলাদা দামের অ্যাড-অন শুধু আপনি নিলে যোগ হয়। AI লোগো চেকার প্রতিটি লোগো কনটেস্টে ফ্রি।",
           },
           {
             q: "বিকাশে পেমেন্ট করা যায়?",
-            a: "হ্যাঁ। কনটেস্ট শুরু করার সময় বিকাশে টাকায় পেমেন্ট করবেন। দেশের বাইরে থাকলে কার্ড দিয়ে মার্কিন ডলারে পেমেন্ট করতে পারবেন।",
+            a: "হ্যাঁ। কনটেস্ট শুরু করার সময় বিকাশে টাকায় পেমেন্ট করবেন। দেশের বাইরে থাকলে কার্ড দিয়ে মার্কিন ডলারে পেমেন্ট করতে পারবেন। পেমেন্ট ফেরত দেওয়া হয় না (পেমেন্ট ও নো-রিফান্ড নীতি দেখুন)। একটাই ব্যতিক্রম, যা টাকা ফেরত নয়: বিজয়ী ডিজাইন কপি প্রমাণ হলে অন্য ডিজাইন বাছতে পারবেন। {judgingDays} দিনের মধ্যে বিজয়ী না বাছলে, বা চূড়ান্ত ফাইল পেয়ে সময়মতো সাড়া না দিলে, কনটেস্ট কোনো ফল ছাড়াই শেষ হয় এবং পুরস্কার অংশ নেওয়া ডিজাইনারদের মধ্যে সমানভাবে ভাগ হয়ে যায়।",
           },
           {
             q: "একটি কনটেস্ট কত দিন চলে?",
@@ -245,8 +243,8 @@ export const content: LandingContent = {
       },
     ],
     cta: {
-      heading: "অনেক ডিজাইনারের কাছ থেকে লোগোর আইডিয়া নিন",
-      body: "ব্রিফ লিখুন, পুরস্কার বাছুন আর বিকাশে পেমেন্ট করুন। সারা বাংলাদেশের ডিজাইনাররা ডিজাইন পাঠাবেন, পছন্দেরটি আপনি বেছে নেবেন।",
+      heading: "বিভিন্ন ডিজাইনারের কাছ থেকে লোগোর আইডিয়া নিন",
+      body: "ব্রিফ লিখুন, পুরস্কার বাছুন আর বিকাশে পেমেন্ট করুন। সারা বাংলাদেশের ডিজাইনাররা আইডিয়া পাঠাতে পারেন, পছন্দেরটি আপনি বেছে নেবেন (পুরস্কার শুরুতেই দিতে হয়)। পেমেন্ট চূড়ান্ত, টাকা ফেরত দেওয়া হয় না।",
       button: "কনটেস্ট শুরু করুন",
     },
   },

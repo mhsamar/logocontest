@@ -132,7 +132,23 @@ function Section({ s, facts, locale, t }: { s: LandingSection; facts: SiteFacts;
       return (
         <section className={card}>
           <h2 className={h2}>{s.heading}</h2>
-          <div className="mt-5 overflow-x-auto">
+          {/* On phones each row is a card with its column names (a wide table would hide most columns). */}
+          <div className="mt-5 flex flex-col gap-3 sm:hidden">
+            {s.rows.map((r, i) => (
+              <div key={i} className={`rounded-[18px] border p-4 ${(s.ours === "row" ? i === 0 : false) ? "border-primary/30 bg-tint" : "border-line"}`}>
+                <strong className={`block text-[16px] ${(s.ours === "row" ? i === 0 : false) ? "text-primary" : "text-ink"}`}>{r.label}</strong>
+                <dl className="m-0 mt-2 flex flex-col gap-1.5">
+                  {r.cells.map((c, j) => (
+                    <div key={j} className={s.ours !== "row" && j === 0 ? "rounded-xl bg-tint px-2.5 py-1.5" : ""}>
+                      <dt className={`text-[13px] font-semibold ${s.ours !== "row" && j === 0 ? "text-primary" : "text-muted"}`}>{s.columns[j + 1]}</dt>
+                      <dd className="m-0 text-[15px] leading-snug text-ink/85">{c}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
               <thead>
                 <tr>
@@ -185,7 +201,7 @@ function Section({ s, facts, locale, t }: { s: LandingSection; facts: SiteFacts;
           <div className="mt-4 divide-y divide-line">
             {s.items.map((x, i) => (
               <details key={i} className="group py-3.5" open={i === 0}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-semibold text-ink">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
                   {x.q}
                   <span aria-hidden className="text-primary transition-transform group-open:rotate-45">+</span>
                 </summary>
@@ -213,7 +229,8 @@ export async function LandingPage({ content, offers }: { content: LandingContent
   const faqs = copy.sections.flatMap((s) => (s.kind === "faq" ? s.items : []));
   const ld = [
     breadcrumbs([{ name: t("landing.home"), path: "/" }, { name: copy.breadcrumb, path }], locale),
-    ...(offers ? [service({ name: copy.h1, description: copy.description, path, locale, offers: facts.packages.map((p) => ({ name: t(`wizard.packages.${p.key}.name` as MessageKey), total: p.total })) })] : []),
+    // The service, with one offer per package only when this page shows the price table.
+    ...(offers ? [service({ name: copy.h1, description: copy.description, path, locale, offers: copy.sections.some((s) => s.kind === "prices") ? facts.packages.map((p) => ({ name: t(`wizard.packages.${p.key}.name` as MessageKey), total: p.total })) : undefined })] : []),
     ...(faqs.length ? [faqPage(faqs, locale)] : []),
   ];
   return (

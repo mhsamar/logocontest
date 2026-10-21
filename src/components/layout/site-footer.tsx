@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getContact } from "@/lib/content/contact";
-import { visibleList } from "@/lib/content/lists";
+import { getList, visibleList } from "@/lib/content/lists";
 import { publishedGuides } from "@/lib/guides/queries";
 import { guideText } from "@/lib/guides/rules";
 import { showsLink } from "@/lib/rewards/program";
@@ -71,10 +71,11 @@ export async function SiteFooter() {
   const { t, locale, currency } = await getI18n();
   const backup = backupOrigin();
   const onBackup = backup !== null && (await requestOrigin()) === backup;
-  const [links, contact, allFooterLinks, offers, guides] = await Promise.all([
+  const [links, contact, allFooterLinks, footerList, offers, guides] = await Promise.all([
     getSettings(SOCIAL.map((x) => x.key)),
     getContact(locale),
     visibleList("footer_links", locale),
+    getList("footer_links"),
     visibleOffers(),
     publishedGuides(),
   ]);
@@ -84,7 +85,7 @@ export async function SiteFooter() {
     { href: "/logo-design-price", label: t("landing.related.price") },
     { href: "/logo-design", label: t("landing.related.service") },
     { href: "/about", label: t("landing.related.about") },
-  ].filter((l) => !allFooterLinks.some((x) => x.href === l.href));
+  ].filter((l) => !footerList.items.some((x) => x.href === l.href));
   const footerLinks = [...allFooterLinks, ...landing.map((l) => ({ id: `landing${l.href}`, on: true, href: l.href, column: "clients", text: { label: l.label } }))].filter((l) => showsLink(l.href, offers));
   const social = SOCIAL.filter((x) => links[x.key]);
   const year = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date()));

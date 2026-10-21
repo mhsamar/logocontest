@@ -16,12 +16,12 @@ import { formatNumber } from "@/lib/money";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { getSetting } from "@/lib/settings";
 import { robotsUnless } from "@/lib/seo";
-import { listingCounts } from "@/lib/seo/listings";
+import { safeListingCounts } from "@/lib/seo/listings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [{ t }, counts] = await Promise.all([getI18n(), listingCounts()]);
+  const [{ t }, counts] = await Promise.all([getI18n(), safeListingCounts()]);
   // An empty list stays out of search engines until contests come in (owner, 2026-10-21).
-  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: await pageAlternates("/contests"), ...robotsUnless(counts.contests > 0) };
+  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: await pageAlternates("/contests"), ...robotsUnless(!counts || counts.contests > 0) };
 }
 
 const CARD = "rounded-[24px] border border-[#E9EAEE] bg-white";

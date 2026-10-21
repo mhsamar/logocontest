@@ -42,6 +42,8 @@ export function openGraphFor(o: { title: string; description?: string; path?: st
     // The page's own address in its language (owner, 2026-10-21); without a path (the site-wide default) there is
     // none, so a shared page is never described as the home page.
     ...(o.path ? { url: localizedPath(o.path, o.locale) } : {}),
-    ...(o.images ? { images: o.images } : {}),
+    // A page that sets its own preview keeps the site's share picture unless it has its own (owner, 2026-10-21); the
+    // site-wide default (no path) leaves it to app/opengraph-image.
+    ...(o.images ? { images: o.images } : o.path ? { images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "logocontest.bd" }] } : {}),
   };
 }

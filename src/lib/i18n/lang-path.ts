@@ -32,8 +32,9 @@ export function localizedPath(path: string, locale: Locale): string {
  * offered to search engines in English.
  */
 export function hasBangla(text: string | null | undefined): boolean {
-  const letters = (text ?? "").match(/\p{L}/gu) ?? [];
-  if (letters.length < 20) return false;
+  // Bengali vowel signs and the hasanta are marks, not letters, so both count.
+  const letters = (text ?? "").match(/[\p{L}\p{M}]/gu) ?? [];
+  if (letters.length < 8) return false;
   const bangla = letters.filter((ch) => /[\u0980-\u09FF]/.test(ch)).length;
   return bangla / letters.length >= 0.3;
 }
