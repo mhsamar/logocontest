@@ -1,10 +1,13 @@
 import { getI18n } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { getSetting } from "@/lib/settings";
 import { backupOrigin, canonicalOrigin } from "@/lib/site-hosts";
 import { backupLinksOn, requestOrigin } from "@/lib/site-origin";
 import { BackToMainLink } from "./back-to-main-link";
 
 const hostOf = (origin: string) => new URL(origin).host;
+const BAR_KINDS = ["down_us", "down_public", "down_all", "validation", "both_down"];
+const barKind = (kind: string | null | undefined) => (kind && BAR_KINDS.includes(kind) ? kind : "down_us");
 
 /**
  * The backup address (owner, 2026-10-21). Visitors on logocontestbd.com see that it is our backup and that it works
@@ -24,7 +27,7 @@ export async function BackupBar({ admin }: { admin: boolean }) {
   const since = watch ? new Date(watch.since).toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
   return (
     <>
-      {down && <div className="relative z-40 bg-[#111216] px-4 py-2 text-center text-sm font-semibold leading-snug text-white">{t("admin.domainWatch.bar", { since })}</div>}
+      {down && <div className="relative z-40 bg-[#111216] px-4 py-2 text-center text-sm font-semibold leading-snug text-white">{t(`admin.domainWatch.bar_${barKind(watch?.kind)}` as MessageKey, { since })}</div>}
       {onBackup && backup && (
         <div role="status" className="relative z-40 bg-[#FFF1CF] px-4 py-2.5 text-center text-sm leading-snug text-[#4A3700]">
           <span className="font-semibold">{t("backup.onBackup", { backup: hostOf(backup) })}</span> {t("backup.paid")}

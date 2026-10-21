@@ -13,8 +13,12 @@ export const BD_SERVERS = [
   { name: "bd-ns.anycast.pch.net", ip: "204.61.216.108" },
 ] as const;
 
-/** A well-known .bd name: if the .bd servers say it doesn't exist either, all of .bd is broken, not only us. */
-export const CONTROL_NAME = "btcl.com.bd";
+/**
+ * Comparison names: btcl.bd sits in the same .bd list as ours (if BTCL drops it too, every direct .bd name is down,
+ * not only ours); btcl.com.bd is in the separate com.bd list and only goes in the details. Checked 2026-10-21.
+ */
+export const CONTROL_NAME = "btcl.bd";
+export const CONTROL_COM_NAME = "btcl.com.bd";
 
 function resolverAt(ip: string): Resolver {
   const r = new Resolver({ timeout: 2500, tries: 1 });
@@ -61,12 +65,13 @@ async function askPublic(base: string, name: string): Promise<PublicAnswer> {
 }
 
 export async function collectSignals(name: string, backupHost: string | null): Promise<{ signals: Signals; serial: number | null }> {
-  const [us, control, publicUs, publicBackup, serial] = await Promise.all([
+  const [us, control, controlCom, publicUs, publicBackup, serial] = await Promise.all([
     Promise.all(BD_SERVERS.map((s) => askServer(s.ip, name))),
     Promise.all(BD_SERVERS.map((s) => askServer(s.ip, CONTROL_NAME))),
+    Promise.all(BD_SERVERS.map((s) => askServer(s.ip, CONTROL_COM_NAME))),
     Promise.all(DOH.map((d) => askPublic(d, name))),
     backupHost ? Promise.all(DOH.map((d) => askPublic(d, backupHost))) : Promise.resolve([] as PublicAnswer[]),
     bdSerial(),
   ]);
-  return { signals: { us, control, publicUs, publicBackup }, serial };
+  return { signals: { us, control, controlCom, publicUs, publicBackup }, serial };
 }

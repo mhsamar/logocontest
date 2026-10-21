@@ -543,6 +543,8 @@ export const SETTINGS = {
         lastAlertAt: z.string().nullable(),
         lastCheck: z.string().nullable(),
         lastDetail: z.string().nullable(),
+        backAt: z.string().nullable().optional(),
+        alertKind: z.string().nullable().optional(),
       })
       .nullable(),
     default: null,
@@ -551,7 +553,7 @@ export const SETTINGS = {
   // Owner, 2026-10-21: BTCL's .bd servers sometimes drop logocontest.bd; the site also answers on logocontestbd.com.
   "site.backup_links": {
     group: "site", type: "bool", schema: z.boolean(), default: false,
-    description: "Backup links: while logocontest.bd is down at BTCL, new emails, notifications, Facebook cards and share buttons use logocontestbd.com. Turn it off again about 6 hours after logocontest.bd works.",
+    description: "Backup links: while logocontest.bd is down at BTCL, new emails, notifications, Facebook cards and share buttons use logocontestbd.com. Turn it off again about 24 hours after logocontest.bd works.",
   },
   "popup.on": {
     group: "site", type: "bool", schema: z.boolean(), default: true,

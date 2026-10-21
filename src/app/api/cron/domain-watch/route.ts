@@ -5,7 +5,7 @@ import { runDomainWatch } from "@/lib/domain/watch";
 // "Authorization: Bearer <CRON_SECRET>". Only the live site writes the state and sends alerts; anywhere else it is a
 // dry run that just reports (local, preview and live share one database), and only a dry run may watch another name.
 export const dynamic = "force-dynamic";
-export const maxDuration = 15;
+export const maxDuration = 60;
 
 async function handle(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
