@@ -80,6 +80,7 @@ describe("BLUEPRINT defaults", () => {
     // "checker" (logo checker API prices, owner 2026-10-14) is on A-11 too, and so are "ads" and "trash" (2026-10-14) and "email" (2026-10-15).
     // "pinterest" (auto-posting, owner 2026-10-19) is on /admin/pinterest.
     // "cards" (contest cards, owner 2026-10-19) is on /admin/contest-cards.
-    expect([...groups].sort()).toEqual(["ads", "auth", "brand", "cards", "checker", "contact", "email", "fees", "home", "how", "legal", "limits", "live", "notice", "notifications", "packages", "payments", "payouts", "pinterest", "rewards", "security", "site", "support", "timers", "trash", "upgrades"]);
+    // "system" (the .bd watch's state, owner 2026-10-21) has no form: only the 5-minute job writes it.
+    expect([...groups].sort()).toEqual(["ads", "auth", "brand", "cards", "checker", "contact", "email", "fees", "home", "how", "legal", "limits", "live", "notice", "notifications", "packages", "payments", "payouts", "pinterest", "rewards", "security", "site", "support", "system", "timers", "trash", "upgrades"]);
   });
 });

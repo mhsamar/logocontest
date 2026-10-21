@@ -17,6 +17,8 @@ const CONTENT_GROUPS = new Set(["contact", "notice"]);
 export async function saveSettings(group: string, values: Record<string, string>, reasonText: string): Promise<Result & { errors?: Record<string, string> }> {
   const admin = await adminUser(CONTENT_GROUPS.has(group) ? "content.manage" : "settings.manage");
   if (!admin) return fail("auth.errors.generic");
+  // Written only by the background jobs (owner, 2026-10-21).
+  if (group === "system") return fail("auth.errors.generic");
   // Brand & notice is site content, not money or rules: no reason needed (still audited).
   const reason = cleanReason(reasonText) ?? (CONTENT_GROUPS.has(group) ? "Brand & notice" : null);
   if (!reason) return fail("admin.errors.reason");

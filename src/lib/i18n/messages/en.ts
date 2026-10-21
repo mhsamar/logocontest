@@ -1664,6 +1664,20 @@ const en = {
     here: { contest: "Open this contest in admin", person: "Find this person in admin" },
   },
   admin: {
+    // The .bd watch's alerts (owner, 2026-10-21): to admins who manage Settings, by email and push.
+    domainWatch: {
+      subjectDown: "logocontest.bd is down at BTCL",
+      subjectStill: "logocontest.bd is still down at BTCL",
+      subjectBack: "logocontest.bd works again",
+      subjectBoth: "logocontest.bd and logocontestbd.com both fail",
+      down_us: "{n} of 4 BTCL .bd servers say logocontest.bd does not exist. Our site itself is fine: {backup}\n\nWhat to do:\n1. BTCL portal → Domain Edit → press Submit with the same name servers (gabe.ns.cloudflare.com, leia.ns.cloudflare.com). Not back in 1 hour? Call BTCL.\n2. Admin › Settings › Site › Backup links → on.\n3. Post the ready Facebook message with {backup}.",
+      down_all: "All .bd addresses are failing at BTCL right now, not only ours. Re-submitting won't help; BTCL has to fix it. Our site itself is fine: {backup}\n\nWhat to do:\n1. Admin › Settings › Site › Backup links → on.\n2. Post the ready Facebook message with {backup}.",
+      validation: "BTCL's .bd servers answer, but public DNS rejects their answers (likely a signing problem at BTCL). Re-submitting won't help. Our site itself is fine: {backup}\n\nWhat to do:\n1. Admin › Settings › Site › Backup links → on.\n2. Post the ready Facebook message with {backup}.",
+      both_down: "Both logocontest.bd and logocontestbd.com fail. This is not BTCL: Cloudflare or Vercel has a problem. Don't turn Backup links on. Tell Claude.",
+      back: "logocontest.bd answers again (it was down since {since}). Some phones remember the old answer for a few hours, so turn Admin › Settings › Site › Backup links off in about 6 hours.",
+      footer: "Since {since} (Bangladesh time). Check: {detail}",
+      bar: "logocontest.bd is down at BTCL since {since}. Re-submit the name servers in the BTCL portal and turn Backup links on.",
+    },
     title: "Admin",
     saved: "Saved.",
     filter: "Filter",

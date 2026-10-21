@@ -529,6 +529,25 @@ export const SETTINGS = {
 
   // ---- Help page: WhatsApp and live chat (owner, 2026-10-08; UI-JOURNEY P-14) ----
   // Visitor welcome pop-up (owner, 2026-10-13; Design/visitor-popup): new visitors only, after active time and a scroll.
+  // The .bd watch's state (owner, 2026-10-21): written only by the 5-minute job, never in Admin › Settings (group
+  // "system" has no form). Short codes only: the settings table is public-read.
+  "system.bd_status": {
+    group: "system", type: "json",
+    schema: z
+      .object({
+        state: z.enum(["ok", "down"]),
+        kind: z.string().nullable(),
+        since: z.string(),
+        downStreak: z.number(),
+        okStreak: z.number(),
+        lastAlertAt: z.string().nullable(),
+        lastCheck: z.string().nullable(),
+        lastDetail: z.string().nullable(),
+      })
+      .nullable(),
+    default: null,
+    description: "State of the logocontest.bd watch at BTCL's .bd servers (written by the 5-minute job).",
+  },
   // Owner, 2026-10-21: BTCL's .bd servers sometimes drop logocontest.bd; the site also answers on logocontestbd.com.
   "site.backup_links": {
     group: "site", type: "bool", schema: z.boolean(), default: false,
