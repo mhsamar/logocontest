@@ -40,9 +40,10 @@ const Line = ({ d, className }: { d: string; className?: string }) => (
   </svg>
 );
 
-export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
-  return { title: t("howPage.meta.title"), description: t("howPage.meta.description"), alternates: await pageAlternates("/how-it-works") };
+export async function generateMetadata({ searchParams }: PageProps<"/how-it-works">): Promise<Metadata> {
+  const [{ t }, sp] = await Promise.all([getI18n(), searchParams]);
+  // The designers' side is its own page for search engines (it is in the sitemap too).
+  return { title: t("howPage.meta.title"), description: t("howPage.meta.description"), alternates: await pageAlternates(sp.for === "designers" ? "/how-it-works?for=designers" : "/how-it-works") };
 }
 
 // P-08 How It Works (UI-JOURNEY; redesign owner 2026-10-11, Design/how-it-works): one page, For clients | For designers

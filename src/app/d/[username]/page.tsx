@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
     description,
     alternates: await pageAlternates(path),
     openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }),
+    ...(designer.isTest ? { robots: { index: false } } : {}),
   };
 }
 
