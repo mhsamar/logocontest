@@ -2,7 +2,7 @@ import "server-only";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { blockedTerms } from "@/lib/contests/community";
 import { translatorFor } from "@/lib/content/texts";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { emailText } from "@/lib/email/events";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notify } from "@/lib/notifications";
@@ -37,7 +37,7 @@ export async function emailUser(userId: string, kind: MailKind, params: { reason
       until,
       ban: s["limits.strikes_for_ban"],
       days: s["timers.strike_expiry_days"],
-      link: `${await siteOrigin()}/legal/designer-rules`,
+      link: `${await linkOrigin()}/legal/designer-rules`,
     }),
     security: true,
   });

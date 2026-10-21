@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { normalizeBdMobile } from "@/lib/phone";
 import { getSetting } from "@/lib/settings";
@@ -34,7 +34,7 @@ export async function claimReward(rewardId: string, f: { name: string; mobile: s
 
   const { error } = await createAdminClient().rpc("claim_monthly_reward", { p_reward_id: rewardId, p_user_id: user.id, p_name: name, p_mobile: `0${e164.slice(4)}`, p_address: address });
   if (error) return { ok: false, error: /already/.test(error.message) ? "monthlyReward.errors.already" : "monthlyReward.errors.generic" };
-  await tellAdminsClaimed(reward, user.name, await siteOrigin());
+  await tellAdminsClaimed(reward, user.name, await linkOrigin());
   refresh();
   return { ok: true };
 }

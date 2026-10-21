@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { profileTab, ClientProfileView } from "@/components/client/profile-view";
 import { getCurrentUser } from "@/lib/auth/session";
 import { clientProfileData } from "@/lib/client/workspace";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,7 +18,7 @@ export default async function ClientOwnProfilePage({ searchParams }: PageProps<"
   if (!user) redirect("/login?as=client&next=%2Fclient%2Fprofile");
   if (user.role !== "client") redirect("/dashboard");
   const sp = await searchParams;
-  const [{ t, locale }, p, origin] = await Promise.all([getI18n(), clientProfileData({ id: user.id }), siteOrigin()]);
+  const [{ t, locale }, p, origin] = await Promise.all([getI18n(), clientProfileData({ id: user.id }), linkOrigin()]);
   if (!p) redirect("/client");
   return (
     <>

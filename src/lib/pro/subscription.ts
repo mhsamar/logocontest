@@ -1,6 +1,6 @@
 import "server-only";
 import { translatorFor } from "@/lib/content/texts";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { emailProReceipt, emailProRenewal, emailText } from "@/lib/email/events";
 import { rowOfType } from "@/lib/notifications/admin-catalog";
 import type { NotificationData, NotificationType } from "@/lib/notifications";
@@ -40,7 +40,7 @@ export async function tellDesigner(designerId: string, type: NotificationType, d
     if (!p?.email) return;
     const locale = p.locale === "bn" ? "bn" : "en";
     const t = await translatorFor(locale);
-    const url = `${await siteOrigin()}${link}`;
+    const url = `${await linkOrigin()}${link}`;
     // notification.html (owner, 2026-10-15), in the designer's language.
     await emailText({
       userId: designerId,

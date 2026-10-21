@@ -1,5 +1,7 @@
 import "server-only";
 import { requireEnv } from "@/lib/env";
+import { backupLinksOn } from "@/lib/site-origin";
+import { backupOrigin } from "@/lib/site-hosts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LogPushSender } from "./log-sender";
 import type { PushMessage, PushSender } from "./types";
@@ -54,9 +56,12 @@ export async function notifyUser(userId: string, message: PushMessage): Promise<
     const { data } = await db.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId);
     if (!data?.length) return 0;
     const sender = getPushSender();
+    // While Backup links is on, a tap opens the backup address (owner, 2026-10-21); otherwise the browser's own one.
+    const backup = backupOrigin();
+    const out = backup && message.url.startsWith("/") && !message.url.startsWith("//") && (await backupLinksOn()) ? { ...message, url: `${backup}${message.url}` } : message;
     let sent = 0;
     for (const row of data) {
-      const result = await sender.send(row, message);
+      const result = await sender.send(row, out);
       if (result === "sent") {
         sent++;
         await db.from("push_subscriptions").update({ last_used_at: new Date().toISOString() }).eq("id", row.id);

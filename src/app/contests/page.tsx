@@ -15,10 +15,11 @@ import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
 import { visibleOffers } from "@/lib/rewards/visible";
 import { getSetting } from "@/lib/settings";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: { canonical: "/contests" } };
+  return { title: t("browse.meta.title"), description: t("browse.meta.description"), alternates: { canonical: canonicalUrl("/contests") } };
 }
 
 const CARD = "rounded-[24px] border border-[#E9EAEE] bg-white";

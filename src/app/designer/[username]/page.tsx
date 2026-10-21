@@ -15,13 +15,14 @@ import { formatDate } from "@/lib/dates";
 import { isLanguageKey, isSkillKey, isToolKey } from "@/lib/designers/portfolio-options";
 import { designerByUsername } from "@/lib/designers/profile";
 import { designerProfileData } from "@/lib/designers/public-profile";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { proProfileExtras } from "@/lib/pro/profile";
 import { isPro } from "@/lib/pro/status";
 import { openGraphFor } from "@/lib/seo";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/designer/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/designer/[usernam
   const path = `/designer/${designer.username}`;
   // Without a bio the page still has a description (QA, 2026-10-18).
   const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
-  return { title, description, alternates: { canonical: path }, openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
+  return { title, description, alternates: { canonical: canonicalUrl(path) }, openGraph: openGraphFor({ title, description, path, locale, images: designer.avatarUrl ? [designer.avatarUrl] : undefined }) };
 }
 
 const TABS = ["work", "winners", "reviews", "about"] as const;
@@ -67,7 +68,7 @@ export default async function ProProfilePage({ params, searchParams }: PageProps
 
   const data = await designerProfileData({ id: designer.id, username: designer.username, avatarUrl: designer.avatarUrl, winsCount: designer.stats.wins, skills: designer.skills, tools: designer.tools });
   const firstUrls = new Map(data.designs.filter((d) => d.files[0]).map((d) => [d.id, d.files[0].url]));
-  const [extra, origin] = await Promise.all([proProfileExtras(designer.id, data.designs.map((d) => d.id), firstUrls), siteOrigin()]);
+  const [extra, origin] = await Promise.all([proProfileExtras(designer.id, data.designs.map((d) => d.id), firstUrls), linkOrigin()]);
   const { stats } = data;
   const n = (v: number) => formatNumber(v, locale);
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? "work";

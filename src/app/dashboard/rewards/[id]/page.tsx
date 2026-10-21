@@ -8,7 +8,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { PageShell } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { cx } from "@/lib/cx";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { monthLabel } from "@/lib/notifications/render";
@@ -34,7 +34,7 @@ export default async function RewardPage({ params }: PageProps<"/dashboard/rewar
   if (!user) redirect(`/login?next=${encodeURIComponent(`/dashboard/rewards/${id}`)}`);
   const reward = await myReward(id, user.id);
   if (!reward) notFound();
-  const [{ t, locale }, origin, deadlineSetting] = await Promise.all([getI18n(), siteOrigin(), getSetting("rewards.claim_deadline")]);
+  const [{ t, locale }, origin, deadlineSetting] = await Promise.all([getI18n(), linkOrigin(), getSetting("rewards.claim_deadline")]);
   const phone = reward.kind === "smartphone";
   const month = monthLabel(reward.month, locale);
   const prize = t(phone ? "monthlyReward.page.smartphone" : "monthlyReward.page.giftBox");

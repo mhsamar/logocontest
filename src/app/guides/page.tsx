@@ -9,6 +9,7 @@ import { publishedGuides } from "@/lib/guides/queries";
 import { isGuideCategory } from "@/lib/guides/rules";
 import { getI18n } from "@/lib/i18n/server";
 import { openGraphFor } from "@/lib/seo";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [{ t, locale }, guides] = await Promise.all([getI18n(), publishedGuides()]);
@@ -17,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: "/guides" },
+    alternates: { canonical: canonicalUrl("/guides") },
     openGraph: openGraphFor({ title, description, path: "/guides", locale }),
     // An empty list is a thin page: kept out of search until the first guide is published.
     ...(guides.length ? {} : { robots: { index: false, follow: true } }),

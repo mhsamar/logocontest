@@ -4,7 +4,7 @@ import en from "@/lib/i18n/messages/en";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
 import { getSettings } from "@/lib/settings";
-import { siteUrl } from "@/lib/seo";
+import { linkOrigin } from "@/lib/site-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderCard } from "./render";
 import {
@@ -105,7 +105,8 @@ export async function cardFacts(c: CardContestRow, now: Date, lineBn: string | n
     link: shortLinkText(number),
     last24,
   };
-  return { data, category: cat || what, link: `${siteUrl()}${shortLinkPath(number)}` };
+  // The post's link follows Admin › Settings › Backup links (owner, 2026-10-21); the card itself always prints .bd.
+  return { data, category: cat || what, link: `${await linkOrigin()}${shortLinkPath(number)}` };
 }
 
 export async function makeCaption(c: CardContestRow, now: Date): Promise<string> {

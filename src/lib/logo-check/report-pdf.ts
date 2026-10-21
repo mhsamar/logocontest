@@ -1,5 +1,7 @@
 import "server-only";
 import QRCode from "qrcode";
+import { LOGO_ON_LIGHT } from "@/lib/cards/logos";
+import { printedOrigin } from "@/lib/site-hosts";
 import { renderCertificate } from "./certificate";
 import type { EntryReport } from "./entry-check";
 import type { MatchLevel } from "./entry-rules";
@@ -21,7 +23,7 @@ const LOOK: Record<MatchLevel, { label: string; line: string; bar: string; bg: s
 };
 
 export async function reportHtml(r: EntryReport, origin: string): Promise<string> {
-  const verifyUrl = `${origin}/verify/${r.reportId}`;
+  const verifyUrl = `${printedOrigin(origin)}/verify/${r.reportId}`;
   const qr = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 220, color: { dark: "#111216", light: "#FFFDF8" } });
   const look = LOOK[r.level];
   const row = (k: string, v: string) => `<div class="row"><span class="k">${esc(k)}</span><strong>${esc(v)}</strong></div>`;
@@ -60,7 +62,7 @@ h1{margin:6px 0 0;font-size:34px;line-height:1.08;font-weight:600;letter-spacing
 .note{display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.5;color:#6B6557}.note .w{color:#8A5A00;font-weight:700}
 .qr{width:92px;height:92px;flex:none}
 </style></head><body><div class="page"><div class="frame">
-<div class="top"><span class="brand d"><img src="${esc(origin)}/brand/logo-icon-tile.png" alt="">logocontest.bd</span><span class="no">Report ID<span class="cid">${esc(r.reportId)}</span></span></div>
+<div class="top"><span class="brand d"><img src="${LOGO_ON_LIGHT}" alt="">logocontest.bd</span><span class="no">Report ID<span class="cid">${esc(r.reportId)}</span></span></div>
 <div><span class="kick">Originality report</span><h1 class="d">Entry #${r.entry.number} · ${esc(r.contest.brand)}</h1></div>
 <div class="score"><span class="pct d">${r.score}%</span><div><span class="l">${look.label}</span><p>${look.line}</p></div></div>
 <div>${row("Designer", r.designer.username ? `${r.designer.name} (@${r.designer.username})` : r.designer.name)}${row("Checked on", `${dhaka(new Date(r.checkedAt))} · before submit`)}${row("Searched", `${r.sourcesCount} image sources and logo collections`)}${row("File fingerprint", `${r.fileSha256.slice(0, 4)}…${r.fileSha256.slice(-4)} — ${r.sameFile ? "matches the entry file" : "the entry file has changed"}`)}${row("Status", r.sameFile ? "Entry still uses this file" : "File changed — report no longer applies")}</div>

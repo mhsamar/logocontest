@@ -1,5 +1,5 @@
 import "server-only";
-import { headers } from "next/headers";
+import { requestOrigin } from "@/lib/site-origin";
 import { toUsdCents } from "@/lib/currency/rules";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -74,12 +74,6 @@ export async function retrieveSession(id: string): Promise<StripeSession | null>
   }
 }
 
-/** Where the visitor came from, for Stripe's return links (the same host they started on). */
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  return host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : (process.env.SITE_URL ?? "").replace(/\/$/, "");
-}
 
 /**
  * Opens Stripe for a payment that was just made (in taka): the dollars at today's rate from Admin › Settings are

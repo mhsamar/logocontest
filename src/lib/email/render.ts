@@ -1,3 +1,4 @@
+import { isOwnUrl, ownOrigins } from "@/lib/site-hosts";
 import { CATALOG, type EmailKey } from "./catalog";
 import { TEMPLATES } from "./templates";
 
@@ -36,15 +37,18 @@ const oneLine = (s: string, max: number) => {
   return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
 };
 
-/** A notification's text as HTML: escaped, line breaks kept, and links to this site made clickable. */
+/**
+ * A notification's text as HTML: escaped, line breaks kept, and links to this site made clickable (the main address,
+ * the backup address and the one the email was sent with; an exact address match, so look-alikes stay plain text).
+ */
 export function bodyHtml(body: string, siteUrl: string): string {
   const site = siteUrl.replace(/\/$/, "");
+  const own = [...(site ? [site] : []), ...ownOrigins()];
   return escapeHtml(body.trim())
     .replace(/https?:\/\/[^\s<]+/g, (url) => {
       const trail = url.match(/[.,;:!?)]+$/)?.[0] ?? "";
       const href = trail ? url.slice(0, -trail.length) : url;
-      const own = site && (href === site || href.startsWith(`${site}/`) || href.startsWith(`${site}?`));
-      return own ? `<a href="${href}" target="_blank" style="color:#8B0000;text-decoration:underline">${href}</a>${trail}` : url;
+      return isOwnUrl(href, own) ? `<a href="${href}" target="_blank" style="color:#8B0000;text-decoration:underline">${href}</a>${trail}` : url;
     })
     .replace(/\n/g, "<br>");
 }

@@ -15,7 +15,7 @@ import { hasPermission } from "@/lib/admin/permissions";
 import { addUnpaidNote } from "@/lib/admin/unpaid-actions";
 import { UNPAID_OUTCOMES, unpaidNotes } from "@/lib/admin/unpaid-notes";
 import { cx } from "@/lib/cx";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
@@ -41,7 +41,7 @@ export default async function AdminUnpaidPage() {
   const canMessage = hasPermission(me, "messages.manage");
   // Call notes and Delete (owner, 2026-10-20): Unpaid contests · manage.
   const canManage = hasPermission(me, "unpaid.manage");
-  const [{ t, locale }, rows, stats, origin, leads] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), siteOrigin(), wizardLeads()]);
+  const [{ t, locale }, rows, stats, origin, leads] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), linkOrigin(), wizardLeads()]);
   const notes = await unpaidNotes(rows.map((r) => r.id));
   // A contest waiting for payment reached the payment page, even when the wizard didn't record the step.
   const stepOf = (r: UnpaidContest) => r.step ?? (r.status === "pending_payment" ? AT_PAYMENT : null);

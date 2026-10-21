@@ -1,3 +1,4 @@
+import { LOGO_ON_LIGHT } from "@/lib/cards/logos";
 /**
  * The picture cards (owner, 2026-10-11; Design/rewards/designer-win-card.html): one HTML page per card, drawn at its
  * real size (1080 × 1080 for a square post, 1080 × 1920 for a story) and turned into a PNG by headless Chrome.
@@ -79,7 +80,7 @@ ${c.css}
 </style></head><body><div class="pc">
 ${DOTS.map(([x, y, s, o]) => `<span class="dot" style="left:${x}cqw;top:${y}cqw;width:${s}cqw;height:${s}cqw;opacity:${o}"></span>`).join("")}
 <div class="in">
-<div class="top"><span class="brand d"><img src="${esc(c.origin)}/brand/logo-icon-tile.png" alt="">logocontest.bd</span><span class="pill">${esc(c.pill)}</span></div>
+<div class="top"><span class="brand d"><img src="${LOGO_ON_LIGHT}" alt="">logocontest.bd</span><span class="pill">${esc(c.pill)}</span></div>
 <div class="pair">${photo}${c.art}</div>
 <div class="words"><span class="kick">${esc(c.kicker)}</span><span class="name d">${esc(c.name)}</span><span class="line">${c.lineHtml}</span></div>
 <span class="foot">${esc(c.footer)}</span>

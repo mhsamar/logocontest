@@ -8,13 +8,14 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { legalDoc, legalParams } from "@/lib/legal";
 import { isLegalSlug } from "@/lib/legal/types";
+import { canonicalUrl } from "@/lib/site-hosts";
 
 export async function generateMetadata({ params }: PageProps<"/legal/[page]">): Promise<Metadata> {
   const { page } = await params;
   if (!isLegalSlug(page)) return {};
   const { t, locale } = await getI18n();
   const doc = await legalDoc(page, locale, await legalParams(t, locale));
-  return { title: doc.title, description: doc.description, alternates: { canonical: `/legal/${page}` } };
+  return { title: doc.title, description: doc.description, alternates: { canonical: canonicalUrl(`/legal/${page}`) } };
 }
 
 // P-10 legal pages (UI-JOURNEY, owner 2026-10-09): Terms, Privacy, Payment & No-Refund Policy, Designer Rules.

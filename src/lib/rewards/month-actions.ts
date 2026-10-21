@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { adminUser, audit, UUID } from "@/lib/admin/core";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,7 +24,7 @@ export async function closeMonthNow(month: string, test: boolean): Promise<Resul
   const admin = await adminUser("monthly.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!closable(month)) return fail("admin.monthClose.errors.month");
-  const done = await closeMonth(month, { testMode: test, by: admin.id, origin: await siteOrigin() });
+  const done = await closeMonth(month, { testMode: test, by: admin.id, origin: await linkOrigin() });
   if (done.status === "already") return fail("admin.monthClose.errors.closed");
   refresh();
   return { ok: true };
@@ -34,7 +34,7 @@ export async function closeMonthNow(month: string, test: boolean): Promise<Resul
 export async function approveMonthNow(month: string, test: boolean): Promise<Result> {
   const admin = await adminUser("monthly.manage");
   if (!admin || !isMonthKey(month)) return fail("auth.errors.generic");
-  if (!(await approveMonth(month, test, admin.id, await siteOrigin()))) return fail("admin.monthClose.errors.nothing");
+  if (!(await approveMonth(month, test, admin.id, await linkOrigin()))) return fail("admin.monthClose.errors.nothing");
   refresh();
   return { ok: true };
 }
@@ -97,7 +97,7 @@ export async function saveRewardNote(id: string, note: string): Promise<Result> 
 export async function remindRewardNow(id: string): Promise<Result> {
   const admin = await adminUser("monthly.manage");
   if (!admin || !UUID.test(id)) return fail("auth.errors.generic");
-  if (!(await remindReward(id, await siteOrigin()))) return fail("admin.monthly.errors.claimed");
+  if (!(await remindReward(id, await linkOrigin()))) return fail("admin.monthly.errors.claimed");
   await audit(admin.id, "reward_reminder", "monthly_reward", id, {});
   refresh();
   return { ok: true };

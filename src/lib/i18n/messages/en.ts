@@ -81,6 +81,14 @@ const en = {
     label: "Notice",
     close: "Close notice",
   },
+  // The backup address (owner, 2026-10-21): the same site on logocontestbd.com while BTCL's .bd servers have trouble.
+  backup: {
+    onBackup: "You're on {backup}, our backup address. Everything works here; you may need to log in once.",
+    paid: "If you just paid, don't pay again: check your email or dashboard.",
+    goBack: "Go to {main} →",
+    adminOn: "Backup links are ON: new emails, notifications and Facebook cards use {backup}. Turn it off in Admin › Settings › Site about 6 hours after {main} works again.",
+    alsoAt: "Our other official address: {backup}",
+  },
   footer: {
     blurb: "Get your logo from Bangladesh's best designers.",
     legal: "Legal",
@@ -3293,6 +3301,7 @@ const en = {
         not_set_up: "The Pinterest app keys are missing in Vercel.",
         not_connected: "Connect Pinterest first.",
         no_board: "Choose a board first.",
+        paused: "Paused while Backup links is on (Admin › Settings). Pins go out again when it is off.",
       },
     },
     trash: {

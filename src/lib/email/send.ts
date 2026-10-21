@@ -5,7 +5,8 @@ import { siteUrl } from "@/lib/seo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { designerEmailsOff, noticeOn } from "@/lib/notifications/switches";
 import { isPro } from "@/lib/pro/status";
-import { getEmailSender, siteOrigin } from "./index";
+import { linkOrigin } from "@/lib/site-origin";
+import { getEmailSender } from "./index";
 import { isDesignerEmail, isOptionalKey, parseEmailOff, shouldSend, tierAllows, type EmailKey } from "./catalog";
 import { unsubscribeQuery } from "./links";
 import { render, type EmailData } from "./render";
@@ -53,11 +54,13 @@ const RETRY_DELAYS = [500, 1500, 3000];
 const DAY = 86_400_000;
 const DHAKA = 6 * 3_600_000;
 
-/** Links in emails point at the live site (SITE_URL, else this request's host, else logocontest.bd). */
+/**
+ * Links in emails point at the live site: logocontest.bd, or logocontestbd.com while Admin › Settings › Backup links
+ * is on (owner, 2026-10-21). Without SITE_URL (local development) the address being used.
+ */
 export async function emailOrigin(): Promise<string> {
-  if (process.env.SITE_URL) return siteUrl();
   try {
-    return await siteOrigin();
+    return await linkOrigin();
   } catch {
     return siteUrl();
   }

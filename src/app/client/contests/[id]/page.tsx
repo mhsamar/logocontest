@@ -36,7 +36,7 @@ import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getEntryDetail } from "@/lib/entries/queries";
 import { isShareableDesign } from "@/lib/entries/rules";
-import { siteOrigin } from "@/lib/email";
+import { linkOrigin } from "@/lib/site-origin";
 import { designPath, designPinPath } from "@/lib/share/links";
 import { CHAT_STATUSES } from "@/lib/handover/options";
 import { getHandoverByContest, handoverMessages } from "@/lib/handover/queries";
@@ -121,7 +121,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
     entry &&
     !entry.locked &&
     isShareableDesign({ status: entry.status, isHidden: entry.hidden }, { status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, isBlind: contest.isBlind, winnerIsPublic: contest.winnerIsPublic })
-      ? await siteOrigin()
+      ? await linkOrigin()
       : null;
   const reviewing = contest.status === "open" || contest.status === "judging";
   const fileDays = s["timers.designer_file_upload_days"];

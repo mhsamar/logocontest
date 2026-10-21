@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 import { designPath, designPinPath } from "@/lib/share/links";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { backupLinksOn } from "@/lib/site-origin";
 import { createPin, PinterestError, pinterestConfigured } from "./api";
 import { dueForPin, pinKindFor, PINS_PER_RUN, pinText, type PinKind, type PinterestRule } from "./rules";
 import { accessToken, noteError } from "./store";
@@ -14,7 +15,7 @@ import { accessToken, noteError } from "./store";
  */
 
 export type Candidate = { entryId: string; kind: PinKind; slug: string; brand: string; number: number; designer: string | null; service: string | null; prevAttempts: number };
-export type PinRunResult = { status: "off" | "not_set_up" | "not_connected" | "no_board" | "ran"; posted: number; failed: number; waiting: number; errors: string[] };
+export type PinRunResult = { status: "off" | "not_set_up" | "not_connected" | "no_board" | "paused" | "ran"; posted: number; failed: number; waiting: number; errors: string[] };
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
@@ -64,6 +65,9 @@ export async function runPinterest(now = new Date(), opts: { force?: boolean; li
   if (!pinterestConfigured()) return { ...result, status: "not_set_up" };
   const s = await getSettings(["pinterest.on", "pinterest.rule"]);
   if (!s["pinterest.on"] && !opts.force) return { ...result, status: "off" };
+  // While Backup links is on, logocontest.bd may be down and Pinterest can't fetch the pictures; waiting keeps each
+  // pin's few tries for later (owner, 2026-10-21).
+  if (await backupLinksOn()) return { ...result, status: "paused" };
   const db = createAdminClient();
   const { data: conn, error } = await db.from("pinterest_connection").select("board_id").maybeSingle();
   if (error || !conn) return { ...result, status: "not_connected" };

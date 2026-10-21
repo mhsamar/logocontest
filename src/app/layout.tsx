@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri } from "next/font/google";
 import { AdminBar } from "@/components/layout/admin-bar";
+import { BackupBar } from "@/components/layout/backup-bar";
 import { SuspendedBar } from "@/components/layout/suspended-bar";
 import { MotionFx } from "@/components/layout/motion-fx";
 import { PointerFx } from "@/components/layout/pointer-fx";
@@ -27,7 +28,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
-import { openGraphFor, searchIndexingOn, siteUrl } from "@/lib/seo";
+import { openGraphFor, searchIndexingOn } from "@/lib/seo";
+import { requestOrigin } from "@/lib/site-origin";
 import { banglaDigits, landingBody, landingHeading } from "./fonts";
 import "./globals.css";
 
@@ -42,7 +44,9 @@ const bangla = Hind_Siliguri({
 export async function generateMetadata(): Promise<Metadata> {
   const { t, locale } = await getI18n();
   return {
-    metadataBase: new URL(siteUrl()),
+    // Share previews use the address being visited (so they work on the backup address too); every page's canonical
+    // link names logocontest.bd itself (owner, 2026-10-21).
+    metadataBase: new URL(await requestOrigin()),
     title: { default: t("meta.title"), template: `%s · ${t("brand.name")}` },
     description: t("meta.description"),
     applicationName: t("brand.name"),
@@ -85,6 +89,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <div data-top-bars>
                 {/* Admins browsing the site: who they are and the way back (owner, 2026-10-10). */}
                 {can(user, "admin.access") && <AdminBar role={user!.isSuperAdmin ? t("admin.shell.superAdmin") : user!.adminTitle || t("admin.shell.staff")} />}
+                <BackupBar admin={can(user, "admin.access")} />
                 {notice && <NoticeBar notice={notice} />}
                 {held && <SuspendedBar text={t(held.key, held.params)} rulesLabel={t("suspension.rules")} />}
                 <EmailBannerSlot />

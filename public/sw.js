@@ -16,14 +16,24 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// A tap opens the notification's page. It may be on one of the site's other addresses (the backup address while
+// logocontest.bd is down at BTCL, owner 2026-10-21); any other address opens the home page instead.
+const OWN = ["https://logocontest.bd", "https://logocontestbd.com", "https://logocontest.vercel.app"];
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  let url;
+  try {
+    url = new URL(event.notification.data?.url || "/", self.location.origin);
+  } catch {
+    url = new URL("/", self.location.origin);
+  }
+  if (url.origin !== self.location.origin && !OWN.includes(url.origin)) url = new URL("/", self.location.origin);
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-      const open = windows.find((w) => w.url.startsWith(self.location.origin));
-      if (open) return open.navigate(url).then((w) => (w || open).focus());
-      return self.clients.openWindow(url);
+      const open = url.origin === self.location.origin && windows.find((w) => w.url.startsWith(self.location.origin));
+      if (open) return open.navigate(url.href).then((w) => (w || open).focus());
+      return self.clients.openWindow(url.href);
     }),
   );
 });

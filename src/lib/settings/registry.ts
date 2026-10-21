@@ -529,6 +529,11 @@ export const SETTINGS = {
 
   // ---- Help page: WhatsApp and live chat (owner, 2026-10-08; UI-JOURNEY P-14) ----
   // Visitor welcome pop-up (owner, 2026-10-13; Design/visitor-popup): new visitors only, after active time and a scroll.
+  // Owner, 2026-10-21: BTCL's .bd servers sometimes drop logocontest.bd; the site also answers on logocontestbd.com.
+  "site.backup_links": {
+    group: "site", type: "bool", schema: z.boolean(), default: false,
+    description: "Backup links: while logocontest.bd is down at BTCL, new emails, notifications, Facebook cards and share buttons use logocontestbd.com. Turn it off again about 6 hours after logocontest.bd works.",
+  },
   "popup.on": {
     group: "site", type: "bool", schema: z.boolean(), default: true,
     description: "Show the welcome pop-up (Start a contest / Join as a designer) to new visitors who are not signed in.",
