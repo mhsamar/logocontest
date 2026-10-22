@@ -18,6 +18,8 @@ export const ADMIN_AREAS = {
   unpaid: { manage: true },
   /** Owner, 2026-10-14: manage = approve manual bKash payments, payment methods, promo codes. */
   payments: { manage: true },
+  /** Owner, 2026-10-22: Admin › Pricing & fees; manage = change client and designer prices and fees. */
+  pricing: { manage: true },
   withdrawals: { manage: true },
   agreements: { manage: true },
   monthly: { manage: true },
@@ -54,7 +56,7 @@ const viewOnly = (...areas: AdminArea[]): Permission[] => areas.map((a) => `${a}
 
 export const PRESETS = {
   /** Runs the site day to day: everything except fees/settings and full ID numbers. */
-  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "copyright", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit", "autoshare", "notifications", "trash"), ...viewOnly("agreements", "settings", "services", "pro")],
+  manager: [...both("dashboard", "live", "contests", "designs", "reports", "claims", "copyright", "users", "unpaid", "payments", "withdrawals", "monthly", "support", "messages", "content", "audit", "autoshare", "notifications", "trash"), ...viewOnly("agreements", "settings", "services", "pro", "pricing")],
   /** Answers people: support chat, messages to one person, unpaid contests, read-only context. */
   support: [...both("support", "unpaid"), ...viewOnly("dashboard", "live", "contests", "designs", "users", "messages", "payments")],
   /** Keeps designs clean: reports, copy claims, designs and strikes. */

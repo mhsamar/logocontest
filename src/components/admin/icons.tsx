@@ -85,6 +85,8 @@ const PATHS = {
     </>
   ),
   withdrawals: <path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14" />,
+  // Pricing & fees (owner, 2026-10-22): a price tag.
+  pricing: <path d="M3 12V4h8l9 9-8 8zM7.5 8.5h.01" />,
   approvals: (
     <>
       <rect x="3" y="6" width="18" height="13" rx="2.5" />

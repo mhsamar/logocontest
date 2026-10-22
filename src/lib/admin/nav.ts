@@ -47,6 +47,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/payments/approvals", icon: "approvals", label: "pay.admin.nav.approvals", perm: "payments.view", badge: "approvals" },
       { href: "/admin/payments/methods", icon: "methods", label: "pay.admin.nav.methods", perm: "payments.view" },
       { href: "/admin/payments/promos", icon: "promos", label: "pay.admin.nav.promos", perm: "payments.view" },
+      // Every client and designer price and fee in one place (owner, 2026-10-22).
+      { href: "/admin/pricing", icon: "pricing", label: "admin.nav.pricing", perm: "pricing.view" },
       { href: "/admin/withdrawals", icon: "withdrawals", label: "admin.nav.withdrawals", perm: "withdrawals.view", badge: "withdrawals" },
     ],
   },

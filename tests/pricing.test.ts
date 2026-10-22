@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { noUpgrades, type Order, type UpgradeKey } from "@/lib/contests/brief";
-import { activeUpgrades, calculatePrice, feePercentFor, serviceFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { activeUpgrades, addonsFreeFor, calculatePrice, chargedUpgrades, feePercentFor, serviceFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { SETTINGS } from "@/lib/settings/registry";
 
 // The config the app builds from the seeded settings defaults.
@@ -91,12 +91,30 @@ describe("client price (BLUEPRINT §7.1)", () => {
     expect(serviceFee(3002, 25)).toBe(751); // 750.5 rounds up
   });
 
-  it("charges 15% instead of 25% when the prize is above ৳30,000 (owner, 2026-10-08)", () => {
-    expect(calculatePrice(order({ package: "custom", customPrize: 30000 }), cfg)).toMatchObject({ feePercent: 25, serviceFee: 7500, total: 37500 });
-    expect(calculatePrice(order({ package: "custom", customPrize: 30500 }), cfg)).toMatchObject({ feePercent: 15, serviceFee: 4575, total: 35075 });
-    expect(calculatePrice(order({ package: "custom", customPrize: 35000 }), cfg)).toMatchObject({ feePercent: 15, serviceFee: 5250, total: 40250 });
-    expect(feePercentFor(30000, cfg)).toBe(25);
-    expect(feePercentFor(30001, cfg)).toBe(15);
+  it("charges 20% instead of 25% when the prize is above ৳50,000 (owner, 2026-10-22)", () => {
+    expect(calculatePrice(order({ package: "custom", customPrize: 50000 }), cfg)).toMatchObject({ feePercent: 25, serviceFee: 12500, total: 62500 });
+    expect(calculatePrice(order({ package: "custom", customPrize: 50500 }), cfg)).toMatchObject({ feePercent: 20, serviceFee: 10100, total: 60600 });
+    expect(calculatePrice(order({ package: "custom", customPrize: 60000 }), cfg)).toMatchObject({ feePercent: 20, serviceFee: 12000, total: 72000 });
+    expect(feePercentFor(50000, cfg)).toBe(25);
+    expect(feePercentFor(50001, cfg)).toBe(20);
+  });
+
+  it("makes every chosen add-on free from a ৳25,000 prize, still switched on (owner, 2026-10-22)", () => {
+    const free = { ...cfg, addonsFreeFrom: SETTINGS["upgrades.all_free_from"].default };
+    expect(free.addonsFreeFrom).toBe(25000);
+    const under = calculatePrice(order({ package: "custom", customPrize: 24500, upgrades: withUpgrades("blind", "nda") }), free);
+    expect(under).toMatchObject({ addonsFree: false, upgradesTotal: 2500, freeUpgrades: [] });
+    const at = calculatePrice(order({ package: "custom", customPrize: 25000, upgrades: withUpgrades("blind", "nda", "private") }), free);
+    expect(at).toMatchObject({ addonsFree: true, upgrades: [], upgradesTotal: 0, total: 25000 + 6250 });
+    // NDA already includes Private, so Private isn't listed twice; the flags still come from the choice.
+    expect(at.freeUpgrades).toEqual(["blind", "nda"]);
+    expect(activeUpgrades(order({ upgrades: withUpgrades("blind", "nda") }))).toMatchObject({ blind: true, nda: true, private: true });
+    expect(chargedUpgrades(order({ package: "custom", customPrize: 25000, upgrades: withUpgrades("blind") }), free)).toEqual([]);
+    // Off when the setting is 0, and for the server's config before it is loaded.
+    expect(addonsFreeFor(100000, { addonsFreeFrom: 0 })).toBe(false);
+    expect(addonsFreeFor(100000, {})).toBe(false);
+    expect(addonsFreeFor(25000, { addonsFreeFrom: 25000 })).toBe(true);
+    expect(addonsFreeFor(24999, { addonsFreeFrom: 25000 })).toBe(false);
   });
 
   it("ignores the custom amount for fixed packages", () => {

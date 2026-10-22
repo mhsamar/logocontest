@@ -20,6 +20,13 @@ function Rows({ price, feePercent }: { price: Price; feePercent: number }) {
       {row("prize", t("wizard.summary.prize"), price.prize)}
       {row("fee", t("wizard.summary.fee", { percent: feePercent }), price.serviceFee)}
       {price.upgrades.map((u) => row(u.key, t(`wizard.upgrades.${u.key}.name`), u.price))}
+      {/* Free with this prize (owner, 2026-10-22). */}
+      {price.freeUpgrades.map((k) => (
+        <div key={k} className="flex items-baseline justify-between gap-4 py-1.5">
+          <dt className="text-muted">{t(`wizard.upgrades.${k}.name`)}</dt>
+          <dd className="font-semibold text-success">{t("wizard.summary.free")}</dd>
+        </div>
+      ))}
       {row("total", t("wizard.summary.total"), price.total, true)}
     </dl>
   );

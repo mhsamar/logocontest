@@ -133,6 +133,8 @@ describe("legal texts (P-10)", () => {
       "designsRule",
       "unpaidHours",
       "trashDays",
+      // Every add-on free from a prize (owner, 2026-10-22)
+      "addonsFree",
     ]);
     const all = JSON.stringify([LEGAL_EN, LEGAL_BN]);
     const used = new Set([...all.matchAll(/\{(\w+)\}/g)].map((m) => m[1]));

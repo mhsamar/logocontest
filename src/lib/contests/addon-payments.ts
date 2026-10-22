@@ -9,10 +9,12 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CHECKABLE_STATUSES } from "@/lib/logo-check/rules";
 import type { AddonKey } from "./addons";
+import { addonsFreeFor } from "./pricing";
 
 /** Add-ons and extensions bought after launch (BLUEPRINT §7.4, owner 2026-10-08). */
 
-export type AddonPrices = Record<AddonKey, number> & { extensionPerDay: number; extensionDays: number[]; checkerFreeFrom: number };
+/** `allFreeFrom`: every add-on is free with a prize of at least this (owner, 2026-10-22); 0 = never. Extra days stay paid. */
+export type AddonPrices = Record<AddonKey, number> & { extensionPerDay: number; extensionDays: number[]; checkerFreeFrom: number; allFreeFrom: number };
 
 export async function addonPrices(): Promise<AddonPrices> {
   const s = await getSettings([
@@ -23,6 +25,7 @@ export async function addonPrices(): Promise<AddonPrices> {
     "upgrades.extension_price_per_day",
     "upgrades.extension_days_options",
     "upgrades.logo_check_free_from",
+    "upgrades.all_free_from",
   ]);
   return {
     promote: s["upgrades.promoted_price"],
@@ -32,6 +35,7 @@ export async function addonPrices(): Promise<AddonPrices> {
     extensionPerDay: s["upgrades.extension_price_per_day"],
     extensionDays: s["upgrades.extension_days_options"],
     checkerFreeFrom: s["upgrades.logo_check_free_from"],
+    allFreeFrom: s["upgrades.all_free_from"],
   };
 }
 
@@ -102,6 +106,37 @@ export async function startAddonCheckout(
     customer: { name: user.name, mobile: user.mobile },
   });
   return { ok: true, redirectUrl };
+}
+
+/**
+ * An add-on a running contest gets free because its prize is at least `upgrades.all_free_from` (owner, 2026-10-22):
+ * switched on at once, with no payment. Extra days are never free. "not_free" when the prize is below the line.
+ */
+export async function activateFreeAddon(user: CurrentUser, contestId: string, addon: AddonKey): Promise<{ ok: true; slug: string } | { ok: false; error: "not_found" | "closed" | "active" | "not_free" | "waiting" }> {
+  if (addon === "logo_scan") return { ok: false, error: "active" };
+  const db = createAdminClient();
+  const { data: c } = await db
+    .from("contests")
+    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan")
+    .eq("id", contestId)
+    .maybeSingle<ContestFlags>();
+  if (!c || c.client_id !== user.id) return { ok: false, error: "not_found" };
+  const prices = await addonPrices();
+  // Free from the prize, or an add-on whose price the team set to ৳0 (a ৳0 payment can't be made).
+  if (!addonsFreeFor(c.prize_amount, { addonsFreeFrom: prices.allFreeFrom }) && prices[addon] > 0) return { ok: false, error: "not_free" };
+  if (c.status !== "open") return { ok: false, error: "closed" };
+  if (c[ACTIVE[addon]]) return { ok: false, error: "active" };
+  // A bKash payment for this add-on already waits for the team: they decide it first, so nobody pays for a free one.
+  const { data: open } = await db.from("payments").select("id").eq("contest_id", c.id).eq("addon", addon).eq("status", "initiated");
+  const ids = (open ?? []).map((p) => p.id as string);
+  if (ids.length) {
+    const { count } = await db.from("manual_payments").select("id", { count: "exact", head: true }).in("payment_id", ids).eq("status", "pending");
+    if ((count ?? 0) > 0) return { ok: false, error: "waiting" };
+  }
+  // Only while the contest is open and the add-on still off, so two clicks never do it twice.
+  const { data } = await db.from("contests").update({ [ACTIVE[addon]]: true }).eq("id", c.id).eq("status", "open").eq(ACTIVE[addon], false).select("id");
+  if (!data?.length) return { ok: false, error: "active" };
+  return { ok: true, slug: c.slug };
 }
 
 /** True when this payment buys an add-on or extension (not the contest itself). */

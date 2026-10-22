@@ -65,6 +65,8 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       // How many designs a designer may send to one contest: Basic is limited, Pro is not (owner, 2026-10-15).
       designsRule: basicLimit ? t("home.faq.designsLimited", { n: num.format(basicLimit) }) : t("home.faq.designsUnlimited"),
       designsShort: basicLimit ? t("home.faq.designsShortLimited", { n: num.format(basicLimit) }) : t("home.faq.designsShortUnlimited"),
+      // Every add-on free from a prize (owner, 2026-10-22): one sentence, or nothing while the rule is off.
+      addonsFree: (pricing.addonsFreeFrom ?? 0) > 0 ? ` ${t("home.faq.addonsFree", { amount: taka(pricing.addonsFreeFrom!) })}` : "",
     },
   };
 }

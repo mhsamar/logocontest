@@ -28,17 +28,17 @@ const socialUrl = (hosts: string[]) =>
  */
 export const SETTINGS = {
   // ---- Fees and tiers (§2, §7.1, §7.2) ------------------------------------
-  // Owner, 2026-10-08: 25%, or 15% when the prize is above ৳30,000.
+  // Owner, 2026-10-22: 25%, or 20% when the prize is above ৳50,000 (was 15% above ৳30,000). Changed in Admin › Pricing.
   "fees.client_service_fee_percent": {
     group: "fees", type: "int", schema: int(0, 100), default: 25,
     description: "Service fee added on top of the prize, in percent.",
   },
   "fees.client_service_fee_large_percent": {
-    group: "fees", type: "int", schema: int(0, 100), default: 15,
+    group: "fees", type: "int", schema: int(0, 100), default: 20,
     description: "Service fee for prizes above the amount below, in percent.",
   },
   "fees.client_service_fee_large_from": {
-    group: "fees", type: "int", schema: int(1), default: 30000,
+    group: "fees", type: "int", schema: int(1), default: 50000,
     description: "Prizes above this amount (taka) get the lower service fee.",
   },
   "fees.designer_tiers": {
@@ -50,7 +50,7 @@ export const SETTINGS = {
       { min_wins: 10, rate_percent: 10 },
       { min_wins: 50, rate_percent: 5 },
     ],
-    description: "Designer fee by counted wins before this win (0–9: 15%, 10–49: 10%, 50+: 5%).",
+    description: "Designer fee by counted wins before this win: each row is a number of wins and the fee from then on.",
   },
   "fees.counted_win_min_prize": {
     group: "fees", type: "int", schema: int(), default: 3000,
@@ -104,6 +104,11 @@ export const SETTINGS = {
   "upgrades.private_price": {
     group: "upgrades", type: "int", schema: int(), default: 1000,
     description: "Private contest upgrade price (taka).",
+  },
+  // Owner, 2026-10-22: every add-on is free with a prize of ৳25,000 or more; extra days stay paid.
+  "upgrades.all_free_from": {
+    group: "upgrades", type: "int", schema: int(), default: 25000,
+    description: "Every add-on is free with a prize of this much or more (taka). Extra days stay paid. 0 = never free.",
   },
   "upgrades.extension_price_per_day": {
     group: "upgrades", type: "int", schema: int(1), default: 500,
