@@ -133,6 +133,9 @@ describe("legal texts (P-10)", () => {
       "designsRule",
       "unpaidHours",
       "trashDays",
+      // The money-back guarantee (owner, 2026-10-21)
+      "guaranteeDesigners",
+      "lateDays",
       // Every add-on free from a prize (owner, 2026-10-22)
       "addonsFree",
     ]);

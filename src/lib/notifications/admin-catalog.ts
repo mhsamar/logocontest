@@ -69,6 +69,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("handover_updates", "designer", ["handover_revision", "handover_approved", "handover_approved_held"], ["bell"]),
   row("late_files", "designer", ["late_files_strike", "files_missed_banned"], ["bell", "email"], { email: "notification", locked: true, timing: ["timers.files_strike_hours"] }),
   row("prize_released", "designer", ["prize_released", "no_result_share"], ["bell"], { timing: ["timers.payout_hold_days"] }),
+  row("guarantee_designer", "designer", ["guarantee_designers"], ["bell"]),
   row("withdrawals", "designer", ["withdrawal_paid", "withdrawal_rejected"], ["bell"]),
   row("agreements", "designer", ["agreement_photo_requested", "agreement_rejected"], ["bell", "email"], { email: "notification", locked: true }),
   row("pro_checkout_reminder", "designer", ["pro_checkout_reminder"], ["bell", "push"], { timing: ["notify.upgrade_reminder_hours"], alsoIn: "pro" }),
@@ -95,6 +96,8 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("judging_reminder", "client", ["judging_reminder"], ["bell"], { timing: ["timers.judging_reminder_days"] }),
   row("handover_submitted", "client", ["handover_submitted"], ["bell"]),
   row("winner_changes", "client", ["repick_winner", "winner_picked_by_admin", "no_result_client"], ["bell"]),
+  // Money-back guarantee (owner, 2026-10-21): too few designers, the claim, the decision and the money back.
+  row("guarantee", "client", ["guarantee_available", "guarantee_claimed", "guarantee_approved", "guarantee_rejected", "guarantee_refunded"], ["bell", "email"], { email: "notification" }),
 
   // ---- Everyone ----
   row("welcome", "everyone", [], ["push", "email"], { email: "welcome", alsoIn: "user" }),
@@ -115,6 +118,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("admin_support", "admin", ["support_message_admin", "support_assigned_admin"], ["bell", "push"]),
   row("admin_designs", "admin", ["entry_held_admin"], ["bell", "push"]),
   row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell"]),
+  row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),
 ];

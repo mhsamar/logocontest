@@ -21,12 +21,13 @@ export type SiteFacts = {
   guaranteeDesigners: number;
 };
 
-/** `{?a:…}` is kept only while add-ons are free from a prize, `{!a:…}` only while they aren't (owner, 2026-10-22). */
+/** `{?g:…}` is kept only while the money-back guarantee is offered (`{!g:…}` only while it isn't), `{?a:…}` only while add-ons are
+ * free from a prize (`{!a:…}` only while they aren't) (owner, 2026-10-21 / 2026-10-22). */
 const SWITCHED_PART = /\{([?!])([a-z]):((?:[^{}]|\{\w+\})*)\}/g;
 
 /** Fills {minTotal}, {fee}, {year}… in a text (see src/lib/landing/types.ts for the list). Unknown names stay as they are. */
 export function fillFacts(text: string, f: SiteFacts, locale: Locale, year: number): string {
-  const on: Record<string, boolean> = { a: f.addonsFreeFrom > 0 };
+  const on: Record<string, boolean> = { a: f.addonsFreeFrom > 0, g: f.guaranteeOn };
   const taka = (n: number) => formatTaka(n, locale);
   const num = (n: number) => formatNumber(n, locale);
   const values: Record<string, string> = {

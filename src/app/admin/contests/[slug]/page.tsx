@@ -12,6 +12,7 @@ import { getAdminContest, getContestClient } from "@/lib/admin/contests";
 import { hasPermission } from "@/lib/admin/permissions";
 import { ONLINE_MS } from "@/lib/admin/users-query";
 import { formatDate, timeAgo } from "@/lib/dates";
+import { claimStatuses } from "@/lib/guarantee/queries";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
@@ -38,6 +39,8 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const unpaid = UNPAID.includes(c.status);
   const keepDays = (await getSettings(["trash.keep_days"]))["trash.keep_days"];
   const inTrash = c.trash;
+  // Money-back guarantee (owner, 2026-10-21): the claim's state and the way to it.
+  const claim = (await claimStatuses([c.id])).get(c.id) ?? null;
   // The client's answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14).
   const answers = answerLines(await getOnboarding("client"), await contestExtraAnswers(c.id), locale);
   const taka = (n: number) => formatTaka(n, locale);
@@ -87,7 +90,20 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
             )
           )}
         </p>
-        {c.cancelReason && <p className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{t("admin.contests.cancelledBecause", { reason: c.cancelReason })}</p>}
+        {c.cancelReason && !(claim === "approved" || claim === "refunded") && <p className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{t("admin.contests.cancelledBecause", { reason: c.cancelReason })}</p>}
+        {claim && (
+          <p className="mt-2 rounded-xl bg-[#fff6d6] px-3 py-2 text-sm text-gold-ink" data-guarantee-claim={claim}>
+            {t("guarantee.admin.contestState", { status: t(`guarantee.admin.tabs.${claim}`) })}
+            {hasPermission(me, "refunds.view") && (
+              <>
+                {" · "}
+                <Link href={`/admin/refunds${claim === "pending" ? "" : `?tab=${claim}`}`} className="font-semibold underline">
+                  {t("guarantee.admin.title")}
+                </Link>
+              </>
+            )}
+          </p>
+        )}
         {/* In the Trash (owner, 2026-10-14): Restore, or Erase now (Super admin). */}
         {inTrash && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">

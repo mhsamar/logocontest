@@ -31,8 +31,9 @@ async function ownEntry(entryId: string) {
     .maybeSingle();
   const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; slug: string; brand_name: string; client_id: string; status: string; logo_scan: boolean } | null);
   if (!data || !c || c.client_id !== user.id) return null;
-  // A finished contest is read-only for its client too (owner, 2026-10-12): only the files can be downloaded.
-  if (isFinished(c.status)) return null;
+  // A finished contest is read-only for its client too (owner, 2026-10-12): only the files can be downloaded. So is a
+  // cancelled one (owner, 2026-10-21: after a money-back refund the designers aren't told about stars or shortlists).
+  if (isFinished(c.status) || c.status === "cancelled") return null;
   return { user, entry: data as { id: string; number: number; status: string; designer_id: string }, contest: c };
 }
 

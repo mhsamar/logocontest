@@ -2,6 +2,7 @@ import "server-only";
 import { BUSINESS_TYPES, type BusinessType } from "@/lib/contests/brief";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { isSupabaseConfigured } from "@/lib/env";
+import { refundedTotal } from "@/lib/guarantee/queries";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -119,9 +120,10 @@ export async function clientByUsername(username: string): Promise<ClientProfile 
   const db = createAdminClient();
   const { data: p } = await db.from("profiles").select("id, name, business_name, avatar_path, created_at, status").eq("username", username.toLowerCase()).eq("role", "client").maybeSingle();
   if (!p || p.status === "banned" || p.status === "deleted") return null;
-  const [payments, contests] = await Promise.all([
+  const [payments, contests, back] = await Promise.all([
     db.from("payments").select("amount").eq("client_id", p.id).eq("status", "paid"),
     db.from("contests").select("id, is_private, is_nda").eq("client_id", p.id).in("status", PAID_STATUSES).order("starts_at", { ascending: false }),
+    refundedTotal(p.id as string),
   ]);
   return {
     id: p.id as string,
@@ -130,7 +132,8 @@ export async function clientByUsername(username: string): Promise<ClientProfile 
     avatarUrl: avatarUrl(p.avatar_path as string | null),
     memberSince: new Date(p.created_at as string),
     // Total spent includes private contests (§8.4); only the list hides them.
-    totalSpent: (payments.data ?? []).reduce((s, r) => s + (r.amount as number), 0),
+    // Less what came back under the money-back guarantee (owner, 2026-10-21).
+    totalSpent: Math.max(0, (payments.data ?? []).reduce((s, r) => s + (r.amount as number), 0) - back),
     contestsCount: contests.data?.length ?? 0,
     publicContestIds: (contests.data ?? []).filter((c) => !c.is_private && !c.is_nda).map((c) => c.id as string),
   };

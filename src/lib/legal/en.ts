@@ -9,7 +9,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
     description: "The rules for using logocontest.bd as a client or a designer.",
     summary: [
       "logocontest.bd runs design contests (logos and other designs): a client pays a prize, designers send designs, the client picks a winner and gets the files and the copyright.",
-      "Payments are non-refundable (see the Payment & No-Refund Policy).",
+      "Payments are non-refundable, except under the money-back guarantee (see the Payment & Refund Policy).",
       "Designers must send only their own original work. Copying leads to a fine or a ban, and logocontest.bd will take legal action.",
       "No contact details and no dealing outside the site.",
     ],
@@ -18,7 +18,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "about",
         heading: "About these terms",
         blocks: [
-          'These terms are an agreement between you and logocontest.bd ("we", "us"). By creating an account, starting a contest or sending a design, you accept them, together with our Privacy Policy, Payment & No-Refund Policy and Designer Rules.',
+          'These terms are an agreement between you and logocontest.bd ("we", "us"). By creating an account, starting a contest or sending a design, you accept them, together with our Privacy Policy, Payment & Refund Policy and Designer Rules.',
           "We may update these terms. The date at the top shows the latest version. If a change is important, we will tell you on the site or by email before it applies. Using the site after that means you accept the new terms.",
         ],
       },
@@ -49,6 +49,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "After the contest ends, the client has {judging} days to pick one winner.",
               "The winner uploads the final files within {upload} days. The client then approves the files or asks for a change within {response} days; changes go on until the client approves.",
               "If the client does not pick a winner, or does not respond to the final files in time, the contest ends with no result and the prize is shared equally among the designers who took part. In that case no files are delivered and no copyright moves to the client.",
+              "On a contest with the money-back guarantee, if fewer than {guaranteeDesigners} different designers took part, the client claims it in time and we approve the claim, the contest is cancelled instead: the client is refunded and the designers receive no share.",
             ],
           },
         ],
@@ -66,7 +67,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "copy-claims",
         heading: "Copied designs",
         blocks: [
-          "Within {claimDays} days of picking the winner, the client can tell us the winning design is copied or breaks someone else's copyright. We look at the evidence, talk with the designer and decide. If the claim is proven, the client may pick another design and the designer may have to correct the design, pay a fine or lose their account. This is explained in the Payment & No-Refund Policy and the Designer Rules.",
+          "Within {claimDays} days of picking the winner, the client can tell us the winning design is copied or breaks someone else's copyright. We look at the evidence, talk with the designer and decide. If the claim is proven, the client may pick another design and the designer may have to correct the design, pay a fine or lose their account. This is explained in the Payment & Refund Policy and the Designer Rules.",
         ],
       },
       {
@@ -84,7 +85,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
             list: [
               "Pro is a paid plan for designers, one month at a time. The Pro page shows its price and what it includes.",
               "Pro does not renew by itself: we remind you before it ends, and you can renew with one tap. If you cancel, Pro stays on until the end of the month you paid for.",
-              "Pro payments are not refunded (see the Payment & No-Refund Policy).",
+              "Pro payments are not refunded (see the Payment & Refund Policy).",
             ],
           },
         ],
@@ -232,12 +233,12 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
   },
 
   "payment-refund": {
-    title: "Payment & No-Refund Policy",
-    description: "How contest payments, designer payouts and the no-refund rule work on logocontest.bd.",
+    title: "Payment & Refund Policy",
+    description: "How contest payments, designer payouts, the no-refund rule and the money-back guarantee work on logocontest.bd.",
     summary: [
       "The client pays the prize plus a service fee before the contest goes live.",
-      "Payments are not refunded.",
-      "One exception, which is not a money refund: if the winning design is proven to be copied, the client may pick another design.",
+      "Payments are not refunded, except under the {guaranteeDesigners}-designer money-back guarantee (for contests that have it).",
+      "If the winning design is proven to be copied, the client may pick another design (this is not a money refund).",
       "The designer is paid {holdDays} days after the client approves the files, if no copy claim is open.",
       "Designer Pro plan payments are for one month and are not refunded.",
     ],
@@ -262,7 +263,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
           "Designers start working from the first day of a contest, so all payments are final. We do not refund the prize, the service fee, upgrades or extensions, including when:",
           {
             list: [
-              "you do not like the designs or receive fewer designs than you hoped;",
+              "you do not like the designs or receive fewer designs than you hoped (unless the money-back guarantee below applies);",
               "you do not pick a winner in time (the prize is then shared among the designers, see below);",
               "you change your mind, close your business or no longer need a logo;",
               "your contest is removed because it asks for nude, sexual or adult content. Your account is then also banned permanently.",
@@ -272,8 +273,28 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         ],
       },
       {
+        id: "guarantee",
+        heading: "Money back if fewer than {guaranteeDesigners} designers take part",
+        blocks: [
+          "This guarantee is for contests paid while we offer it. A contest that has it shows it before you pay and on your contest page, with the number of designers that applies to it, and keeps it even if we later change or stop the guarantee.",
+          {
+            list: [
+              "If your contest ends with designs from fewer than {guaranteeDesigners} different designers, you can claim back everything you paid for that contest: the prize, the service fee and any upgrades, extensions or add-ons. We do not deduct any fees. A promo code you used is not given back.",
+              "Who counts: every designer with at least one design in your contest, including designs you rejected. Several designs from one designer count as one designer. A design its designer took back counts only if you had rejected it; a design our team removed for breaking the rules does not count. Designs our team is still checking count once approved. Designs one person sent from more than one account count as one designer, and a design that clearly ignores the brief may be left out after our team checks it.",
+              "When to claim: press \"Claim my money back\" on your contest page within {judging} days of the end and before you pick a winner. Once you pick a winner (even if that win is later cancelled), or once the {judging} days are over and the prize has been shared, the guarantee no longer applies. If the prize could not be shared with anyone, you can still claim within {lateDays} days of the end.",
+              "If you think some designers should not count, you can ask us to check the count the same way, with your reason.",
+              "While we check your claim, picking a winner is paused. If we approve it, the contest is cancelled and we send the money back the way you paid: bKash payments to the bKash number you give us, card payments to the same card in the currency you paid (your bank's exchange rate may differ), and payments through an automatic gateway (bKash checkout, SSLCommerz) back through that gateway. We aim to send it within 7 working days of approval; a card refund can take a few more days to show in your bank.",
+              "If we do not approve it, we tell you why. If you claimed while you could still pick a winner, you get at least {repick} more days to pick one. You can claim only once per contest.",
+              "You receive no files and no rights to any design in the contest: the designs stay with their designers and you may not use them. Using a design from a refunded contest means you owe its designer the prize plus our service fee. The designers receive no prize and no share.",
+              "We may refuse a claim if the number of designers was lowered by breaking our rules (for example by asking designers outside the site to take their designs back), or if design files or a payment were arranged outside the site.",
+              "A refunded contest does not count toward the monthly client prize.",
+            ],
+          },
+        ],
+      },
+      {
         id: "copy-exception",
-        heading: "The one exception: a copied winning design",
+        heading: "A copied winning design",
         blocks: [
           "Within {claimDays} days of picking the winner, the client can report through the contest page or our support that the winning design is copied or breaks someone else's copyright. The client should explain the problem and share links (for example to the original logo).",
           {
@@ -290,7 +311,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "no-result",
         heading: "When the client stays silent",
         blocks: [
-          "If the client does not pick a winner within {judging} days of the end, or does not approve or ask for a change within {response} days of receiving the final files, the contest ends with no result. The prize is shared equally among the designers who took part, the client receives no files and no copyright moves. The payment is not refunded.",
+          "If the client does not pick a winner within {judging} days of the end, or does not approve or ask for a change within {response} days of receiving the final files, the contest ends with no result. The prize is shared equally among the designers who took part, the client receives no files and no copyright moves. The payment is not refunded. This does not apply when the client's money-back claim was approved: then the contest is cancelled and the designers get no share.",
         ],
       },
       {
@@ -390,6 +411,13 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "Your prize reaches your wallet {holdDays} days after the client approves the files, with no copy claim open. Then you can withdraw it to bKash or a bank account.",
             ],
           },
+        ],
+      },
+      {
+        id: "money-back",
+        heading: "When the client gets their money back",
+        blocks: [
+          "Some contests have our money-back guarantee (the contest page says so). If such a contest ends with designs from fewer than {guaranteeDesigners} different designers, the client may claim their money back before picking a winner. If the claim is approved, the contest is cancelled and no prize or share is paid. Your designs stay yours, and the client may not use them.",
         ],
       },
       {

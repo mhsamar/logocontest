@@ -26,7 +26,7 @@ export function inRace(p: RacePerson | undefined, testMode: boolean): boolean {
 /** More of the month's visits came from outside Bangladesh than from it. No country known: in Bangladesh. */
 export const visitsAbroad = (v: { bd: number; abroad: number } | undefined) => Boolean(v && v.abroad > v.bd);
 
-export type RaceContest = { contestId: string; clientId: string; prize: number; startsAt: Date; status: string; paid: boolean };
+export type RaceContest = { contestId: string; clientId: string; prize: number; startsAt: Date; status: string; paid: boolean; /** A money-back claim waits, was approved or paid (owner, 2026-10-21). */ moneyBack?: boolean };
 export type RacePayment = { clientId: string; amount: number; paidAt: Date };
 export type RaceWin = { contestId: string; designerId: string; prize: number; feeRate: number; pickedAt: Date; status: string };
 export type RaceEntry = { contestId: string; designerId: string; createdAt: Date; status: string };
@@ -50,7 +50,7 @@ export function rankClients(
   const range = monthRange(month);
   const by = new Map<string, ClientStanding>();
   for (const c of contests) {
-    if (!c.paid || c.status === "cancelled" || !within(c.startsAt, range) || !inRace(people.get(c.clientId), testMode)) continue;
+    if (!c.paid || c.status === "cancelled" || c.moneyBack || !within(c.startsAt, range) || !inRace(people.get(c.clientId), testMode)) continue;
     const s = by.get(c.clientId) ?? { id: c.clientId, contests: 0, prizeTotal: 0, spent: 0, firstAt: c.startsAt };
     s.contests += 1;
     s.prizeTotal += c.prize;

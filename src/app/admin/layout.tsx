@@ -11,11 +11,11 @@ const SEARCH_AREAS = ["contests.view", "users.view", "payments.view"] as const;
 
 /** Badge counts, only for the queues this admin may see. */
 async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number>> {
-  const zero = { reports: 0, claims: 0, withdrawals: 0, support: 0, approvals: 0, designs: 0 };
+  const zero = { reports: 0, claims: 0, withdrawals: 0, support: 0, approvals: 0, designs: 0, refunds: 0 };
   if (!isSupabaseConfigured()) return zero;
   const db = createAdminClient();
   const head = { count: "exact" as const, head: true };
-  const [r, c, w, s, a, d] = await Promise.all([
+  const [r, c, w, s, a, d, g] = await Promise.all([
     hasPermission(user, "reports.view") ? db.from("reports").select("id", head).eq("status", "open") : null,
     hasPermission(user, "claims.view") ? db.from("copy_claims").select("id", head).eq("status", "open") : null,
     hasPermission(user, "withdrawals.view") ? db.from("withdrawals").select("id", head).eq("status", "requested") : null,
@@ -23,8 +23,10 @@ async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number
     hasPermission(user, "payments.view") ? db.from("manual_payments").select("id", head).eq("status", "pending") : null,
     // Designs the design check held (owner, 2026-10-15; migration 0061).
     hasPermission(user, "designs.view") ? db.from("entries").select("id", head).eq("status", "held") : null,
+    // Money-back claims (owner, 2026-10-21): waiting for a decision, or approved and not paid yet.
+    hasPermission(user, "refunds.view") ? db.from("guarantee_claims").select("id", head).in("status", ["pending", "approved"]) : null,
   ]);
-  return { reports: r?.count ?? 0, claims: c?.count ?? 0, withdrawals: w?.count ?? 0, support: s?.count ?? 0, approvals: a?.count ?? 0, designs: d?.count ?? 0 };
+  return { reports: r?.count ?? 0, claims: c?.count ?? 0, withdrawals: w?.count ?? 0, support: s?.count ?? 0, approvals: a?.count ?? 0, designs: d?.count ?? 0, refunds: g?.count ?? 0 };
 }
 
 // Admin area (BLUEPRINT §13, §13.2; design/admin, owner 2026-10-10): sidebar, top bar with search, activity and

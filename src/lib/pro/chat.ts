@@ -11,6 +11,16 @@ export const PRO_FILES_BUCKET = "pro-files";
 const db = () => createAdminClient();
 const UUID = /^[0-9a-f-]{36}$/i;
 
+/**
+ * The chat closes for a cancelled contest, and while a money-back claim is being checked (owner, 2026-10-21): no
+ * files or deals around a refund.
+ */
+async function chatClosed(contestId: string, status: string): Promise<boolean> {
+  if (status === "cancelled") return true;
+  const { count } = await db().from("guarantee_claims").select("id", { count: "exact", head: true }).eq("contest_id", contestId).eq("status", "pending");
+  return (count ?? 0) > 0;
+}
+
 export type ChatContext = {
   entryId: string;
   entryNumber: number;
@@ -41,7 +51,7 @@ export async function chatContext(entryId: string, viewer: CurrentUser | null): 
     .maybeSingle();
   if (!e) return null;
   const c = (Array.isArray(e.contest) ? e.contest[0] : e.contest) as { id: string; slug: string; brand_name: string; status: string; client_id: string } | null;
-  if (!c) return null;
+  if (!c || (await chatClosed(c.id, c.status))) return null;
   const designerId = e.designer_id as string;
   const [pro, { data: pref }] = await Promise.all([isPro(designerId), db().from("pro_preferences").select("client_messages").eq("designer_id", designerId).maybeSingle()]);
   const allowed = canUseContestChat({
@@ -170,8 +180,8 @@ export async function unreadChats(viewer: CurrentUser): Promise<number> {
 export async function chattableEntries(contestId: string, viewer: CurrentUser | null): Promise<Set<string>> {
   const { settings, ready } = await getProSettings();
   if (!ready || !viewer || viewer.role !== "client" || !settings.features.client_chat) return new Set();
-  const { data: c } = await db().from("contests").select("client_id").eq("id", contestId).maybeSingle();
-  if (!c || c.client_id !== viewer.id) return new Set();
+  const { data: c } = await db().from("contests").select("client_id, status").eq("id", contestId).maybeSingle();
+  if (!c || c.client_id !== viewer.id || (await chatClosed(contestId, c.status as string))) return new Set();
   const { data: entries } = await db().from("entries").select("id, designer_id").eq("contest_id", contestId).not("status", "in", "(removed,withdrawn)");
   const ids = [...new Set((entries ?? []).map((e) => e.designer_id as string))];
   if (!ids.length) return new Set();

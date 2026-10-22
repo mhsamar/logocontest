@@ -233,7 +233,8 @@ export type ContestCover = { url: string; isWinner: boolean };
  */
 export async function leadingDesigns(contests: { id: string; isBlind: boolean; isPrivate: boolean; status?: string }[], owner = false): Promise<Map<string, ContestCover>> {
   const out = new Map<string, ContestCover>();
-  const ids = contests.filter((c) => owner || (!c.isBlind && !c.isPrivate)).map((c) => c.id);
+  // A cancelled contest (money back, or cancelled by the team) shows no design to anyone (owner, 2026-10-21).
+  const ids = contests.filter((c) => c.status !== "cancelled" && (owner || (!c.isBlind && !c.isPrivate))).map((c) => c.id);
   if (ids.length === 0 || !isSupabaseConfigured()) return out;
   const { data } = await createAdminClient()
     .from("entries")

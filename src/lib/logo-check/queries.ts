@@ -107,7 +107,7 @@ export type CheckView = CheckListItem & {
 
 const VIEW_COLUMNS =
   "id, number, status, step, verdict, entry_id, scores, error, created_at, finished_at, image_path, reading, advice, sources, paid, amount, certificate_pdf_path, certificate_png_path, locked_until, cost_usd, " +
-  "contest:contests!contest_id(id, slug, brand_name, contest_number, client_id, prize_amount, logo_scan), entry:entries!entry_id(id, number, designer:profiles!designer_id(id, name, username)), requester:profiles!requested_by(id, name), " +
+  "contest:contests!contest_id(id, slug, brand_name, contest_number, client_id, prize_amount, logo_scan, status), entry:entries!entry_id(id, number, designer:profiles!designer_id(id, name, username)), requester:profiles!requested_by(id, name), " +
   "matches:logo_check_matches(position, found_by, image_path, image_url, page_url, title, site, entry_id, similarity, same, different, is_close)";
 
 /** May this person see checks of a contest owned by `clientId`? */
@@ -119,8 +119,10 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
   const { data } = await createAdminClient().from("logo_checks").select(VIEW_COLUMNS).eq("id", id).maybeSingle();
   if (!data) return null;
   const r = data as unknown as Record<string, unknown>;
-  const contest = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; client_id: string; prize_amount: number; logo_scan: boolean } | null);
+  const contest = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; client_id: string; prize_amount: number; logo_scan: boolean; status: string } | null);
   if (!contest) return null;
+  // A cancelled contest (money back, or cancelled by the team): its client no longer sees the designs' checks (owner, 2026-10-21).
+  if (contest.status === "cancelled" && viewer?.id === contest.client_id && viewer.role !== "admin") return null;
   const entry = one(r.entry as { id: string; number: number; designer: unknown } | null);
   const designer = entry ? one(entry.designer as { id: string; name: string; username: string | null } | null) : null;
   const requester = one(r.requester as { id: string; name: string } | null);
@@ -231,14 +233,15 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   const [{ data: rows }, { data: own }] = await Promise.all([
     db
       .from("logo_checks")
-      .select(`${LIST_COLUMNS}, image_path, paid, sources, certificate_pdf_path, locked_until, contest:contests!contest_id(id, slug, brand_name, contest_number, prize_amount, logo_scan)`)
+      .select(`${LIST_COLUMNS}, image_path, paid, sources, certificate_pdf_path, locked_until, contest:contests!contest_id(id, slug, brand_name, contest_number, prize_amount, logo_scan, status)`)
       .eq("requested_by", userId)
       .in("source", ["entry", "upload"])
       .order("created_at", { ascending: false })
       .limit(200),
     db.from("contests").select("id, slug, brand_name, contest_number, status, prize_amount, logo_scan").eq("client_id", userId).in("status", [...CHECKABLE_STATUSES]),
   ]);
-  const list = (rows ?? []) as unknown as Record<string, unknown>[];
+  // Not the checks of a cancelled contest (money back, or cancelled by the team; owner, 2026-10-21).
+  const list = ((rows ?? []) as unknown as Record<string, unknown>[]).filter((r) => one(r.contest as { status: string } | { status: string }[] | null)?.status !== "cancelled");
   const urls = await getFileStorage()
     .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600)
     .catch(() => new Map<string, string>());

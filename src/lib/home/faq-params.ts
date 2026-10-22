@@ -19,6 +19,8 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       "fees.designer_tiers",
       "limits.withdrawal_min",
       "timers.payout_hold_days",
+      "guarantee.enabled",
+      "guarantee.min_designers",
     ]),
   ]);
   // In the visitor's currency on the home and How it works pages (owner, 2026-10-14); legal texts stay in taka.
@@ -37,26 +39,27 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       premium: taka(pricing.packagePrizes.premium),
       elite: taka(pricing.packagePrizes.elite),
       customMin: taka(pricing.customMin),
-      fee: pricing.serviceFeePercent,
-      largeFee: pricing.largeFeePercent,
+      // In the page's digits (২৫ on Bangla pages; owner, 2026-10-22).
+      fee: num.format(pricing.serviceFeePercent),
+      largeFee: num.format(pricing.largeFeePercent),
       largeFrom: taka(pricing.largeFeeFrom),
       durations: list(pricing.durationOptions.map((d) => num.format(d))),
       minDays: num.format(pricing.durationMin),
       maxDays: num.format(pricing.durationMax),
       perDay: taka(s["upgrades.extension_price_per_day"]),
-      judging: s["timers.judging_window_days"],
-      upload: s["timers.designer_file_upload_days"],
-      response: s["timers.client_response_days"],
+      judging: num.format(s["timers.judging_window_days"]),
+      upload: num.format(s["timers.designer_file_upload_days"]),
+      response: num.format(s["timers.client_response_days"]),
       blind: taka(pricing.upgradePrices.blind),
       private: taka(pricing.upgradePrices.private),
       // Designer side
-      tierFirst: tiers[0].rate_percent,
-      tierLast: tiers.at(-1)!.rate_percent,
+      tierFirst: num.format(tiers[0].rate_percent),
+      tierLast: num.format(tiers.at(-1)!.rate_percent),
       tiers: tiers
         .map((tier, i) => {
           const next = tiers[i + 1];
           const range = next ? `${num.format(tier.min_wins)}–${num.format(next.min_wins - 1)}` : `${num.format(tier.min_wins)}+`;
-          return t("howPage.tierLine", { range, rate: tier.rate_percent });
+          return t("howPage.tierLine", { range, rate: num.format(tier.rate_percent) });
         })
         .join(", "),
       withdrawMin: taka(s["limits.withdrawal_min"]),
@@ -65,6 +68,11 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       // How many designs a designer may send to one contest: Basic is limited, Pro is not (owner, 2026-10-15).
       designsRule: basicLimit ? t("home.faq.designsLimited", { n: num.format(basicLimit) }) : t("home.faq.designsUnlimited"),
       designsShort: basicLimit ? t("home.faq.designsShortLimited", { n: num.format(basicLimit) }) : t("home.faq.designsShortUnlimited"),
+      // Money-back guarantee (owner, 2026-10-21): the refund answer says so only while it is offered.
+      guaranteeDesigners: num.format(s["guarantee.min_designers"]),
+      refundRule: s["guarantee.enabled"]
+        ? t("home.faq.refundGuarantee", { n: num.format(s["guarantee.min_designers"]), judging: num.format(s["timers.judging_window_days"]) })
+        : t("home.faq.refundNo"),
       // Every add-on free from a prize (owner, 2026-10-22): one sentence, or nothing while the rule is off.
       addonsFree: (pricing.addonsFreeFrom ?? 0) > 0 ? ` ${t("home.faq.addonsFree", { amount: taka(pricing.addonsFreeFrom!) })}` : "",
     },

@@ -10,6 +10,7 @@ import { clientContests, payHref } from "@/lib/client/workspace";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { claimStatuses } from "@/lib/guarantee/queries";
 import { awaitingApproval } from "@/lib/payments/manual";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,6 +31,8 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
   const [{ t, locale }, { contests }] = await Promise.all([getI18n(), clientContests(user.id)]);
   const unpaid = contests.filter((c) => c.status === "draft" || c.status === "pending_payment");
   const waiting = unpaid.length ? await awaitingApproval(unpaid.map((c) => c.id)) : new Map<string, string>();
+  // Money-back claims being checked (owner, 2026-10-21): picking is paused on those contests.
+  const claims = await claimStatuses(contests.filter((c) => c.status === "judging").map((c) => c.id));
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const now = new Date();
@@ -140,7 +143,8 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
       {list.length === 0 && contests.length > 0 && <Empty title={t("cw.my.noMatch")} lead={t("cw.my.noMatchLead")} />}
       <div className="mgrid" data-contest-list>
         {list.map((c) => {
-          const act = mainAction(c.status);
+          const paused = claims.get(c.id) === "pending";
+          const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status);
           const stages = contestStages(c.status);
           const actHref = act === "pay" ? payHref(c.id, waiting) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
           const kind = myTabOf(c.status);
@@ -148,7 +152,9 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
             c.status === "open"
               ? left(c.endsAt)
               : c.status === "judging"
-                ? t("cw.home.pickWithin", { left: left(c.judgingEndsAt) })
+                ? paused
+                  ? t("guarantee.status.title")
+                  : t("cw.home.pickWithin", { left: left(c.judgingEndsAt) })
                 : kind === "unpaid"
                   ? t("cw.my.briefStep")
                   : c.status === "completed"

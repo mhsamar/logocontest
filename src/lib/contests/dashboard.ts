@@ -1,6 +1,7 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
 import { leadingDesigns, type ContestCover } from "@/lib/entries/queries";
+import { refundedTotal } from "@/lib/guarantee/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BusinessType, PackageKey } from "./brief";
 import { countEntries } from "./browse";
@@ -101,12 +102,14 @@ export async function getClientDashboard(userId: string): Promise<ClientDashboar
     paidByContest.set(p.contest_id as string, (paidByContest.get(p.contest_id as string) ?? 0) + (p.amount as number));
     if (p.purpose === "contest") contestsPaidFor.add(p.contest_id as string);
   }
+  // Less what came back under the money-back guarantee (owner, 2026-10-21), as on the public profile.
+  totalSpent = Math.max(0, totalSpent - (await refundedTotal(userId, shown)));
 
   const list = rows ?? [];
   const [entries, covers, entryRows] = await Promise.all([
     countEntries(list.map((r) => r.id as string)),
     // The client's own contests: blind and private ones show their designs too.
-    leadingDesigns(list.map((r) => ({ id: r.id as string, isBlind: r.is_blind as boolean, isPrivate: r.is_private as boolean })), true),
+    leadingDesigns(list.map((r) => ({ id: r.id as string, isBlind: r.is_blind as boolean, isPrivate: r.is_private as boolean, status: r.status as string })), true),
     list.length
       ? db.from("entries").select("contest_id, designer_id, rating, status").in("contest_id", list.map((r) => r.id as string)).in("status", ["active", "winner", "forfeited"])
       : Promise.resolve({ data: [] as { contest_id: string; designer_id: string; rating: number | null; status: string }[] }),

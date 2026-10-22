@@ -33,6 +33,7 @@ export function ReviewStep({
   uploads,
   onRetryUploads,
   goTo,
+  guarantee = null,
   addonsFreeFrom = 0,
 }: {
   brief: Brief;
@@ -50,6 +51,8 @@ export function ReviewStep({
   uploads: UploadState[];
   onRetryUploads: () => void;
   goTo: (step: number) => void;
+  /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
+  guarantee?: number | null;
   /** Every add-on is free from this prize (owner, 2026-10-22; Admin › Pricing); 0 = never. */
   addonsFreeFrom?: number;
 }) {
@@ -195,7 +198,7 @@ export function ReviewStep({
             <Link href="/legal/payment-refund" target="_blank" className="font-semibold text-primary underline">
               {t("footer.refund")}
             </Link>{" "}
-            {t("wizard.c11.termsEnd")}
+            {guarantee ? t("wizard.c11.termsEndGuarantee", { n: guarantee }) : t("wizard.c11.termsEnd")}
           </>
         }
       />

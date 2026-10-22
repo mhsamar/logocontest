@@ -70,6 +70,15 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   judging_reminder: "winner",
   repick_winner: "winner",
   winner_picked_by_admin: "winner",
+  // Money-back guarantee (owner, 2026-10-21)
+  guarantee_available: "ending",
+  guarantee_claimed: "money",
+  guarantee_approved: "money",
+  guarantee_rejected: "money",
+  guarantee_refunded: "money",
+  guarantee_designers: "money",
+  guarantee_claimed_admin: "admin",
+  guarantee_overdue_admin: "admin",
   // Safety and moderation
   entry_rejected: "safety",
   entry_removed: "safety",

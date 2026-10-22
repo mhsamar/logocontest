@@ -3,7 +3,7 @@ import type { AdminIconName } from "@/components/admin/icons";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { ADMIN_AREAS, hasPermission, type AdminArea, type AdminIdentity, type Permission } from "./permissions";
 
-export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals" | "designs";
+export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals" | "designs" | "refunds";
 export type AdminNavItem = { href: string; icon: AdminIconName; label: MessageKey; perm: Permission | "super"; badge?: AdminBadge };
 export type AdminNavGroup = { label: MessageKey; items: AdminNavItem[] };
 
@@ -49,6 +49,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/payments/promos", icon: "promos", label: "pay.admin.nav.promos", perm: "payments.view" },
       // Every client and designer price and fee in one place (owner, 2026-10-22).
       { href: "/admin/pricing", icon: "pricing", label: "admin.nav.pricing", perm: "pricing.view" },
+      // Money-back guarantee (owner, 2026-10-21): claims waiting for a decision or for the money to go back.
+      { href: "/admin/refunds", icon: "refunds", label: "admin.nav.refunds", perm: "refunds.view", badge: "refunds" },
       { href: "/admin/withdrawals", icon: "withdrawals", label: "admin.nav.withdrawals", perm: "withdrawals.view", badge: "withdrawals" },
     ],
   },

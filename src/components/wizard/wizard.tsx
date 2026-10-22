@@ -61,6 +61,8 @@ export type WizardProps = {
   methods: PublicMethod[];
   /** Questions the owner hid or added (Admin › Onboarding, owner 2026-10-14). */
   onboarding?: OnboardingConfig;
+  /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
+  guarantee?: number | null;
   /** "Share my contest on Facebook" (owner, 2026-10-19), once migration 0067 has run; the resumed draft's choice. */
   shareSwitch?: boolean;
   resumeShare?: boolean;
@@ -573,6 +575,7 @@ export function Wizard(props: WizardProps) {
                   onRemovePromo={() => setPromo(null)}
                   terms={terms}
                   onTerms={setTerms}
+                  guarantee={props.guarantee ?? null}
                   addonsFreeFrom={props.pricing.addonsFreeFrom ?? 0}
                   uploads={uploads}
                   onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}

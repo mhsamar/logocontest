@@ -44,6 +44,9 @@ export type EntryScope =
 
 export function entryScope(contest: ContestForEntries, viewer: EntryViewer): EntryScope {
   if (!contest.canSeeBrief) return { kind: "none" };
+  // A cancelled contest (money back, or cancelled by the team): nobody was paid for its designs, so only the admin
+  // team still sees them (owner, 2026-10-21).
+  if (contest.status === "cancelled" && viewer?.role !== "admin") return { kind: "none" };
   if (viewer && (viewer.id === contest.ownerId || viewer.role === "admin")) return { kind: "all", admin: viewer.role === "admin" };
   if (!contest.isBlind) return { kind: "public", ownerDesignerId: viewer?.role === "designer" ? viewer.id : null };
   const winnerOnly = contest.status === "completed" && contest.winnerIsPublic;

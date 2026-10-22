@@ -89,7 +89,7 @@ const profileOf = async (user: CurrentUser | null) => {
 export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null, startAtPay = false) {
   const [pricing, s, svcUser, inviteFirst, methods] = await Promise.all([
     getPricingConfig(),
-    getSettings(["auth.password_min_length", "limits.brief_max_files", "limits.brief_file_max_mb"]),
+    getSettings(["auth.password_min_length", "limits.brief_max_files", "limits.brief_file_max_mb", "guarantee.enabled", "guarantee.min_designers"]),
     profileOf(user),
     invitesAvailable(),
     payMethods(),
@@ -113,6 +113,7 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
       startAtPay={startAtPay}
       methods={methods}
       fileLimits={{ maxFiles: s["limits.brief_max_files"], maxMb: s["limits.brief_file_max_mb"] }}
+      guarantee={s["guarantee.enabled"] ? s["guarantee.min_designers"] : null}
     />
   );
 }
@@ -141,7 +142,7 @@ export async function serviceDraftOf(user: CurrentUser | null, draftId: string |
 export async function logoWizard(params: StartParams, user: CurrentUser | null) {
   const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods, onboarding] = await Promise.all([
     getPricingConfig(),
-    getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length"]),
+    getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length", "guarantee.enabled", "guarantee.min_designers"]),
     visibleList("business_types", "en"),
     visibleList("colours", "en"),
     profileOf(user),
@@ -189,6 +190,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       user={wizardUser}
       pricing={pricing}
       fileLimits={{ maxFiles: s["limits.brief_max_files"], maxMb: s["limits.brief_file_max_mb"] }}
+      guarantee={s["guarantee.enabled"] ? s["guarantee.min_designers"] : null}
       passwordMin={s["auth.password_min_length"]}
       previous={previous}
       resume={resume}

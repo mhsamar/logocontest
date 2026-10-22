@@ -51,6 +51,8 @@ export type ServiceWizardProps = {
   resume: { contestId: string; title: string; description: string; answers: Answers; order: Order; files?: ServerFile[] } | null;
   /** Reference images (owner, 2026-10-17: every contest has them, like the logo contest). */
   fileLimits: { maxFiles: number; maxMb: number };
+  /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
+  guarantee?: number | null;
   /** Designer Pro plan (owner, 2026-10-13): after saving, the optional "Invite Pro designers" step comes before paying. */
   inviteFirst?: boolean;
   /** Back from the invite step: open at "Review and pay". */
@@ -69,7 +71,7 @@ export type ServiceWizardProps = {
  * in the logo contest, with "Tell us about you" (real name, mobile and email, asked once), sets a password with the
  * prize, and every contest has reference images.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits, shareSwitch, resumeShare }: ServiceWizardProps) {
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits, shareSwitch, resumeShare, guarantee = null }: ServiceWizardProps) {
   // The prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
   const { t, locale, price: money } = useI18n();
   const router = useRouter();
@@ -497,7 +499,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                       <Link href="/legal/payment-refund" target="_blank" className="font-semibold text-primary underline">
                         {t("footer.refund")}
                       </Link>{" "}
-                      {t("wizard.c11.termsEnd")}
+                      {guarantee ? t("wizard.c11.termsEndGuarantee", { n: guarantee }) : t("wizard.c11.termsEnd")}
                     </>
                   }
                 />

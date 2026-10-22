@@ -244,6 +244,20 @@ export const SETTINGS = {
     group: "payments", type: "int", schema: int(0, 50), default: 0,
     description: "Added to dollar prices to cover card and currency fees, in percent (0 = none).",
   },
+  // Money-back guarantee (owner, 2026-10-21; BLUEPRINT §7.10; migration 0069). Each contest keeps the promise it was
+  // paid with: changing these never changes a contest that already has it.
+  "guarantee.enabled": {
+    group: "guarantee", type: "bool", schema: z.boolean(), default: false,
+    description: "Money-back guarantee on. Contests paid while it is on keep it, even if it is turned off later.",
+  },
+  "guarantee.min_designers": {
+    group: "guarantee", type: "int", schema: int(1, 50), default: 3,
+    description: "Different designers a contest needs. With fewer, the client can claim back everything they paid.",
+  },
+  "guarantee.late_days": {
+    group: "guarantee", type: "int", schema: int(1, 365), default: 30,
+    description: "Days after a no-result end (when nobody got a share) during which the client can still claim.",
+  },
   // Logo checker cost report (owner, 2026-10-14): API prices and the taka rate. Each check keeps its own cost.
   "checker.usd_to_bdt": {
     group: "checker", type: "int", schema: int(1, 1000), default: 122,

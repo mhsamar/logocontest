@@ -53,6 +53,9 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
   const contestIds = contestRows.map((c) => c.id as string);
   const clientIds = [...new Set(contestRows.map((c) => c.client_id as string))];
   const designerIds = [...new Set(winRows.map((w) => w.designer_id as string))];
+  // Contests with a money-back claim (owner, 2026-10-21): left out of the client race. Before migration 0069: none.
+  const { data: claimRows } = contestIds.length ? await db.from("guarantee_claims").select("contest_id").in("contest_id", contestIds).in("status", ["pending", "approved", "refunded"]) : { data: [] };
+  const moneyBack = new Set((claimRows ?? []).map((r) => r.contest_id as string));
   const [paidRes, paymentsRes, entriesRes, peopleRes] = await Promise.all([
     contestIds.length ? db.from("payments").select("contest_id").eq("purpose", "contest").eq("status", "paid").in("contest_id", contestIds) : Promise.resolve({ data: [], error: null }),
     clientIds.length ? db.from("payments").select("client_id, amount, paid_at").eq("status", "paid").in("client_id", clientIds).gte("paid_at", from).lt("paid_at", to) : Promise.resolve({ data: [], error: null }),
@@ -92,6 +95,7 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
     startsAt: new Date(c.starts_at as string),
     status: c.status as string,
     paid: paid.has(c.id as string),
+    moneyBack: moneyBack.has(c.id as string),
   }));
   const payments: RacePayment[] = (paymentsRes.data ?? []).map((p) => ({ clientId: p.client_id as string, amount: p.amount as number, paidAt: new Date(p.paid_at as string) }));
   const wins: RaceWin[] = winRows.map((w) => ({
