@@ -10,13 +10,15 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { useReadOnly } from "./read-only";
 
-export type SettingItem = { key: string; type: "int" | "bool" | "string" | "json"; value: string; description: string; updatedAt: string | null; options?: { value: string; label: string }[] };
+/** `label`: a plain name in the admin's language (Admin › Pricing & fees); without it the key and description show. */
+export type SettingItem = { key: string; type: "int" | "bool" | "string" | "json"; value: string; description: string; updatedAt: string | null; options?: { value: string; label: string }[]; label?: string };
 
 const INPUT = "block w-full min-h-10 rounded-lg bg-canvas px-3 text-sm text-ink ring-1 ring-inset ring-line focus:outline-none focus:ring-2 focus:ring-primary";
 
 /** A-11: one settings group. Saved together, with a reason for the audit log. */
 /** `reasonOptional`: site content (Brand & notice) saves without a reason; it is still written to the audit log. */
-export function SettingsGroup({ group, title, note, items, reasonOptional = false }: { group: string; title: string; note?: string; items: SettingItem[]; reasonOptional?: boolean }) {
+/** `id`: when two forms on one page save the same group (Admin › Pricing & fees), so their reason boxes differ. */
+export function SettingsGroup({ group, title, note, items, reasonOptional = false, id }: { group: string; title: string; note?: string; items: SettingItem[]; reasonOptional?: boolean; id?: string }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
   const router = useRouter();
@@ -52,8 +54,17 @@ export function SettingsGroup({ group, title, note, items, reasonOptional = fals
         {items.map((i) => (
           <div key={i.key} className="grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start md:gap-6">
             <label htmlFor={`s-${i.key}`} className="text-sm">
-              <span className="font-mono text-xs text-muted">{i.key}</span>
-              <span className="mt-0.5 block text-ink">{i.description}</span>
+              {i.label ? (
+                <>
+                  <span className="block font-semibold text-ink">{i.label}</span>
+                  {i.description && <span className="mt-0.5 block text-muted">{i.description}</span>}
+                </>
+              ) : (
+                <>
+                  <span className="font-mono text-xs text-muted">{i.key}</span>
+                  <span className="mt-0.5 block text-ink">{i.description}</span>
+                </>
+              )}
             </label>
             <div>
               {i.type === "bool" ? (
@@ -88,10 +99,10 @@ export function SettingsGroup({ group, title, note, items, reasonOptional = fals
         <div className="mt-4 space-y-2 rounded-xl bg-canvas p-3">
           {!reasonOptional && (
             <>
-              <label className="block text-sm font-medium text-ink" htmlFor={`r-${group}`}>
+              <label className="block text-sm font-medium text-ink" htmlFor={`r-${id ?? group}`}>
                 {t("admin.reason")}
               </label>
-              <input id={`r-${group}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("admin.settings.reasonPlaceholder")} className={INPUT} />
+              <input id={`r-${id ?? group}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("admin.settings.reasonPlaceholder")} className={INPUT} />
             </>
           )}
           {error && <Alert tone="danger">{error}</Alert>}

@@ -27,6 +27,7 @@ export async function GET() {
     "## Prices (prize + service fee, in taka)",
     `- Packages: ${packages}.`,
     `- Custom prizes from ${taka(f.minPrize)}. The fee is ${f.fee}% (${f.largeFee}% for prizes above ${taka(f.largeFrom)}).`,
+    ...(f.addonsFreeFrom > 0 ? [`- Every add-on (featured, private, blind, NDA, highlight, urgent) is free with a prize of ${taka(f.addonsFreeFrom)} or more; extra days are still paid.`] : []),
     "",
     "## Main pages",
     page("/logo-design-price", "Logo design price in Bangladesh", "packages and totals in taka"),
@@ -48,5 +49,5 @@ export async function GET() {
     ...LEGAL_SLUGS.map((s) => page(`/legal/${s}`, s.replace(/-/g, " "))),
     "",
   ];
-  return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
+  return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=600" } });
 }

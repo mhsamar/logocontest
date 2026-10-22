@@ -18,7 +18,8 @@ const LINKS: Record<string, (id: string) => string> = {
   designer_agreement: () => "/admin/agreements",
   copy_claim: () => "/admin/claims",
   report: () => "/admin/reports?view=closed",
-  settings: () => "/admin/settings",
+  // Prices and fees are saved from Admin › Pricing & fees (owner, 2026-10-22).
+  settings: (group) => (["fees", "packages", "upgrades", "payments"].includes(group) ? "/admin/pricing" : "/admin/settings"),
   contest_service: () => "/admin/services",
 };
 

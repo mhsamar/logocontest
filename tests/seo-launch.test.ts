@@ -7,7 +7,7 @@ import { faqPage, ldJson, organization, sameAsOf, service, website } from "@/lib
 /** Search launch (owner, 2026-10-21; SEO-PLAN.md): safe noindex, facts in taka with the fee, structured data. */
 const facts: SiteFacts = {
   minPrize: 3000, minTotal: 3750, fee: 25, largeFee: 15, largeFrom: 30000, customStep: 500, defaultDays: 7, minDays: 3, maxDays: 30, judgingDays: 3,   packages: [{ key: "economy", prize: 3000, feePercent: 25, total: 3750 }],
-  guaranteeOn: false, guaranteeDesigners: 3,
+  addonsFreeFrom: 25000, guaranteeOn: false, guaranteeDesigners: 3,
 };
 
 describe("search safety", () => {

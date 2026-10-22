@@ -33,6 +33,7 @@ export const siteFacts = cache(async (): Promise<SiteFacts> => {
       const prize = pricing.packagePrizes[key];
       return { key, prize, feePercent: feePercentFor(prize, fee), total: prizeWithFee(prize, fee) };
     }),
+    addonsFreeFrom: pricing.addonsFreeFrom ?? 0,
     guaranteeOn: false,
     guaranteeDesigners: 3,
   };

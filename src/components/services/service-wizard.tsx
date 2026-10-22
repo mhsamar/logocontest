@@ -26,7 +26,7 @@ import type { PublicMethod } from "@/lib/payments/manual-rules";
 import { MethodPicker, PromoField } from "@/components/payments/pay-bits";
 import type { PromoPreview } from "@/components/wizard/step-review";
 import { emptyBrief, noUpgrades, type Order, type UpgradeKey } from "@/lib/contests/brief";
-import { calculatePrice, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { addonsFreeFor, calculatePrice, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
@@ -127,6 +127,9 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const order: Order = { package: "custom", customPrize: d.prize, durationDays: d.days, upgrades: { ...d.upgrades, logo_scan: false } };
   const orderError = validateOrder(order, cfg);
   const price = orderError ? null : calculatePrice(order, cfg);
+  // Owner, 2026-10-22: every add-on is free from a prize amount (Admin › Pricing); 0 = never.
+  const freeFrom = cfg.addonsFreeFrom ?? 0;
+  const allFree = addonsFreeFor(d.prize, cfg);
   const { errors } = cleanAnswers(service, d.answers);
   const titleError = d.title.trim().length < LIMITS.title.min || d.title.trim().length > LIMITS.title.max;
   const descError = d.description.trim().length < LIMITS.description.min || d.description.trim().length > LIMITS.description.max;
@@ -395,13 +398,18 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                 </fieldset>
                 <fieldset className="m-0 border-0 p-0">
                   <legend className="mb-2.5 text-base font-semibold text-ink">{t("services.wizard.addons")}</legend>
+                  {freeFrom > 0 && (
+                    <p className={cx("m-0 mb-2.5 rounded-[14px] px-3.5 py-2.5 text-[14px] font-semibold", allFree ? "bg-success/10 text-success" : "bg-[#FFF8E6] text-[#7A5300]")} role="note" data-addons-free={allFree ? "on" : "off"}>
+                      {allFree ? t("wizard.summary.addonsFree", { amount: money(freeFrom) }) : t("wizard.summary.addonsFreeTip", { amount: money(freeFrom) })}
+                    </p>
+                  )}
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     {SERVICE_UPGRADES.map((u) => (
                       <label key={u} className={cx("flex cursor-pointer items-start gap-3 rounded-[14px] p-3.5 ring-1", d.upgrades[u] ? "bg-tint ring-primary" : "bg-surface ring-line")}>
                         <input type="checkbox" checked={d.upgrades[u]} onChange={(e) => setD({ ...d, upgrades: { ...d.upgrades, [u]: e.target.checked } })} className="mt-1 size-[18px] accent-[#8B0000]" />
                         <span className="flex flex-col">
                           <strong className="text-[15px]">
-                            {t(`wizard.upgrades.${u}.name`)} · {money(cfg.upgradePrices[u])}
+                            {t(`wizard.upgrades.${u}.name`)} · {allFree ? <span className="text-success">{t("wizard.c08.freeWithPrize")}</span> : money(cfg.upgradePrices[u])}
                           </strong>
                           <span className="text-[13.5px] text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>
                         </span>
@@ -432,6 +440,18 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                       <dd className="m-0 line-clamp-2 text-right text-ink">{answerText(f, d.answers[f.key], l)}</dd>
                     </div>
                   ))}
+                  {/* The payment section's notice (owner, 2026-10-22): the chosen add-ons are free with this prize. */}
+                  {price.freeUpgrades.map((k) => (
+                    <div key={k} className="flex justify-between gap-3 py-1">
+                      <dt className="text-muted">{t(`wizard.upgrades.${k}.name`)}</dt>
+                      <dd className="m-0 font-semibold text-success">{t("wizard.summary.free")}</dd>
+                    </div>
+                  ))}
+                  {freeFrom > 0 && (
+                    <p className={cx("m-0 mt-2 rounded-[12px] px-3 py-2 text-[14px] font-semibold", price.addonsFree ? "bg-success/10 text-success" : "bg-[#FFF8E6] text-[#7A5300]")} role="note">
+                      {t(price.addonsFree ? "wizard.summary.addonsFree" : "wizard.summary.addonsFreeTip", { amount: money(freeFrom) })}
+                    </p>
+                  )}
                   <div className="mt-2 flex justify-between border-t border-line pt-3 font-semibold text-ink">
                     <dt>{t("wizard.summary.total")}</dt>
                     <dd className="m-0 text-lg tabular-nums">

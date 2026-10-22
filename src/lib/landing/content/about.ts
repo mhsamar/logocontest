@@ -24,7 +24,7 @@ export const content: LandingContent = {
         kind: "steps",
         heading: "How it works for clients",
         steps: [
-          { title: "Write your brief", body: "Tell designers your business name, what you do, colours you like and where the logo will be used. Optional add-ons at an extra price, such as a private or blind contest, an NDA or a highlighted listing, are there if you need them." },
+          { title: "Write your brief", body: "Tell designers your business name, what you do, colours you like and where the logo will be used. Optional add-ons at an extra price, such as a private or blind contest, an NDA or a highlighted listing, are there if you need them.{?a: Every add-on is free with a prize of {addonsFreeFrom} or more; extra days are still paid.}" },
           { title: "Choose the prize and pay", body: "Pick a package or set your own prize from {minPrize}. A {fee}% service fee is added ({largeFee}% for prizes above {largeFrom}), so the smallest total is {minTotal}. You pay by bKash when you start, and payments are not refunded." },
           { title: "See designs and give feedback", body: "A contest runs for {defaultDays} days by default (you can choose {minDays} to {maxDays}). Designers can send designs, and your stars and comments help them improve." },
           { title: "Pick the winner and get your files", body: "Choose your favourite within {judgingDays} days after the contest ends (you pay the prize upfront when you start). The winner hands over the final files (AI, EPS, SVG, PDF, PNG, JPG) and the full copyright through the site. If you do not pick a winner within {judgingDays} days, or do not respond to the final files in time, the contest ends with no result and the prize is shared equally among the designers who took part." },
@@ -100,7 +100,7 @@ export const content: LandingContent = {
         kind: "steps",
         heading: "ক্লায়েন্টদের জন্য: কীভাবে কাজ করে",
         steps: [
-          { title: "ব্রিফ লিখুন", body: "ডিজাইনারদের জানান আপনার ব্যবসার নাম, কী কাজ করেন, কোন রং পছন্দ আর লোগো কোথায় ব্যবহার হবে। দরকার হলে প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA বা হাইলাইটের মতো আলাদা দামের অ্যাড-অনও নিতে পারেন।" },
+          { title: "ব্রিফ লিখুন", body: "ডিজাইনারদের জানান আপনার ব্যবসার নাম, কী কাজ করেন, কোন রং পছন্দ আর লোগো কোথায় ব্যবহার হবে। দরকার হলে প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA বা হাইলাইটের মতো আলাদা দামের অ্যাড-অনও নিতে পারেন।{?a: {addonsFreeFrom} বা তার বেশি পুরস্কারে প্রতিটি অ্যাড-অন ফ্রি; বাড়তি দিনের টাকা লাগে।}" },
           { title: "পুরস্কার ঠিক করে পেমেন্ট করুন", body: "একটা প্যাকেজ বেছে নিন, অথবা নিজের মতো পুরস্কার ঠিক করুন ({minPrize} থেকে শুরু)। এর সাথে {fee}% সার্ভিস ফি যোগ হয় ({largeFrom}-এর বেশি পুরস্কারে {largeFee}%), তাই সবচেয়ে কম মোট খরচ {minTotal}। কনটেস্ট শুরুর সময় বিকাশে পেমেন্ট করুন; এই পেমেন্ট ফেরত দেওয়া হয় না।" },
           { title: "ডিজাইন দেখুন, মতামত দিন", body: "সাধারণত কনটেস্ট চলে {defaultDays} দিন (চাইলে {minDays} থেকে {maxDays} দিন)। এই সময়ে ডিজাইনাররা ডিজাইন পাঠাতে পারেন, আর আপনার স্টার ও কমেন্ট দেখে তারা ডিজাইন আরও ভালো করেন।" },
           { title: "বিজয়ী বেছে নিন, ফাইল বুঝে নিন", body: "কনটেস্ট শেষ হওয়ার পর {judgingDays} দিনের মধ্যে পছন্দের ডিজাইনটি বেছে নিন (পুরস্কার শুরুতেই দিতে হয়)। বিজয়ী ডিজাইনার সাইটের মাধ্যমেই ফাইনাল ফাইল (AI, EPS, SVG, PDF, PNG, JPG) আর পুরো কপিরাইট আপনাকে দিয়ে দেন। {judgingDays} দিনের মধ্যে বিজয়ী না বাছলে, অথবা সময়মতো ফাইনাল ফাইলের জবাব না দিলে কনটেস্ট ফলাফল ছাড়া শেষ হয়, আর পুরস্কার অংশ নেওয়া ডিজাইনারদের মধ্যে সমান ভাগে ভাগ হয়।" },

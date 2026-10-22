@@ -22,7 +22,7 @@ Marketing targets clients. Designers are expected to arrive on their own.
 
 | Rule | Value |
 |---|---|
-| Client service fee | 25% of the prize, added on top (prize 5,000 → client pays 6,250); 15% when the prize is above 30,000 (custom prizes) (owner, 2026-10-08; was 20%; both rates and the threshold are settings) |
+| Client service fee | 25% of the prize, added on top (prize 5,000 → client pays 6,250); 20% when the prize is above 50,000 (owner, 2026-10-22; was 15% above 30,000; both rates and the threshold are set on Admin › Pricing & fees) |
 | Designer fee | 15% (0–9 wins), 10% (10–49 wins), 5% (50+ wins) (owner, 2026-10-08; was 7% / 5% / 2%) |
 | Refunds | None. All payments are non-refundable. One exception, which is not a money refund (owner, 2026-10-09): a proven copy claim on the winning design lets the client pick another design (§7.6) |
 | Copy claim (owner, 2026-10-09) | Within `timers.copy_claim_days` (3) days of picking the winner, the client can claim the winning design is copied or breaks someone's copyright (§7.6). The winner's prize stays on hold for the same days |
@@ -186,7 +186,7 @@ If no designer qualifies for a share, the contest still ends as `no_result` but 
 ### 7.1 Client charge
 
 ```
-fee_rate    = 0.15 if prize > 30,000 else 0.25      (owner, 2026-10-08)
+fee_rate    = 0.20 if prize > 50,000 else 0.25      (owner, 2026-10-22; was 0.15 above 30,000)
 service_fee = round(prize * fee_rate)
 total       = prize + service_fee + upgrades_total
 ```
@@ -198,8 +198,8 @@ total       = prize + service_fee + upgrades_total
 | Pro | 8,000 | 2,000 | 10,000 |
 | Premium | 12,000 | 3,000 | 15,000 |
 | Elite | 15,000 | 3,750 | 18,750 |
-| Custom 30,000 | 30,000 | 7,500 | 37,500 |
-| Custom 35,000 | 35,000 | 5,250 | 40,250 |
+| Custom 50,000 | 50,000 | 12,500 | 62,500 |
+| Custom 60,000 | 60,000 | 12,000 | 72,000 |
 
 Always show the client the full breakdown before payment.
 
@@ -246,6 +246,8 @@ A win only counts toward the tier and the leaderboard when prize ≥ 3,000 and t
 | NDA / Confidential (owner, 2026-10-08) | Includes everything Private does (Private is not charged on top), and designers must accept a confidentiality agreement before they can read the brief, see the designs or submit. Acceptances are stored (`nda_acceptances`) | 1,500 |
 | Extension | Bought while the contest is open; adds 3, 5 or 7 days to `ends_at`. Can be bought more than once | 500 per day added |
 | AI copyright checker (owner, 2026-10-10; replaces Logo Scan, see §7.7) | AI logo checks, each ending in a Logo Research Certificate. **Free with 20 checks when the prize is ৳5,000 or more**; below that this add-on gives **10 checks** (owner, 2026-10-13; was 3 checks, free from ৳8,000, ৳500). Same add-on key (`logo_scan`), contest flag and price setting as the old Logo Scan, so contests that bought Logo Scan get the checker | 250 |
+
+**Free add-ons from a ৳25,000 prize (owner, 2026-10-22):** with a prize of `upgrades.all_free_from` (25,000) or more, every add-on (Featured, Blind, Private, Highlight, Urgent, NDA) costs nothing, when starting the contest and when added later on the contest page (switched on at once, no payment). Extra days are still paid. The wizard's prize step and its review-and-pay step, the service wizard and the contest's add-ons panel say so. 0 = never free.
 
 **Add-ons after launch (owner, 2026-10-08):** while a contest is open the client can buy Promoted (shown as "Featured"), Private, Blind, Extension and the AI copyright checker from the contest's manage page (the checker also while the contest is judging, owner 2026-10-10). Each is a separate payment (`purpose` = `addon` or `extension`) through the same gateway; a paid callback applies it in one transaction (`confirm_addon_payment`). Blind bought after designs arrived hides them from other people from then on. An add-on already on the contest can't be bought again (Extension can). Add-on payments count toward the client's total spent but don't change the contest's original total.
 
@@ -721,6 +723,10 @@ Built in four steps: (a) Texts, notice bar, contact details; (b) pictures; (c) l
    - **AI assistant (owner, 2026-10-15; migration `0058_support_ai`):** the assistant answers each chat first, at once, from what the site says about itself (the Q&A in Admin › Lists, How it works, the logo checker Q&A, the Pro plan, the policies' summaries, contact details, with numbers from Settings) and the person's own basics (role, Pro or Basic, confirmed email, their latest contests and their status). It never sees money they paid or are owed. It answers in the person's language (Bangla, English or Banglish), short and in plain text, links to site pages, and never asks for passwords or codes. It hands the chat to the team when the person asks for a person (also the **Talk to a person** button), for money paid or owed, bans, suspensions, copy claims, reports, disputes, site problems, anything it isn't sure of, after its daily limit (Settings › Support chat, 40 answers a day), or when the AI can't answer. Then the chat shows **Needs a person** in Admin › Support and every support staff member gets a bell and push.
    - **Who has the chat:** `support_threads.mode` is `ai`, `waiting` (handed over, nobody yet) or `human` (`assigned_to`). In the inbox (lists: Open, Needs a person, Mine, Closed) staff press **Assign to me** or **Assign to…** a colleague with Support · manage (they get a bell and push); replying also takes the chat. New messages then notify only the assigned person. **Give back to AI** and **Close** return the chat to the assistant. The assistant's messages are marked "AI assistant" (`support_messages.is_ai`). The AI runs on the logo checker's key (Gemini, else Claude). Settings › Support chat turns the assistant off (every chat then goes to the team). The Help page's **Live chat** opens this chat (Tawk.to only if chosen in Settings).
 6. **Messages to users** (owner's choice: notification + inbox): an admin can message **all designers**, **all clients**, **everyone**, or **one person** (from their profile or by mobile / username). Each message arrives as a bell + push notification and also appears in the user's support chat, so they can reply. Every message is logged in the audit log.
+
+### 13.3 Pricing & fees (owner, 2026-10-22; A-28, `/admin/pricing`)
+
+One page for every price and fee clients and designers pay, with its own staff tick box "Pricing & fees" (Manager: view only): the client service fee (normal rate, big-prize rate and its threshold), package prizes and the custom prize rules, add-on prices and the free-from prize, extra days, the designer fee rows by counted wins (an editor that refuses rows that don't start at 0 or don't go up) and the counted-win rules, and dollar prices. Each save needs a reason and is written to the audit log. Every page reads the numbers on its next load (wizard, price pages, Q&A, legal pages, checkout, llms.txt within 10 minutes); contests already paid keep what they paid. The Pro plan price stays on Admin › Pro plan and promo codes on Payments › Promo codes (both linked). These settings are no longer shown on Admin › Settings.
 
 ## 14. Public pages
 

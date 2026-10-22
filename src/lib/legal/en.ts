@@ -249,7 +249,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
           {
             list: [
               "The prize for the designer, plus a service fee of {fee}% of the prize ({largeFee}% when the prize is above {largeFrom}).",
-              "Any upgrades chosen (for example Featured, Blind, Private, NDA), and any extension bought later ({perDay} per day added).",
+              "Any upgrades chosen (for example Featured, Blind, Private, NDA), and any extension bought later ({perDay} per day added).{addonsFree}",
               "You pay with bKash: send the amount to our bKash number and enter the transaction ID. Our team checks it, and the contest goes live once the payment is confirmed. Visitors from abroad can pay by card in US dollars through Stripe. We hold the prize until the files are approved.",
             ],
           },

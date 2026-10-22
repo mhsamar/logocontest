@@ -147,9 +147,14 @@ export async function ClientHome({ user }: { user: { id: string; name: string } 
       {/* Add-ons */}
       <Panel>
         <h2 className={cx(H2, "lc-rv")}>{t("clientHome.addons.title")}</h2>
-        <p className="m-0 mt-2 text-muted">{t("clientHome.addons.sub")}</p>
+        <p className="m-0 mt-2 text-muted">
+          {t("clientHome.addons.sub")}
+          {/* Owner, 2026-10-22: every add-on is free from a prize (Admin › Pricing). */}
+          {(pricing.addonsFreeFrom ?? 0) > 0 && <strong className="ml-1 font-semibold text-success">{t("clientHome.addons.free", { amount: taka(pricing.addonsFreeFrom!) })}</strong>}
+        </p>
         <ul className="m-0 mt-8 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {UPGRADES.map((u) => (
+          {/* The AI logo checker is free on every logo contest (owner, 2026-10-14): not a paid add-on. */}
+          {UPGRADES.filter((u) => u !== "logo_scan").map((u) => (
             <li key={u} className="lc-card lc-rv flex items-start gap-3 rounded-[22px] p-4">
               <span className={cx("flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br", UPGRADE_TINT[u])}>
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
