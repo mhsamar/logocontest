@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -18,9 +17,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { translatorFor } from "@/lib/content/texts";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
-import { getSettings } from "@/lib/settings";
 import { getService } from "@/lib/services/store";
-import { BRIEF_FILES_BUCKET, BRIEF_FILE_TYPES, getFileStorage } from "@/lib/storage";
+import { createBriefUpload, deleteBriefFile, saveBriefUpload } from "./brief-files";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { gatewayMethod, isManual } from "@/lib/payments/manual-rules";
 import { openMethod } from "@/lib/payments/methods";
@@ -375,19 +373,6 @@ async function editableContest(contestId: string) {
   return contest.status === "draft" || contest.status === "pending_payment" ? contest : null;
 }
 
-async function fileLimits() {
-  const s = await getSettings(["limits.brief_max_files", "limits.brief_file_max_mb"]);
-  return { maxFiles: s["limits.brief_max_files"], maxBytes: s["limits.brief_file_max_mb"] * 1024 * 1024, maxMb: s["limits.brief_file_max_mb"] };
-}
-
-async function fileCount(contestId: string) {
-  const { count } = await createAdminClient()
-    .from("contest_files")
-    .select("id", { count: "exact", head: true })
-    .eq("contest_id", contestId);
-  return count ?? 0;
-}
-
 export async function prepareBriefUpload(input: {
   contestId: string;
   name: string;
@@ -395,14 +380,7 @@ export async function prepareBriefUpload(input: {
   size: number;
 }): Promise<WizardResult<{ path: string; token: string }>> {
   if (!(await editableContest(input.contestId))) return err("wizard.errors.notSaved");
-  const limits = await fileLimits();
-  const ext = BRIEF_FILE_TYPES[input.type];
-  if (!ext) return err("wizard.errors.fileType", { name: input.name });
-  if (input.size <= 0 || input.size > limits.maxBytes) return err("wizard.errors.fileSize", { name: input.name, mb: limits.maxMb });
-  if ((await fileCount(input.contestId)) >= limits.maxFiles) return err("wizard.errors.fileCount", { max: limits.maxFiles });
-
-  const upload = await getFileStorage().createUploadUrl(BRIEF_FILES_BUCKET, `${input.contestId}/${randomUUID()}.${ext}`);
-  return { ok: true, ...upload };
+  return createBriefUpload(input.contestId, input);
 }
 
 export async function recordBriefUpload(input: {
@@ -414,41 +392,11 @@ export async function recordBriefUpload(input: {
   isCurrentLogo: boolean;
 }): Promise<WizardResult<{ id: string }>> {
   if (!(await editableContest(input.contestId))) return err("wizard.errors.notSaved");
-  const limits = await fileLimits();
-  const pathOk = new RegExp(`^${input.contestId}/[0-9a-f-]{36}\\.(jpg|png|pdf)$`).test(input.path);
-  if (!pathOk || !BRIEF_FILE_TYPES[input.type] || input.size > limits.maxBytes) return err("wizard.errors.generic");
-  if (!(await getFileStorage().exists(BRIEF_FILES_BUCKET, input.path))) return err("wizard.errors.generic");
-  if ((await fileCount(input.contestId)) >= limits.maxFiles) {
-    await getFileStorage().remove(BRIEF_FILES_BUCKET, [input.path]);
-    return err("wizard.errors.fileCount", { max: limits.maxFiles });
-  }
-
-  const { data, error } = await createAdminClient()
-    .from("contest_files")
-    .insert({
-      contest_id: input.contestId,
-      type: input.isCurrentLogo ? "current_logo" : "example",
-      path: input.path,
-      original_name: input.name.slice(0, 200),
-      mime_type: input.type,
-      size_bytes: input.size,
-    })
-    .select("id")
-    .single();
-  if (error || !data) return err("wizard.errors.generic");
-  return { ok: true, id: data.id as string };
+  return saveBriefUpload(input.contestId, input);
 }
 
 export async function removeBriefFile(input: { contestId: string; fileId: string }): Promise<WizardResult> {
   if (!(await editableContest(input.contestId))) return err("wizard.errors.notSaved");
-  const db = createAdminClient();
-  const { data } = await db
-    .from("contest_files")
-    .delete()
-    .eq("id", input.fileId)
-    .eq("contest_id", input.contestId)
-    .select("path")
-    .maybeSingle();
-  if (data?.path) await getFileStorage().remove(BRIEF_FILES_BUCKET, [data.path as string]);
+  await deleteBriefFile(input.contestId, input.fileId);
   return { ok: true };
 }

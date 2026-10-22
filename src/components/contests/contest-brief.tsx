@@ -182,8 +182,9 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
       {brief.files.length > 0 && (
         <Block title={t("contest.brief.files")} className="lg:col-span-2">
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {brief.files.map((f) => (
-              <li key={f.name}>
+            {/* Phone photos often share a name (image.jpg), so the position is the key. */}
+            {brief.files.map((f, i) => (
+              <li key={i}>
                 <a
                   href={f.url ?? undefined}
                   target="_blank"

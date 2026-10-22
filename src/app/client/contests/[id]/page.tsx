@@ -482,6 +482,15 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   </Link>
                 )}
               </div>
+              {/* No reference photos yet, and the contest is live: they can still be added (owner, 2026-10-22). */}
+              {canEdit && contest.brief && contest.brief.files.length === 0 && (svc || !(await getOnboarding("client")).hidden.includes("files")) && (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-[#F4F5F7] px-4 py-3">
+                  <span className="dmut">{t("manage.edit.photos.none")}</span>
+                  <Link href={`/dashboard/contests/${contest.slug}/edit#photos`} className="dout sm">
+                    {t("manage.edit.photos.add")}
+                  </Link>
+                </div>
+              )}
               {/* A non-logo contest shows its own questions and reference images (owner, 2026-10-17). */}
               {contest.brief && svc ? (
                 <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief.files} hidden={contest.hiddenPrivate} />

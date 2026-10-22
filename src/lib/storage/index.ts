@@ -8,6 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export interface FileStorage {
   createUploadUrl(bucket: string, path: string): Promise<{ path: string; token: string }>;
   exists(bucket: string, path: string): Promise<boolean>;
+  /** The stored file's real size and type, or null if it isn't there (owner, 2026-10-22: never trust what the browser says). */
+  stat(bucket: string, path: string): Promise<{ size: number; mimetype: string } | null>;
   remove(bucket: string, paths: string[]): Promise<void>;
   /** Reads a stored file (for server-side checks such as image moderation). */
   download(bucket: string, path: string): Promise<Uint8Array>;
@@ -34,6 +36,17 @@ class SupabaseFileStorage implements FileStorage {
     const { data, error } = await this.db.storage.from(bucket).list(folder, { search: name, limit: 1 });
     if (error) throw new Error(error.message);
     return (data ?? []).some((f) => f.name === name);
+  }
+
+  async stat(bucket: string, path: string) {
+    const folder = path.split("/").slice(0, -1).join("/");
+    const name = path.split("/").pop()!;
+    const { data, error } = await this.db.storage.from(bucket).list(folder, { search: name, limit: 1 });
+    if (error) throw new Error(error.message);
+    const file = (data ?? []).find((f) => f.name === name);
+    if (!file) return null;
+    const meta = (file.metadata ?? {}) as { size?: unknown; mimetype?: unknown };
+    return { size: typeof meta.size === "number" ? meta.size : 0, mimetype: typeof meta.mimetype === "string" ? meta.mimetype : "" };
   }
 
   async remove(bucket: string, paths: string[]) {
@@ -68,8 +81,4 @@ export function getFileStorage(): FileStorage {
 }
 
 export const BRIEF_FILES_BUCKET = "contest-files";
-export const BRIEF_FILE_TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "application/pdf": "pdf",
-};
+export { BRIEF_FILE_EXT as BRIEF_FILE_TYPES } from "@/lib/contests/brief-file-rules";

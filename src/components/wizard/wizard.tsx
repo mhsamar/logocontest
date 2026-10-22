@@ -543,7 +543,8 @@ export function Wizard(props: WizardProps) {
                       localFiles={state.localFiles}
                       serverFiles={serverFiles}
                       limits={props.fileLimits}
-                      onChange={(localFiles) => setState({ ...state, localFiles })}
+                      // Only the list changes, from its current value: a pick that ends late undoes nothing (owner, 2026-10-22).
+                      onChange={(change) => setState((cur) => (cur ? { ...cur, localFiles: change(cur.localFiles) } : cur))}
                       onRemoveServerFile={(id) =>
                         startBusy(async () => {
                           if (state.contestId) await removeBriefFile({ contestId: state.contestId, fileId: id });

@@ -2,7 +2,9 @@
 
 import { contestHref } from "@/lib/client/rules";
 import { refresh } from "next/cache";
-import type { MessageKey } from "@/lib/i18n/translate";
+import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
+import { createBriefUpload, deleteBriefFile, dropBriefUpload, saveBriefUpload } from "@/lib/contests/brief-files";
+import { contestServiceInfo } from "@/lib/services/contest-service";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { tellUser } from "@/lib/moderation/suspension";
 import { getSettings } from "@/lib/settings";
@@ -92,6 +94,92 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
   await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), admin.id);
   await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
   await afterWinnerPicked(c.id, entry.id as string);
+  refresh();
+  return { ok: true };
+}
+
+// A-02 Reference photos (owner, 2026-10-22): the team puts the photos a client sent (on WhatsApp, say) on the contest.
+// Same file types and sizes as the client, but no count limit: every add is in the audit log. Never in the Trash.
+type FileResult<T = object> = ({ ok: true } & T) | { ok: false; error: { key: MessageKey; params?: MessageParams } };
+const fileFail = (key: MessageKey, params?: MessageParams) => ({ ok: false as const, error: { key, params } });
+
+async function filesContest(contestId: string) {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  return admin && c ? { admin, c } : null;
+}
+
+/** A one-time link the browser uploads one file to (files never pass through our server: the 4 MB action limit). */
+export async function prepareContestFile(contestId: string, f: { name: string; type: string; size: number }): Promise<FileResult<{ path: string; token: string }>> {
+  const found = await filesContest(contestId);
+  if (!found) return fileFail("auth.errors.generic");
+  if (found.c.status === "deleted") return fileFail("admin.contests.files.inTrash");
+  return createBriefUpload(found.c.id, { name: String(f?.name ?? "").slice(0, 200), type: String(f?.type ?? ""), size: Number(f?.size) }, false);
+}
+
+/** Records uploaded files (the card sends each one as soon as it is uploaded, so a closed tab leaves nothing behind). */
+export async function addContestFiles(contestId: string, input: { kind: string; files: { path: string; name: string; type: string; size: number }[] }): Promise<FileResult<{ added: number; failed: string[] }>> {
+  const found = await filesContest(contestId);
+  if (!found) return fileFail("auth.errors.generic");
+  const { admin, c } = found;
+  const list = (Array.isArray(input?.files) ? input.files : []).slice(0, 20).map((f) => ({ path: String(f?.path ?? ""), name: String(f?.name ?? "").slice(0, 200), type: String(f?.type ?? ""), size: Number(f?.size) }));
+  if (c.status === "deleted") {
+    for (const f of list) await dropBriefUpload(c.id, f.path).catch(() => undefined);
+    return fileFail("admin.contests.files.inTrash");
+  }
+  // "Current logo" only means something on a logo contest.
+  const logo = (await contestServiceInfo([c.id])).get(c.id)?.service === "logo";
+  const isCurrentLogo = input?.kind === "current_logo" && logo;
+  const names: string[] = [];
+  const failed: string[] = [];
+  for (const f of list) {
+    const res = await saveBriefUpload(c.id, { ...f, isCurrentLogo }, false).catch(async () => {
+      await dropBriefUpload(c.id, f.path).catch(() => undefined);
+      return null;
+    });
+    if (res?.ok) names.push(f.name);
+    else failed.push(f.name);
+  }
+  // No refresh here: the card refreshes the page once, after the whole batch.
+  if (names.length > 0) await audit(admin.id, "add_contest_files", "contest", c.id, { count: names.length, names, kind: isCurrentLogo ? "current_logo" : "example", status: c.status });
+  return { ok: true, added: names.length, failed };
+}
+
+/**
+ * After a batch: one "brief updated" notice to the designers who sent designs (as when the client edits the brief).
+ * Only while the contest is open, only right after this staff member added files, and in the audit log.
+ */
+export async function tellAboutContestFiles(contestId: string): Promise<Result> {
+  const found = await filesContest(contestId);
+  if (!found) return fail("auth.errors.generic");
+  const { admin, c } = found;
+  if (c.status !== "open") return { ok: true };
+  const { data: last } = await createAdminClient()
+    .from("audit_logs")
+    .select("action")
+    .eq("admin_id", admin.id)
+    .eq("subject_id", c.id)
+    .in("action", ["add_contest_files", "tell_contest_files"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last?.action !== "add_contest_files") return { ok: true };
+  const designers = await contestDesignerIds(c.id);
+  await audit(admin.id, "tell_contest_files", "contest", c.id, { designers: designers.length });
+  await notify(designers, "brief_updated", { brand: c.brand_name }, `/contest/${c.slug}?tab=brief`, admin.id);
+  return { ok: true };
+}
+
+/** Takes one file off the contest (and out of storage), with a reason for the audit log. */
+export async function removeContestFile(contestId: string, fileId: string, f: Fields): Promise<Result> {
+  const found = await filesContest(contestId);
+  if (!found) return fail("auth.errors.generic");
+  if (found.c.status === "deleted") return fail("admin.contests.files.inTrash");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const gone = await deleteBriefFile(found.c.id, fileId);
+  if (!gone) return fail("admin.errors.generic");
+  await audit(found.admin.id, "remove_contest_file", "contest", found.c.id, { name: gone.name, reason });
   refresh();
   return { ok: true };
 }

@@ -363,8 +363,8 @@ export const SETTINGS = {
     description: "Example / current-logo files a client can upload in the wizard.",
   },
   "limits.brief_file_max_mb": {
-    group: "limits", type: "int", schema: int(1), default: 5,
-    description: "Largest wizard upload (MB).",
+    group: "limits", type: "int", schema: int(1, 50), default: 5,
+    description: "Largest wizard upload (MB), up to 50 (the storage ceiling, 0072).",
   },
   "limits.handover_file_max_mb": {
     group: "limits", type: "int", schema: int(1, 500), default: 50,

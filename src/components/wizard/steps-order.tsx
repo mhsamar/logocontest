@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GlideTrack } from "@/components/ui/glide-track";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "./upgrade-meta";
 import { Checkbox, TextField } from "@/components/ui/field";
@@ -15,6 +15,9 @@ import type { LocalFile, ServerFile } from "./state";
 
 const ACCEPT: Record<string, true> = { "image/jpeg": true, "image/png": true, "application/pdf": true };
 
+export type FileHolder = { put: (id: string, file: Blob) => unknown; remove: (id: string) => unknown };
+const DEVICE_STORE: FileHolder = { put: putFile, remove: deleteFile };
+
 // C-07
 export function FilesStep({
   localFiles,
@@ -23,52 +26,80 @@ export function FilesStep({
   onChange,
   onRemoveServerFile,
   currentLogo = true,
+  store = DEVICE_STORE,
+  disabled = false,
+  onWorking,
 }: {
   localFiles: LocalFile[];
   serverFiles: ServerFile[];
   limits: { maxFiles: number; maxMb: number };
-  onChange: (files: LocalFile[]) => void;
+  /** Gets a change to apply to the parent's current list, so a pick that ends late never works from an old copy. */
+  onChange: (change: (files: LocalFile[]) => LocalFile[]) => void;
   onRemoveServerFile: (id: string) => void;
   /** "This is my current logo" on each file: logo contests only (owner, 2026-10-17: other contests have reference images). */
   currentLogo?: boolean;
+  /** Where picked files wait: on the device for the wizard; Edit details keeps them in memory (owner, 2026-10-22). */
+  store?: FileHolder;
+  /** While a save is running (Edit details): nothing can be added or removed. */
+  disabled?: boolean;
+  /** True while picked pictures are being made lighter, so a save can wait for them. */
+  onWorking?: (working: boolean) => void;
 }) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const total = localFiles.length + serverFiles.length;
+  // One pick at a time (owner, 2026-10-22): the count below sees the files of the pick before.
+  const [working, setWorking] = useState(false);
+  const workingRef = useRef(false);
+  const latest = useRef(localFiles);
+  useEffect(() => {
+    latest.current = localFiles;
+  }, [localFiles]);
 
   const add = async (list: FileList | null) => {
-    if (!list) return;
-    const problems: string[] = [];
-    const added: LocalFile[] = [];
-    for (const picked of Array.from(list)) {
-      if (total + added.length >= limits.maxFiles) {
-        problems.push(t("wizard.errors.fileCount", { max: limits.maxFiles }));
-        break;
+    if (!list || disabled || workingRef.current) return;
+    workingRef.current = true;
+    setWorking(true);
+    onWorking?.(true);
+    try {
+      const problems: string[] = [];
+      const added: LocalFile[] = [];
+      for (const picked of Array.from(list)) {
+        if (latest.current.length + serverFiles.length + added.length >= limits.maxFiles) {
+          problems.push(t("wizard.errors.fileCount", { max: limits.maxFiles }));
+          break;
+        }
+        // Pictures of any size are made light first (owner, 2026-10-14); PDFs keep the size limit.
+        const file = picked.type !== "application/pdf" && isCompressible(picked) ? await compressImage(picked, { ...COMPRESS.picture, out: ["image/jpeg"] }) : picked;
+        if (!ACCEPT[file.type]) {
+          problems.push(t("wizard.errors.fileType", { name: file.name }));
+          continue;
+        }
+        if (file.size > limits.maxMb * 1024 * 1024) {
+          problems.push(t("wizard.errors.fileSize", { name: file.name, mb: limits.maxMb }));
+          continue;
+        }
+        const id = crypto.randomUUID();
+        await store.put(id, file);
+        added.push({ id, name: file.name, type: file.type, size: file.size, isCurrentLogo: false });
       }
-      // Pictures of any size are made light first (owner, 2026-10-14); PDFs keep the size limit.
-      const file = picked.type !== "application/pdf" && isCompressible(picked) ? await compressImage(picked, { ...COMPRESS.picture, out: ["image/jpeg"] }) : picked;
-      if (!ACCEPT[file.type]) {
-        problems.push(t("wizard.errors.fileType", { name: file.name }));
-        continue;
-      }
-      if (file.size > limits.maxMb * 1024 * 1024) {
-        problems.push(t("wizard.errors.fileSize", { name: file.name, mb: limits.maxMb }));
-        continue;
-      }
-      const id = crypto.randomUUID();
-      await putFile(id, file);
-      added.push({ id, name: file.name, type: file.type, size: file.size, isCurrentLogo: false });
+      setErrors(problems);
+      // Added to whatever the list is by now (a step change or an upload meanwhile is kept).
+      if (added.length) onChange((files) => [...files, ...added]);
+      if (input.current) input.current.value = "";
+    } finally {
+      workingRef.current = false;
+      setWorking(false);
+      onWorking?.(false);
     }
-    setErrors(problems);
-    if (added.length) onChange([...localFiles, ...added]);
-    if (input.current) input.current.value = "";
   };
 
   const remove = async (id: string) => {
-    await deleteFile(id);
-    onChange(localFiles.filter((f) => f.id !== id));
+    if (disabled || workingRef.current) return;
+    await store.remove(id);
+    onChange((files) => files.filter((f) => f.id !== id));
   };
 
   return (
@@ -86,7 +117,7 @@ export function FilesStep({
           setDragging(false);
           void add(e.dataTransfer.files);
         }}
-        disabled={total >= limits.maxFiles}
+        disabled={disabled || working || total >= limits.maxFiles}
         className={cx(
           "flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed bg-surface px-4 py-8 text-center transition-colors disabled:opacity-50",
           dragging ? "border-primary bg-primary/10" : "border-line hover:border-primary",
@@ -119,7 +150,7 @@ export function FilesStep({
       {total > 0 && (
         <ul className="m-0 list-none divide-y divide-line overflow-hidden rounded-[20px] border border-line bg-surface p-0">
           {serverFiles.map((f) => (
-            <FileRow key={f.id} name={f.name} type={f.type} onRemove={() => onRemoveServerFile(f.id)} removeLabel={t("wizard.c07.remove", { name: f.name })} />
+            <FileRow key={f.id} name={f.name} type={f.type} onRemove={() => !disabled && !workingRef.current && onRemoveServerFile(f.id)} removeLabel={t("wizard.c07.remove", { name: f.name })} />
           ))}
           {localFiles.map((f) => (
             <FileRow
@@ -134,7 +165,10 @@ export function FilesStep({
                     className="py-0"
                     label={<span className="text-sm">{t("wizard.c07.currentLogo")}</span>}
                     checked={f.isCurrentLogo}
-                    onChange={(e) => onChange(localFiles.map((x) => (x.id === f.id ? { ...x, isCurrentLogo: e.target.checked } : x)))}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      onChange((files) => files.map((x) => (x.id === f.id ? { ...x, isCurrentLogo: on } : x)));
+                    }}
                   />
                 ) : undefined
               }

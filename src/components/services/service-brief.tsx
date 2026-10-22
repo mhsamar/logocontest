@@ -61,8 +61,8 @@ export async function ServiceBrief({ service, answers, full = false, files = [],
         <div className="mt-5 border-t border-line pt-5" data-reference-images>
           <p className={label}>{t("services.brief.references")}</p>
           <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
-            {files.map((f) => (
-              <li key={f.name}>
+            {files.map((f, i) => (
+              <li key={i}>
                 <a href={f.url ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={t("contest.brief.openFile", { name: f.name })} className="block overflow-hidden rounded-[12px] bg-canvas ring-1 ring-line hover:ring-primary">
                   {f.isImage && f.url ? (
                     // Signed, short-lived storage URL, so next/image's optimiser can't cache it.

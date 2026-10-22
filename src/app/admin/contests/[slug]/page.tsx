@@ -4,11 +4,14 @@ import Link from "next/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
+import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
 import { cancelContest, extendContest, forceAward } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
-import { getAdminContest, getContestClient } from "@/lib/admin/contests";
+import { adminContestFiles, getAdminContest, getContestClient } from "@/lib/admin/contests";
+import { briefFileLimits } from "@/lib/contests/brief-files";
+import { contestServiceInfo } from "@/lib/services/contest-service";
 import { hasPermission } from "@/lib/admin/permissions";
 import { ONLINE_MS } from "@/lib/admin/users-query";
 import { formatDate, timeAgo } from "@/lib/dates";
@@ -28,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const UNPAID = ["draft", "pending_payment"];
 
-// A-02 Contest detail: summary, designs, payments, the client; Edit brief, Extend, Force-award, Cancel.
+// A-02 Contest detail: summary, reference photos, designs, payments, the client; Edit brief, Extend, Force-award, Cancel.
 export default async function AdminContestPage({ params }: PageProps<"/admin/contests/[slug]">) {
   const me = await requirePermission("contests.view");
   const { slug } = await params;
@@ -43,6 +46,9 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const claim = (await claimStatuses([c.id])).get(c.id) ?? null;
   // The client's answers to the owner's own questions (Admin › Onboarding, owner 2026-10-14).
   const answers = answerLines(await getOnboarding("client"), await contestExtraAnswers(c.id), locale);
+  // Reference photos (owner, 2026-10-22): the client's examples, and the team adds the ones sent on WhatsApp.
+  const [files, fileLimits, service] = await Promise.all([adminContestFiles(c.id), briefFileLimits(), contestServiceInfo([c.id])]);
+  const designerCount = new Set(c.entriesList.filter((e) => ["active", "winner", "forfeited", "rejected"].includes(e.status)).map((e) => e.designer.id)).size;
   const taka = (n: number) => formatTaka(n, locale);
   const when = (d: Date | null) => (d ? d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "—");
   const active = c.entriesList.filter((e) => e.status === "active");
@@ -120,6 +126,12 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <a
+          href="#reference-photos"
+          className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line hover:bg-canvas"
+        >
+          {t("admin.contests.files.jump", { count: formatNumber(files.length, locale) })}
+        </a>
         {c.status === "open" && (
           <Link href={`/dashboard/contests/${c.slug}/edit`} className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-[0.9375rem] font-semibold text-ink ring-1 ring-inset ring-line hover:bg-canvas">
             {t("admin.contests.editBrief")}
@@ -173,6 +185,16 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
           </div>
         ))}
       </dl>
+
+      <AdminContestFiles
+        contestId={c.id}
+        files={files}
+        isLogo={(service.get(c.id)?.service ?? "logo") === "logo"}
+        open={c.status === "open"}
+        inTrash={Boolean(inTrash)}
+        designers={designerCount}
+        limits={{ maxFiles: fileLimits.maxFiles, maxMb: fileLimits.maxMb }}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">

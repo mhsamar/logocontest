@@ -1,5 +1,6 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
+import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { one } from "./core";
 
@@ -188,6 +189,24 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
         ? { at: new Date(r.deleted_at as string), reason: (r.delete_reason as string | null) ?? null, by: one(r.deleter as { name: string } | { name: string }[] | null)?.name ?? null }
         : null,
   };
+}
+
+/** A-02 Reference photos (owner, 2026-10-22): the contest's files, with links that last an hour. */
+export type AdminContestFile = { id: string; name: string; kind: "example" | "current_logo"; url: string | null; isImage: boolean };
+
+export async function adminContestFiles(contestId: string): Promise<AdminContestFile[]> {
+  const { data } = await createAdminClient().from("contest_files").select("id, type, path, original_name, mime_type").eq("contest_id", contestId).order("created_at");
+  const rows = data ?? [];
+  const urls = await getFileStorage()
+    .createReadUrls(BRIEF_FILES_BUCKET, rows.map((r) => r.path as string), 3600)
+    .catch(() => new Map<string, string>());
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: r.original_name as string,
+    kind: r.type === "current_logo" ? "current_logo" : "example",
+    url: urls.get(r.path as string) ?? null,
+    isImage: String(r.mime_type).startsWith("image/"),
+  }));
 }
 
 /** The client panel on the contest page (owner, 2026-10-14): who the client is, how to reach them, what they ran. */

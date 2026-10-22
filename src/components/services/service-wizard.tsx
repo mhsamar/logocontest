@@ -353,7 +353,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
                       serverFiles={serverFiles}
                       limits={fileLimits}
                       currentLogo={false}
-                      onChange={(files) => setD((cur) => ({ ...cur, localFiles: files }))}
+                      onChange={(change) => setD((cur) => ({ ...cur, localFiles: change(cur.localFiles ?? []) }))}
                       onRemoveServerFile={(id) =>
                         start(async () => {
                           if (d.contestId) await removeBriefFile({ contestId: d.contestId, fileId: id });
