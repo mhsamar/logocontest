@@ -456,6 +456,10 @@ The pop-up has four steps with the step indicator on top, full screen on phones:
 
 In the client's account menu. Totals (logos checked, certificates, checks left), one row per check (logo, design, CC number, contest, date, free or add-on, result, overall score, **See result** opening the pop-up on step 3, **PDF**), and checks left in each contest.
 
+### C-25 Money-back claim (owner, 2026-10-21; BLUEPRINT §7.10)
+
+On the client's contest page. A covered contest shows "Money-back guarantee" on the Payment tab. After the end, with fewer designers than promised, a line at the top says how many designers took part and until when to claim, with **Claim my money back**; with enough designers, the Payment tab offers **Ask us to check**. The form: what goes back, what the client gives up, the bKash number (filled with the number they paid from) or "back to the same card", a note, and an "I understand" tick. Then the line at the top and the card follow the claim: waiting (picking is paused), approved, sent back (date and reference) or not approved (reason, and until when to pick). Designers see a one-line note under the contest's key facts.
+
 ### P-16 Verify a certificate (`/verify/CC-0001`)
 
 Public, not indexed. Shows only whether the number is real, the date, the checked logo and the result, with the fixed note. Unknown numbers say so.
@@ -606,6 +610,7 @@ Desktop-first, plain and dense. Left sidebar: Dashboard, Contests, Entries, Repo
 | A-24 | Support inbox | Two panes: conversation list (Open / Closed, unread badges) and the chat with the user's card (role, link to profile); reply box, Close / Reopen. Phones: list, then chat |
 | A-25 | Send message | Audience (All designers, All clients, Everyone, One person), message text, **Send**; history of sent messages. One person (owner, 2026-10-10): clicking the field opens a list of the newest 30 clients and designers with All / Designers / Clients filters; typing searches name, username, email or mobile; each row shows photo or initial, name, role tag, @username, mobile and email. **Designers are blue and clients are red** (dot, tag and initial). The chosen person shows as a card with **Change** |
 | A-26 | Copyright checker (`/admin/copyright`, view-only permission "Copyright checker") | Owner, 2026-10-10: totals (checks run, no match, similar, high risk), the rules from Settings with **Change in Settings**, tabs by result and a search, a table (logo and CC number, contest and design, who checked and free / paid, result and which check of the contest it was), a details panel (matches with links, AI and search cost, PDF and image), and checks left per contest. "Make a ticket" comes when Tickets exist |
+| A-27 | Money-back claims (`/admin/refunds`, permission "Money-back claims") | Owner, 2026-10-21: tabs Waiting · To pay · Refunded · Rejected. Each card: contest number and brand, client and mobile, amount (৳, and $ for card), designers counted when claimed and now, warnings (held designs, open reports, a bKash proof waiting, same internet address, Pro chat messages and files, 4–5 stars or shortlists, earlier claims, a monthly prize, a refund number different from the paying one), the client's note, the designs with whether each counts, and how to pay each part back. **Approve** (type the contest number), **Reject** (reason the client reads, ready-made reasons), **I'm sending it**, **Mark refunded** (one reference per part) |
 | S-01 | Support chat (users) | Signed-in users: a round chat button bottom-right on every page (not on admin pages) opening a chat panel; full page at `/support`. Unread badge on the button |
 
 Every destructive admin action asks for confirmation and a short reason.

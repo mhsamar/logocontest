@@ -4,6 +4,7 @@ import type { CurrentUser } from "@/lib/auth/policies";
 import { getClientDashboard, type DashboardContest } from "@/lib/contests/dashboard";
 import { ENTRY_FILES_BUCKET, leadingDesigns, listEntries, type EntryCard } from "@/lib/entries/queries";
 import { isSupabaseConfigured } from "@/lib/env";
+import { claimStatuses } from "@/lib/guarantee/queries";
 import { badgesFor } from "@/lib/logo-check/entry-links";
 import type { Badge } from "@/lib/logo-check/entry-rules";
 import { contestChecks } from "@/lib/logo-check/queries";
@@ -119,6 +120,8 @@ export type ClientHome = {
   checks: ChecksCard | null;
   files: HomeFile[];
   payLinks: Map<string, string>;
+  /** Contests whose money-back claim is being checked (owner, 2026-10-21): picking is paused. */
+  claiming: string[];
 };
 
 /** Where "Finish payment" goes: a bKash payment waiting for approval, else the draft in the wizard. */
@@ -128,11 +131,13 @@ export async function clientHome(user: CurrentUser): Promise<ClientHome> {
   const [{ contests }, threads, checks] = await Promise.all([clientContests(user.id), chatThreads(user), activeChecks(user.id)]);
   const ids = contests.map((c) => c.id);
   const unpaid = contests.filter((c) => c.status === "draft" || c.status === "pending_payment");
-  const [entryRows, handovers, waiting] = await Promise.all([
+  const [entryRows, handovers, waiting, claims] = await Promise.all([
     ids.length && isSupabaseConfigured() ? db().from("entries").select("designer_id").in("contest_id", ids).not("status", "in", "(removed,withdrawn,held)") : Promise.resolve({ data: [] as { designer_id: string }[] }),
     ids.length && isSupabaseConfigured() ? db().from("handovers").select("contest_id, status, created_at").in("contest_id", ids).neq("status", "cancelled").order("created_at", { ascending: false }) : Promise.resolve({ data: [] as { contest_id: string; status: string; created_at: string }[] }),
     unpaid.length ? awaitingApproval(unpaid.map((c) => c.id)) : Promise.resolve(new Map<string, string>()),
+    claimStatuses(contests.filter((c) => c.status === "judging").map((c) => c.id)),
   ]);
+  const claiming = [...claims].filter(([, s]) => s === "pending").map(([id]) => id);
   const designerIds = [...new Set((entryRows.data ?? []).map((r) => r.designer_id as string))];
   const pro = await proIdsAmong(designerIds);
 
@@ -143,7 +148,7 @@ export async function clientHome(user: CurrentUser): Promise<ClientHome> {
 
   const byId = new Map(contests.map((c) => [c.id, c]));
   const todo: HomeTodo[] = [
-    ...contests.filter((c) => c.status === "judging").map((c) => ({ kind: "pick" as const, brand: c.brandName, n: c.entries, href: contestHref(c.slug, "designs", { sort: "top" }), until: c.judgingEndsAt })),
+    ...contests.filter((c) => c.status === "judging" && !claiming.includes(c.id)).map((c) => ({ kind: "pick" as const, brand: c.brandName, n: c.entries, href: contestHref(c.slug, "designs", { sort: "top" }), until: c.judgingEndsAt })),
     ...(unrated > 0 ? [{ kind: "rate" as const, brand: running.find((c) => c.unrated > 0)?.brandName ?? "", n: unrated, href: contestHref([...running].sort((a, b) => b.unrated - a.unrated)[0].slug, "designs", { filter: "unrated" }), until: null }] : []),
     ...unpaid.map((c) => ({ kind: "pay" as const, brand: c.brandName, n: 0, href: payHref(c.id, waiting), until: null })),
     ...(handovers.data ?? [])
@@ -180,6 +185,7 @@ export async function clientHome(user: CurrentUser): Promise<ClientHome> {
     unrated,
     nextEnd,
     todo,
+    claiming,
     fresh,
     threads: threads.slice(0, 3),
     checks,
@@ -415,7 +421,8 @@ export async function clientFiles(userId: string): Promise<ClientFiles> {
     }),
     certificates: (checks.data ?? []).flatMap((r) => {
       const c = byId.get(r.contest_id as string);
-      return c ? [{ id: r.id as string, number: r.number as number, brand: c.brandName, slug: c.slug, verdict: (r.verdict as string | null) ?? null, at: new Date((r.finished_at ?? r.created_at) as string) }] : [];
+      // Not for a cancelled contest (money back, or cancelled by the team).
+      return c && c.status !== "cancelled" ? [{ id: r.id as string, number: r.number as number, brand: c.brandName, slug: c.slug, verdict: (r.verdict as string | null) ?? null, at: new Date((r.finished_at ?? r.created_at) as string) }] : [];
     }),
   };
 }

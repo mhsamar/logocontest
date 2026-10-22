@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { adminUser, audit, cleanReason, superAdmin, UUID } from "./core";
-import { purgeContest, purgeUser, restoreContest, restoreUser, trashContest, trashUser, type TrashError } from "./trash";
+import { openRefundClaim, purgeContest, purgeUser, restoreContest, restoreUser, trashContest, trashUser, type TrashError } from "./trash";
 
 /** Admin › Trash (owner, 2026-10-14): Delete (to the Trash, with a reason), Restore, and Erase now (Super admin). */
 
@@ -52,6 +52,7 @@ export async function restoreContestFromTrash(contestId: string): Promise<Result
 export async function eraseContestNow(contestId: string): Promise<Result> {
   const owner = await superAdmin();
   if (!owner || !UUID.test(contestId)) return fail("auth.errors.generic");
+  if (await openRefundClaim("contest_id", contestId)) return trashFail("refundClaim");
   await audit(owner.id, "erase_contest", "contest", contestId, {});
   await purgeContest(contestId);
   refresh();
@@ -94,6 +95,7 @@ export async function restoreUserFromTrash(userId: string): Promise<Result> {
 export async function eraseUserNow(userId: string): Promise<Result> {
   const owner = await superAdmin();
   if (!owner || !UUID.test(userId) || userId === owner.id) return fail("auth.errors.generic");
+  if (await openRefundClaim("client_id", userId)) return trashFail("refundClaim");
   await audit(owner.id, "erase_user", "user", userId, {});
   await purgeUser(userId);
   refresh();

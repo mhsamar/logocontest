@@ -17,6 +17,7 @@ const LINKS: Record<string, (id: string) => string> = {
   user: (id) => `/admin/users/${id}`,
   designer_agreement: () => "/admin/agreements",
   copy_claim: () => "/admin/claims",
+  guarantee_claim: () => "/admin/refunds?tab=refunded",
   report: () => "/admin/reports?view=closed",
   settings: () => "/admin/settings",
   contest_service: () => "/admin/services",

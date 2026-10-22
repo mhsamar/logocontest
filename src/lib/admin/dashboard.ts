@@ -1,5 +1,6 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
+import { refundsIn } from "@/lib/guarantee/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { one } from "./core";
 
@@ -25,18 +26,19 @@ const LIVE_OR_LATER = ["open", "judging", "winner_selected", "handover", "comple
 /** The period the dashboard counts: from `since` (null = all time) up to `until` (null = now). */
 export type StatsPeriod = { since: Date | null; until: Date | null };
 
-export type PeriodMoney = { clientPayments: number; paymentsCount: number; serviceFees: number; addons: number; designerFees: number };
+export type PeriodMoney = { clientPayments: number; paymentsCount: number; serviceFees: number; addons: number; designerFees: number; /** Sent back under the money-back guarantee (owner, 2026-10-21), already taken off the rest. */ refunded: number };
 
 /** Money in a period: what clients paid, and our part of it (service fees, add-ons, the designers' win fees). */
 export async function periodMoney(period: StatsPeriod): Promise<PeriodMoney> {
-  const out: PeriodMoney = { clientPayments: 0, paymentsCount: 0, serviceFees: 0, addons: 0, designerFees: 0 };
+  const out: PeriodMoney = { clientPayments: 0, paymentsCount: 0, serviceFees: 0, addons: 0, designerFees: 0, refunded: 0 };
   if (!isSupabaseConfigured()) return out;
   const db = createAdminClient();
   const since = period.since ? period.since.toISOString() : "1970-01-01T00:00:00Z";
   const until = (period.until ?? new Date(Date.now() + 86_400_000)).toISOString();
-  const [payments, fees] = await Promise.all([
+  const [payments, fees, back] = await Promise.all([
     db.from("payments").select("amount, purpose, contest:contests!contest_id(service_fee_amount, upgrades_amount)").eq("status", "paid").gte("paid_at", since).lt("paid_at", until).limit(10000),
     db.from("wallet_transactions").select("fee_amount").in("type", ["prize_credit", "split_share"]).gte("created_at", since).lt("created_at", until).limit(10000),
+    refundsIn(since, until),
   ]);
   for (const p of payments.data ?? []) {
     out.clientPayments += p.amount as number;
@@ -50,6 +52,11 @@ export async function periodMoney(period: StatsPeriod): Promise<PeriodMoney> {
     }
   }
   out.designerFees = (fees.data ?? []).reduce((s, r) => s + ((r.fee_amount as number | null) ?? 0), 0);
+  // Money-back refunds come off in the period the money went back.
+  out.refunded = back.amount;
+  out.clientPayments -= back.amount;
+  out.serviceFees -= back.fees;
+  out.addons -= back.extras;
   return out;
 }
 

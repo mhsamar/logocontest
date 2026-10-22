@@ -133,6 +133,9 @@ describe("legal texts (P-10)", () => {
       "designsRule",
       "unpaidHours",
       "trashDays",
+      // The money-back guarantee (owner, 2026-10-21)
+      "guaranteeDesigners",
+      "lateDays",
     ]);
     const all = JSON.stringify([LEGAL_EN, LEGAL_BN]);
     const used = new Set([...all.matchAll(/\{(\w+)\}/g)].map((m) => m[1]));

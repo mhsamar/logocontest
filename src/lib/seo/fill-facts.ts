@@ -19,6 +19,9 @@ export type SiteFacts = {
   guaranteeDesigners: number;
 };
 
+/** `{?g:…}` is kept only while the money-back guarantee is offered, `{!g:…}` only while it isn't (owner, 2026-10-21). */
+const GUARANTEE_PART = /\{([?!])g:((?:[^{}]|\{\w+\})*)\}/g;
+
 /** Fills {minTotal}, {fee}, {year}… in a text (see src/lib/landing/types.ts for the list). Unknown names stay as they are. */
 export function fillFacts(text: string, f: SiteFacts, locale: Locale, year: number): string {
   const taka = (n: number) => formatTaka(n, locale);
@@ -36,5 +39,5 @@ export function fillFacts(text: string, f: SiteFacts, locale: Locale, year: numb
     guaranteeDesigners: num(f.guaranteeDesigners),
     year: locale === "bn" ? new Intl.NumberFormat("bn-BD", { useGrouping: false }).format(year) : String(year),
   };
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m);
+  return text.replace(GUARANTEE_PART, (_, sign: string, part: string) => ((sign === "?") === f.guaranteeOn ? part : "")).replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m);
 }

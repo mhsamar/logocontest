@@ -16,11 +16,17 @@ const db = () => createAdminClient();
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
 
-export type TrashError = "notFound" | "already" | "admin" | "self" | "liveContests" | "openHandover" | "walletMoney" | "notInTrash";
+export type TrashError = "notFound" | "already" | "admin" | "self" | "liveContests" | "openHandover" | "walletMoney" | "notInTrash" | "refundClaim";
 type Done = { ok: true } | { ok: false; error: TrashError };
 
 /** Contests a client can't be deleted with: the designers and the client are still working on them. */
 const LIVE = ["open", "judging", "winner_selected", "handover"];
+
+/** A money-back claim still to decide or pay (owner, 2026-10-21): its contest and its client stay until it is done. */
+export async function openRefundClaim(column: "contest_id" | "client_id", id: string): Promise<boolean> {
+  const { count } = await db().from("guarantee_claims").select("id", { count: "exact", head: true }).eq(column, id).in("status", ["pending", "approved"]);
+  return (count ?? 0) > 0;
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Contests
@@ -30,6 +36,7 @@ export async function trashContest(contestId: string, by: string | null, reason:
   const { data: c } = await db().from("contests").select("id, status").eq("id", contestId).maybeSingle();
   if (!c) return { ok: false, error: "notFound" };
   if (c.status === "deleted") return { ok: false, error: "already" };
+  if (await openRefundClaim("contest_id", contestId)) return { ok: false, error: "refundClaim" };
   const { data, error } = await db()
     .from("contests")
     .update({ status: "deleted", deleted_at: new Date().toISOString(), deleted_by: by, delete_reason: reason.slice(0, 500), deleted_from_status: c.status })
@@ -125,6 +132,7 @@ export async function userBlocker(userId: string): Promise<TrashError | null> {
     db().from("withdrawals").select("id", { count: "exact", head: true }).eq("designer_id", userId).eq("status", "requested"),
   ]);
   if ((live.count ?? 0) > 0) return "liveContests";
+  if (await openRefundClaim("client_id", userId)) return "refundClaim";
   if ((handovers.count ?? 0) > 0) return "openHandover";
   if (((balance.data as number | null) ?? 0) > 0 || (waiting.count ?? 0) > 0) return "walletMoney";
   return null;
@@ -191,6 +199,8 @@ export async function purgeUser(userId: string): Promise<void> {
 
   const { error: payError } = await db().from("payments").delete().eq("client_id", userId);
   if (payError) throw new Error(payError.message);
+  // A money-back claim stays as the refund record, without the person's number and note (owner, 2026-10-21).
+  await db().from("guarantee_claims").update({ refund_to: null, client_note: null }).eq("client_id", userId);
   // Deleting the login removes the profile and everything linked to it.
   const { error } = await db().auth.admin.deleteUser(userId);
   if (error && !/not.?found/i.test(error.message)) throw new Error(error.message);

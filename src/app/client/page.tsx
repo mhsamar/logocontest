@@ -115,7 +115,9 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
           ) : (
             <div className="clg">
               {h.live.map((c) => {
-                const act = mainAction(c.status);
+                // A money-back claim being checked pauses picking (owner, 2026-10-21).
+                const paused = h.claiming.includes(c.id);
+                const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status);
                 const href = act === "pay" ? payHref(c.id, h.payLinks) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
                 return (
                   <article key={c.id} className="clc">
@@ -138,7 +140,7 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
                         ) : (
                           <>
                             <span>{t("cw.home.designsN", { n: num(c.entries) })}</span>
-                            <span>{c.status === "judging" ? t("cw.home.pickWithin", { left: left(c.judgingEndsAt) }) : c.status === "open" ? left(c.endsAt) : t(`cw.status.${c.status}` as Parameters<typeof t>[0])}</span>
+                            <span>{paused ? t("guarantee.status.title") : c.status === "judging" ? t("cw.home.pickWithin", { left: left(c.judgingEndsAt) }) : c.status === "open" ? left(c.endsAt) : t(`cw.status.${c.status}` as Parameters<typeof t>[0])}</span>
                           </>
                         )}
                       </div>

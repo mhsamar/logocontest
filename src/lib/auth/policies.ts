@@ -59,6 +59,9 @@ const POLICIES = {
   "entry.submit": (user: CurrentUser | null) => active(user) && user.role === "designer",
   // Saved contests (heart) are for designers.
   "contest.save": (user: CurrentUser | null) => Boolean(user) && user!.status !== "banned" && user!.role === "designer",
+  // Money-back guarantee (owner, 2026-10-21): only the contest's own client; a suspension doesn't stop it.
+  "guarantee.claim": (user: CurrentUser | null, ctx?: PolicyContext) =>
+    Boolean(user) && user!.role === "client" && user!.status !== "banned" && user!.status !== "deleted" && user!.id === ctx?.contestOwnerId,
 } satisfies Record<string, (user: CurrentUser | null, ctx?: PolicyContext) => boolean>;
 
 export type Ability = keyof typeof POLICIES;

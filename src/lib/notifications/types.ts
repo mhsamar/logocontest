@@ -120,5 +120,14 @@ export const NOTIFICATION_TYPES = [
   "payment_approved_addon",
   "payment_rejected",
   "payment_submitted_admin",
+  // Money-back guarantee (owner, 2026-10-21)
+  "guarantee_available",
+  "guarantee_claimed",
+  "guarantee_approved",
+  "guarantee_rejected",
+  "guarantee_refunded",
+  "guarantee_designers",
+  "guarantee_claimed_admin",
+  "guarantee_overdue_admin",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

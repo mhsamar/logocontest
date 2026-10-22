@@ -33,6 +33,7 @@ export function ReviewStep({
   uploads,
   onRetryUploads,
   goTo,
+  guarantee = null,
 }: {
   brief: Brief;
   order: Order;
@@ -49,6 +50,8 @@ export function ReviewStep({
   uploads: UploadState[];
   onRetryUploads: () => void;
   goTo: (step: number) => void;
+  /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
+  guarantee?: number | null;
 }) {
   const { t, locale, currency, price: taka } = useI18n();
   const failed = uploads.some((u) => u.status === "error");
@@ -179,7 +182,7 @@ export function ReviewStep({
             <Link href="/legal/payment-refund" target="_blank" className="font-semibold text-primary underline">
               {t("footer.refund")}
             </Link>{" "}
-            {t("wizard.c11.termsEnd")}
+            {guarantee ? t("wizard.c11.termsEndGuarantee", { n: guarantee }) : t("wizard.c11.termsEnd")}
           </>
         }
       />

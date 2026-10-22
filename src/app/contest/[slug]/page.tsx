@@ -45,6 +45,7 @@ import { formatDate } from "@/lib/dates";
 import { countComments, listComments, savedContestIds } from "@/lib/contests/community";
 import { cx } from "@/lib/cx";
 import { contestDesigners, getEntryDetail, hasEntryIn, listEntries } from "@/lib/entries/queries";
+import { contestPromise } from "@/lib/guarantee/queries";
 import { canVote, canWithdraw, entryScope, HIDING_STATUSES, isEntrySort, isShareableDesign, type EntrySort as EntrySortKey } from "@/lib/entries/rules";
 import { HideToggle } from "@/components/entries/hidden-bits";
 import { linkOrigin } from "@/lib/site-origin";
@@ -130,7 +131,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const entryNumber = tab === "entries" && typeof sp.entry === "string" ? Number(sp.entry) : null;
   // Order of the designs (owner, 2026-10-11): best rated first unless the visitor picks another.
   const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
-  const [judgingDays, commentCount, saved, comments, commentMax, entries, entry, viewerHasEntry, designers, fileDays] = await Promise.all([
+  const [judgingDays, commentCount, saved, comments, commentMax, entries, entry, viewerHasEntry, designers, fileDays, promise] = await Promise.all([
     getSetting("timers.judging_window_days"),
     contest.canSeeBrief ? countComments(contest.id) : 0,
     canSave ? savedContestIds(user?.id, [contest.id]) : new Set<string>(),
@@ -142,6 +143,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     user?.role === "designer" ? hasEntryIn(contest.id, user.id) : false,
     contestDesigners(contest.id, 5),
     getSetting("timers.designer_file_upload_days"),
+    // Money-back guarantee (owner, 2026-10-21): designers see the promise before they send a design.
+    contest.status === "open" || contest.status === "judging" ? contestPromise(contest.id) : null,
   ]);
   // Designer Pro plan (owner, 2026-10-13): Pro badge and gold border, "Invited" on invited designers' designs, Pro
   // designs higher in the default order (winners stay first), and "Message designer" for the contest's client.
@@ -408,6 +411,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                   </div>
                 ))}
               </dl>
+              {promise && <p className="m-0 mt-2 text-[13px] leading-snug text-muted" data-guarantee-note>{t("guarantee.designerNote", { n: fmt(promise) })}</p>}
               {contest.canSeeBrief && !finished && (
                 <Link href={`/contest/${contest.slug}?tab=comments#tabs`} className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
                   {t("contest.facts.ask")}

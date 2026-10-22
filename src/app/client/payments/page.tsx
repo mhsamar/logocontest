@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { contestHref } from "@/lib/client/rules";
 import { clientPayments } from "@/lib/client/workspace";
 import { formatDate } from "@/lib/dates";
+import { refundedPaymentIds } from "@/lib/guarantee/queries";
 import { getI18n } from "@/lib/i18n/server";
 import { formatTaka } from "@/lib/money";
 
@@ -19,8 +20,9 @@ export default async function ClientPaymentsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?as=client&next=%2Fclient%2Fpayments");
   if (user.role !== "client") redirect("/dashboard");
-  const [{ t, locale }, list] = await Promise.all([getI18n(), clientPayments(user.id)]);
-  const paid = list.filter((p) => p.status === "paid");
+  const [{ t, locale }, list, back] = await Promise.all([getI18n(), clientPayments(user.id), refundedPaymentIds()]);
+  // Money-back refunds (owner, 2026-10-21): shown as "Money back" and left out of the total.
+  const paid = list.filter((p) => p.status === "paid" && !back.has(p.id));
   return (
     <>
       <div className="phd2">
@@ -49,7 +51,11 @@ export default async function ClientPaymentsPage() {
                 </span>
                 <b style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {formatTaka(p.amount, locale)}
-                  <span className={`pss ${p.status === "paid" ? "op" : "win"}`}>{t(`cw.pay.status.${p.status === "paid" ? "paid" : p.status === "failed" ? "failed" : "waiting"}`)}</span>
+                  {back.has(p.id) ? (
+                    <span className="pss win">{t("guarantee.prizeState")}</span>
+                  ) : (
+                    <span className={`pss ${p.status === "paid" ? "op" : "win"}`}>{t(`cw.pay.status.${p.status === "paid" ? "paid" : p.status === "failed" ? "failed" : "waiting"}`)}</span>
+                  )}
                 </b>
               </div>
             ))}

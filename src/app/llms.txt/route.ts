@@ -22,7 +22,7 @@ export async function GET() {
   const lines = [
     "# logocontest.bd",
     "",
-    `> Logo design contest marketplace in Bangladesh. A client writes a brief and sets a prize in taka; many Bangladeshi designers send logo designs; the client picks the winner and gets the final files and full copyright. Prizes start at ${taka(f.minPrize)}; with the ${f.fee}% service fee the smallest contest costs ${taka(f.minTotal)} in total. Payment in taka by bKash. Contests usually run ${f.defaultDays} days. Site in English and Bangla.`,
+    `> Logo design contest marketplace in Bangladesh. A client writes a brief and sets a prize in taka; many Bangladeshi designers send logo designs; the client picks the winner and gets the final files and full copyright. Prizes start at ${taka(f.minPrize)}; with the ${f.fee}% service fee the smallest contest costs ${taka(f.minTotal)} in total. Payment in taka by bKash. Contests usually run ${f.defaultDays} days. Site in English and Bangla.${f.guaranteeOn ? ` Money-back guarantee: if fewer than ${f.guaranteeDesigners} different designers send designs, the client can claim back everything they paid (before picking a winner).` : ""}`,
     "",
     "## Prices (prize + service fee, in taka)",
     `- Packages: ${packages}.`,

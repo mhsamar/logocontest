@@ -3,6 +3,7 @@ import shareEn from "./share-en";
 import checkEn from "./check-en";
 import payEn from "./pay-en";
 import proEn from "./pro-en";
+import guaranteeEn from "./guarantee-en";
 
 const en = {
   pro: proEn,
@@ -10,6 +11,7 @@ const en = {
   pay: payEn,
   cw: clientEn,
   share: shareEn,
+  guarantee: guaranteeEn,
   meta: {
     title: "Logo Design Contests in Bangladesh | logocontest.bd",
     description: "Get logo ideas from many Bangladeshi designers for one fixed prize. Pay in taka by bKash; the winner hands over every file and the full copyright.",
@@ -112,7 +114,7 @@ const en = {
     winners: "Winning logos",
     leaderboard: "Leaderboard",
     privacy: "Privacy",
-    refund: "Payment & No-Refund Policy",
+    refund: "Payment & Refund Policy",
     designerRules: "Designer Rules",
     contact: "Contact: {phone}",
     clients: "For clients",
@@ -434,6 +436,9 @@ const en = {
       designsUnlimited: "as many as they like",
       designsShortLimited: "Up to {n} designs a contest, no limit on Pro",
       designsShortUnlimited: "No limit on designs",
+      // The refund answer (q5) follows Settings › guarantee.enabled (owner, 2026-10-21).
+      refundNo: "No. Designers start working on your contest from the first day, so payments are non-refundable.",
+      refundGuarantee: "Only in one case: if your contest ends with designs from fewer than {n} different designers, you can claim back everything you paid, within {judging} days of the end and before you pick a winner. Otherwise payments are non-refundable, because designers start working on your contest from the first day.",
       q1: {
         q: "How does a logo contest work?",
         a: "You describe your business and pay the prize up front. Designers from across Bangladesh send logo ideas, you rate and comment to guide them, then you pick one winner. The winner sends you the final files.",
@@ -452,7 +457,7 @@ const en = {
       },
       q5: {
         q: "Can I get a refund?",
-        a: "No. Designers start working on your contest from the first day, so payments are non-refundable. Please check your brief before you pay. If the winning design turns out to be copied, tell us within a few days of picking it and you may choose another design.",
+        a: "{refundRule} Please check your brief before you pay. If the winning design turns out to be copied, tell us within a few days of picking it and you may choose another design.",
       },
       q6: {
         q: "Who owns the winning logo?",
@@ -1250,6 +1255,15 @@ const en = {
       payment_approved_addon: "Payment approved: your add-on for \"{brand}\" is on.",
       payment_rejected: "We couldn't approve your payment of {amount}: {reason}. Check the transaction ID and send it again.",
       payment_submitted_admin: "{name} sent a bKash payment of {amount} to check.",
+      // Money-back guarantee (owner, 2026-10-21)
+      guarantee_available: "{brand} ended with fewer than {number} different designers. You can claim your money back on the contest page.",
+      guarantee_claimed: "We got your money-back claim for {brand}. Our team is checking it.",
+      guarantee_approved: "Your money-back claim for {brand} was approved. We are sending your money back.",
+      guarantee_rejected: "Your money-back claim for {brand} was not approved: {reason}",
+      guarantee_refunded: "Your money for {brand} has been sent back.",
+      guarantee_designers: "{brand} had fewer than {number} designers, so the client got their money back. No prize or share is paid.",
+      guarantee_claimed_admin: "Money-back claim for {brand}: check and decide",
+      guarantee_overdue_admin: "The money-back claim for {brand} is still waiting",
       account_banned: "Your account was banned permanently: {reason}",
       flag_warning: "Your report on design #{number} ({brand}) was found to be false. 3 false reports close an account.",
       report_upheld: "Thank you. Your report on design #{number} ({brand}) was upheld and the design was removed.",
@@ -1780,6 +1794,7 @@ const en = {
       claims: "Copy claims",
       users: "Users",
       payments: "Payments",
+      refunds: "Money-back claims",
       withdrawals: "Withdrawals",
       agreements: "Agreements",
       monthly: "Monthly winner",
@@ -1951,6 +1966,7 @@ const en = {
         users: "Users",
         unpaid: "Unpaid contests",
         payments: "Payments",
+        refunds: "Money-back claims",
         withdrawals: "Withdrawals",
         agreements: "Agreements",
         monthly: "Monthly winner",
@@ -1972,6 +1988,7 @@ const en = {
         claims: "Decide copy claims",
         users: "Suspend, ban",
         withdrawals: "Pay designers",
+        refunds: "Approve, reject and mark refunded",
         agreements: "Manage = see full ID numbers",
         monthly: "Pick and send the monthly gift",
         pro: "Price, limits, members, reminders",
@@ -2419,7 +2436,7 @@ const en = {
     legal: {
       title: "Legal pages",
       lead: "Edit the legal pages and the designer agreement in English and Bangla. A Bangladeshi lawyer should check big changes.",
-      docs: { terms: "Terms", privacy: "Privacy", "payment-refund": "Payment & No-Refund", "designer-rules": "Designer Rules", agreement: "Designer agreement" },
+      docs: { terms: "Terms", privacy: "Privacy", "payment-refund": "Payment & Refund", "designer-rules": "Designer Rules", agreement: "Designer agreement" },
       published: "Published version, last updated {date}.",
       builtIn: "Built-in text, last updated {date}.",
       howTo: "# title · > description · - list item · ## heading {#anchor} · empty line = new paragraph",
@@ -3375,6 +3392,7 @@ const en = {
         admin: "Admin accounts are managed in Admins & roles.",
         self: "You can't delete your own account.",
         liveContests: "This client has a live contest. Cancel or delete that contest first.",
+        refundClaim: "There is a money-back claim to decide or pay. Finish it first in Money-back claims.",
         openHandover: "This designer still has final files to deliver. Wait until that handover is finished.",
         walletMoney: "This designer has money in the wallet or a withdrawal waiting. Pay it out first.",
         notInTrash: "It isn't in the Trash.",
@@ -3748,6 +3766,18 @@ const en = {
           label: "Design waiting for approval",
           when: "When the design check holds a new design that may not be a design.",
         },
+        guarantee: {
+          label: "Money-back guarantee",
+          when: "When a contest ends with too few designers, when a claim arrives, is decided or the money is sent back.",
+        },
+        guarantee_designer: {
+          label: "Client got their money back",
+          when: "When the client of a contest with too few designers got their money back.",
+        },
+        admin_refunds: {
+          label: "Money-back claims",
+          when: "A new claim, or one waiting more than a day for a decision or 3 days for the money.",
+        },
         admin_payments: {
           label: "Payments and withdrawals to check",
           when: "A bKash payment to approve or a withdrawal request.",
@@ -3822,6 +3852,9 @@ const en = {
         erase_user: "Erased a user for good",
         payment_approve: "Approved a bKash payment",
         payment_reject: "Rejected a bKash payment",
+        guarantee_approve: "Approved a money-back claim",
+        guarantee_reject: "Rejected a money-back claim",
+        guarantee_refunded: "Marked a money-back claim refunded",
         payment_method_on: "Switched a payment method on",
         payment_method_off: "Switched a payment method off",
         payment_method_save: "Changed a payment method",
@@ -5061,6 +5094,8 @@ const en = {
       termsBefore: "I agree to the",
       termsAfter: "and the",
       termsEnd: "(payments are non-refundable).",
+      // While the money-back guarantee is offered (owner, 2026-10-21).
+      termsEndGuarantee: "(payments are non-refundable, except under the {n}-designer money-back guarantee).",
       pay: "Pay {total}",
       secureNote: "You'll continue on a secure payment page.",
     },
@@ -5678,7 +5713,7 @@ const en = {
       title: "Quick answers",
       how: "How it works",
       howLine: "The three steps for clients and designers.",
-      refund: "Payment & No-Refund Policy",
+      refund: "Payment & Refund Policy",
       refundLine: "How payments and refunds work.",
       rules: "Designer Rules",
       rulesLine: "What designers may and may not do.",

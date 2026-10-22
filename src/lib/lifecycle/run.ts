@@ -8,6 +8,8 @@ import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceContest } from "@/lib/contests/announce";
+import { tellClient, tellTeam } from "@/lib/guarantee/notices";
+import { contestGuarantee, pendingClaimContestIds } from "@/lib/guarantee/queries";
 import { emailContestEnding, emailPickWinner, sendClientDigests } from "@/lib/email/events";
 import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
 import { releaseStalePromos } from "@/lib/promos/promos";
@@ -56,6 +58,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
   };
   // The client's contest in the client workspace (owner, 2026-10-17).
   const manageLink = (c: ContestRow) => contestHref(c.slug);
+  // Money-back claims still being checked (owner, 2026-10-21): their contest is frozen, so no reminders and no split.
+  const frozen = await pendingClaimContestIds();
   const SELECT = "id, slug, brand_name, client_id, status, ends_at, judging_ends_at, prize_amount";
 
   // 0. New contests every designer hasn't heard about yet (the payment usually announces them at once).
@@ -126,6 +130,11 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         await emailPickWinner(c.id, s["timers.judging_window_days"]);
         // Designers who entered hear it ended and the client is choosing (owner, 2026-10-09).
         await notify(await contestDesignerIds(c.id), "contest_ended_entered", { brand: c.brand_name }, `/contest/${c.slug}`);
+        // Fewer designers than the guarantee promised (owner, 2026-10-21): pick a winner or claim the money back.
+        const g = await contestGuarantee(c.id, now);
+        if (g.state.kind === "available" && (await once(c.id, "guarantee_available"))) {
+          await tellClient("available", { clientId: c.client_id, slug: c.slug, brand: c.brand_name }, { min: g.state.min, designers: g.state.designers, days: s["timers.judging_window_days"], until: g.state.until, late: false });
+        }
         report.judging++;
       } catch (e) {
         fail("judging", c.id, e);
@@ -147,7 +156,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const { data: sentRows } = rows.length ? await db.from("lifecycle_events").select("contest_id, kind").in("contest_id", rows.map((c) => c.id)) : { data: [] };
     for (const c of rows) {
       try {
-        if (!c.ends_at || !c.judging_ends_at) continue;
+        if (!c.ends_at || !c.judging_ends_at || frozen.has(c.id)) continue;
         const sent = new Set((sentRows ?? []).filter((r) => r.contest_id === c.id).map((r) => r.kind as string));
         const days = dueReminders(new Date(c.ends_at), now, s["timers.judging_reminder_days"], sent);
         if (days.length === 0) continue;
@@ -255,7 +264,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     ]);
     const silentIds = (silent ?? []).map((h) => h.contest_id as string);
     const { data: silentContests } = silentIds.length ? await db.from("contests").select(SELECT).in("id", silentIds) : { data: [] };
-    const due = [...((judging ?? []) as ContestRow[]), ...((silentContests ?? []) as ContestRow[])];
+    const due = [...((judging ?? []) as ContestRow[]), ...((silentContests ?? []) as ContestRow[])].filter((c) => !frozen.has(c.id));
     for (const c of due) {
       try {
         const { data: entries } = await db.from("entries").select("designer_id, status, created_at").eq("contest_id", c.id);
@@ -270,13 +279,34 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         });
         if (error) throw new Error(error.message);
         if (!done || !(done as { id?: string }).id) continue;
-        await notify([c.client_id], "no_result_client", { brand: c.brand_name }, contestHref(c.slug));
+        // Nobody got a share and the guarantee still applies (owner, 2026-10-21): the client hears they can claim, not
+        // that the prize was shared.
+        const late = shares.length === 0 ? await contestGuarantee(c.id, now) : null;
+        if (late?.state.kind === "available" && late.state.late) {
+          if (await once(c.id, "guarantee_available_late")) await tellClient("available", { clientId: c.client_id, slug: c.slug, brand: c.brand_name }, { min: late.state.min, designers: late.state.designers, until: late.state.until, late: true });
+        } else await notify([c.client_id], "no_result_client", { brand: c.brand_name }, contestHref(c.slug));
         for (const x of shares) await notify([x.designerId], "no_result_share", { brand: c.brand_name, amount: x.credit }, "/dashboard/wallet");
         report.noResult++;
       } catch (e) {
         fail("no-result", c.id, e);
       }
     }
+  }
+
+  // 6b. Money-back claims the team hasn't acted on (owner, 2026-10-21): waiting a day for a decision, or approved
+  //     3 days ago and the money not sent yet. Once per claim and stage.
+  try {
+    const [{ data: waiting }, { data: unpaid }] = await Promise.all([
+      db.from("guarantee_claims").select("id, contest_id, brand_name").eq("status", "pending").lte("created_at", new Date(now.getTime() - DAY).toISOString()),
+      db.from("guarantee_claims").select("id, contest_id, brand_name").eq("status", "approved").lte("decided_at", new Date(now.getTime() - 3 * DAY).toISOString()),
+    ]);
+    for (const [stage, list] of [["wait", waiting], ["unpaid", unpaid]] as const) {
+      for (const r of list ?? []) {
+        if (r.contest_id && (await once(r.contest_id as string, `guarantee_${stage}_${r.id}`))) await tellTeam("overdue", r.brand_name as string);
+      }
+    }
+  } catch (e) {
+    fail("guarantee", "-", e);
   }
 
   // 7. Release held prizes: approved at least the hold days ago (owner, 2026-10-12: counted from the approval), no

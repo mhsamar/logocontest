@@ -19,6 +19,8 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       "fees.designer_tiers",
       "limits.withdrawal_min",
       "timers.payout_hold_days",
+      "guarantee.enabled",
+      "guarantee.min_designers",
     ]),
   ]);
   // In the visitor's currency on the home and How it works pages (owner, 2026-10-14); legal texts stay in taka.
@@ -65,6 +67,11 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       // How many designs a designer may send to one contest: Basic is limited, Pro is not (owner, 2026-10-15).
       designsRule: basicLimit ? t("home.faq.designsLimited", { n: num.format(basicLimit) }) : t("home.faq.designsUnlimited"),
       designsShort: basicLimit ? t("home.faq.designsShortLimited", { n: num.format(basicLimit) }) : t("home.faq.designsShortUnlimited"),
+      // Money-back guarantee (owner, 2026-10-21): the refund answer says so only while it is offered.
+      guaranteeDesigners: num.format(s["guarantee.min_designers"]),
+      refundRule: s["guarantee.enabled"]
+        ? t("home.faq.refundGuarantee", { n: num.format(s["guarantee.min_designers"]), judging: num.format(s["timers.judging_window_days"]) })
+        : t("home.faq.refundNo"),
     },
   };
 }

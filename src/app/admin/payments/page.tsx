@@ -7,6 +7,7 @@ import { pageNum, Pager, qs, str } from "@/components/admin/table-bits";
 import { AdmCard, AdmEmpty, ADM_INPUT, CardTitle, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
 import { requirePermission } from "@/lib/admin/core";
 import { paymentsOverview, splitOf, type PaymentRow } from "@/lib/admin/payments-overview";
+import { refundedPaymentIds } from "@/lib/guarantee/queries";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -34,7 +35,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
   const q = str(sp.q).trim().toLowerCase();
   const qNum = q.replace(/^lc-?/, "").replace(/^0+(?=\d)/, "");
   const page = pageNum(sp.page);
-  const [{ t, locale }, all] = await Promise.all([getI18n(), paymentsOverview()]);
+  const [{ t, locale }, all, back] = await Promise.all([getI18n(), paymentsOverview(), refundedPaymentIds()]);
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const short = (n: number) => (n >= 1000 ? `৳${num(Math.round(n / 100) / 10)}k` : taka(n));
@@ -44,7 +45,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
   const full = (d: Date) => d.toLocaleString(tag, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   const now = new Date();
 
-  const paid = all.filter((p) => p.status === "paid");
+  // Money-back refunds (owner, 2026-10-21) are left out of the totals and shown on their own.
+  const paid = all.filter((p) => p.status === "paid" && !back.has(p.id));
+  const refunded = all.filter((p) => p.status === "paid" && back.has(p.id));
   const failed = all.filter((p) => p.status === "failed");
   const paidSum = paid.reduce((a, p) => a + p.amount, 0);
   const split = paid.reduce((a, p) => {
@@ -91,7 +94,8 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
       ? { main: t("admin.payments.coversPrize", { prize: taka(s.prize) }), sub: t("admin.payments.coversRest", { rest: taka(s.platform) }) }
       : { main: t(`admin.payments.coversLater.${p.purpose}` as MessageKey), sub: t("admin.payments.noPrize") };
   };
-  const statusPill = (p: PaymentRow) => <Pill tone={p.status === "paid" ? "good" : p.status === "failed" ? "bad" : "warn"}>{t(`admin.payments.statuses.${p.status}`)}</Pill>;
+  const statusPill = (p: PaymentRow) =>
+    back.has(p.id) ? <Pill tone="warn">{t("guarantee.prizeState")}</Pill> : <Pill tone={p.status === "paid" ? "good" : p.status === "failed" ? "bad" : "warn"}>{t(`admin.payments.statuses.${p.status}`)}</Pill>;
 
   const details = detail && (
     <AdmCard as="aside" className="flex min-w-0 flex-[1_1_300px] flex-col gap-[18px] p-5 xl:sticky xl:top-[92px] xl:max-w-[380px]">
@@ -187,6 +191,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
           hint={failed.length ? `${taka(failed.reduce((a, p) => a + p.amount, 0))}${failedAgain.length ? ` · ${t("admin.payments.kpi.paidAgain", { n: num(failedAgain.length) })}` : ""}` : undefined}
           icon="reports"
         />
+        {refunded.length > 0 && <KpiTile label={t("guarantee.prizeState")} value={taka(refunded.reduce((a, p) => a + p.amount, 0))} hint={t("admin.payments.kpi.paidHint", { n: num(refunded.length) })} icon="refunds" href="/admin/refunds?tab=refunded" />}
       </KpiGrid>
 
       <div className="flex flex-wrap items-stretch gap-4">

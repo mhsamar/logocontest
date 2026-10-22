@@ -15,7 +15,7 @@ export const PACKAGE_KEYS = ["economy", "standard", "pro", "premium", "elite"] a
 export type PackageKey = (typeof PACKAGE_KEYS)[number];
 
 export const siteFacts = cache(async (): Promise<SiteFacts> => {
-  const [pricing, s] = await Promise.all([getPricingConfig(), getSettings(["timers.judging_window_days"])]);
+  const [pricing, s] = await Promise.all([getPricingConfig(), getSettings(["timers.judging_window_days", "guarantee.enabled", "guarantee.min_designers"])]);
   const fee = { serviceFeePercent: pricing.serviceFeePercent, largeFeePercent: pricing.largeFeePercent, largeFeeFrom: pricing.largeFeeFrom };
   const minPrize = Math.min(pricing.customMin, ...PACKAGE_KEYS.map((k) => pricing.packagePrizes[k]));
   return {
@@ -33,8 +33,9 @@ export const siteFacts = cache(async (): Promise<SiteFacts> => {
       const prize = pricing.packagePrizes[key];
       return { key, prize, feePercent: feePercentFor(prize, fee), total: prizeWithFee(prize, fee) };
     }),
-    guaranteeOn: false,
-    guaranteeDesigners: 3,
+    // Money-back guarantee (owner, 2026-10-21): its sections and wording show only while Settings offers it.
+    guaranteeOn: s["guarantee.enabled"],
+    guaranteeDesigners: s["guarantee.min_designers"],
   };
 });
 

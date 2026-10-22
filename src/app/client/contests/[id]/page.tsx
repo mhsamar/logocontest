@@ -6,6 +6,7 @@ import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, Stars, Sta
 import { ShortlistHeart } from "@/components/client/review-buttons";
 import { ClientAvatar } from "@/components/client/avatar-menu";
 import { CopyClaim } from "@/components/claims/copy-claim";
+import { GuaranteeBanner, GuaranteeCard } from "@/components/guarantee/guarantee-status";
 import { ContestBrief } from "@/components/contests/contest-brief";
 import { ServiceBrief } from "@/components/services/service-brief";
 import { NavScroll } from "@/components/ui/nav-scroll";
@@ -35,6 +36,7 @@ import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboardin
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getEntryDetail } from "@/lib/entries/queries";
+import { contestGuarantee } from "@/lib/guarantee/queries";
 import { isShareableDesign } from "@/lib/entries/rules";
 import { linkOrigin } from "@/lib/site-origin";
 import { designPath, designPinPath } from "@/lib/share/links";
@@ -92,7 +94,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const unpaid = contest.rawStatus === "draft" || contest.rawStatus === "pending_payment";
   const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: true, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
 
-  const [entries, prices, s, entry, handover, checks, payments, invited, times, ranges, waiting] = await Promise.all([
+  const [entries, prices, s, entry, handover, checks, payments, invited, times, ranges, waiting, guarantee] = await Promise.all([
     unpaid ? Promise.resolve([]) : judgedEntries({ id: contest.id, ownerId: contest.ownerId, isBlind: contest.isBlind, status: contest.status, winnerIsPublic: contest.winnerIsPublic }, user),
     addonPrices(),
     getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days", "timers.judging_window_days"]),
@@ -104,7 +106,19 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
     entryTimes(contest.id),
     levelRanges(),
     unpaid ? awaitingApproval([contest.id]) : Promise.resolve(new Map<string, string>()),
+    // Money-back guarantee (owner, 2026-10-21; C-25).
+    unpaid ? Promise.resolve(null) : contestGuarantee(contest.id),
   ]);
+  const claimStatus = guarantee?.state.kind === "claimed" ? guarantee.state.status : null;
+  // While the team checks a money-back claim, picking a winner is paused; once approved, the money goes back.
+  const claimPending = claimStatus === "pending";
+  const moneyBack = claimStatus === "approved" || claimStatus === "refunded";
+  // A cancelled contest (money back, or cancelled by the team): its designs aren't shown to the client any more.
+  const cancelled = contest.rawStatus === "cancelled";
+  // A no-result end where nobody got a share and the late claim is still possible or being checked.
+  const notShared = contest.rawStatus === "no_result" && ((guarantee?.state.kind === "available" || guarantee?.state.kind === "check") ? guarantee.state.late : claimPending);
+  // Until when the client can still pick (only while judging: after a pick or a no-result end there is none).
+  const pickUntil = contest.status === "judging" ? contest.judgingEndsAt : null;
   const [claim, messages] = handover ? await Promise.all([latestClaim(handover.id), handoverMessages(handover.id, user.id, handover.clientId)]) : [null, []];
   const reportNumber = typeof sp.report === "string" ? Number(sp.report) : null;
   const reportOf = checkerOn && reportNumber ? (entries.find((e) => e.number === reportNumber) ?? null) : null;
@@ -142,7 +156,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const canEdit = contest.status === "open";
   const canExtend = contest.status === "open";
   // The main button follows what the contest needs now: pay, review, pick a winner or get the files.
-  const headAction = mainAction(contest.rawStatus);
+  const headAction = claimPending && mainAction(contest.rawStatus) === "pick" ? "details" : mainAction(contest.rawStatus);
   const headHref =
     headAction === "pay"
       ? payHref(contest.id, waiting)
@@ -150,7 +164,9 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
         ? contestHref(contest.slug, "designs", { sort: "top" })
         : headAction === "files"
           ? `${contestHref(contest.slug, "payment")}#files`
-          : contestHref(contest.slug, "designs");
+          : moneyBack
+            ? `${contestHref(contest.slug, "payment")}#guarantee`
+            : contestHref(contest.slug, "designs");
   const designerName = (e: { designer: { name: string; username: string | null } | null }) => (e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? t("entry.hiddenName")));
 
   const checker = {
@@ -245,7 +261,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               <b>{t(left.unit === "d" ? "cw.time.daysShort" : "cw.time.hoursShort", { n: num(left.n) })}</b>
             </div>
           )}
-          {contest.status === "judging" && contest.judgingEndsAt && (
+          {contest.status === "judging" && contest.judgingEndsAt && !claimPending && (
             <div className="dtcd">
               <span>{t("cw.detail.pickBy")}</span>
               <b>{day(contest.judgingEndsAt)}</b>
@@ -276,13 +292,14 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               </Link>
             )}
             <Link href={headHref} className="dbtn sm" data-main-action={headAction}>
-              {t(`cw.action.${headAction === "details" ? "review" : headAction}`)}
+              {moneyBack ? t("guarantee.prizeState") : t(`cw.action.${headAction === "details" ? "review" : headAction}`)}
             </Link>
           </span>
         </div>
 
-        {contest.status === "judging" && contest.judgingEndsAt && <p className="calert info">{t("lifecycle.pickBy", { date: formatDate(contest.judgingEndsAt, locale, "long") })}</p>}
-        {contest.status === "no_result" && <p className="calert info">{t("lifecycle.noResultClient")}</p>}
+        {contest.status === "judging" && contest.judgingEndsAt && !claimPending && <p className="calert info">{t("lifecycle.pickBy", { date: formatDate(contest.judgingEndsAt, locale, "long") })}</p>}
+        {contest.status === "no_result" && claimStatus !== "pending" && guarantee?.state.kind !== "available" && <p className="calert info">{t("lifecycle.noResultClient")}</p>}
+        {guarantee && <GuaranteeBanner contestId={contest.id} g={guarantee} judgingEndsAt={pickUntil} />}
 
         {/* Overview */}
         {tab === "overview" && (
@@ -310,13 +327,17 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                                 ? contest.endsAt
                                   ? t("cw.detail.endsOn", { date: day(contest.endsAt) })
                                   : t("cw.detail.notYet")
-                                : st === "winner"
-                                  ? handover
-                                    ? when(handover.pickedAt)
-                                    : t("cw.detail.pickWithin", { n: num(s["timers.judging_window_days"]) })
-                                  : handover?.approvedAt
-                                    ? when(handover.approvedAt)
-                                    : t("cw.detail.afterPick");
+                                : moneyBack
+                                  ? st === "winner"
+                                    ? t("guarantee.prizeState")
+                                    : "—"
+                                  : st === "winner"
+                                    ? handover
+                                      ? when(handover.pickedAt)
+                                      : t("cw.detail.pickWithin", { n: num(s["timers.judging_window_days"]) })
+                                    : handover?.approvedAt
+                                      ? when(handover.approvedAt)
+                                      : t("cw.detail.afterPick");
                       return (
                         <li key={st} className={stages[i]}>
                           <i />
@@ -334,7 +355,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                     <h2>{t("cw.detail.top")}</h2>
                     <span className="dmut">{t("cw.detail.byStars")}</span>
                   </div>
-                  {top.length === 0 ? <Empty title={t("cw.detail.topNone")} lead={t("cw.detail.topNoneLead")} /> : <div className="dtg">{top.map(designCard)}</div>}
+                  {cancelled ? <Empty title={t("guarantee.hiddenDesigns")} /> : top.length === 0 ? <Empty title={t("cw.detail.topNone")} lead={t("cw.detail.topNoneLead")} /> : <div className="dtg">{top.map(designCard)}</div>}
                 </section>
               </div>
               <div className="dcol">
@@ -398,7 +419,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   <div className="cdl">
                     <div>
                       <span>{t("cw.detail.prizeHeld")}</span>
-                      <b>{taka(contest.prize)}</b>
+                      <b>{moneyBack ? t("guarantee.prizeState") : taka(contest.prize)}</b>
                     </div>
                     <div>
                       <span>{t("cw.detail.addons")}</span>
@@ -438,7 +459,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                 {t("cw.detail.newest")}
               </Link>
             </div>
-            {shown.length === 0 ? <Empty title={unpaid ? t("cw.detail.unpaidDesigns") : t("manage.review.empty")} /> : <div className="dtg six">{shown.map(designCard)}</div>}
+            {shown.length === 0 ? <Empty title={unpaid ? t("cw.detail.unpaidDesigns") : cancelled ? t("guarantee.hiddenDesigns") : t("manage.review.empty")} /> : <div className="dtg six">{shown.map(designCard)}</div>}
             {checkerOn && counts.all > 0 && <CheckLegend ranges={ranges} t={t} />}
             {checkerOn && !unpaid && (
               <div className="lc-tools" style={{ marginTop: 20 }}>
@@ -478,7 +499,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           <section className="dpn on" data-panel="designers">
             <section className="dcard">
               {designers.length === 0 ? (
-                <Empty title={t("cw.detail.noDesigners")} lead={t("cw.detail.noDesignersLead")} />
+                cancelled ? <Empty title={t("guarantee.hiddenDesigns")} /> : <Empty title={t("cw.detail.noDesigners")} lead={t("cw.detail.noDesignersLead")} />
               ) : (
                 designers.map((d) => (
                   <div key={d.id} className="cdt">
@@ -535,7 +556,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   </div>
                   <div>
                     <span>{t("cw.detail.status")}</span>
-                    <b>{t(`cw.detail.prizeState.${!contestPay ? "unpaid" : handover?.status === "approved" || contest.rawStatus === "completed" ? "released" : contest.rawStatus === "no_result" ? "shared" : "held"}`)}</b>
+                    <b>{moneyBack ? t("guarantee.prizeState") : notShared ? t("guarantee.notShared") : t(`cw.detail.prizeState.${!contestPay ? "unpaid" : handover?.status === "approved" || contest.rawStatus === "completed" ? "released" : contest.rawStatus === "no_result" ? "shared" : "held"}`)}</b>
                   </div>
                 </div>
                 {payments.filter((p) => p.purpose !== "contest" && p.status === "paid").length > 0 && (
@@ -599,11 +620,12 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   <div className="dlock">
                     <CwIcon name="lock" size={26} />
                     <b>{t("cw.detail.filesLocked")}</b>
-                    <em>{t("cw.detail.filesWhat")}</em>
+                    <em>{cancelled ? t("guarantee.hiddenDesigns") : t("cw.detail.filesWhat")}</em>
                   </div>
                 )}
               </section>
             </div>
+            {guarantee && <GuaranteeCard contestId={contest.id} g={guarantee} judgingEndsAt={pickUntil} />}
             {!unpaid && (
               <section className="dcard" id="addons" style={{ marginTop: 24, scrollMarginTop: 24 }}>
                 <div className="dch">
@@ -656,7 +678,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           >
             <div className="space-y-5">
               {entries.find((e) => e.id === entry.id)?.chat && <MessageDesignerLink entryId={entry.id} label={t("pro.chat.message")} />}
-              <OwnerActions entryId={entry.id} number={entry.number} rating={entry.rating} shortlisted={entry.isShortlisted} canAct={reviewing && entry.status === "active"} readOnly={finished} fileDays={fileDays} variant="panel" wonHref={withParam(here, `won=${entry.number}`)} />
+              <OwnerActions entryId={entry.id} number={entry.number} rating={entry.rating} shortlisted={entry.isShortlisted} canAct={reviewing && entry.status === "active" && !claimPending} readOnly={finished} fileDays={fileDays} variant="panel" wonHref={withParam(here, `won=${entry.number}`)} />
               <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!finished} hint={finished ? t("contest.finished") : null} />
               {/* Share this design (owner, 2026-10-18): ask friends on Facebook, only when visitors can see it too. */}
               {shareOrigin && (

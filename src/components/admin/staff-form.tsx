@@ -17,7 +17,7 @@ const GROUPS: { key: "overview" | "work" | "people" | "money" | "messages" | "si
   { key: "overview", areas: ["dashboard", "live"] },
   { key: "work", areas: ["contests", "services", "pro", "designs", "reports", "claims", "copyright", "unpaid", "monthly", "trash"] },
   { key: "people", areas: ["users", "agreements"] },
-  { key: "money", areas: ["payments", "withdrawals"] },
+  { key: "money", areas: ["payments", "refunds", "withdrawals"] },
   { key: "messages", areas: ["support", "messages", "autoshare", "notifications"] },
   { key: "site", areas: ["content", "settings", "audit"] },
 ];

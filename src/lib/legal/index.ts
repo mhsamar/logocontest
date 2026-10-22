@@ -15,7 +15,7 @@ import { fillLegal, LEGAL_VERSION, type AgreementText, type LegalBlock, type Leg
 export async function legalParams(t: Translate, locale: Locale): Promise<Record<string, string | number>> {
   const [{ params }, s, contact] = await Promise.all([
     faqParams(t, locale),
-    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "timers.suspension_hours", "limits.strikes_for_ban", "trash.unpaid_hours", "trash.keep_days"]),
+    getSettings(["timers.copy_claim_days", "timers.repick_window_days", "timers.strike_expiry_days", "timers.files_strike_hours", "timers.payout_hold_days", "timers.suspension_hours", "limits.strikes_for_ban", "trash.unpaid_hours", "trash.keep_days", "guarantee.late_days"]),
     getContact(locale),
   ]);
   const n = (v: number) => formatNumber(v, locale);
@@ -35,6 +35,8 @@ export async function legalParams(t: Translate, locale: Locale): Promise<Record<
     // Unpaid contests and the trash (owner, 2026-10-14).
     unpaidHours: n(s["trash.unpaid_hours"]),
     trashDays: n(s["trash.keep_days"]),
+    // Money-back guarantee (owner, 2026-10-21); {guaranteeDesigners} comes from the Q&A numbers.
+    lateDays: n(s["guarantee.late_days"]),
   };
 }
 
@@ -53,7 +55,7 @@ export async function legalDoc(slug: LegalSlug, locale: Locale, params: Record<s
     title: doc.title,
     description: doc.description,
     summary: doc.summary.map((x) => fillLegal(x, params)),
-    sections: doc.sections.map((sec) => ({ ...sec, blocks: sec.blocks.map((b) => fillBlock(b, params)) })),
+    sections: doc.sections.map((sec) => ({ ...sec, heading: fillLegal(sec.heading, params), blocks: sec.blocks.map((b) => fillBlock(b, params)) })),
     version: parsed?.ok ? published!.version : LEGAL_VERSION,
   };
 }
