@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MyContestDesigns } from "@/components/dashboard/my-designs";
 import { ShareProfile } from "@/components/designers/share-profile";
 import { ProfileProgress } from "@/components/settings/profile-progress";
+import { PhoneNotifications } from "@/components/push/phone-notifications";
 import type { ProfileStep } from "@/lib/profile/completeness";
 import { PrizeBanner } from "@/components/rewards/prize-banner";
 import { Avatar } from "@/components/ui/avatar";
@@ -125,6 +126,7 @@ export async function DesignerDashboard({
       <Panel tone="grey" className="space-y-3.5 max-[720px]:py-4">
         <PrizeBanner rewards={prizes} />
         <ProfileProgress steps={profileSteps} />
+        <PhoneNotifications role="designer" prompt />
 
         {/* You won: files to deliver (D-08) */}
         {handovers.length > 0 && (

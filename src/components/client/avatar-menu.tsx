@@ -6,6 +6,7 @@ import { useEffect, useReducer, useRef } from "react";
 import { cx } from "@/lib/cx";
 import { logout } from "@/lib/auth/actions";
 import { CwIcon } from "./icons";
+import { LogoutForm } from "@/components/push/logout-form";
 
 export type AvatarEvent = "toggle" | "outside" | "escape" | "navigate";
 
@@ -32,7 +33,7 @@ export function ClientAvatar({ name, url, large = false }: { name: string; url: 
  * What the dropdown holds: only the client's name, the business name and Log out (CLIENT-HANDOFF §1). Kept apart
  * from the open/close logic so the tests can render it.
  */
-export function AvatarMenuPanel({ name, business, avatarUrl, logoutLabel, action, open }: { name: string; business: string | null; avatarUrl: string | null; logoutLabel: string; action: () => void | Promise<void>; open: boolean }) {
+export function AvatarMenuPanel({ name, business, avatarUrl, logoutLabel, action, open }: { name: string; business: string | null; avatarUrl: string | null; logoutLabel: string; action: (form: FormData) => void | Promise<void>; open: boolean }) {
   return (
     <div className={cx("cdd", open && "open")} role="menu" data-avatar-menu>
       <div className="cddh">
@@ -42,12 +43,12 @@ export function AvatarMenuPanel({ name, business, avatarUrl, logoutLabel, action
           {business && <em>{business}</em>}
         </div>
       </div>
-      <form action={action}>
+      <LogoutForm action={action}>
         <button type="submit" role="menuitem" className="cddl" data-logout>
           <CwIcon name="logout" size={17} strokeWidth={2.2} />
           {logoutLabel}
         </button>
-      </form>
+      </LogoutForm>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { EmailForm, MobileForm, PasswordForm, PayoutForm, PhotoSection, ProfileForm, Section, type PayoutValues } from "@/components/settings/settings-forms";
 import { PortfolioForm } from "@/components/settings/portfolio-form";
 import { ProfileProgress } from "@/components/settings/profile-progress";
+import { PhoneNotifications } from "@/components/push/phone-notifications";
 import { Panel } from "@/components/ui/panel";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { linkOrigin } from "@/lib/site-origin";
@@ -102,6 +103,10 @@ export async function SettingsBody({ user, bare = false }: { user: CurrentUser; 
           </Section>
           <Section id="email" title={t("settings.email.title")} subtitle={t("settings.email.subtitle")}>
             <EmailForm email={user.email ?? ""} verified={Boolean(user.emailVerifiedAt)} codeLength={s["auth.email_code_length"]} />
+          </Section>
+          {/* Owner, 2026-10-22: designers and clients turn on phone notifications here, on each device. */}
+          <Section id="notifications" title={t("push.device.title")} subtitle={t("push.device.subtitle")}>
+            <PhoneNotifications role={user.role === "designer" ? "designer" : "client"} />
           </Section>
           <Section title={t("settings.password.title")}>
             <PasswordForm min={s["auth.password_min_length"]} />

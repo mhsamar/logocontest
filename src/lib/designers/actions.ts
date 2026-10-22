@@ -169,7 +169,7 @@ export async function createDesignerAccount(input: {
   // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
   after(() => emailWelcome(userId));
   // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
-  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent"))) && (await noticeOn("welcome", "push"))) {
+  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent"), { takeOver: false })) && (await noticeOn("welcome", "push"))) {
     const t = await translatorFor(locale);
     await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
   }

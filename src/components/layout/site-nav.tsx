@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { Suspense } from "react";
+import { LogoutForm } from "@/components/push/logout-form";
 import { AvatarMenu } from "@/components/layout/avatar-menu";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { logout } from "@/lib/auth/actions";
@@ -94,11 +95,11 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
     </Suspense>
   );
   const logoutForm = (
-    <form action={logout}>
+    <LogoutForm action={logout}>
       <button type="submit" className="flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-medium text-danger hover:bg-canvas">
         {t("nav.logout")}
       </button>
-    </form>
+    </LogoutForm>
   );
   const pill = "inline-flex min-h-11 items-center rounded-[14px] font-semibold";
 
@@ -143,11 +144,11 @@ export async function SiteNav({ user }: { user: CurrentUser | null }) {
             </Link>
           )}
           {user && (
-            <form action={logout}>
+            <LogoutForm action={logout}>
               <button type="submit" className={`${pill} w-full justify-center border border-line px-4 text-danger`}>
                 {t("nav.logout")}
               </button>
-            </form>
+            </LogoutForm>
           )}
           {languageForm(`${pill} w-full justify-center bg-chip px-4`)}
         </SiteNavDrawer>

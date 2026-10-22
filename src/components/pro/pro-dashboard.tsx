@@ -13,6 +13,7 @@ import { getProSettings } from "@/lib/pro/settings";
 import { earlyContests, newContests, myContestRows, myInvitations, profileStrength, serviceNames, weekNumbers, type MiniContest } from "@/lib/pro/workspace";
 import { durationText, Icon, Slot, type ProIconName } from "./parts";
 import { ProWorkspace, WsHead } from "./workspace";
+import { PhoneNotifications } from "@/components/push/phone-notifications";
 import { InviteResponse } from "./invite-response";
 
 const ICON_OF: Record<string, { icon: ProIconName; cls: string }> = {
@@ -80,6 +81,7 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
           </Link>
         }
       />
+      <PhoneNotifications role="designer" prompt />
       <div className="pr-g2">
         <section className="pr-early" aria-labelledby="pr-early">
           <span className="pr-blob b1" aria-hidden />

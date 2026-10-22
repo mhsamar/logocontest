@@ -1,11 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/env";
 import { toAsciiDigits } from "@/lib/phone";
 import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
-import { savePushSubscription } from "@/lib/push";
 import { emailVerificationService, sendPasswordResetEmail, sendVerificationEmail, type SendCodeResult } from "./email-service";
 import { normalizeEmail } from "./identity";
 import { clientIp } from "./services";
@@ -42,13 +40,6 @@ export async function confirmEmailCode(_prev: CodeFormState, formData: FormData)
   return result.error === "invalid"
     ? { status: "error", error: { key: "auth.verify.invalid", params: { left: result.attemptsLeft ?? 0 } } }
     : { status: "error", error: { key: `auth.verify.${result.error}` } };
-}
-
-/** Saves this browser's push subscription for the signed-in user. */
-export async function savePush(subscription: unknown): Promise<boolean> {
-  const user = await getCurrentUser();
-  if (!user) return false;
-  return savePushSubscription(user.id, subscription, (await headers()).get("user-agent"));
 }
 
 /** P-11 "Forgot password?": always answers the same way, so it never reveals whether an account exists. */

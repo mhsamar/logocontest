@@ -33,3 +33,18 @@ export async function subscribeToPush(): Promise<PushSubscriptionJSON | null> {
     return null;
   }
 }
+
+/** This browser's current subscription, if it has one. */
+export async function browserSubscription(): Promise<PushSubscription | null> {
+  const registration = await navigator.serviceWorker.getRegistration("/");
+  return (await registration?.pushManager.getSubscription()) ?? null;
+}
+
+/** This browser's endpoint, for the logout forms (Log out stops this browser's notifications, owner 2026-10-22). */
+export async function pushEndpoint(): Promise<string> {
+  try {
+    return pushSupported() ? ((await browserSubscription())?.endpoint ?? "") : "";
+  } catch {
+    return "";
+  }
+}

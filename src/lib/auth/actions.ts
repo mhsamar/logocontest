@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +8,9 @@ import { parseLoginIdentifier } from "./identity";
 import { clientIp } from "./services";
 import { clientPathFor } from "@/lib/client/rules";
 import { homeForRole } from "./home";
+import { forgetPushHere, viewingAs } from "@/lib/push";
 import { markLoggedOut } from "./sessions";
+import { getCurrentUser } from "./session";
 import { authEmailForMobile, fail, findProfileByEmail, findProfileByPhone, findProfileByUsername, safeNext, signIn, type AuthFormState } from "./sign-in";
 
 export type { AuthFormState, FormMessage } from "./sign-in";
@@ -50,8 +53,13 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
 
 // Log out ends this device's login only (owner, 2026-10-22: nobody is signed out anywhere else except by the device
 // limit). Admin › Users › Devices can still sign a client or designer out of every device.
-export async function logout() {
+export async function logout(form?: FormData) {
   if (isSupabaseConfigured()) {
+    const me = await getCurrentUser();
+    // This browser's notifications stop too (the form sends its endpoint), but not while looking through as the Super admin.
+    if (me && !(await viewingAs(me.id))) await forgetPushHere(me.id, form?.get("push_endpoint"));
+    // A "Log in as" left by Log out instead of "Back to admin" must not mark this person's next real login.
+    (await cookies()).delete("lc_as");
     await markLoggedOut();
     const supabase = await createClient();
     await supabase.auth.signOut({ scope: "local" });
@@ -60,8 +68,10 @@ export async function logout() {
 }
 
 /** Sign out from the admin panel: the "You're signed out" page with Sign in again (owner, 2026-10-10). */
-export async function adminLogout() {
+export async function adminLogout(form?: FormData) {
   if (isSupabaseConfigured()) {
+    const me = await getCurrentUser();
+    if (me) await forgetPushHere(me.id, form?.get("push_endpoint"));
     await markLoggedOut();
     const supabase = await createClient();
     await supabase.auth.signOut({ scope: "local" });

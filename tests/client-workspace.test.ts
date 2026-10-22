@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LogoutForm } from "@/components/push/logout-form";
 
 // The premium client workspace (owner, 2026-10-16; Design/client-premium/CLIENT-HANDOFF.md).
 
@@ -276,11 +277,14 @@ describe("avatar dropdown and log out", () => {
     expect(html).toContain('class="cdd"');
     expect(html).not.toContain("<em>");
   });
-  it("the Log out button runs the existing logout action", async () => {
+  it("the Log out button runs the existing logout action, with this browser's notification address", async () => {
     const el = AvatarMenuPanel({ name: "R", business: null, avatarUrl: null, logoutLabel: "Log out", action: logout, open: true });
-    const form = (el.props.children as React.ReactElement<{ action: () => Promise<void> }>[]).find((c) => c?.type === "form");
-    await form?.props.action();
+    const wrapper = (el.props.children as React.ReactElement<{ action: (f: FormData) => Promise<void>; children: React.ReactNode }>[]).find((c) => c?.type === LogoutForm);
+    // LogoutForm renders the real <form>; its action adds push_endpoint (empty here: no browser) and calls logout.
+    const form = LogoutForm(wrapper!.props) as React.ReactElement<{ action: (f: FormData) => Promise<void> }>;
+    await form.props.action(new FormData());
     expect(logout).toHaveBeenCalled();
+    expect(((logout.mock.calls.at(-1) as unknown[] | undefined)?.[0] as FormData).get("push_endpoint")).toBe("");
   });
   it("shows initials when there is no photo", () => {
     expect(initialsOf("Rafiq Ahmed")).toBe("RA");

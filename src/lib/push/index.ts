@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { requireEnv } from "@/lib/env";
 import { backupLinksOn } from "@/lib/site-origin";
 import { backupOrigin } from "@/lib/site-hosts";
@@ -38,15 +39,39 @@ export function parseSubscription(input: unknown): { endpoint: string; p256dh: s
   return { endpoint, p256dh, auth };
 }
 
-/** Saves (or moves to this user) the subscription of the browser the user is on. */
-export async function savePushSubscription(userId: string, input: unknown, userAgent: string | null): Promise<boolean> {
+/**
+ * Saves the subscription of the browser the user is on. Pressing Turn on moves it to this user even when another
+ * account on this browser had it (one browser, one subscription); sign-up (`takeOver: false`) never takes it from
+ * another account (owner, 2026-10-22: notifications only move when someone asks for them).
+ */
+export async function savePushSubscription(userId: string, input: unknown, userAgent: string | null, { takeOver = true }: { takeOver?: boolean } = {}): Promise<boolean> {
   const sub = parseSubscription(input);
   if (!sub) return false;
   const { error } = await createAdminClient()
     .from("push_subscriptions")
-    .upsert({ user_id: userId, ...sub, user_agent: userAgent?.slice(0, 300) ?? null }, { onConflict: "endpoint" });
+    .upsert({ user_id: userId, ...sub, user_agent: userAgent?.slice(0, 300) ?? null }, { onConflict: "endpoint", ignoreDuplicates: !takeOver });
   if (error) console.error("[push] could not save subscription:", error.message);
   return !error;
+}
+
+/** Log out (owner, 2026-10-22): this browser (the endpoint the logout form sends) stops getting the person's
+ * notifications, so a shared computer shows the next person nothing of theirs. Turn on brings them back. */
+export async function forgetPushHere(userId: string, endpoint: unknown): Promise<void> {
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://") || endpoint.length > 1000) return;
+  const { error } = await createAdminClient().from("push_subscriptions").delete().eq("endpoint", endpoint).eq("user_id", userId);
+  if (error) console.error("[push] could not forget this browser:", error.message);
+}
+
+/** "Log in as": the Super admin is looking through this person's account, so nothing about this browser's
+ * notifications may change for them (the admin's own phone keeps its own). */
+export async function viewingAs(userId: string): Promise<boolean> {
+  return (await cookies()).get("lc_as")?.value?.split("|")[0] === userId;
+}
+
+/** Whether this browser's subscription is saved for this person (read only). */
+export async function pushIsMine(userId: string, endpoint: string): Promise<boolean> {
+  const { data } = await createAdminClient().from("push_subscriptions").select("user_id").eq("endpoint", endpoint).maybeSingle();
+  return data?.user_id === userId;
 }
 
 /** Sends a notification to every browser where the user allowed notifications (or only this one). Never throws. */

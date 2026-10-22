@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
+import { LogoutForm } from "@/components/push/logout-form";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { clientMenu, contestHref, hasNews, type ClientMenuKey } from "@/lib/client/rules";
 import { clientShell } from "@/lib/client/workspace";
@@ -84,11 +85,11 @@ export async function ClientShell({ user, active, children }: { user: CurrentUse
               <SiteNavDrawer links={links} openLabel={t("nav.menu")} closeLabel={t("nav.close")}>
                 {/* Every workspace page with its name (owner, 2026-10-20): on phones the left menu is a row of icons. */}
                 <DrawerAccount title={t("nav.yourAccount")} items={items.map((i) => ({ href: i.href, label: t(`cw.menu.${i.key}`), badge: i.badge ? num(i.badge.n) : null }))} />
-                <form action={logout} className="mt-2">
+                <LogoutForm action={logout} className="mt-2">
                   <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center rounded-[14px] border border-line px-4 font-semibold text-danger" data-drawer-logout>
                     {t("nav.logout")}
                   </button>
-                </form>
+                </LogoutForm>
                 {languageForm("inline-flex min-h-11 w-full items-center justify-center rounded-[14px] bg-chip px-4 font-semibold")}
               </SiteNavDrawer>
             </div>
