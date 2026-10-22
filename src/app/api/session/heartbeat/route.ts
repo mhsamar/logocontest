@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * The open admin tab checks in once a minute (owner, 2026-10-14): how many seconds since the admin last clicked, typed,
  * scrolled or touched, or that the tab is closing. Staff are signed out when idle too long or when every admin tab
- * was closed (security.admin_idle_minutes, security.admin_close_tab_signout).
+ * was closed only while those are switched on (security.admin_idle_minutes above 0, security.admin_close_tab_signout;
+ * both off since 2026-10-22).
  */
 export async function POST(req: NextRequest) {
   if (!isSupabaseConfigured()) return NextResponse.json({ state: "none" });

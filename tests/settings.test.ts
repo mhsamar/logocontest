@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SETTINGS, parseSetting, type SettingKey } from "@/lib/settings/registry";
 
@@ -83,5 +85,34 @@ describe("BLUEPRINT defaults", () => {
     // "cards" (contest cards, owner 2026-10-19) is on /admin/contest-cards.
     // "system" (the .bd watch's state, owner 2026-10-21) has no form: only the 5-minute job writes it.
     expect([...groups].sort()).toEqual(["ads", "auth", "brand", "cards", "checker", "contact", "email", "fees", "guarantee", "home", "how", "legal", "limits", "live", "notice", "notifications", "packages", "payments", "payouts", "pinterest", "rewards", "security", "site", "support", "system", "timers", "trash", "upgrades"]);
+  });
+});
+
+describe("logins and devices (owner, 2026-10-22)", () => {
+  const sql = readFileSync(join(process.cwd(), "supabase/migrations/0071_no_idle_signout.sql"), "utf8").replace(/^\s*--.*$/gm, "");
+
+  it("nobody is signed out for not using the site or closing it; the Super admin may use 2 devices", () => {
+    expect(SETTINGS["security.admin_idle_minutes"].default).toBe(0);
+    expect(SETTINGS["security.admin_close_tab_signout"].default).toBe(false);
+    expect(SETTINGS["security.super_admin_max_devices"].default).toBe(2);
+    expect(SETTINGS["security.admin_max_devices"].default).toBe(2);
+    expect(SETTINGS["security.max_devices"].default).toBe(3);
+    expect("security.super_admin_one_device" in SETTINGS).toBe(false);
+  });
+
+  it("the idle sign-out can be switched back on: 0 (never) or 10 to 480 minutes", () => {
+    const ok = (n: number) => SETTINGS["security.admin_idle_minutes"].schema.safeParse(n).success;
+    expect([0, 10, 30, 480].map(ok)).toEqual([true, true, true, true]);
+    expect([5, 481, -1, 1.5].map(ok)).toEqual([false, false, false, false]);
+  });
+
+  it("the database falls back to the same values as the site, and checks idle only above 0", () => {
+    expect(sql).toContain("setting_int('security.admin_idle_minutes', 0)");
+    expect(sql).toContain("setting_bool('security.admin_close_tab_signout', false)");
+    expect(sql).toContain("setting_int('security.super_admin_max_devices', 2)");
+    expect(sql).toContain("setting_int('security.admin_max_devices', 2)");
+    expect(sql).toContain("setting_int('security.max_devices', 3)");
+    expect(sql).not.toMatch(/admin_idle_minutes', 30/);
+    expect(sql.match(/idle > 0/g)?.length).toBe(3);
   });
 });

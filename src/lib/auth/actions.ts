@@ -37,7 +37,8 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   const as = formData.get("as");
   const role = profile?.role;
   if ((as === "client" || as === "designer") && (role === "client" || role === "designer") && role !== as) {
-    await (await createClient()).auth.signOut();
+    // Only the login just made: the person's other devices stay signed in.
+    await (await createClient()).auth.signOut({ scope: "local" });
     return { ...fail(role === "client" ? "auth.errors.wrongRoleClient" : "auth.errors.wrongRoleDesigner"), wrongRole: role };
   }
   // A page that sent the person to log in wins; otherwise each role has its own landing page.
@@ -47,11 +48,13 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   redirect(homeForRole(role));
 }
 
+// Log out ends this device's login only (owner, 2026-10-22: nobody is signed out anywhere else except by the device
+// limit). Admin › Users › Devices can still sign a client or designer out of every device.
 export async function logout() {
   if (isSupabaseConfigured()) {
     await markLoggedOut();
     const supabase = await createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
   }
   redirect("/");
 }
@@ -61,7 +64,7 @@ export async function adminLogout() {
   if (isSupabaseConfigured()) {
     await markLoggedOut();
     const supabase = await createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
   }
   redirect("/admin-signed-out");
 }

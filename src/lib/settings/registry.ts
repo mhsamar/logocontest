@@ -622,17 +622,19 @@ export const SETTINGS = {
     group: "security", type: "int", schema: int(1, 10), default: 2,
     description: "Most devices one staff member (admin, moderator, support) can be logged in on at the same time.",
   },
-  "security.super_admin_one_device": {
-    group: "security", type: "bool", schema: z.boolean(), default: true,
-    description: "The Super admin can be logged in on one device only: logging in on another signs the first out.",
+  // Owner, 2026-10-22: the Super admin may use 2 devices (was one), and nobody is signed out for not using the site or
+  // for closing it; only a login on one device more than allowed signs the oldest out (migration 0071).
+  "security.super_admin_max_devices": {
+    group: "security", type: "int", schema: int(1, 10), default: 2,
+    description: "Most devices the Super admin can be logged in on at the same time. A login on one more signs the oldest out.",
   },
   "security.admin_idle_minutes": {
-    group: "security", type: "int", schema: int(10, 480), default: 30,
-    description: "Staff are signed out after this many minutes without using the site (for example 30, 40, 50 or 60).",
+    group: "security", type: "int", schema: z.number().int().refine((n) => n === 0 || (n >= 10 && n <= 480), "0 (never), or 10 to 480 minutes"), default: 0,
+    description: "Staff are signed out after this many minutes without using the site (for example 30 or 60). 0 = never: they stay signed in.",
   },
   "security.admin_close_tab_signout": {
-    group: "security", type: "bool", schema: z.boolean(), default: true,
-    description: "Staff are signed out when every admin tab is closed (within about a minute).",
+    group: "security", type: "bool", schema: z.boolean(), default: false,
+    description: "When on, staff are signed out a few minutes after every tab of the site is closed or the phone is locked. Off: they stay signed in.",
   },
   "security.impersonate_minutes": {
     group: "security", type: "int", schema: int(5, 240), default: 60,

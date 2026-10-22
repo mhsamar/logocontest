@@ -8,7 +8,9 @@ const EVENTS = ["pointerdown", "pointermove", "keydown", "scroll", "touchstart",
 
 /**
  * Staff only, on every page (owner, 2026-10-14): checks in once a minute with how long since the last click or key,
- * says goodbye when the tab closes, warns a minute before the idle sign-out and then goes to the sign-in page.
+ * says goodbye when the tab closes, warns a minute before the idle sign-out and then goes to the sign-in page. With
+ * no idle sign-out (0 minutes, the default since 2026-10-22) it only checks in, for "Online now" and time worked, and
+ * still follows a sign-out made elsewhere (a login on one device too many).
  */
 export function AdminPresence({ idleMinutes }: { idleMinutes: number }) {
   const { t } = useI18n();
@@ -38,6 +40,7 @@ export function AdminPresence({ idleMinutes }: { idleMinutes: number }) {
     };
     // The server decides: another admin tab may still be in use.
     const tick = () => {
+      if (limit <= 0) return;
       const idleFor = Date.now() - last.current;
       if (idleFor >= limit) return void (Date.now() - lastBeat > 30_000 && beat());
       setWarn(idleFor >= limit - 60_000);
