@@ -65,3 +65,29 @@ export function clearState() {
     /* ignore */
   }
 }
+
+/**
+ * Reference photos still on this device for a saved draft (owner, 2026-10-22). Kept under the draft's own key, so the
+ * client can leave for "Invite Pro designers" (or sign up, which reloads the wizard) and the review uploads them on
+ * the way back. The files themselves stay in IndexedDB until they are uploaded.
+ */
+const pendingKey = (contestId: string) => `lc-wizard-pending:${contestId}`;
+
+export function savePending(contestId: string, files: LocalFile[]) {
+  try {
+    if (files.length) localStorage.setItem(pendingKey(contestId), JSON.stringify(files));
+    else localStorage.removeItem(pendingKey(contestId));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadPending(contestId: string): LocalFile[] {
+  try {
+    const raw = localStorage.getItem(pendingKey(contestId));
+    const list = raw ? (JSON.parse(raw) as LocalFile[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}

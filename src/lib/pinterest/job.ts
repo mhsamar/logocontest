@@ -33,10 +33,12 @@ export async function pinCandidates(rule: PinterestRule, now: Date): Promise<Can
   const db = createAdminClient();
   const { data, error } = await db
     .from("entries")
-    .select("id, number, status, is_hidden, created_at, designer:profiles!designer_id(username), contest:contests!contest_id!inner(slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public, service)")
+    .select("id, number, status, is_hidden, created_at, designer:profiles!designer_id(username), contest:contests!contest_id!inner(slug, brand_name, status, is_private, is_nda, is_blind, winner_is_public, service, owner:profiles!client_id!inner(is_test))")
     .in("status", rule === "winners" ? ["winner"] : ["winner", "active"])
     .eq("contest.is_private", false)
     .eq("contest.is_nda", false)
+    // Never a test client's contest (owner, 2026-10-22).
+    .eq("contest.owner.is_test", false)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw new Error(error.message);

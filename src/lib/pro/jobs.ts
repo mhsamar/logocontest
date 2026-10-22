@@ -11,6 +11,7 @@ import { designerStatsBulk } from "./stats";
 import { weekNumbers } from "./workspace";
 import { expireEndedPlans, logFunnel, sendRenewalReminders, tellDesigner } from "./subscription";
 import { expireTrials, sendTrialReminders } from "./trial";
+import { testContestIds, testIdsAmong } from "@/lib/seo/test-accounts";
 
 const db = () => createAdminClient();
 const HOUR = 3_600_000;
@@ -24,11 +25,14 @@ async function savedReminders(now: Date): Promise<number> {
   if (!pro.length) return 0;
   const [first, second] = twoSlots((await getSettings(["notify.saved_reminder_hours"]))["notify.saved_reminder_hours"]);
   const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", new Date(now.getTime() + first * HOUR).toISOString());
+  // A test client's contest reminds test designers only (owner, 2026-10-22).
+  const tests = await testContestIds((contests ?? []).map((c) => c.id as string));
+  const testPro = tests.size ? [...(await testIdsAmong(pro))] : [];
   let n = 0;
   for (const c of contests ?? []) {
     const left = new Date(c.ends_at as string).getTime() - now.getTime();
     const col = second !== null && left <= second * HOUR ? "reminded_2_at" : "reminded_24_at";
-    const { data: rows } = await db().from("contest_favorites").update({ [col]: now.toISOString() }).eq("contest_id", c.id).eq("remind", true).in("user_id", pro).is(col, null).select("user_id");
+    const { data: rows } = await db().from("contest_favorites").update({ [col]: now.toISOString() }).eq("contest_id", c.id).eq("remind", true).in("user_id", tests.has(c.id as string) ? testPro : pro).is(col, null).select("user_id");
     const ids = (rows ?? []).map((r) => r.user_id as string);
     if (!ids.length) continue;
     const brand = c.is_private || c.is_nda ? undefined : (c.brand_name as string);

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, PlanSettings, RemindButton, GiveTrial, TrialActions } from "@/components/pro/admin-pro-client";
+import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, MemberSearch, PlanSettings, RemindButton, GiveTrial, TrialActions } from "@/components/pro/admin-pro-client";
 import { trialOverview } from "@/lib/pro/trial-admin";
 import "@/components/pro/admin-pro.css";
 import { requirePermission } from "@/lib/admin/core";
@@ -31,7 +31,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
   const sp = await searchParams;
   const range = sp.range === "7" ? 7 : sp.range === "90" ? 90 : 30;
   const chip = CHIPS.find((c) => c === sp.members) ?? "all";
-  const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase().slice(0, 40) : "";
+  const q = typeof sp.q === "string" ? sp.q.trim().replace(/^@/, "").toLowerCase().slice(0, 40) : "";
   const [{ t, locale }, { settings: s, ready }, o, trials] = await Promise.all([getI18n(), getProSettings(), proOverview(range), trialOverview()]);
   const n = (v: number) => formatNumber(v, locale);
   const pct = (v: number) => `${n(v)}%`;
@@ -292,11 +292,13 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
               </nav>
             </div>
             <div className="ap-search">
-              <form action="/admin/pro" className="ap-search">
-                <input type="hidden" name="range" value={range} />
-                <input type="hidden" name="members" value={chip} />
-                <input name="q" defaultValue={q} placeholder={t("pro.admin.searchMember")} aria-label={t("pro.admin.searchMember")} />
-              </form>
+              <MemberSearch
+                key={q}
+                q={q}
+                range={range}
+                chip={chip}
+                items={o.members.filter((m) => chip === "all" || m.status === chip).map((m) => ({ id: m.designerId, name: m.name, username: m.username, avatar: m.avatarUrl }))}
+              />
               <span className="ap-hint">{t("pro.admin.sortBest")}</span>
             </div>
             <GrantPro canManage={canManage} />

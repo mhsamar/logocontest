@@ -9,6 +9,7 @@ import { notifyInvited } from "./invites";
 import { invitesLeft } from "./rules";
 import { getProSettings } from "./settings";
 import { isPro, proIdsAmong } from "./status";
+import { isTestAccount, testIdsAmong } from "@/lib/seo/test-accounts";
 
 type Result = { ok: true; sent: number } | { ok: false; error: MessageKey; params?: MessageParams };
 
@@ -37,6 +38,10 @@ export async function saveContestInvites(contestId: string, designerIds: string[
   if (invitesLeft(sent.length, settings) < wanted.length - sent.length) return { ok: false, error: "pro.invite.errors.tooMany", params: { max: settings.invitesPerContest } };
   const pro = await proIdsAmong(picked);
   if (picked.some((id) => !pro.has(id))) return { ok: false, error: "pro.invite.errors.notPro" };
+  // Test clients invite test designers only, real clients real ones (owner, 2026-10-22).
+  const clientTest = await isTestAccount(user.id);
+  const test = await testIdsAmong(picked);
+  if (picked.some((id) => test.has(id) !== clientTest)) return { ok: false, error: "pro.invite.errors.notPro" };
 
   // Picks not yet sent can still change; sent invitations stay.
   const unsent = (existing ?? []).filter((r) => !r.notified_at && !picked.includes(r.designer_id as string)).map((r) => r.designer_id as string);
@@ -66,8 +71,8 @@ export async function findProDesigner(raw: string): Promise<{ ok: true; designer
   if (!/^[a-z0-9_]{3,30}$/.test(typed)) return { ok: false, error: "pro.invite.errors.idNotFound" };
   // A Pro designer may have changed their username (owner, 2026-10-15): an old ID still finds them.
   const name = (await currentUsernameFor(typed)) ?? typed;
-  const { data } = await createAdminClient().from("profiles").select("id, name, username, role, status").eq("username", name).maybeSingle();
-  if (!data || data.role !== "designer" || data.status !== "active") return { ok: false, error: "pro.invite.errors.idNotFound" };
+  const { data } = await createAdminClient().from("profiles").select("id, name, username, role, status, is_test").eq("username", name).maybeSingle();
+  if (!data || data.role !== "designer" || data.status !== "active" || Boolean(data.is_test) !== (await isTestAccount(user.id))) return { ok: false, error: "pro.invite.errors.idNotFound" };
   if (!(await isPro(data.id as string))) return { ok: false, error: "pro.invite.errors.idNotPro" };
   return { ok: true, designer: { id: data.id as string, name: data.name as string, username: data.username as string } };
 }

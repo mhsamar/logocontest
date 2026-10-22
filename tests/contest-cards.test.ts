@@ -37,6 +37,10 @@ describe("which contests get a card", () => {
     expect(cardEligibility({ ...live, isNda: true }, NOW)).toBe("private");
     expect(cardEligibility({ ...live, shareOnFacebook: false }, NOW)).toBe("client_off");
   });
+  it("never a test client's contest (owner, 2026-10-22)", () => {
+    expect(cardEligibility({ ...live, isTest: true }, NOW)).toBe("test");
+    expect(cardEligibility({ ...live, isTest: false }, NOW)).toBe("ok");
+  });
 });
 
 describe("card style", () => {
@@ -180,6 +184,8 @@ vi.mock("@/lib/supabase/admin", () => ({
     },
   }),
 }));
+// No test accounts in these runs (owner, 2026-10-22: a test client's contest gets no card).
+vi.mock("@/lib/seo/test-accounts", () => ({ isTestContest: async () => false, testContestIds: async () => new Set<string>() }));
 vi.mock("@/lib/cards/store", () => ({
   cardsReady: async () => ({ table: true, shareColumn: true }),
   CONTEST_COLUMNS: "",

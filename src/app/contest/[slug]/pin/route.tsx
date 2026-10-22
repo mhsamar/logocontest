@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { contestStatusLine, isLatin, logoDataUrl, PIN_SIZE, PinFrame } from "@/lib/og";
 import { contestIndexable } from "@/lib/seo";
+import { isTestAccount } from "@/lib/seo/test-accounts";
 import { pictureDataUrl, SHARE_PICTURE_HEADERS } from "@/lib/share/design";
 
 // A contest's Pinterest picture (owner, 2026-10-18): its leading design (if any), brand, prize and state. Only for
@@ -9,7 +10,7 @@ import { pictureDataUrl, SHARE_PICTURE_HEADERS } from "@/lib/share/design";
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const contest = await getContestBySlug(slug, null);
-  if (!contest || !contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda }))
+  if (!contest || !contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest: await isTestAccount(contest.ownerId) }))
     return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
   const [logoSrc, picture] = await Promise.all([logoDataUrl(), contest.cover ? pictureDataUrl(contest.cover.url) : null]);
   const brand = isLatin(contest.brandName) ? contest.brandName : "Logo design contest";

@@ -32,7 +32,8 @@ export const publicRace = unstable_cache(
       counts: r.counts,
     };
   },
-  ["leaderboard-race-v2"],
+  // v3 (owner, 2026-10-22): contests and accounts in the Trash no longer count; the new key drops cached old results.
+  ["leaderboard-race-v3"],
   { revalidate: 300, tags: ["leaderboard"] },
 );
 
@@ -53,7 +54,7 @@ export const raceTally = unstable_cache(
       topDesigner: r.designers[0] ? { id: r.designers[0].id, wins: r.designers[0].wins } : null,
     };
   },
-  ["race-tally-v1"],
+  ["race-tally-v2"],
   { revalidate: 300, tags: ["leaderboard"] },
 );
 
@@ -69,7 +70,7 @@ export const pastMonthWinners = unstable_cache(
     if (!isSupabaseConfigured()) return [];
     const { data, error } = await createAdminClient()
       .from("monthly_rewards")
-      .select("month, kind, stats, winner:profiles!winner_id(name, username, business_name, avatar_path)")
+      .select("month, kind, stats, winner:profiles!winner_id(name, username, business_name, avatar_path, status)")
       .eq("is_test", false)
       .not("sent_at", "is", null)
       .order("month", { ascending: false })
@@ -77,8 +78,9 @@ export const pastMonthWinners = unstable_cache(
     if (error) return [];
     const by = new Map<string, PastWinners>();
     for (const r of data ?? []) {
-      const w = (Array.isArray(r.winner) ? r.winner[0] : r.winner) as { name: string; username: string | null; business_name: string | null; avatar_path: string | null } | null;
-      if (!w) continue;
+      const w = (Array.isArray(r.winner) ? r.winner[0] : r.winner) as { name: string; username: string | null; business_name: string | null; avatar_path: string | null; status: string } | null;
+      // A winner later moved to the Trash isn't named any more.
+      if (!w || w.status === "deleted") continue;
       const person = { name: shownName({ name: w.name ?? "", username: w.username, businessName: w.business_name }), avatarUrl: avatarUrl(w.avatar_path) };
       const s = (r.stats ?? {}) as Record<string, number>;
       const row = by.get(r.month as string) ?? { month: r.month as string, smartphone: null, giftBox: null };
@@ -88,7 +90,7 @@ export const pastMonthWinners = unstable_cache(
     }
     return [...by.values()].slice(0, limit);
   },
-  ["leaderboard-past-v1"],
+  ["leaderboard-past-v2"],
   { revalidate: 300, tags: ["leaderboard"] },
 );
 
@@ -97,11 +99,11 @@ export const raceMonths = unstable_cache(
   async (current: string, n: number): Promise<string[]> => {
     const out = recentMonths(current, n);
     if (!isSupabaseConfigured()) return [current];
-    const { data } = await createAdminClient().from("contests").select("starts_at").not("starts_at", "is", null).order("starts_at", { ascending: true }).limit(1).maybeSingle();
+    const { data } = await createAdminClient().from("contests").select("starts_at").not("starts_at", "is", null).neq("status", "deleted").order("starts_at", { ascending: true }).limit(1).maybeSingle();
     if (!data?.starts_at) return [current];
     const first = monthKey(new Date(data.starts_at as string));
     return out.filter((m) => m >= first);
   },
-  ["leaderboard-months-v1"],
+  ["leaderboard-months-v2"],
   { revalidate: 3600, tags: ["leaderboard"] },
 );

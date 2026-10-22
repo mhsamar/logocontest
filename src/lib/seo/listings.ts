@@ -17,25 +17,28 @@ export const listingCounts = unstable_cache(
     const db = createAdminClient();
     const statuses = [...PUBLIC_STATUSES];
     const [contests, winners, designs] = await Promise.all([
-      db.from("contests").select("id", { count: "exact", head: true }).in("status", statuses).eq("is_private", false).is("deleted_at", null),
+      // Test clients' contests never make a list look full (owner, 2026-10-22).
+      db.from("contests").select("id, owner:profiles!client_id!inner(is_test)", { count: "exact", head: true }).in("status", statuses).eq("is_private", false).is("deleted_at", null).eq("owner.is_test", false),
       db
         .from("entries")
-        .select("id, contest:contests!contest_id!inner(is_blind, winner_is_public)")
+        .select("id, contest:contests!contest_id!inner(is_blind, winner_is_public, owner:profiles!client_id!inner(is_test))")
         .eq("status", "winner")
         .eq("contest.status", "completed")
         .eq("contest.is_private", false)
         .eq("contest.is_nda", false)
         .is("contest.deleted_at", null)
+        .eq("contest.owner.is_test", false)
         .limit(50),
       db
         .from("entries")
-        .select("id, is_hidden, contest:contests!contest_id!inner(status)")
+        .select("id, is_hidden, contest:contests!contest_id!inner(status, owner:profiles!client_id!inner(is_test))")
         .in("status", ["active", "winner"])
         .eq("contest.is_private", false)
         .eq("contest.is_blind", false)
         .eq("contest.is_nda", false)
         .in("contest.status", statuses)
         .is("contest.deleted_at", null)
+        .eq("contest.owner.is_test", false)
         .limit(200),
     ]);
     const failed = [contests, winners, designs].find((r) => r.error);
@@ -51,7 +54,7 @@ export const listingCounts = unstable_cache(
     }).length;
     return { contests: contests.count ?? 0, winners: shownWinners, designs: shownDesigns };
   },
-  ["seo-listing-counts-v2"],
+  ["seo-listing-counts-v3"],
   { revalidate: 600 },
 );
 

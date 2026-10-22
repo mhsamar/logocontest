@@ -3,11 +3,13 @@
  * tested; race.ts reads the database and calls these.
  *
  * - Smartphone: the client who ran the most contests that month. A contest counts when it is paid and went live
- *   that month (Asia/Dhaka), unless an admin cancelled it; one that ended without a winner still counts.
+ *   that month (Asia/Dhaka), unless an admin cancelled it or moved it to the Trash; one that ended without a winner
+ *   still counts.
  *   Equal: the bigger total prize money wins.
  * - Mystery gift box: the designer who won the most contests that month (the month the winner was picked); a win
  *   that was cancelled (files never sent) or ended with no result does not count. Equal: whoever earned more.
- * - Admins, staff, banned and test accounts never take part; in test mode only test accounts do.
+ * - Admins, staff, banned, deleted (Trash) and test accounts never take part; in test mode only test accounts do.
+ *   Wins and designs in a contest moved to the Trash don't count either (owner, 2026-10-22).
  */
 import { payoutFor } from "@/lib/wallet/fees";
 import { monthKey, monthRange, previousMonth } from "./rules";
@@ -19,7 +21,7 @@ export type RacePerson = { id: string; role: "client" | "designer" | "admin"; st
  * and gift box are for Bangladesh only (owner, 2026-10-14): an account visiting mostly from abroad is out.
  */
 export function inRace(p: RacePerson | undefined, testMode: boolean): boolean {
-  if (!p || p.role === "admin" || p.status === "banned" || p.abroad) return false;
+  if (!p || p.role === "admin" || p.status === "banned" || p.status === "deleted" || p.abroad) return false;
   return testMode ? p.isTest : !p.isTest;
 }
 
@@ -28,8 +30,19 @@ export const visitsAbroad = (v: { bd: number; abroad: number } | undefined) => B
 
 export type RaceContest = { contestId: string; clientId: string; prize: number; startsAt: Date; status: string; paid: boolean; /** A money-back claim waits, was approved or paid (owner, 2026-10-21). */ moneyBack?: boolean };
 export type RacePayment = { clientId: string; amount: number; paidAt: Date };
-export type RaceWin = { contestId: string; designerId: string; prize: number; feeRate: number; pickedAt: Date; status: string };
-export type RaceEntry = { contestId: string; designerId: string; createdAt: Date; status: string };
+export type RaceWin = {
+  contestId: string;
+  designerId: string;
+  prize: number;
+  feeRate: number;
+  pickedAt: Date;
+  status: string;
+  /** The contest's own status ("deleted" = in the Trash). */
+  contestStatus?: string;
+  /** The contest belongs to a test client: it counts only in test mode (owner, 2026-10-22). */
+  clientIsTest?: boolean;
+};
+export type RaceEntry = { contestId: string; designerId: string; createdAt: Date; status: string; contestStatus?: string; clientIsTest?: boolean };
 
 export type ClientStanding = { id: string; contests: number; prizeTotal: number; spent: number; firstAt: Date };
 export type DesignerStanding = { id: string; wins: number; earned: number; joined: number; firstWinAt: Date };
@@ -50,7 +63,7 @@ export function rankClients(
   const range = monthRange(month);
   const by = new Map<string, ClientStanding>();
   for (const c of contests) {
-    if (!c.paid || c.status === "cancelled" || c.moneyBack || !within(c.startsAt, range) || !inRace(people.get(c.clientId), testMode)) continue;
+    if (!c.paid || c.status === "cancelled" || c.status === "deleted" || c.moneyBack || !within(c.startsAt, range) || !inRace(people.get(c.clientId), testMode)) continue;
     const s = by.get(c.clientId) ?? { id: c.clientId, contests: 0, prizeTotal: 0, spent: 0, firstAt: c.startsAt };
     s.contests += 1;
     s.prizeTotal += c.prize;
@@ -70,7 +83,7 @@ export function rankDesigners(month: string, wins: RaceWin[], entries: RaceEntry
   const range = monthRange(month);
   const by = new Map<string, DesignerStanding>();
   for (const w of wins) {
-    if (!COUNTED_WIN_STATUSES.includes(w.status) || !within(w.pickedAt, range) || !inRace(people.get(w.designerId), testMode)) continue;
+    if (!COUNTED_WIN_STATUSES.includes(w.status) || w.contestStatus === "deleted" || Boolean(w.clientIsTest) !== testMode || !within(w.pickedAt, range) || !inRace(people.get(w.designerId), testMode)) continue;
     const s = by.get(w.designerId) ?? { id: w.designerId, wins: 0, earned: 0, joined: 0, firstWinAt: w.pickedAt };
     s.wins += 1;
     // What the designer gets for the win: the prize minus the fee locked when they were picked.
@@ -81,7 +94,7 @@ export function rankDesigners(month: string, wins: RaceWin[], entries: RaceEntry
   // Contests joined this month (submitted at least one design that wasn't withdrawn or removed).
   const joined = new Map<string, Set<string>>();
   for (const e of entries) {
-    if (!by.has(e.designerId) || !within(e.createdAt, range) || e.status === "withdrawn" || e.status === "removed") continue;
+    if (!by.has(e.designerId) || !within(e.createdAt, range) || e.status === "withdrawn" || e.status === "removed" || e.contestStatus === "deleted" || Boolean(e.clientIsTest) !== testMode) continue;
     joined.set(e.designerId, (joined.get(e.designerId) ?? new Set()).add(e.contestId));
   }
   for (const [id, set] of joined) by.get(id)!.joined = set.size;

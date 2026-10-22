@@ -173,8 +173,11 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const origin = await linkOrigin();
   const contestUrl = `${origin}/contest/${contest.slug}`;
   // Facebook and Pinterest (owner, 2026-10-18): only what a logged-out visitor sees may be shared.
-  const indexable = contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda });
+  // A test client's contest is never shared (owner, 2026-10-22).
+  const testContest = await isTestAccount(contest.ownerId);
+  const indexable = contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest: testContest });
   const entryShareable =
+    !testContest &&
     entry !== null &&
     !entry.locked &&
     isShareableDesign({ status: entry.status, isHidden: entry.hidden }, { status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, isBlind: contest.isBlind, winnerIsPublic: contest.winnerIsPublic });
@@ -395,7 +398,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                     <p className="mt-1.5 text-sm text-muted">{t("contest.glance.noDesignersLine")}</p>
                   )}
                 </div>
-                <ShareContest url={contestUrl} brand={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} pin={indexable ? `${origin}${contestPinPath(contest.slug)}` : null} />
+                {!testContest && <ShareContest url={contestUrl} brand={contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")} pin={indexable ? `${origin}${contestPinPath(contest.slug)}` : null} />}
               </div>
             </div>
           }

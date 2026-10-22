@@ -3397,7 +3397,7 @@ const en = {
         posted: "Posted",
         failed: "Failed",
         retrying: "Trying again · {n} of 3",
-        skipped: { private: "Not posted · private", client_off: "Not posted · client said no", admin: "Skipped", not_live: "Not posted · contest closed" },
+        skipped: { private: "Not posted · private", client_off: "Not posted · client said no", admin: "Skipped", not_live: "Not posted · contest closed", test: "Not posted · test account" },
       },
       detail: {
         made: "Made {date} · contest went live {live}",

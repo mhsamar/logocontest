@@ -5,6 +5,7 @@ import { FacebookError, facebookConfigured, postPhoto } from "./facebook";
 import { autoPostTime, cardEligibility, MAIN_SIZE, MAX_ATTEMPTS, pickStyle, retryDue, type CardKind, type CardStyle } from "./rules";
 import { cardsReady, CONTEST_COLUMNS, contestForCard, drawCard, imageUrl, makeCaption, updateCard, type CardContestRow, type CardRow } from "./store";
 import { CARD_TEMPLATE_VERSION } from "./template";
+import { isTestContest, testContestIds } from "@/lib/seo/test-accounts";
 
 /**
  * Contest cards in the 15-minute job (owner, 2026-10-19). New live contests get a card (one per contest: the row is
@@ -17,8 +18,8 @@ const DAY = 86_400_000;
 
 export type CardRunResult = { status: "not_ready" | "ran"; made: number; skipped: number; posted: number; failed: number; errors: string[] };
 
-const eligibility = (c: CardContestRow, now: Date) =>
-  cardEligibility({ status: c.status, isPrivate: c.is_private, isNda: c.is_nda, shareOnFacebook: c.share_on_facebook !== false, endsAt: c.ends_at ? new Date(c.ends_at) : null }, now);
+const eligibility = (c: CardContestRow, now: Date, isTest = false) =>
+  cardEligibility({ status: c.status, isPrivate: c.is_private, isNda: c.is_nda, shareOnFacebook: c.share_on_facebook !== false, endsAt: c.ends_at ? new Date(c.ends_at) : null, isTest }, now);
 
 /** The last Maroon night / Clean light card, so Auto takes turns. */
 async function lastTurn(): Promise<"maroon" | "light" | null> {
@@ -30,11 +31,11 @@ async function lastTurn(): Promise<"maroon" | "light" | null> {
  * Claims the card row, then draws it. Returns null when the contest already has this card. A contest that may not
  * be shared gets a "skipped" row without pictures, so the list shows why.
  */
-export async function createCard(c: CardContestRow, kind: CardKind, now: Date, opts: { style?: CardStyle } = {}): Promise<CardRow | null> {
+export async function createCard(c: CardContestRow, kind: CardKind, now: Date, opts: { style?: CardStyle; test?: boolean } = {}): Promise<CardRow | null> {
   const s = await getSettings(["cards.style", "cards.big_prize_from"]);
-  const elig = eligibility(c, now);
+  const elig = eligibility(c, now, opts.test ?? (await isTestContest(c.id)));
   const style = opts.style ?? pickStyle({ prize: c.prize_amount, bigFrom: s["cards.big_prize_from"], setting: s["cards.style"], lastTurn: await lastTurn() });
-  const skipped = elig === "private" || elig === "client_off";
+  const skipped = elig === "private" || elig === "client_off" || elig === "test";
   const { data, error } = await db()
     .from("contest_cards")
     .insert({ contest_id: c.id, kind, style, status: skipped ? "skipped" : "waiting", skip_reason: skipped ? elig : null, caption: skipped ? null : await makeCaption(c, now) })
@@ -63,7 +64,7 @@ export async function createCard(c: CardContestRow, kind: CardKind, now: Date, o
  */
 export async function postCard(card: CardRow, opts: { at?: Date | null; by?: string | null } = {}, now = new Date()): Promise<CardRow> {
   const c = await contestForCard(card.contest_id);
-  const elig = c ? eligibility(c, now) : "not_live";
+  const elig = c ? eligibility(c, now, await isTestContest(c.id)) : "not_live";
   if (!c || elig !== "ok") {
     const patch = { status: "skipped" as const, skip_reason: elig };
     await updateCard(card.id, patch);
@@ -108,6 +109,7 @@ export async function runContestCards(now = new Date(), budgetMs = 40_000): Prom
   const { data: have } = contests.length ? await db().from("contest_cards").select("contest_id, kind, status, style").in("contest_id", contests.map((c) => c.id)) : { data: [] };
   const done = new Set((have ?? []).map((h) => `${h.contest_id}:${h.kind}`));
   const firstCard = new Map((have ?? []).filter((h) => h.kind === "new").map((h) => [h.contest_id as string, h]));
+  const tests = await testContestIds(contests.map((c) => c.id));
   let drawings = 0;
   for (const c of contests) {
     const kinds: CardKind[] = [];
@@ -118,7 +120,7 @@ export async function runContestCards(now = new Date(), budgetMs = 40_000): Prom
     for (const kind of kinds) {
       if (drawings >= 2 || left() < 15_000) break;
       try {
-        const card = await createCard(c, kind, now, kind === "last24" && first ? { style: first.style as CardStyle } : {});
+        const card = await createCard(c, kind, now, { ...(kind === "last24" && first ? { style: first.style as CardStyle } : {}), test: tests.has(c.id) });
         if (!card) continue;
         if (card.status === "skipped") result.skipped++;
         else {
@@ -140,7 +142,7 @@ export async function runContestCards(now = new Date(), budgetMs = 40_000): Prom
       const fresh = (card.images.t ?? 1) >= CARD_TEMPLATE_VERSION && Boolean(card.images[MAIN_SIZE]);
       if (fresh || (card.status === "failed" && card.attempts > 0)) continue;
       const c = await contestForCard(card.contest_id);
-      if (!c || eligibility(c, now) !== "ok") continue;
+      if (!c || eligibility(c, now, await isTestContest(c.id)) !== "ok") continue;
       try {
         const images = await drawCard(c, card.kind, card.style, card.line_bn, now);
         await updateCard(card.id, card.status === "failed" ? { images, status: "waiting", error: null } : { images });

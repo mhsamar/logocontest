@@ -58,12 +58,14 @@ export async function winningDesigns(q: { month?: string | null; type?: string |
   let query = createAdminClient()
     .from("entries")
     .select(
-      "id, number, rating, designer_id, designer:profiles!designer_id(id, name, username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public, completed_at), images:entry_images!entry_id(position, preview_path)",
+      "id, number, rating, designer_id, designer:profiles!designer_id(id, name, username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public, completed_at, owner:profiles!client_id!inner(is_test)), images:entry_images!entry_id(position, preview_path)",
     )
     .eq("status", "winner")
     .eq("contest.status", "completed")
     .eq("contest.is_private", false)
     .eq("contest.is_nda", false)
+    // Never a test client's contest (owner, 2026-10-22).
+    .eq("contest.owner.is_test", false)
     .limit(1000);
   if (q.month) {
     const { start, end } = monthRange(q.month);

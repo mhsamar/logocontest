@@ -13,6 +13,7 @@ import { chatEmailDue, digestDue, spanText, taka } from "./catalog";
 import { imageToken } from "./links";
 import { previewOf } from "./render";
 import { emailOrigin, lastSent, sendEmail, type SendStatus } from "./send";
+import { isTestAccount, testIdsAmong } from "@/lib/seo/test-accounts";
 
 /**
  * Which event sends which email (owner, 2026-10-15; Design/emails/EMAILS-HANDOFF.md). Each function loads what its
@@ -101,19 +102,23 @@ export async function emailContestNew(contestId: string, designerIds: string[], 
       if (!designerIds.length) return 0;
       const c = await contestCard(contestId);
       if (!c) return 0;
+      // A test client's contest: test designers only (owner, 2026-10-22).
+      const ids = (await isTestAccount(c.clientId)) ? [...(await testIdsAmong(designerIds))] : [...new Set(designerIds)];
       const origin = await emailOrigin();
       const data = { ...cardData(origin, c), pro: Boolean(pro), head_start: pro ? spanText(pro.headStartMinutes) : "" };
       let sent = 0;
       const notice = pro ? "contest_new_pro" : "contest_new";
-      for (const id of [...new Set(designerIds)]) if ((await sendEmail({ key: "contest-new", to: { userId: id }, data, ref: `contest:${c.id}`, notice })) === "sent") sent++;
+      for (const id of ids) if ((await sendEmail({ key: "contest-new", to: { userId: id }, data, ref: `contest:${c.id}`, notice })) === "sent") sent++;
       return sent;
     })) ?? 0
   );
 }
 
 /** Active designers who should hear about a new contest by email, leaving out these (Pro designers told earlier). */
-export async function designersForAlert(except: string[]): Promise<string[]> {
-  const { data } = await db().from("profiles").select("id").eq("role", "designer").eq("status", "active").is("deleted_at", null);
+export async function designersForAlert(except: string[], opts: { onlyTest?: boolean } = {}): Promise<string[]> {
+  let q = db().from("profiles").select("id").eq("role", "designer").eq("status", "active").is("deleted_at", null);
+  if (opts.onlyTest) q = q.eq("is_test", true);
+  const { data } = await q;
   const ids = (data ?? []).map((r) => r.id as string).filter((id) => !except.includes(id));
   // Which designers get it by email is set only in Admin › Notifications (owner, 2026-10-15).
   return ids;
@@ -144,7 +149,9 @@ export async function emailContestEnding(contestId: string, hours: number): Prom
       for (const e of entries ?? []) mine.set(e.designer_id as string, (mine.get(e.designer_id as string) ?? 0) + 1);
       const savedIds = (saved ?? []).map((r) => r.user_id as string);
       const { data: designers } = savedIds.length ? await db().from("profiles").select("id").in("id", savedIds).eq("role", "designer") : { data: [] };
-      const to = [...new Set([...mine.keys(), ...(designers ?? []).map((d) => d.id as string)])];
+      const all = [...new Set([...mine.keys(), ...(designers ?? []).map((d) => d.id as string)])];
+      // A test client's contest: test designers only (owner, 2026-10-22).
+      const to = (await isTestAccount(c.clientId)) ? [...(await testIdsAmong(all))] : all;
       const origin = await emailOrigin();
       let sent = 0;
       for (const id of to) {

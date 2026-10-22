@@ -121,12 +121,13 @@ export async function sendMonthRewards(month: string, isTest: boolean, origin: s
       .update({ sent_at: new Date().toISOString() })
       .eq("id", r.id)
       .is("sent_at", null)
-      .select("id, kind, winner:profiles!winner_id(id, name, email, locale)")
+      .select("id, kind, winner:profiles!winner_id(id, name, email, locale, status)")
       .maybeSingle();
     if (!mine) continue;
     const kind = mine.kind as RewardKind;
-    const w = (Array.isArray(mine.winner) ? mine.winner[0] : mine.winner) as { id: string; name: string | null; email: string | null; locale: string | null } | null;
-    if (!w) continue;
+    const w = (Array.isArray(mine.winner) ? mine.winner[0] : mine.winner) as { id: string; name: string | null; email: string | null; locale: string | null; status: string } | null;
+    // Moved to the Trash after the close: not told (owner, 2026-10-22).
+    if (!w || w.status === "deleted") continue;
     const link = rewardLink(mine.id as string);
     await notify([w.id], kind === "smartphone" ? "monthly_smartphone_won" : "monthly_gift_box_won", { month }, link);
     if (w.email) {

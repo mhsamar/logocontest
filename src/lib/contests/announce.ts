@@ -8,6 +8,7 @@ import { opensToAllAt } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { allProIds } from "@/lib/pro/status";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTestAccount, testIdsAmong } from "@/lib/seo/test-accounts";
 
 // Pro "Instant alerts" (Contests page): app alerts on or off, and which design types (empty = all). Emails go to every
 // Pro designer; which emails go out is set only in Admin › Notifications (owner, 2026-10-15).
@@ -31,8 +32,10 @@ async function proAlertIds(pro: string[], service: string): Promise<{ app: strin
 export async function announceContest(contestId: string): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
   const db = createAdminClient();
-  const { data: c } = await db.from("contests").select("id, slug, brand_name, prize_amount, status, is_private, is_nda, starts_at, service").eq("id", contestId).maybeSingle();
+  const { data: c } = await db.from("contests").select("id, slug, brand_name, prize_amount, status, is_private, is_nda, starts_at, service, client_id").eq("id", contestId).maybeSingle();
   if (!c || c.status !== "open") return false;
+  // A test client's contest reaches test designers only (owner, 2026-10-22), so a QA run never looks like a real job.
+  const test = await isTestAccount(c.client_id as string);
   // Private and NDA contests still want designers; their names stay hidden from people who can't see the brief.
   const brand = c.is_private || c.is_nda ? null : (c.brand_name as string);
   const data = { brand: brand ?? undefined, amount: c.prize_amount as number };
@@ -41,7 +44,8 @@ export async function announceContest(contestId: string): Promise<boolean> {
   // Pro early access (owner, 2026-10-13): Pro designers hear at once ("instant contest alert"), and invited designers
   // get their invitation; everyone else hears when the contest opens to them (the lifecycle job calls this again).
   const { settings, ready } = await getProSettings();
-  const pro = ready ? await allProIds() : [];
+  const allPro = ready ? await allProIds() : [];
+  const pro = test ? [...(await testIdsAmong(allPro))] : allPro;
   const early = ready && settings.features.early_access && settings.earlyAccessMinutes > 0;
   if (early) {
     const { error: sentEarly } = await db.from("lifecycle_events").insert({ contest_id: c.id, kind: "announced_pro" });
@@ -61,12 +65,12 @@ export async function announceContest(contestId: string): Promise<boolean> {
   // Recorded first, so two callers never announce twice.
   const { error } = await db.from("lifecycle_events").insert({ contest_id: c.id, kind: "announced" });
   if (error) return false;
-  await broadcastToDesigners(brand ? "contest_new" : "contest_new_private", data, link, early ? pro : []);
+  await broadcastToDesigners(brand ? "contest_new" : "contest_new_private", data, link, early ? pro : [], { onlyTest: test });
   // And by email (contest-new.html) to every designer who hasn't turned these off; Pro designers had theirs already.
   // Sent after the reply, so approving a payment never waits for many emails.
   const except = early ? pro : [];
   after(async () => {
-    await emailContestNew(c.id as string, await designersForAlert(except), null);
+    await emailContestNew(c.id as string, await designersForAlert(except, { onlyTest: test }), null);
   });
   return true;
 }

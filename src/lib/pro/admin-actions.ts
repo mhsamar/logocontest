@@ -7,7 +7,8 @@ import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRO_FEATURES, isProActive, type ProFeature } from "./rules";
 import { getProSettings } from "./settings";
-import { getSubscription } from "./status";
+import { avatarUrl } from "@/lib/profile/avatar";
+import { getSubscription, proIdsAmong, trialIdsAmong } from "./status";
 import { cancelPro, freeMonthEnd, grantPro, logFunnel, logProActivity, tellDesigner } from "./subscription";
 import { cancelTrial, extendTrial, startTrial } from "./trial";
 
@@ -229,9 +230,42 @@ export async function grantProByUsername(username: string): Promise<Result> {
   if (!admin) return fail("auth.errors.generic");
   const name = (username ?? "").trim().replace(/^@/, "").toLowerCase();
   if (!/^[a-z0-9_]{3,30}$/.test(name)) return fail("pro.admin.errors.notFound");
-  const { data } = await db().from("profiles").select("id, role").eq("username", name).maybeSingle();
-  if (!data || data.role !== "designer") return fail("pro.admin.errors.notFound");
+  const { data } = await db().from("profiles").select("id, role, status, suspended_until").eq("username", name).maybeSingle();
+  if (!data || data.role !== "designer" || !usable(data)) return fail("pro.admin.errors.notFound");
   return manageProMember(data.id as string, "free_month");
+}
+
+/** Active, or a suspension that has already ended (the job writes "active" back a little later). */
+const usable = (p: { status: unknown; suspended_until?: unknown }) =>
+  p.status === "active" || (p.status === "suspended" && Boolean(p.suspended_until) && new Date(p.suspended_until as string).getTime() <= Date.now());
+
+export type ProDesignerHit = { id: string; name: string; username: string; avatar: string | null; test: boolean; trial: boolean };
+
+/**
+ * Give Pro (owner, 2026-10-22): tapping the box lists the newest active designers, typing a name or @username narrows
+ * it. Paying members are left out (they have Manage); test accounts come last, marked. Never shows contact details.
+ */
+export async function searchProDesigners(query: string): Promise<ProDesignerHit[]> {
+  if (!(await adminUser("pro.manage"))) return [];
+  const q = String(query ?? "").replace(/[,()*%\\"]/g, " ").replace(/\s+/g, " ").trim().replace(/^@/, "").slice(0, 40);
+  let req = db()
+    .from("profiles")
+    .select("id, name, username, avatar_path, is_test, status, suspended_until")
+    .eq("role", "designer")
+    .in("status", ["active", "suspended"])
+    .not("username", "is", null)
+    .order("is_test", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(80);
+  if (q) req = req.or(`name.ilike."%${q}%",username.ilike."%${q}%"`);
+  const rows = ((await req).data ?? []).filter(usable);
+  const ids = rows.map((r) => r.id as string);
+  const [pro, trial] = await Promise.all([proIdsAmong(ids), trialIdsAmong(ids)]);
+  return rows
+    .filter((r) => !pro.has(r.id as string) || trial.has(r.id as string))
+    .map((r) => ({ id: r.id as string, name: ((r.name as string) ?? "").trim(), username: r.username as string, avatar: avatarUrl(r.avatar_path as string | null), test: Boolean(r.is_test), trial: trial.has(r.id as string) }))
+    .sort((a, b) => Number(a.test) - Number(b.test))
+    .slice(0, 30);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

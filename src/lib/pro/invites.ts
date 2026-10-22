@@ -8,6 +8,7 @@ import { matchScore } from "./rules";
 import { getProSettings } from "./settings";
 import { allProIds, proIdsAmong, trialIdsAmong } from "./status";
 import { designerStatsBulk } from "./stats";
+import { isTestAccount, testContestIds, testIdsAmong } from "@/lib/seo/test-accounts";
 
 const db = () => createAdminClient();
 
@@ -50,8 +51,10 @@ export async function inviteCandidates(contestId: string): Promise<{ contest: { 
   const invited = (inv ?? []).map((r) => r.designer_id as string);
   const ids = await allProIds();
   if (!ids.length) return { contest: shape(c), list: [], invited };
+  // Test clients see only test designers, and real clients never see them (owner, 2026-10-22).
+  const clientTest = await isTestAccount(c.client_id as string);
   const [{ data: people }, { data: subs }, stats, trials] = await Promise.all([
-    db().from("profiles").select("id, name, username, avatar_path, skills, last_seen_at, status").in("id", ids).eq("role", "designer").eq("status", "active"),
+    db().from("profiles").select("id, name, username, avatar_path, skills, last_seen_at, status").in("id", ids).eq("role", "designer").eq("status", "active").eq("is_test", clientTest),
     db().from("pro_subscriptions").select("designer_id, first_started_at").in("designer_id", ids),
     designerStatsBulk(ids),
     trialIdsAmong(ids),
@@ -111,10 +114,15 @@ function shape(c: Record<string, unknown>) {
 export async function notifyInvited(contestId: string): Promise<number> {
   const { ready, settings } = await getProSettings();
   if (!ready || !settings.features.invitations) return 0;
-  const { data: c } = await db().from("contests").select("slug, brand_name, prize_amount, status, is_private, is_nda").eq("id", contestId).maybeSingle();
+  const { data: c } = await db().from("contests").select("slug, brand_name, prize_amount, status, is_private, is_nda, client_id").eq("id", contestId).maybeSingle();
   if (!c || c.status !== "open") return 0;
   const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", contestId).is("notified_at", null).neq("status", "removed");
-  const ids = [...(await proIdsAmong((rows ?? []).map((r) => r.designer_id as string)))];
+  let ids = [...(await proIdsAmong((rows ?? []).map((r) => r.designer_id as string)))];
+  // A test client's invitations reach test designers only.
+  if (await isTestAccount(c.client_id as string)) {
+    const test = await testIdsAmong(ids);
+    ids = ids.filter((id) => test.has(id));
+  }
   if (!ids.length) return 0;
   const { data: claimed } = await db().from("contest_invites").update({ notified_at: new Date().toISOString() }).eq("contest_id", contestId).in("designer_id", ids).is("notified_at", null).select("designer_id");
   const sendTo = (claimed ?? []).map((r) => r.designer_id as string);
@@ -142,10 +150,17 @@ export async function remindInvited(now: Date = new Date()): Promise<number> {
   const hoursBefore = (await getSettings(["notify.invite_reminder_hours"]))["notify.invite_reminder_hours"];
   const until = new Date(now.getTime() + hoursBefore * 3_600_000).toISOString();
   const { data: contests } = await db().from("contests").select("id, slug, brand_name, ends_at, is_private, is_nda").eq("status", "open").gt("ends_at", now.toISOString()).lte("ends_at", until);
+  // A test client's contest reminds test designers only (owner, 2026-10-22).
+  const tests = await testContestIds((contests ?? []).map((c) => c.id as string));
   let n = 0;
   for (const c of contests ?? []) {
-    const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", c.id).is("reminded_at", null).in("status", ["pending", "accepted"]);
-    const ids = (rows ?? []).map((r) => r.designer_id as string);
+    // Only invitations that were sent get a reminder.
+    const { data: rows } = await db().from("contest_invites").select("designer_id").eq("contest_id", c.id).is("reminded_at", null).not("notified_at", "is", null).in("status", ["pending", "accepted"]);
+    let ids = (rows ?? []).map((r) => r.designer_id as string);
+    if (tests.has(c.id as string)) {
+      const test = await testIdsAmong(ids);
+      ids = ids.filter((id) => test.has(id));
+    }
     if (!ids.length) continue;
     const { data: sent } = await db().from("entries").select("designer_id").eq("contest_id", c.id).in("designer_id", ids);
     const done = new Set((sent ?? []).map((r) => r.designer_id as string));

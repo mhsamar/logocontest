@@ -32,15 +32,16 @@ export const CAPTION_VARS = ["brand_name", "category", "prize", "days_left", "en
 export const BANGLA_LINES = ["নতুন লোগো চাই — আপনার ডিজাইন জমা দিন", "আপনার সেরা আইডিয়া পাঠান, পুরস্কার জিতুন", "ডিজাইনাররা, এখনই অংশ নিন", "সেরা ডিজাইনটি জিতবে পুরো পুরস্কার"];
 export const banglaLine = (contestNumber: number | null) => BANGLA_LINES[Math.abs(contestNumber ?? 0) % BANGLA_LINES.length];
 
-export type CardContest = { status: string; isPrivate: boolean; isNda: boolean; shareOnFacebook: boolean; endsAt: Date | null };
-export type Eligibility = "ok" | "private" | "client_off" | "not_live";
+export type CardContest = { status: string; isPrivate: boolean; isNda: boolean; shareOnFacebook: boolean; endsAt: Date | null; /** A test client's contest (owner, 2026-10-22). */ isTest?: boolean };
+export type Eligibility = "ok" | "private" | "client_off" | "not_live" | "test";
 
 /**
  * Only live (paid) contests that are still open get a card. Private and NDA contests never do (no card, no post);
- * neither does a contest whose client switched "Share my contest on Facebook" off.
+ * neither does a contest whose client switched "Share my contest on Facebook" off, or a test client's contest.
  */
 export function cardEligibility(c: CardContest, now: Date): Eligibility {
   if (c.status !== "open" || !c.endsAt || c.endsAt.getTime() <= now.getTime()) return "not_live";
+  if (c.isTest) return "test";
   if (c.isPrivate || c.isNda) return "private";
   if (!c.shareOnFacebook) return "client_off";
   return "ok";

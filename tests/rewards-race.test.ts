@@ -175,7 +175,12 @@ describe("mystery gift box: the designer who won the most contests", () => {
 
   it("leaves out test accounts, except in test mode", () => {
     expect(rankDesigners("2026-10", [win("t", 5000, "2026-10-02T10:00:00")], [], ppl)).toHaveLength(0);
-    expect(rankDesigners("2026-10", [win("t", 5000, "2026-10-02T10:00:00"), win("d1", 5000, "2026-10-02T10:00:00")], [], ppl, true).map((d) => d.id)).toEqual(["t"]);
+    // In test mode a win counts in a test client's contest (owner, 2026-10-22).
+    expect(rankDesigners("2026-10", [win("t", 5000, "2026-10-02T10:00:00", { clientIsTest: true }), win("d1", 5000, "2026-10-02T10:00:00", { clientIsTest: true })], [], ppl, true).map((d) => d.id)).toEqual(["t"]);
+  });
+  it("a real designer's win in a test client's contest doesn't count in the real race (owner, 2026-10-22)", () => {
+    expect(rankDesigners("2026-10", [win("d1", 5000, "2026-10-02T10:00:00", { clientIsTest: true })], [], ppl)).toHaveLength(0);
+    expect(rankDesigners("2026-10", [win("t", 5000, "2026-10-02T10:00:00")], [], ppl, true)).toHaveLength(0);
   });
 });
 
@@ -205,5 +210,30 @@ describe("monthly prizes are for Bangladesh only (owner, 2026-10-14)", () => {
     expect(visitsAbroad({ bd: 10, abroad: 3 })).toBe(false);
     expect(visitsAbroad({ bd: 5, abroad: 5 })).toBe(false);
     expect(visitsAbroad(undefined)).toBe(false);
+  });
+});
+
+describe("the Trash never counts (owner, 2026-10-22)", () => {
+  it("accounts in the Trash are out of the race, also in test mode", () => {
+    expect(inRace(person("a", { status: "deleted" }), false)).toBe(false);
+    expect(inRace(person("a", { status: "deleted", isTest: true }), true)).toBe(false);
+  });
+
+  it("a contest in the Trash doesn't count for its client", () => {
+    const ppl = people(person("c1"));
+    const ranked = rankClients("2026-10", [contest("c1", 5000, "2026-10-05T10:00:00"), contest("c1", 9000, "2026-10-06T10:00:00", { status: "deleted" })], [], ppl);
+    expect(ranked).toEqual([expect.objectContaining({ id: "c1", contests: 1, prizeTotal: 5000 })]);
+    expect(rankClients("2026-10", [contest("c1", 9000, "2026-10-06T10:00:00", { status: "deleted" })], [], ppl)).toEqual([]);
+  });
+
+  it("a win or a design in a contest in the Trash doesn't count for the designer", () => {
+    const ppl = people(person("d1", { role: "designer" }));
+    const wins = [win("d1", 5000, "2026-10-12T10:00:00"), win("d1", 9000, "2026-10-13T10:00:00", { contestStatus: "deleted" })];
+    const entries: RaceEntry[] = [
+      { contestId: "k1", designerId: "d1", createdAt: dhaka("2026-10-05T10:00:00"), status: "active" },
+      { contestId: "k2", designerId: "d1", createdAt: dhaka("2026-10-05T11:00:00"), status: "active", contestStatus: "deleted" },
+    ];
+    expect(rankDesigners("2026-10", wins, entries, ppl)).toEqual([expect.objectContaining({ id: "d1", wins: 1, joined: 1 })]);
+    expect(rankDesigners("2026-10", [win("d1", 9000, "2026-10-13T10:00:00", { contestStatus: "deleted" })], [], ppl)).toEqual([]);
   });
 });

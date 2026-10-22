@@ -51,7 +51,7 @@ type Light = {
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 const LIGHT =
-  "id, number, status, is_hidden, created_at, designer:profiles!designer_id(username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public), images:entry_images!entry_id(position)";
+  "id, number, status, is_hidden, created_at, designer:profiles!designer_id(username, avatar_path), contest:contests!contest_id!inner(slug, brand_name, business_type, status, is_private, is_nda, is_blind, winner_is_public, owner:profiles!client_id!inner(is_test)), images:entry_images!entry_id(position)";
 const isPublic = (r: Light) =>
   isPublicDesign({ status: r.status, isHidden: r.is_hidden }, { status: r.contest.status, isPrivate: r.contest.is_private, isBlind: r.contest.is_blind, winnerIsPublic: r.contest.winner_is_public });
 
@@ -66,6 +66,8 @@ const publicDesigns = cache(async (): Promise<Light[]> => {
     // NDA contests include everything Private does (§7.4), so their designs stay out too.
     .eq("contest.is_nda", false)
     .in("contest.status", [...PUBLIC_STATUSES])
+    // Never a test client's contest (owner, 2026-10-22).
+    .eq("contest.owner.is_test", false)
     .order("created_at", { ascending: false })
     .limit(5000);
   if (error) throw new Error(error.message);

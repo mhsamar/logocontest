@@ -34,7 +34,7 @@ import { subscribeToPush } from "@/lib/push/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
-import { initialState, loadState, saveState, type ServerFile, type WizardState } from "./state";
+import { initialState, loadPending, loadState, savePending, saveState, type ServerFile, type WizardState } from "./state";
 import { wizardVisitId } from "./visit-id";
 import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep, Part, type BriefChoices, type BriefStepProps } from "./steps-brief";
@@ -109,7 +109,11 @@ export function Wizard(props: WizardProps) {
     const saved = loadState();
     let next: WizardState;
     if (props.resume) {
-      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId, shareFb: props.resumeShare ?? true };
+      // Reference photos this device still holds for this draft are kept, so the review uploads them (owner,
+      // 2026-10-22: they were dropped when the client came back from inviting Pro designers).
+      const pending = loadPending(props.resume.contestId);
+      const keep = pending.length ? pending : saved?.contestId === props.resume.contestId ? saved.localFiles : [];
+      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId, shareFb: props.resumeShare ?? true, localFiles: keep };
     } else {
       // A new contest starts blank (owner, 2026-10-14). What this device kept is only reused while that contest isn't
       // saved yet; a saved one is a draft on the server, opened from the dashboard instead.
@@ -191,32 +195,50 @@ export function Wizard(props: WizardProps) {
     [t, props.shareSwitch],
   );
 
+  // One upload run at a time: Retry, or coming back to the review, never sends the same photo twice.
+  const uploadRun = useRef(false);
   const uploadPending = useCallback(
     async (contestId: string, s: WizardState) => {
-      if (s.localFiles.length === 0) return;
-      setUploads(s.localFiles.map((f) => ({ name: f.name, status: "waiting" })));
-      const supabase = createBrowserSupabase();
-      const remaining = [...s.localFiles];
-      for (let i = 0; i < s.localFiles.length; i++) {
-        const f = s.localFiles[i];
-        setUploads((u) => u.map((x, j) => (j === i ? { ...x, status: "uploading" } : x)));
-        const ok = await (async () => {
-          const blob = await getFile(f.id);
-          if (!blob) return false;
-          const prepared = await prepareBriefUpload({ contestId, name: f.name, type: f.type, size: f.size });
-          if (!prepared.ok) return false;
-          const up = await supabase.storage.from(BUCKET).uploadToSignedUrl(prepared.path, prepared.token, blob, { contentType: f.type });
-          if (up.error) return false;
-          const rec = await recordBriefUpload({ contestId, path: prepared.path, name: f.name, type: f.type, size: f.size, isCurrentLogo: f.isCurrentLogo });
-          if (!rec.ok) return false;
-          setServerFiles((sf) => [...sf, { id: rec.id, name: f.name, type: f.type, isCurrentLogo: f.isCurrentLogo }]);
-          await deleteFile(f.id);
-          remaining.splice(remaining.indexOf(f), 1);
-          return true;
-        })().catch(() => false);
-        setUploads((u) => u.map((x, j) => (j === i ? { ...x, status: ok ? "done" : "error" } : x)));
+      if (s.localFiles.length === 0 || uploadRun.current) return;
+      uploadRun.current = true;
+      // A photo leaves the list (by id, so one added meanwhile stays) and the draft's saved list at once, so a reload
+      // never sends it twice (owner, 2026-10-22).
+      const drop = (id: string) =>
+        setState((cur) => {
+          if (!cur) return cur;
+          const localFiles = cur.localFiles.filter((x) => x.id !== id);
+          savePending(contestId, localFiles);
+          return { ...cur, localFiles };
+        });
+      try {
+        setUploads(s.localFiles.map((f) => ({ name: f.name, status: "waiting" })));
+        const supabase = createBrowserSupabase();
+        for (let i = 0; i < s.localFiles.length; i++) {
+          const f = s.localFiles[i];
+          setUploads((u) => u.map((x, j) => (j === i ? { ...x, status: "uploading" } : x)));
+          const ok = await (async () => {
+            const blob = await getFile(f.id);
+            // Gone from this device: it can't be sent any more, so it shows as failed and the client adds it again.
+            if (!blob) {
+              drop(f.id);
+              return false;
+            }
+            const prepared = await prepareBriefUpload({ contestId, name: f.name, type: f.type, size: f.size });
+            if (!prepared.ok) return false;
+            const up = await supabase.storage.from(BUCKET).uploadToSignedUrl(prepared.path, prepared.token, blob, { contentType: f.type });
+            if (up.error) return false;
+            const rec = await recordBriefUpload({ contestId, path: prepared.path, name: f.name, type: f.type, size: f.size, isCurrentLogo: f.isCurrentLogo });
+            if (!rec.ok) return false;
+            setServerFiles((sf) => [...sf, { id: rec.id, name: f.name, type: f.type, isCurrentLogo: f.isCurrentLogo }]);
+            await deleteFile(f.id);
+            drop(f.id);
+            return true;
+          })().catch(() => false);
+          setUploads((u) => u.map((x, j) => (j === i ? { ...x, status: ok ? "done" : "error" } : x)));
+        }
+      } finally {
+        uploadRun.current = false;
       }
-      setState((cur) => (cur ? { ...cur, localFiles: remaining } : cur));
     },
     [],
   );
@@ -300,7 +322,12 @@ export function Wizard(props: WizardProps) {
     if (step === S.prize && props.user) {
       startBusy(async () => {
         const saved = await persistDraft(state);
-        if (saved.ok && props.inviteFirst) return router.push(`/start/invite?draft=${saved.contestId}`);
+        // The reference photos wait on this device under the draft and upload at the review on the way back (owner,
+        // 2026-10-22: leaving for the invite page used to lose them).
+        if (saved.ok && props.inviteFirst) {
+          savePending(saved.contestId, state.localFiles);
+          return router.push(`/start/invite?draft=${saved.contestId}`);
+        }
         if (saved.ok) go(S.review);
       });
       return;
@@ -334,7 +361,10 @@ export function Wizard(props: WizardProps) {
         if (props.shareSwitch) void setContestShare({ contestId: res.contestId, on: state.shareFb !== false });
         setPassword("");
         router.refresh(); // header and server props now see the signed-in client
-        if (props.inviteFirst) return router.push(`/start/invite?draft=${res.contestId}`);
+        if (props.inviteFirst) {
+          savePending(res.contestId, state.localFiles);
+          return router.push(`/start/invite?draft=${res.contestId}`);
+        }
         go(S.review);
       });
       return;

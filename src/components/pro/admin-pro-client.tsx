@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { adminCancelTrial, adminExtendTrial, adminRemoveInvite, adminStartTrial, grantProByUsername, manageProMember, remindProClicker, saveProSettings, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
+import { adminCancelTrial, adminExtendTrial, adminRemoveInvite, adminStartTrial, grantProByUsername, manageProMember, remindProClicker, saveProSettings, searchProDesigners, setProAutoRemind, setProForSale, type ProSettingsInput } from "@/lib/pro/admin-actions";
 import type { ProFeature } from "@/lib/pro/rules";
 
 /** "Pro plan for sale" — the master switch, saved at once. */
@@ -358,30 +358,178 @@ export function ManageMember({ designerId, name, status, canManage }: { designer
   );
 }
 
-/** Give Pro (a free month) to any designer by username. */
+type Suggestion = { id: string; name: string; username: string | null; avatar: string | null; test?: boolean; trial?: boolean };
+
+/**
+ * A designer box with suggestions (owner, 2026-10-22): tapping it lists designers, typing narrows the list, picking
+ * one fills the box. `items` filters a list the page already has; `load` asks the server (pass a stable function).
+ * Enter picks only a row chosen with the arrow keys; otherwise it submits what was typed.
+ */
+function DesignerSuggest({ name, value, onChange, onPick, items, load, empty, placeholder }: { name?: string; value: string; onChange: (v: string) => void; onPick: (s: Suggestion) => void; items?: Suggestion[]; load?: (q: string) => Promise<Suggestion[]>; empty: string; placeholder: string }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  // Each server answer remembers the text it was for, so an older answer is never shown or picked.
+  const [found, setFound] = useState<{ q: string; rows: Suggestion[] } | null>(null);
+  const [active, setActive] = useState(-1);
+  const box = useRef<HTMLSpanElement>(null);
+  const listId = useId();
+  const q = value.trim().replace(/^@/, "").toLowerCase();
+
+  useEffect(() => {
+    if (!open || !load) return;
+    let live = true;
+    const timer = window.setTimeout(() => {
+      load(q)
+        .then((rows) => live && setFound({ q, rows }))
+        .catch(() => live && setFound({ q, rows: [] }));
+    }, 220);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [open, q, load]);
+  const loading = Boolean(load) && found?.q !== q;
+  const shown = items ? items.filter((s) => !q || s.name.toLowerCase().includes(q) || (s.username ?? "").toLowerCase().includes(q)).slice(0, 30) : found?.q === q ? found.rows : [];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => box.current && !box.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  const pick = (s: Suggestion) => {
+    onChange(s.username ?? s.name);
+    setOpen(false);
+    setActive(-1);
+    onPick(s);
+  };
+
+  return (
+    <span
+      ref={box}
+      className="ap-sug"
+      onBlur={(e) => {
+        if (!box.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <input
+        name={name}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
+        onFocus={() => setOpen(true)}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+          else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            if (!open) {
+              setOpen(true);
+              setActive(0);
+            } else setActive((i) => Math.min(i + 1, shown.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActive((i) => Math.max(i - 1, -1));
+          } else if (e.key === "Enter" && open && active >= 0 && shown[active]) {
+            e.preventDefault();
+            pick(shown[active]);
+          }
+        }}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-activedescendant={open && active >= 0 && shown[active] ? `${listId}-${active}` : undefined}
+        autoComplete="off"
+      />
+      {open && (
+        <ul id={listId} role="listbox">
+          {!q && <li className="ap-sug-head" aria-hidden>{empty}</li>}
+          {loading && !shown.length && <li className="ap-sug-head" aria-hidden>{t("admin.messages.picker.loading")}</li>}
+          {!loading && !shown.length && <li className="ap-sug-head" aria-hidden>{t("pro.admin.sugNone")}</li>}
+          {shown.map((s, i) => (
+            <li
+              key={s.id}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === active}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => pick(s)}
+              onMouseEnter={() => setActive(i)}
+            >
+              <span className="ap-av">{s.avatar ? <img src={s.avatar} alt="" /> : (s.name || s.username || "?").charAt(0).toUpperCase()}</span>
+              <span className="ap-nm">
+                <b>{s.name || `@${s.username}`}</b>
+                {s.username && <em>@{s.username}</em>}
+              </span>
+              {s.trial && <i className="ap-st">{t("pro.admin.sugTrial")}</i>}
+              {s.test && <i className="ap-st off">{t("admin.users.testAccount")}</i>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </span>
+  );
+}
+
+/** "Search designer" over the Pro members, with suggestions from the members on the page (owner, 2026-10-22). */
+export function MemberSearch({ q, range, chip, items }: { q: string; range: number; chip: string; items: Suggestion[] }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [value, setValue] = useState(q);
+  return (
+    <form action="/admin/pro" className="ap-search">
+      <input type="hidden" name="range" value={range} />
+      <input type="hidden" name="members" value={chip} />
+      <DesignerSuggest
+        name="q"
+        value={value}
+        onChange={setValue}
+        items={items}
+        empty={t("pro.admin.sugMembers")}
+        placeholder={t("pro.admin.searchMember")}
+        onPick={(s) => router.push(`/admin/pro?${new URLSearchParams({ range: String(range), members: chip, q: s.username ?? s.name })}`, { scroll: false })}
+      />
+    </form>
+  );
+}
+
+/**
+ * Give Pro (a free month) to any designer: tap the box for suggestions, or type a name or username. A designer picked
+ * from the list gets it by their id, so Pro always goes to exactly the person shown; typed text must be a username.
+ */
 export function GrantPro({ canManage }: { canManage: boolean }) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const [name, setName] = useState("");
+  const [picked, setPicked] = useState<Suggestion | null>(null);
   const [busy, start] = useTransition();
   if (!canManage) return null;
+  const chosen = picked && (picked.username ?? picked.name) === name ? picked : null;
   return (
     <form
       className="ap-search"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const res = await grantProByUsername(name);
+          const res = chosen ? await manageProMember(chosen.id, "free_month") : await grantProByUsername(name);
           if (!res.ok) return toast(t(res.error, res.params), "danger");
           toast(t("pro.admin.saved"));
           setName("");
+          setPicked(null);
           router.refresh();
         });
       }}
     >
       <span className="ap-hint">{t("pro.admin.mGrantLead")}</span>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("pro.admin.mUsername")} aria-label={t("pro.admin.mUsername")} />
+      <DesignerSuggest value={name} onChange={setName} load={searchProDesigners} onPick={setPicked} empty={t("pro.admin.sugNewest")} placeholder={t("pro.admin.mUsername")} />
       <button type="submit" className="ap-btn sm" disabled={busy || name.trim().length < 3}>
         {t("pro.admin.mGrant")}
       </button>

@@ -36,7 +36,7 @@ function statusOf(c: CardListItem, t: Translate, locale: "en" | "bn"): { label: 
     case "failed":
       return c.attempts > 0 && c.attempts < MAX_ATTEMPTS ? { label: t("admin.cards.status.retrying", { n: formatNumber(c.attempts, locale) }), tone: "bad" } : { label: t("admin.cards.status.failed"), tone: "bad" };
     default: {
-      const why = (["private", "client_off", "admin", "not_live"] as const).find((w) => w === c.skip_reason) ?? "admin";
+      const why = (["private", "client_off", "admin", "not_live", "test"] as const).find((w) => w === c.skip_reason) ?? "admin";
       return { label: t(`admin.cards.status.skipped.${why}`), tone: "neutral" };
     }
   }

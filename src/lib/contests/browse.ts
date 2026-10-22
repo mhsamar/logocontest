@@ -166,11 +166,13 @@ export async function browseContests(q: BrowseQuery, opts: { designerId: string 
   const counts = { open: 0, joined: 0, judging: 0, completed: 0 } as Record<BrowseTab, number>;
   if (!isSupabaseConfigured()) return { rows: [], total: 0, counts, openNow: 0, featuredOpen: 0 };
   const db = createAdminClient();
-  let base = db.from("contests").select(LIGHT_COLUMNS).in("status", [...PUBLIC_STATUSES]).limit(5000);
+  let base = db.from("contests").select(`${LIGHT_COLUMNS}, owner:profiles!client_id(is_test)`).in("status", [...PUBLIC_STATUSES]).limit(5000);
   if (q.type) base = base.eq("business_type", q.type);
   const [{ data, error }, joined] = await Promise.all([base, opts.designerId ? joinedContestIds(opts.designerId) : Promise.resolve(new Set<string>())]);
   if (error) throw new Error(error.message);
-  const all = (data ?? []) as Light[];
+  // A test client's contest isn't listed (owner, 2026-10-22), except for a designer who joined it (test designers).
+  const testOwner = (o: unknown) => Boolean(((Array.isArray(o) ? o[0] : o) as { is_test?: boolean } | null)?.is_test);
+  const all = ((data ?? []) as (Light & { owner?: unknown })[]).filter((r) => !testOwner(r.owner) || joined.has(r.id)) as Light[];
 
   const words = q.q.toLowerCase();
   const types = words ? typesMatching(words) : null;
@@ -265,7 +267,7 @@ export async function designerFacts(ids: string[], designerId: string): Promise<
 /** P-02 "Featured contests": open contests with the Promoted upgrade, ending soonest first. */
 export async function featuredContests(limit: number, hideNewerThan: Date | null = null): Promise<ContestRow[]> {
   if (!isSupabaseConfigured()) return [];
-  let query = createAdminClient().from("contests").select(ROW_COLUMNS).eq("status", "open").eq("is_promoted", true);
+  let query = createAdminClient().from("contests").select(`${ROW_COLUMNS}, owner:profiles!client_id!inner(is_test)`).eq("status", "open").eq("is_promoted", true).eq("owner.is_test", false);
   if (hideNewerThan) query = query.lte("starts_at", hideNewerThan.toISOString());
   const { data, error } = await query.order("ends_at", { ascending: true }).limit(limit);
   if (error) throw new Error(error.message);
@@ -284,7 +286,8 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
 /** Home page section 2: open contests, Promoted first, then the newest. */
 export async function liveContests(limit: number, hideNewerThan: Date | null = null): Promise<ContestRow[]> {
   if (!isSupabaseConfigured()) return [];
-  let query = createAdminClient().from("contests").select(ROW_COLUMNS).eq("status", "open");
+  // Never a test client's contest (owner, 2026-10-22).
+  let query = createAdminClient().from("contests").select(`${ROW_COLUMNS}, owner:profiles!client_id!inner(is_test)`).eq("status", "open").eq("owner.is_test", false);
   // Pro early access (owner, 2026-10-13): contests newer than this aren't shown to this viewer yet.
   if (hideNewerThan) query = query.lte("starts_at", hideNewerThan.toISOString());
   const { data, error } = await query

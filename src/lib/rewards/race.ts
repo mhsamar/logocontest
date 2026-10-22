@@ -41,9 +41,15 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
   const to = end.toISOString();
   const db = createAdminClient();
 
+  // Contests in the Trash, and their wins and designs, never count (owner, 2026-10-22).
   const [contestsRes, winsRes] = await Promise.all([
-    db.from("contests").select("id, client_id, prize_amount, starts_at, status").gte("starts_at", from).lt("starts_at", to),
-    db.from("handovers").select("contest_id, designer_id, prize, fee_rate, created_at, status").gte("created_at", from).lt("created_at", to),
+    db.from("contests").select("id, client_id, prize_amount, starts_at, status").gte("starts_at", from).lt("starts_at", to).neq("status", "deleted"),
+    db
+      .from("handovers")
+      .select("contest_id, designer_id, prize, fee_rate, created_at, status, contest:contests!contest_id!inner(status, owner:profiles!client_id(is_test))")
+      .gte("created_at", from)
+      .lt("created_at", to)
+      .neq("contest.status", "deleted"),
   ]);
   if (contestsRes.error) throw new Error(contestsRes.error.message);
   if (winsRes.error) throw new Error(winsRes.error.message);
@@ -58,8 +64,18 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
   const moneyBack = new Set((claimRows ?? []).map((r) => r.contest_id as string));
   const [paidRes, paymentsRes, entriesRes, peopleRes] = await Promise.all([
     contestIds.length ? db.from("payments").select("contest_id").eq("purpose", "contest").eq("status", "paid").in("contest_id", contestIds) : Promise.resolve({ data: [], error: null }),
-    clientIds.length ? db.from("payments").select("client_id, amount, paid_at").eq("status", "paid").in("client_id", clientIds).gte("paid_at", from).lt("paid_at", to) : Promise.resolve({ data: [], error: null }),
-    designerIds.length ? db.from("entries").select("contest_id, designer_id, created_at, status").in("designer_id", designerIds).gte("created_at", from).lt("created_at", to) : Promise.resolve({ data: [], error: null }),
+    clientIds.length
+      ? db.from("payments").select("client_id, amount, paid_at, contest:contests!contest_id(status)").eq("status", "paid").in("client_id", clientIds).gte("paid_at", from).lt("paid_at", to)
+      : Promise.resolve({ data: [], error: null }),
+    designerIds.length
+      ? db
+          .from("entries")
+          .select("contest_id, designer_id, created_at, status, contest:contests!contest_id!inner(status, owner:profiles!client_id(is_test))")
+          .in("designer_id", designerIds)
+          .gte("created_at", from)
+          .lt("created_at", to)
+          .neq("contest.status", "deleted")
+      : Promise.resolve({ data: [], error: null }),
     clientIds.length + designerIds.length
       ? db.from("profiles").select("id, role, status, is_test, name, username, business_name, avatar_path").in("id", [...clientIds, ...designerIds])
       : Promise.resolve({ data: [], error: null }),
@@ -97,7 +113,12 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
     paid: paid.has(c.id as string),
     moneyBack: moneyBack.has(c.id as string),
   }));
-  const payments: RacePayment[] = (paymentsRes.data ?? []).map((p) => ({ clientId: p.client_id as string, amount: p.amount as number, paidAt: new Date(p.paid_at as string) }));
+  const first = <T,>(v: unknown) => (Array.isArray(v) ? v[0] : v) as T | null | undefined;
+  const statusOf = (c: unknown) => first<{ status?: string }>(c)?.status;
+  const clientTest = (c: unknown) => Boolean(first<{ is_test?: boolean }>(first<{ owner?: unknown }>(c)?.owner)?.is_test);
+  const payments: RacePayment[] = (paymentsRes.data ?? [])
+    .filter((p) => statusOf(p.contest) !== "deleted")
+    .map((p) => ({ clientId: p.client_id as string, amount: p.amount as number, paidAt: new Date(p.paid_at as string) }));
   const wins: RaceWin[] = winRows.map((w) => ({
     contestId: w.contest_id as string,
     designerId: w.designer_id as string,
@@ -105,8 +126,17 @@ export async function monthRace(month: string, opts: { testMode?: boolean } = {}
     feeRate: w.fee_rate as number,
     pickedAt: new Date(w.created_at as string),
     status: w.status as string,
+    contestStatus: statusOf(w.contest),
+    clientIsTest: clientTest(w.contest),
   }));
-  const entries: RaceEntry[] = (entriesRes.data ?? []).map((e) => ({ contestId: e.contest_id as string, designerId: e.designer_id as string, createdAt: new Date(e.created_at as string), status: e.status as string }));
+  const entries: RaceEntry[] = (entriesRes.data ?? []).map((e) => ({
+    contestId: e.contest_id as string,
+    designerId: e.designer_id as string,
+    createdAt: new Date(e.created_at as string),
+    status: e.status as string,
+    contestStatus: statusOf(e.contest),
+    clientIsTest: clientTest(e.contest),
+  }));
 
   const clients = rankClients(month, contests, payments, people, testMode);
   const designers = rankDesigners(month, wins, entries, people, testMode);

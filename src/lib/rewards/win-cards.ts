@@ -46,7 +46,7 @@ export type WinCard = {
 };
 
 const SELECT =
-  "id, slug, hidden_logo, created_at, square_path, story_path, entry_id, contest:contests!contest_id(id, slug, brand_name, prize_amount, is_private, is_nda, is_blind, winner_is_public, status), entry:entries!entry_id(number), designer:profiles!designer_id(id, name, username, avatar_path, locale, email)";
+  "id, slug, hidden_logo, created_at, square_path, story_path, entry_id, contest:contests!contest_id(id, slug, brand_name, prize_amount, is_private, is_nda, is_blind, winner_is_public, status), entry:entries!entry_id(number), designer:profiles!designer_id(id, name, username, avatar_path, locale, email, status)";
 
 type Raw = Record<string, unknown>;
 const one = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
@@ -54,7 +54,8 @@ const one = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ?
 function toCard(r: Raw): WinCard | null {
   const c = one(r.contest as Raw | Raw[] | null);
   const d = one(r.designer as Raw | Raw[] | null);
-  if (!c || !d) return null;
+  // No card for a contest or a designer in the Trash (owner, 2026-10-22).
+  if (!c || !d || c.status === "deleted" || d.status === "deleted") return null;
   return {
     id: r.id as string,
     slug: r.slug as string,
@@ -102,11 +103,12 @@ export async function winsThisMonth(designerId: string, now = new Date()): Promi
   const { start, end } = monthRange(monthKey(now));
   const { count } = await createAdminClient()
     .from("handovers")
-    .select("id", { count: "exact", head: true })
+    .select("id, contest:contests!contest_id!inner(status)", { count: "exact", head: true })
     .eq("designer_id", designerId)
     .in("status", COUNTED_WIN_STATUSES)
     .gte("created_at", start.toISOString())
-    .lt("created_at", end.toISOString());
+    .lt("created_at", end.toISOString())
+    .neq("contest.status", "deleted");
   return count ?? 0;
 }
 

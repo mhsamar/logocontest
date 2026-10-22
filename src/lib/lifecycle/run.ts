@@ -19,6 +19,7 @@ import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
 import { missedMonth } from "@/lib/rewards/race-rules";
 import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, type SplitEntry } from "./rules";
+import { testContestIds } from "@/lib/seo/test-accounts";
 
 /**
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
@@ -84,6 +85,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const { data } = await db.from("contests").select("id, slug, brand_name, prize_amount, is_private, is_nda, ends_at").eq("status", "open").gt("ends_at", iso).lte("ends_at", until);
     const rows = data ?? [];
     const { data: sentRows } = rows.length ? await db.from("lifecycle_events").select("contest_id, kind").in("contest_id", rows.map((c) => c.id as string)) : { data: [] };
+    // A test client's contest reminds test designers only (owner, 2026-10-22).
+    const tests = await testContestIds(rows.map((c) => c.id as string));
     for (const c of rows) {
       try {
         const sent = new Set((sentRows ?? []).filter((r) => r.contest_id === c.id).map((r) => r.kind as string));
@@ -91,7 +94,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
         if (!due.length) continue;
         for (const h of due) await once(c.id as string, designerEndingKind(h));
         const brand = c.is_private || c.is_nda ? undefined : (c.brand_name as string);
-        await broadcastToDesigners(brand ? "contest_ending" : "contest_ending_private", { brand, hours: due[0], amount: c.prize_amount as number }, `/contest/${c.slug}`);
+        await broadcastToDesigners(brand ? "contest_ending" : "contest_ending_private", { brand, hours: due[0], amount: c.prize_amount as number }, `/contest/${c.slug}`, [], { onlyTest: tests.has(c.id as string) });
         // contest-ending.html (owner, 2026-10-15) to the designers who sent a design or saved the contest.
         await emailContestEnding(c.id as string, due[0]);
         report.designerReminders++;

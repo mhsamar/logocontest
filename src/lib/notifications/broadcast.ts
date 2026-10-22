@@ -11,11 +11,14 @@ import { typeChannelOn } from "./switches";
  * Tells every active designer (owner, 2026-10-09): in-app for all, plus a browser push for those who allowed it,
  * written in each designer's own language. Never throws.
  */
-export async function broadcastToDesigners(type: NotificationType, data: NotificationData, link: string, except: string[] = []): Promise<number> {
+export async function broadcastToDesigners(type: NotificationType, data: NotificationData, link: string, except: string[] = [], opts: { onlyTest?: boolean } = {}): Promise<number> {
   if (!isSupabaseConfigured()) return 0;
   try {
     const db = createAdminClient();
-    const { data: designers } = await db.from("profiles").select("id, locale").eq("role", "designer").eq("status", "active");
+    // A test client's contest goes to test designers only (owner, 2026-10-22).
+    let q = db.from("profiles").select("id, locale").eq("role", "designer").eq("status", "active");
+    if (opts.onlyTest) q = q.eq("is_test", true);
+    const { data: designers } = await q;
     const list = (designers ?? []).filter((d) => !except.includes(d.id as string));
     await notify(list.map((d) => d.id as string), type, data, link);
     if (!(await typeChannelOn(type, "push"))) return list.length;
