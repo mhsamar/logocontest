@@ -679,7 +679,7 @@ Every public text was checked against how the site works now and fixed in Englis
 ## 13. Admin panel (`/admin`)
 
 1. Dashboard: contests posted/paid/completed, total client payments, platform revenue, average entries per contest, wizard drop-off by step, pending withdrawals
-2. Users: search, suspend, ban, strike history
+2. Users: search, suspend, ban, strike history; profile state and reminders (owner, 2026-10-22: email verified, photo, designer profile completeness; Remind to verify email / add a photo / complete profile by bell, push and email, once a day per kind, notice row `profile_reminders`, audit `remind_user`; the designer agreement shows as missing only while `legal.agreement_required` is on)
 3. Contests: view, edit brief, extend, cancel, force-award
 4. Entries: flagged duplicates, remove entry
 5. Reports queue (client reports and designer copy flags, with the evidence image and links next to the entry): uphold (with strike or ban), dismiss, or dismiss as false (gives the flagger a warning)

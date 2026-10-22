@@ -4,7 +4,31 @@ import { toAsciiDigits } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { one } from "./core";
 import { avatarUrl } from "@/lib/profile/avatar";
+import { getSetting } from "@/lib/settings";
+import { profileStatus, REMINDER_KINDS, type ProfileStatus, type ReminderKind } from "./reminder-rules";
 import { LOOK_STRIKES, ONLINE_MS, USERS_PER_PAGE, type UsersQuery } from "./users-query";
+
+/** The last reminder of each kind sent to each person (Admin › Users reminders, owner 2026-10-22), from the audit log. */
+async function lastReminders(ids: string[], days = 30): Promise<Map<string, Partial<Record<ReminderKind, string>>>> {
+  const out = new Map<string, Partial<Record<ReminderKind, string>>>();
+  if (!ids.length) return out;
+  const { data } = await createAdminClient()
+    .from("audit_logs")
+    .select("subject_id, changes, created_at")
+    .eq("action", "remind_user")
+    .in("subject_id", ids)
+    .gte("created_at", new Date(Date.now() - days * 86_400_000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(2000);
+  for (const r of data ?? []) {
+    const kind = (r.changes as { kind?: string } | null)?.kind as ReminderKind | undefined;
+    if (!kind || !(REMINDER_KINDS as readonly string[]).includes(kind)) continue;
+    const mine = out.get(r.subject_id as string) ?? {};
+    mine[kind] ??= r.created_at as string;
+    out.set(r.subject_id as string, mine);
+  }
+  return out;
+}
 
 /** A-05 Users (BLUEPRINT §13.2). */
 export type AdminUserRow = {
@@ -84,16 +108,29 @@ export type AdminUserDetail = AdminUserRow & {
     waiting: number;
     paidOut: number;
   } | null;
+  /** Email confirmed, photo, profile completeness (owner, 2026-10-22); null for staff. */
+  profile: ProfileStatus | null;
+  /** Phone notifications turned on on at least one device. */
+  pushOn: boolean;
+  /** When each kind of reminder was last sent (last 30 days). */
+  reminded: Partial<Record<ReminderKind, string>>;
+  /** Settings › designer agreement required (when off, the agreement isn't shown as missing). */
+  agreementOn: boolean;
 };
 
 export async function getUser(id: string): Promise<AdminUserDetail | null> {
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = createAdminClient();
-  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio, deleted_at, delete_reason`).eq("id", id).maybeSingle();
+  const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio, deleted_at, delete_reason, email_verified_at, avatar_path, skills, tools, experience_years, languages`).eq("id", id).maybeSingle();
   if (!p) return null;
   const isDesigner = p.role === "designer";
   const head = { count: "exact" as const, head: true };
   const none = Promise.resolve({ data: null, count: null });
+  const [pushRows, reminded, agreementOn] = await Promise.all([
+    db.from("push_subscriptions").select("id", head).eq("user_id", id),
+    lastReminders([id]),
+    getSetting("legal.agreement_required"),
+  ]);
   const [strikes, contests, entries, balance, entryCount, winCount, ratings, payout, agreement, withdrawals] = await Promise.all([
     db.from("strikes").select("id, reason, issuer_role, created_at, removed_at, issuer:profiles!issued_by(name), contest:contests!contest_id(slug, brand_name)").eq("user_id", id).order("created_at", { ascending: false }),
     p.role === "client" ? db.from("contests").select("slug, brand_name, status, created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [] }),
@@ -134,6 +171,10 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
         }
       : null,
     balance: (balance.data as number | null) ?? null,
+    profile: profileStatus(p as Parameters<typeof profileStatus>[0]),
+    pushOn: (pushRows.count ?? 0) > 0,
+    reminded: reminded.get(id) ?? {},
+    agreementOn,
     strikeHistory: (strikes.data ?? []).map((s) => {
       const c = one(s.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);
       return {
@@ -177,9 +218,14 @@ type Light = {
   is_super_admin: boolean | null;
   suspended_until: string | null;
   admin_title: string | null;
+  bio: string | null;
+  skills: string[] | null;
+  tools: string[] | null;
+  experience_years: number | null;
+  languages: string[] | null;
 };
 const LIGHT =
-  "id, name, username, role, status, mobile, email, strikes, created_at, last_seen_at, counted_wins_count, email_verified_at, avatar_path, is_super_admin, suspended_until, admin_title";
+  "id, name, username, role, status, mobile, email, strikes, created_at, last_seen_at, counted_wins_count, email_verified_at, avatar_path, is_super_admin, suspended_until, admin_title, bio, skills, tools, experience_years, languages";
 
 /** What a designer's agreement shows on the check line. */
 export type AgreementCheck = "approved" | "needs_review" | "no_photo" | "rejected" | "none";
@@ -201,6 +247,12 @@ export type UserCard = {
   suspendedUntil: string | null;
   emailVerified: boolean;
   agreement: AgreementCheck;
+  /** Settings › designer agreement required: when off, designers show their email state instead (owner, 2026-10-22). */
+  agreementOn: boolean;
+  /** Email confirmed, photo, profile completeness; null for staff. */
+  profile: ProfileStatus | null;
+  /** When each kind of reminder was last sent (last 30 days). */
+  reminded: Partial<Record<ReminderKind, string>>;
   /** Client: contests run, spent, winners picked. Designer: designs, wins, earned. */
   stats: { a: number; b: number; c: number };
   /** Only for Users · manage. */
@@ -231,13 +283,14 @@ const SHOWN_CONTEST = ["open", "judging", "winner_selected", "handover", "comple
 const PICKED = ["winner_selected", "handover", "completed"];
 
 /** Every matching user in order (for the page and the CSV), with the counts. */
-export async function adminUsersAll(q: UsersQuery, now = new Date()): Promise<{ list: Light[]; spent: Map<string, number>; noPhoto: Set<string>; counts: UsersPage["counts"] }> {
+export async function adminUsersAll(q: UsersQuery, now = new Date()): Promise<{ list: Light[]; spent: Map<string, number>; noPhoto: Set<string>; agreementOn: boolean; counts: UsersPage["counts"] }> {
   const db = createAdminClient();
-  const [{ data: people }, { data: pays }, { data: noPhotoRows }, { data: ran }] = await Promise.all([
+  const [{ data: people }, { data: pays }, { data: noPhotoRows }, { data: ran }, agreementOn] = await Promise.all([
     db.from("profiles").select(LIGHT).neq("status", "deleted").limit(20000),
     db.from("payments").select("client_id, amount").eq("status", "paid").limit(50000),
     db.from("designer_agreements").select("designer_id").is("id_front_path", null),
     db.from("contests").select("client_id").in("status", SHOWN_CONTEST).limit(50000),
+    getSetting("legal.agreement_required"),
   ]);
   // A suspension whose 48 hours are up counts as active at once, even before the lifecycle job writes it back.
   const all = ((people ?? []) as Light[]).map((u) =>
@@ -251,8 +304,16 @@ export async function adminUsersAll(q: UsersQuery, now = new Date()): Promise<{ 
   const week = now.getTime() - 7 * 86_400_000;
   const isOnline = (u: Light) => Boolean(u.last_seen_at && now.getTime() - new Date(u.last_seen_at).getTime() <= ONLINE_MS);
   const isNew = (u: Light) => new Date(u.created_at).getTime() >= week;
-  const isLook = (u: Light) => u.status !== "active" || u.strikes >= LOOK_STRIKES || (u.role === "designer" && noPhoto.has(u.id));
-  const showTest = { online: isOnline, strikes: (u: Light) => u.strikes > 0, new: isNew, look: isLook };
+  // An agreement without its ID photo only needs a look while the agreement is required (owner, 2026-10-22).
+  const isLook = (u: Light) => u.status !== "active" || u.strikes >= LOOK_STRIKES || (agreementOn && u.role === "designer" && noPhoto.has(u.id));
+  const state = new Map(all.map((u) => [u.id, profileStatus(u)]));
+  const isUnverified = (u: Light) => state.get(u.id)?.emailOk === false;
+  const isNoPhoto = (u: Light) => state.get(u.id)?.hasPhoto === false;
+  const isIncomplete = (u: Light) => {
+    const s = state.get(u.id);
+    return Boolean(s && (s.emailOk === false || !s.hasPhoto || s.missing.length > 0));
+  };
+  const showTest = { online: isOnline, strikes: (u: Light) => u.strikes > 0, new: isNew, look: isLook, unverified: isUnverified, nophoto: isNoPhoto, incomplete: isIncomplete };
 
   const words = q.q.toLowerCase().replace(/^@/, "");
   const digits = toAsciiDigits(q.q).replace(/\D/g, "").replace(/^0/, "");
@@ -295,28 +356,37 @@ export async function adminUsersAll(q: UsersQuery, now = new Date()): Promise<{ 
     lookBanned: all.filter((u) => u.status === "banned").length,
     role: { all: roleBase.length, client: roleBase.filter((u) => u.role === "client").length, designer: roleBase.filter((u) => u.role === "designer").length, admin: roleBase.filter((u) => u.role === "admin").length },
     status: { all: statusBase.length, active: statusBase.filter((u) => u.status === "active").length, suspended: statusBase.filter((u) => u.status === "suspended").length, banned: statusBase.filter((u) => u.status === "banned").length },
-    show: { online: showBase.filter(isOnline).length, strikes: showBase.filter((u) => u.strikes > 0).length, new: showBase.filter(isNew).length, look: showBase.filter(isLook).length },
+    show: {
+      online: showBase.filter(isOnline).length,
+      strikes: showBase.filter((u) => u.strikes > 0).length,
+      new: showBase.filter(isNew).length,
+      look: showBase.filter(isLook).length,
+      unverified: showBase.filter(isUnverified).length,
+      nophoto: showBase.filter(isNoPhoto).length,
+      incomplete: showBase.filter(isIncomplete).length,
+    },
   };
-  return { list, spent, noPhoto, counts };
+  return { list, spent, noPhoto, agreementOn, counts };
 }
 
 /** One page of users, ready for the table and the Quick view. */
 export async function adminUsersPage(q: UsersQuery, opts: { canManage: boolean; now?: Date }): Promise<UsersPage> {
-  const empty = { all: 0, newThisWeek: 0, clients: 0, clientsRan: 0, designers: 0, designersOnline: 0, look: 0, lookSuspended: 0, lookBanned: 0, role: { all: 0, client: 0, designer: 0, admin: 0 }, status: { all: 0, active: 0, suspended: 0, banned: 0 }, show: { online: 0, strikes: 0, new: 0, look: 0 } };
+  const empty = { all: 0, newThisWeek: 0, clients: 0, clientsRan: 0, designers: 0, designersOnline: 0, look: 0, lookSuspended: 0, lookBanned: 0, role: { all: 0, client: 0, designer: 0, admin: 0 }, status: { all: 0, active: 0, suspended: 0, banned: 0 }, show: { online: 0, strikes: 0, new: 0, look: 0, unverified: 0, nophoto: 0, incomplete: 0 } };
   if (!isSupabaseConfigured()) return { rows: [], total: 0, pages: 1, counts: empty };
   const now = opts.now ?? new Date();
-  const { list, spent, noPhoto, counts } = await adminUsersAll(q, now);
+  const { list, spent, noPhoto, agreementOn, counts } = await adminUsersAll(q, now);
   const pages = Math.max(1, Math.ceil(list.length / USERS_PER_PAGE));
   const page = list.slice((q.page - 1) * USERS_PER_PAGE, q.page * USERS_PER_PAGE);
   const clientIds = page.filter((u) => u.role === "client").map((u) => u.id);
   const designerIds = page.filter((u) => u.role === "designer").map((u) => u.id);
   const db = createAdminClient();
-  const [{ data: contests }, { data: entries }, { data: credits }, { data: agreements }] = await Promise.all([
+  const [{ data: contests }, { data: entries }, { data: credits }, { data: agreements }, reminded] = await Promise.all([
     clientIds.length ? db.from("contests").select("client_id, status").in("client_id", clientIds).in("status", SHOWN_CONTEST) : Promise.resolve({ data: [] }),
     designerIds.length ? db.from("entries").select("designer_id, status").in("designer_id", designerIds).not("status", "in", "(removed,withdrawn)") : Promise.resolve({ data: [] }),
     designerIds.length ? db.from("wallet_transactions").select("designer_id, amount, type").in("designer_id", designerIds).in("type", ["prize_credit", "no_result_share"]) : Promise.resolve({ data: [] }),
     // "*" so the check line works before and after migration 0040 (review_status).
     designerIds.length ? db.from("designer_agreements").select("*").in("designer_id", designerIds) : Promise.resolve({ data: [] }),
+    lastReminders([...clientIds, ...designerIds]),
   ]);
   const agreementOf = new Map((agreements ?? []).map((a) => [a.designer_id as string, a as Record<string, unknown>]));
   const rows: UserCard[] = page.map((u) => {
@@ -346,6 +416,9 @@ export async function adminUsersPage(q: UsersQuery, opts: { canManage: boolean; 
       suspendedUntil: u.suspended_until,
       emailVerified: Boolean(u.email_verified_at),
       agreement: noPhoto.has(u.id) ? "no_photo" : agreement,
+      agreementOn,
+      profile: profileStatus(u),
+      reminded: reminded.get(u.id) ?? {},
       stats:
         u.role === "client"
           ? { a: c.length, b: spent.get(u.id) ?? 0, c: c.filter((x) => PICKED.includes(x.status as string)).length }

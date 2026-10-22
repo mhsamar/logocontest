@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { QuickDelete } from "@/components/admin/quick-delete";
+import { ProfileFacts, RemindButtons } from "@/components/admin/remind-buttons";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -53,11 +54,28 @@ function Strikes({ n }: { n: number }) {
 }
 
 function CheckLine({ u }: { u: UserCard }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   if (u.role === "admin") return null;
-  const good = u.role === "client" ? u.emailVerified : u.agreement === "approved";
-  const label = u.role === "client" ? t(u.emailVerified ? "admin.users.x.check.verified" : "admin.users.x.check.notVerified") : t(`admin.users.x.check.${u.agreement}`);
-  return <span className={cx("inline-flex items-center gap-1 text-[12.5px] font-bold", good ? "text-[#14633C]" : "text-[#9A3412]")}>{good ? "✓" : "!"} {label}</span>;
+  // A designer's agreement only matters while Settings asks for it (owner, 2026-10-22); otherwise their email, like clients.
+  const agreement = u.role === "designer" && u.agreementOn;
+  const good = agreement ? u.agreement === "approved" : u.emailVerified;
+  const label = agreement ? t(`admin.users.x.check.${u.agreement}`) : t(u.emailVerified ? "admin.users.x.check.verified" : "admin.users.x.check.notVerified");
+  // Designers: how complete the profile is; clients: a missing photo.
+  const p = u.profile;
+  const extra =
+    p && p.percent !== null
+      ? { ok: p.percent >= 100, text: t("admin.users.x.check.profile", { n: formatNumber(p.percent, locale) }) }
+      : p && !p.hasPhoto
+        ? { ok: false, text: t("admin.users.x.check.noPhoto") }
+        : null;
+  return (
+    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] font-bold">
+      <span className={cx("inline-flex items-center gap-1", good ? "text-[#14633C]" : "text-[#9A3412]")}>
+        {good ? "✓" : "!"} {label}
+      </span>
+      {extra && <span className={extra.ok ? "text-[#14633C]" : "text-[#9A3412]"}>{extra.text}</span>}
+    </span>
+  );
 }
 
 /**
@@ -145,7 +163,7 @@ export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canMan
       </section>
 
       {/* Quick view: beside the table on wide screens */}
-      <aside className="sticky top-[84px] hidden min-w-0 flex-[2_1_330px] flex-col gap-3.5 rounded-2xl border border-[#E9EAEE] bg-white p-5 min-[1020px]:flex">
+      <aside className="sticky top-[84px] hidden max-h-[calc(100vh-100px)] min-w-0 flex-[2_1_330px] flex-col gap-3.5 overflow-y-auto rounded-2xl border border-[#E9EAEE] bg-white p-5 min-[1020px]:flex">
         <div className="flex items-center justify-between gap-2.5">
           <h2 className="lc-d m-0 text-[21px] font-semibold tracking-[-0.025em] text-ink">{t("admin.users.x.quick.title")}</h2>
           <span className="text-[13px] font-semibold text-muted">{t("admin.users.x.quick.hint")}</span>
@@ -276,6 +294,13 @@ function QuickView({ u, canManage, meId }: { u: UserCard; canManage: boolean; me
           </Row>
         )}
       </div>
+      {u.profile && (
+        <div className="flex flex-col gap-2.5 rounded-xl border border-[#EBECEF] p-3">
+          <strong className="text-[15px] text-ink">{t("admin.users.x.remind.title")}</strong>
+          <ProfileFacts profile={u.profile} />
+          {canAct && u.status !== "banned" && <RemindButtons userId={u.id} profile={u.profile} reminded={u.reminded} />}
+        </div>
+      )}
       {!canManage ? (
         <p className="m-0 rounded-xl bg-[#F4F5F7] px-3 py-3 text-sm text-muted">{t("admin.users.x.quick.noContact")}</p>
       ) : u.role === "admin" ? (

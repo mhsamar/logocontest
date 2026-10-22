@@ -5,8 +5,9 @@
 
 export const USER_ROLES = ["all", "client", "designer", "admin"] as const;
 export const USER_STATUSES = ["all", "active", "suspended", "banned"] as const;
-/** "look" is the Need a look count: suspended, banned, 2+ strikes, or an agreement without an ID photo. */
-export const USER_SHOWS = ["online", "strikes", "new", "look"] as const;
+/** "look" is the Need a look count: suspended, banned, 2+ strikes, or (while the agreement is required) an agreement
+ * without an ID photo. "unverified", "nophoto", "incomplete": profile reminders (owner, 2026-10-22). */
+export const USER_SHOWS = ["online", "strikes", "new", "look", "unverified", "nophoto", "incomplete"] as const;
 export const USER_SORTS = ["newest", "active", "spent", "wins"] as const;
 export const USERS_PER_PAGE = 20;
 /** Online now: active in the last 5 minutes (the same rule as the live designers tag). */

@@ -129,5 +129,9 @@ export const NOTIFICATION_TYPES = [
   "guarantee_designers",
   "guarantee_claimed_admin",
   "guarantee_overdue_admin",
+  // Profile reminders from the team (owner, 2026-10-22).
+  "remind_verify_email",
+  "remind_photo",
+  "remind_profile",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

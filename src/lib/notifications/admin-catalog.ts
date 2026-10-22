@@ -103,6 +103,8 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("welcome", "everyone", [], ["push", "email"], { email: "welcome", alsoIn: "user" }),
   row("email_code", "everyone", [], ["email"], { email: "otp", locked: true }),
   row("password_reset", "everyone", [], ["email"], { email: "notification", locked: true }),
+  // Admin › Users reminders (owner, 2026-10-22): verify email, add a photo, complete the profile.
+  row("profile_reminders", "everyone", ["remind_verify_email", "remind_photo", "remind_profile"], ["bell", "push", "email"], { email: "notification", alsoIn: "user" }),
   row("account_status", "everyone", ["account_suspended", "account_banned", "account_reactivated"], ["bell", "email"], { email: "notification", locked: true }),
   row("handover_message", "everyone", ["handover_message"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("comments", "everyone", ["entry_comment_other", "contest_comment"], ["bell"]),

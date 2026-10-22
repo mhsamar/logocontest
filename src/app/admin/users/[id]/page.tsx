@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
+import { ProfileFacts, RemindButtons } from "@/components/admin/remind-buttons";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, Pill, type PillTone } from "@/components/admin/ui";
@@ -188,7 +189,8 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                     ? `${t(`designerSignup.payout.${d.payoutType}` as MessageKey)}${d.payoutType === "bkash" ? ` · ${d.bkashKind ? t(`wallet.form.${d.bkashKind}`) : t("admin.users.bkashKindUnknown")}` : ""}`
                     : "—",
                 )}
-              {d && fact(t("footer.designerRules"), d.agreedAt ? <span className="text-adm-good">{t("admin.users.agreed")}</span> : <span className="text-adm-warn">{t("admin.users.notAgreed")}</span>)}
+              {/* Only while Settings asks designers to sign the agreement (owner, 2026-10-22). */}
+              {d && u.agreementOn && fact(t("footer.designerRules"), d.agreedAt ? <span className="text-adm-good">{t("admin.users.agreed")}</span> : <span className="text-adm-warn">{t("admin.users.notAgreed")}</span>)}
               {fact(t("admin.users.strikes"), num(u.strikes))}
               {u.flagWarnings > 0 && fact(t("admin.users.warningsLabel"), num(u.flagWarnings))}
             </div>
@@ -244,6 +246,18 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               </div>
             )}
           </AdmCard>
+
+          {/* Email, photo, profile and reminders (owner, 2026-10-22) */}
+          {person && u.profile && (
+            <AdmCard className="flex flex-col gap-3.5 p-[22px]">
+              <div className="flex flex-col gap-1">
+                <h2 className="m-0 text-[17px] font-semibold">{t("admin.users.x.remind.title")}</h2>
+                {canManage && u.status !== "banned" && <p className="m-0 text-[13.5px] text-muted">{t("admin.users.x.remind.lead")}</p>}
+              </div>
+              <ProfileFacts profile={u.profile} pushOn={u.pushOn} />
+              {canManage && u.status !== "banned" && <RemindButtons userId={u.id} profile={u.profile} reminded={u.reminded} />}
+            </AdmCard>
+          )}
 
           {signupAnswers.length > 0 && (
             <AdmCard className="flex flex-col gap-2.5 p-[22px] text-[15px]">
