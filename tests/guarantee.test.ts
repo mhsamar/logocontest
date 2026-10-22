@@ -186,7 +186,7 @@ describe("the database counts the same way (migration 0069)", () => {
 describe("the landing pages follow the guarantee switch", async () => {
   const { fillFacts } = await import("@/lib/seo/fill-facts");
   const pages = [(await import("@/lib/landing/content/about")).content, (await import("@/lib/landing/content/logo-design")).content, (await import("@/lib/landing/content/logo-design-price")).content];
-  const facts = { minPrize: 3000, minTotal: 3750, fee: 25, largeFee: 15, largeFrom: 30000, customStep: 500, defaultDays: 7, minDays: 3, maxDays: 30, judgingDays: 3, packages: [], guaranteeDesigners: 3 };
+  const facts = { minPrize: 3000, minTotal: 3750, fee: 25, largeFee: 20, largeFrom: 50000, customStep: 500, defaultDays: 7, minDays: 3, maxDays: 30, judgingDays: 3, packages: [], guaranteeDesigners: 3, addonsFreeFrom: 25000 };
   /** Every text of a page in one language: sections (gated ones only when on) and the rest. */
   const texts = (copy: Record<string, unknown>, on: boolean): string[] => {
     const sections = (copy.sections as { onlyWithGuarantee?: boolean }[]).filter((s) => on || !s.onlyWithGuarantee);

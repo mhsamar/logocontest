@@ -9,7 +9,9 @@
  *   {minDays} / {maxDays}  shortest / longest contest   {judgingDays}  days the client has to pick a winner
  *   (The AI logo checker is free on every logo contest: no placeholder, just say so.)
  *   {guaranteeDesigners}  the guarantee's number of different designers (3)
+ *   {addonsFreeFrom}  the prize from which every add-on is free (৳25,000)
  *   {?g:text}   text shown only while the money-back guarantee is offered; {!g:text} only while it isn't
+ *   {?a:text}   text shown only while add-ons are free from a prize; {!a:text} only while they aren't
  *               (placeholders inside work; no other braces)
  *   {year}       the year of the page's updatedAt
  * Amounts come out as "৳3,750" in English and "৳৩,৭৫০" in Bangla.

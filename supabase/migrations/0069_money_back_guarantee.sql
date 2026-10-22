@@ -8,9 +8,9 @@
 
 -- ---- Block 1: settings and the per-contest promise -------------------------------------------------------------
 insert into public.settings (key, value, type, "group", description) values
-  ('guarantee.enabled', 'false'::jsonb, 'bool', 'payments', 'Money-back guarantee on. Contests paid while it is on keep it, even if it is turned off later.'),
-  ('guarantee.min_designers', '3'::jsonb, 'int', 'payments', 'Different designers a contest needs. With fewer, the client can claim back everything they paid.'),
-  ('guarantee.late_days', '30'::jsonb, 'int', 'payments', 'Days after a no-result end (when nobody got a share) during which the client can still claim.')
+  ('guarantee.enabled', 'false'::jsonb, 'bool', 'guarantee', 'Money-back guarantee on. Contests paid while it is on keep it, even if it is turned off later.'),
+  ('guarantee.min_designers', '3'::jsonb, 'int', 'guarantee', 'Different designers a contest needs. With fewer, the client can claim back everything they paid.'),
+  ('guarantee.late_days', '30'::jsonb, 'int', 'guarantee', 'Days after a no-result end (when nobody got a share) during which the client can still claim.')
 on conflict (key) do nothing;
 alter table public.contests add column if not exists guarantee_designers smallint
   check (guarantee_designers is null or guarantee_designers between 1 and 50);

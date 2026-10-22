@@ -576,6 +576,7 @@ export function Wizard(props: WizardProps) {
                   terms={terms}
                   onTerms={setTerms}
                   guarantee={props.guarantee ?? null}
+                  addonsFreeFrom={props.pricing.addonsFreeFrom ?? 0}
                   uploads={uploads}
                   onRetryUploads={() => state.contestId && startBusy(() => uploadPending(state.contestId!, state))}
                   goTo={goToFromReview}

@@ -5,7 +5,7 @@ import { GlideTrack } from "@/components/ui/glide-track";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "./upgrade-meta";
 import { Checkbox, TextField } from "@/components/ui/field";
 import { PACKAGES, UPGRADES, type Order } from "@/lib/contests/brief";
-import { activeUpgrades, includedByNda, includedByPrize, prizeWithFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
+import { activeUpgrades, addonsFreeFor, includedByNda, includedByPrize, prizeWithFee, validateOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
@@ -222,6 +222,9 @@ export function PackageStep({
   const best = config.bestResultsFrom ?? 0;
   const chosenPrize = order.package === "custom" ? (order.customPrize ?? 0) : config.packagePrizes[order.package];
   const reached = best > 0 && chosenPrize >= best;
+  // Owner, 2026-10-22: every add-on is free from a prize amount (Admin › Pricing); 0 = never.
+  const freeFrom = config.addonsFreeFrom ?? 0;
+  const allFree = addonsFreeFor(chosenPrize, config);
 
   return (
     <div className="space-y-9">
@@ -373,6 +376,12 @@ export function PackageStep({
       {/* Add-ons */}
       <fieldset>
         <legend className="mb-3 text-base font-semibold text-ink">{t("wizard.c08.upgradesTitle")}</legend>
+        {freeFrom > 0 && (
+          <div className={cx("mb-3 rounded-[18px] px-4 py-3 ring-1", allFree ? "bg-success/5 ring-success/25" : "bg-[#FFF8E6] ring-[#F0D27A]")} role="note" data-addons-free={allFree ? "on" : "off"}>
+            <p className="m-0 text-[15.5px] font-semibold leading-snug text-ink">{allFree ? t("wizard.c08.freeAddons.reachedTitle") : t("wizard.c08.freeAddons.title", { amount: money(freeFrom) })}</p>
+            <p className="m-0 mt-1 text-sm leading-relaxed text-ink/80">{allFree ? t("wizard.c08.freeAddons.reachedBody", { amount: money(freeFrom) }) : t("wizard.c08.freeAddons.body", { amount: money(freeFrom) })}</p>
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           {/* The AI logo checker is free on every logo contest (owner, 2026-10-14): not an add-on any more. */}
           {UPGRADES.filter((u) => u !== "logo_scan").map((u) => {
@@ -406,8 +415,8 @@ export function PackageStep({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-semibold text-ink">{t(`wizard.upgrades.${u}.name`)}</span>
-                    <span className={cx("text-sm font-bold tabular-nums", included || free ? "text-success" : AMOUNT)}>
-                      {free ? t("wizard.c08.freeWithPrize") : included ? t("wizard.c08.included") : `+${money(config.upgradePrices[u])}`}
+                    <span className={cx("text-sm font-bold tabular-nums", included || free || allFree ? "text-success" : AMOUNT)}>
+                      {free || (allFree && !included) ? t("wizard.c08.freeWithPrize") : included ? t("wizard.c08.included") : `+${money(config.upgradePrices[u])}`}
                     </span>
                   </span>
                   <span className="mt-0.5 block text-sm leading-snug text-muted">{t(`wizard.upgrades.${u}.desc`)}</span>

@@ -1,12 +1,15 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { MethodPicker } from "@/components/payments/pay-bits";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { buyAddon } from "@/lib/contests/addon-actions";
 import type { AddonKey } from "@/lib/contests/addons";
+import { addonsFreeFor } from "@/lib/contests/pricing";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { PublicMethod } from "@/lib/payments/manual-rules";
@@ -68,7 +71,8 @@ export function AddonsPanel({
   methods: PublicMethod[];
   open: boolean;
   active: Record<AddonKey, boolean>;
-  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number };
+  /** `allFreeFrom`: every add-on is free with a prize of at least this (owner, 2026-10-22); extra days stay paid. */
+  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number; allFreeFrom?: number };
   /** The contest prize: the AI copyright checker is free from `prices.checkerFreeFrom` (owner, 2026-10-10). */
   prize?: number;
   extensionDays: number[];
@@ -76,6 +80,8 @@ export function AddonsPanel({
   locale: "en" | "bn";
 }) {
   const { t, price: taka } = useI18n();
+  const router = useRouter();
+  const toast = useToast();
   const [buying, setBuying] = useState<Item | null>(null);
   const [days, setDays] = useState(extensionDays[0] ?? 3);
   const [method, setMethod] = useState<string | null>(methods[0]?.key ?? null);
@@ -93,18 +99,32 @@ export function AddonsPanel({
   // The AI logo checker is free on every logo contest (owner, 2026-10-14): no longer sold as an add-on.
   const items: Item[] = ["promote", "extend", "private", "blind"];
   const checkerFree = prize !== undefined && prices.checkerFreeFrom !== undefined && prize >= prices.checkerFreeFrom;
+  // Every add-on is free with a big enough prize (owner, 2026-10-22); extra days stay paid.
+  const allFree = prize !== undefined && addonsFreeFor(prize, { addonsFreeFrom: prices.allFreeFrom });
+  // A ৳0 price (set by the team) is free too; extra days never are.
+  const isFree = (item: Item) => item !== "extend" && (allFree || prices[item] === 0);
 
   const pay = () =>
     start(async () => {
-      if (!buying || !method) return;
+      if (!buying || (!method && !isFree(buying))) return;
       setError(null);
-      const res = await buyAddon(buying === "extend" ? { contestId, extensionDays: days, method } : { contestId, addon: buying, method });
+      const res = await buyAddon(buying === "extend" ? { contestId, extensionDays: days, method: method ?? "" } : { contestId, addon: buying, method: method ?? "" });
       if (!res.ok) return setError(t(res.error));
+      if (res.free) {
+        setBuying(null);
+        toast(t("manage.addons.addedFree"));
+        return router.refresh();
+      }
       window.location.href = res.redirectUrl;
     });
 
   return (
     <>
+      {allFree && (
+        <p className="mb-3 rounded-[16px] bg-success/10 px-4 py-3 text-[15px] font-semibold leading-snug text-success" role="note" data-addons-free>
+          {t("manage.addons.allFree", { amount: taka(prices.allFreeFrom ?? 0) })}
+        </p>
+      )}
       <ul className="@container grid gap-2.5">
         {items.map((item) => {
           const isActive = item !== "extend" && active[item];
@@ -121,7 +141,9 @@ export function AddonsPanel({
             </span>
           ) : (
             <>
-              <span className="text-sm font-bold text-ink transition-colors duration-300 group-hover:text-primary">{item === "extend" ? `${taka(prices.extensionPerDay)}/${locale === "bn" ? "দিন" : "day"}` : taka(prices[item])}</span>
+              <span className={cx("text-sm font-bold transition-colors duration-300", isFree(item) ? "text-success" : "text-ink group-hover:text-primary")}>
+                {isFree(item) ? t("wizard.c08.freeWithPrize") : item === "extend" ? `${taka(prices.extensionPerDay)}/${locale === "bn" ? "দিন" : "day"}` : taka(prices[item])}
+              </span>
               <button
                 type="button"
                 disabled={!open}
@@ -179,8 +201,8 @@ export function AddonsPanel({
         footer={
           <div className="w-full space-y-2">
             {error && <Alert tone="danger">{error}</Alert>}
-            <Button block size="lg" onClick={pay} loading={busy} disabled={!method}>
-              {buying ? t("manage.addons.pay", { amount: taka(price(buying)) }) : ""}
+            <Button block size="lg" onClick={pay} loading={busy} disabled={!method && !(buying && isFree(buying))}>
+              {buying ? (isFree(buying) ? t("manage.addons.addFree") : t("manage.addons.pay", { amount: taka(price(buying)) })) : ""}
             </Button>
           </div>
         }
@@ -206,9 +228,11 @@ export function AddonsPanel({
             })}
           </div>
         )}
-        <div className="mt-5">
-          <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("manage.addons.payWith")} />
-        </div>
+        {buying && !isFree(buying) && (
+          <div className="mt-5">
+            <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("manage.addons.payWith")} />
+          </div>
+        )}
       </Modal>
     </>
   );

@@ -40,7 +40,7 @@ import {
   type Brief,
   type Order,
 } from "./brief";
-import { feePercentFor, serviceFee as feeFor } from "./pricing";
+import { addonsFreeFor, feePercentFor, serviceFee as feeFor } from "./pricing";
 import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
 import { emailWelcome } from "@/lib/email/events";
@@ -353,11 +353,14 @@ export async function previewPromo(input: { contestId: string; code: string }): 
   if (!look.ok) return err(look.error);
   // The normal fee from today's settings (the saved amounts may already have an earlier code in them).
   const a = contest.amounts;
-  const normal = feePercentFor(a.prize, await getPricingConfig());
+  const cfg = await getPricingConfig();
+  const normal = feePercentFor(a.prize, cfg);
   const full = feeFor(a.prize, normal);
   const fee = Math.min(full, feeFor(a.prize, look.value));
   if (fee >= full) return err("pay.promo.noBetter", { normal });
-  return { ok: true, code: look.code, fee: look.value, normal, serviceFee: fee, total: a.prize + fee + a.upgrades, saves: full - fee };
+  // Add-ons are free from a prize (owner, 2026-10-22): a draft saved before that still has its old add-on amount.
+  const upgrades = addonsFreeFor(a.prize, cfg) ? 0 : a.upgrades;
+  return { ok: true, code: look.code, fee: look.value, normal, serviceFee: fee, total: a.prize + fee + upgrades, saves: full - fee };
 }
 
 // ---------------------------------------------------------------------------

@@ -34,6 +34,7 @@ export function ReviewStep({
   onRetryUploads,
   goTo,
   guarantee = null,
+  addonsFreeFrom = 0,
 }: {
   brief: Brief;
   order: Order;
@@ -52,6 +53,8 @@ export function ReviewStep({
   goTo: (step: number) => void;
   /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
   guarantee?: number | null;
+  /** Every add-on is free from this prize (owner, 2026-10-22; Admin › Pricing); 0 = never. */
+  addonsFreeFrom?: number;
 }) {
   const { t, locale, currency, price: taka } = useI18n();
   const failed = uploads.some((u) => u.status === "error");
@@ -148,6 +151,13 @@ export function ReviewStep({
               <dd className="tabular-nums text-ink">{taka(amount as number)}</dd>
             </div>
           ))}
+          {/* Free with this prize (owner, 2026-10-22). */}
+          {price.freeUpgrades.map((k) => (
+            <div key={k} className="flex justify-between py-1.5">
+              <dt className="text-muted">{t(`wizard.upgrades.${k}.name`)}</dt>
+              <dd className="font-semibold text-success">{t("wizard.summary.free")}</dd>
+            </div>
+          ))}
           <div className="mt-1 flex justify-between border-t border-line pt-3 font-semibold text-ink">
             <dt>{t("wizard.summary.total")}</dt>
             <dd className="text-lg tabular-nums">
@@ -156,6 +166,12 @@ export function ReviewStep({
             </dd>
           </div>
         </dl>
+        {/* The payment section's notice (owner, 2026-10-22): every add-on is free from a prize amount. */}
+        {addonsFreeFrom > 0 && (
+          <p className={cx("m-0 mt-2 rounded-[12px] px-3 py-2 text-[14px] font-semibold", price.addonsFree ? "bg-success/10 text-success" : "bg-[#FFF8E6] text-[#7A5300]")} role="note" data-addons-free={price.addonsFree ? "on" : "off"}>
+            {t(price.addonsFree ? "wizard.summary.addonsFree" : "wizard.summary.addonsFreeTip", { amount: taka(addonsFreeFrom) })}
+          </p>
+        )}
         {/* Paying in dollars (owner, 2026-10-14): the prize and fees are set in taka; Stripe charges the dollars. */}
         {currency.code === "USD" && <p className="m-0 mt-2 text-[13.5px] text-muted">{t("pay.stripe.usdNote", { usd: taka(promo ? promo.total : price.total), bdt: formatTaka(promo ? promo.total : price.total, locale) })}</p>}
         <div className="mt-3 flex flex-col">

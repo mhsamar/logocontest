@@ -15,7 +15,7 @@ export const content: LandingContent = {
         kind: "prices",
         heading: "Contest prices on logocontest.bd, fee included",
         columns: { package: "Package", prize: "Prize", fee: "Service fee", total: "You pay" },
-        note: "Want a different amount? Set your own prize from {minPrize}. Every total includes the {fee}% service fee ({largeFee}% for prizes above {largeFrom}). Add-ons are optional and cost extra. You pay when you start the contest, and payments are not refunded{?g:, except under our {guaranteeDesigners}-designer money-back guarantee}.",
+        note: "Want a different amount? Set your own prize from {minPrize}. Every total includes the {fee}% service fee ({largeFee}% for prizes above {largeFrom}). Add-ons are optional and cost extra{?a:, except that every add-on is free with a prize of {addonsFreeFrom} or more (extra days are still paid)}. You pay when you start the contest, and payments are not refunded{?g:, except under our {guaranteeDesigners}-designer money-back guarantee}.",
       },
       {
         kind: "text",
@@ -96,7 +96,7 @@ export const content: LandingContent = {
           },
           {
             q: "Are there any extra costs?",
-            a: "Only if you choose them. Optional add-ons at an extra price, such as a private or blind contest, an NDA, a highlighted or urgent listing, or more days for a running contest, are added only if you pick them. The AI Logo Checker is free on every logo contest.",
+            a: "Only if you choose them. Optional add-ons at an extra price, such as a private or blind contest, an NDA, a highlighted or urgent listing, or more days for a running contest, are added only if you pick them.{?a: With a prize of {addonsFreeFrom} or more, every add-on is free; only extra days are still paid.} The AI Logo Checker is free on every logo contest.",
           },
           {
             q: "Can I pay by bKash?",
@@ -137,7 +137,7 @@ export const content: LandingContent = {
         kind: "prices",
         heading: "logocontest.bd-তে কনটেস্টের দাম, ফিসহ",
         columns: { package: "প্যাকেজ", prize: "পুরস্কার", fee: "সার্ভিস ফি", total: "আপনি দেবেন" },
-        note: "অন্য অঙ্কের পুরস্কার দিতে চান? {minPrize} থেকে নিজের মতো পুরস্কার ঠিক করে নিন। টেবিলের প্রতিটি মোট দামে {fee}% সার্ভিস ফি ধরা আছে (পুরস্কার {largeFrom}-এর বেশি হলে {largeFee}%)। আলাদা দামের অ্যাড-অন চাইলে নিতে পারেন। কনটেস্ট শুরুর সময়েই পেমেন্ট করতে হয়, আর পেমেন্ট ফেরত দেওয়া হয় না{?g:, তবে {guaranteeDesigners} জনের কম আলাদা ডিজাইনার অংশ নিলে মানি-ব্যাক গ্যারান্টি আছে}।",
+        note: "অন্য অঙ্কের পুরস্কার দিতে চান? {minPrize} থেকে নিজের মতো পুরস্কার ঠিক করে নিন। টেবিলের প্রতিটি মোট দামে {fee}% সার্ভিস ফি ধরা আছে (পুরস্কার {largeFrom}-এর বেশি হলে {largeFee}%)। আলাদা দামের অ্যাড-অন চাইলে নিতে পারেন।{?a: {addonsFreeFrom} বা তার বেশি পুরস্কারে প্রতিটি অ্যাড-অন ফ্রি; বাড়তি দিনের টাকা লাগে।} কনটেস্ট শুরুর সময়েই পেমেন্ট করতে হয়, আর পেমেন্ট ফেরত দেওয়া হয় না{?g:, তবে {guaranteeDesigners} জনের কম আলাদা ডিজাইনার অংশ নিলে মানি-ব্যাক গ্যারান্টি আছে}।",
       },
       {
         kind: "text",
@@ -218,7 +218,7 @@ export const content: LandingContent = {
           },
           {
             q: "এর বাইরে আর কোনো খরচ আছে?",
-            a: "শুধু আপনি নিলে। প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA, হাইলাইট, আর্জেন্ট, কিংবা চলতি কনটেস্টের সময় বাড়ানো: এ রকম আলাদা দামের অ্যাড-অন শুধু আপনি নিলে যোগ হয়। AI লোগো চেকার প্রতিটি লোগো কনটেস্টে ফ্রি।",
+            a: "শুধু আপনি নিলে। প্রাইভেট বা ব্লাইন্ড কনটেস্ট, NDA, হাইলাইট, আর্জেন্ট, কিংবা চলতি কনটেস্টের সময় বাড়ানো: এ রকম আলাদা দামের অ্যাড-অন শুধু আপনি নিলে যোগ হয়।{?a: {addonsFreeFrom} বা তার বেশি পুরস্কারে প্রতিটি অ্যাড-অন ফ্রি; শুধু বাড়তি দিনের টাকা লাগে।} AI লোগো চেকার প্রতিটি লোগো কনটেস্টে ফ্রি।",
           },
           {
             q: "বিকাশে পেমেন্ট করা যায়?",

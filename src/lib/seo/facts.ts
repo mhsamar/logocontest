@@ -33,6 +33,7 @@ export const siteFacts = cache(async (): Promise<SiteFacts> => {
       const prize = pricing.packagePrizes[key];
       return { key, prize, feePercent: feePercentFor(prize, fee), total: prizeWithFee(prize, fee) };
     }),
+    addonsFreeFrom: pricing.addonsFreeFrom ?? 0,
     // Money-back guarantee (owner, 2026-10-21): its sections and wording show only while Settings offers it.
     guaranteeOn: s["guarantee.enabled"],
     guaranteeDesigners: s["guarantee.min_designers"],

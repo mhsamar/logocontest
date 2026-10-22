@@ -7,19 +7,22 @@ import { listAudit } from "@/lib/admin/misc";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { requirePermission } from "@/lib/admin/core";
+import { PRICING_KEYS } from "@/lib/admin/pricing-keys";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
   return { title: t("admin.audit.title"), robots: { index: false } };
 }
 
-const LINKS: Record<string, (id: string) => string> = {
+const LINKS: Record<string, (id: string, changes: Record<string, unknown>) => string> = {
   user: (id) => `/admin/users/${id}`,
   designer_agreement: () => "/admin/agreements",
   copy_claim: () => "/admin/claims",
   guarantee_claim: () => "/admin/refunds?tab=refunded",
   report: () => "/admin/reports?view=closed",
-  settings: () => "/admin/settings",
+  // Prices and fees are saved from Admin › Pricing & fees (owner, 2026-10-22).
+  // Prices and fees are saved on Admin › Pricing & fees (owner, 2026-10-22); the rest on Settings.
+  settings: (_, c) => (Object.keys((c.changes as Record<string, unknown> | undefined) ?? {}).some((k) => PRICING_KEYS.has(k)) ? "/admin/pricing" : "/admin/settings"),
   contest_service: () => "/admin/services",
 };
 
@@ -81,7 +84,7 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
             </thead>
             <tbody className="divide-y divide-line align-top">
               {list.rows.map((r) => {
-                const link = r.subjectId && LINKS[r.subjectType]?.(r.subjectId);
+                const link = r.subjectId && LINKS[r.subjectType]?.(r.subjectId, (r.changes ?? {}) as Record<string, unknown>);
                 return (
                   <tr key={r.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-muted">{when(r.createdAt)}</td>

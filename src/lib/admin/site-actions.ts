@@ -7,6 +7,8 @@ import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
 import { forgetBackupLinks } from "@/lib/site-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
+import { toAsciiDigits } from "@/lib/phone";
+import { PRICING_KEYS, tiersProblem, type DesignerTier } from "./pricing-keys";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
@@ -15,7 +17,10 @@ const CONTENT_GROUPS = new Set(["contact", "notice"]);
 
 /** A-11 Settings: saves one group. Each value is checked against its schema; changes go to the audit log. */
 export async function saveSettings(group: string, values: Record<string, string>, reasonText: string): Promise<Result & { errors?: Record<string, string> }> {
-  const admin = await adminUser(CONTENT_GROUPS.has(group) ? "content.manage" : "settings.manage");
+  // Admin › Pricing & fees (owner, 2026-10-22): prices and fees need their own tick box ("Pricing & fees · Manage").
+  const pricing = Object.keys(values).filter((k) => PRICING_KEYS.has(k));
+  if (pricing.length && pricing.length !== Object.keys(values).length) return fail("auth.errors.generic");
+  const admin = await adminUser(pricing.length ? "pricing.manage" : CONTENT_GROUPS.has(group) ? "content.manage" : "settings.manage");
   if (!admin) return fail("auth.errors.generic");
   // Written only by the background jobs (owner, 2026-10-21).
   if (group === "system") return fail("auth.errors.generic");
@@ -32,7 +37,8 @@ export async function saveSettings(group: string, values: Record<string, string>
   const changed: { key: SettingKey; value: unknown }[] = [];
   for (const key of keys) {
     const def = SETTINGS[key] as { type: "int" | "bool" | "string" | "json"; schema: import("zod").ZodType; default: unknown };
-    const raw = values[key].trim();
+    // Numbers typed with Bangla digits (০-৯) count too.
+    const raw = def.type === "int" || def.type === "json" ? toAsciiDigits(values[key].trim()) : values[key].trim();
     let value: unknown = raw;
     if (def.type === "int") value = raw === "" ? NaN : Number(raw);
     else if (def.type === "json") {
@@ -47,6 +53,11 @@ export async function saveSettings(group: string, values: Record<string, string>
     if (!parsed.success) {
       errors[key] = parsed.error.issues[0]?.message ?? "invalid";
       continue;
+    }
+    // Designer fee tiers start at 0 wins and go up, each once (owner, 2026-10-22).
+    if (key === "fees.designer_tiers") {
+      const problem = tiersProblem(parsed.data as DesignerTier[]);
+      if (problem) return fail(`admin.pricing.errors.tiers.${problem}`);
     }
     if (JSON.stringify(parsed.data) !== JSON.stringify(before.get(key) ?? def.default)) changed.push({ key, value: parsed.data });
   }
