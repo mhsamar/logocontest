@@ -117,7 +117,8 @@ export const NOTICE_ROWS: NoticeRow[] = [
   // ---- Admins ----
   row("admin_support", "admin", ["support_message_admin", "support_assigned_admin"], ["bell", "push"]),
   row("admin_designs", "admin", ["entry_held_admin"], ["bell", "push"]),
-  row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell"]),
+  // A paid contest waits for this approval, so it also goes to the phone and by email (owner, 2026-10-22).
+  row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell", "push", "email"], { email: "notification" }),
   row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),

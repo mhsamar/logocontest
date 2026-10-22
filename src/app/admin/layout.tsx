@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-nav";
 import { navFor, type AdminBadge } from "@/lib/admin/nav";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -28,6 +29,9 @@ async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number
   ]);
   return { reports: r?.count ?? 0, claims: c?.count ?? 0, withdrawals: w?.count ?? 0, support: s?.count ?? 0, approvals: a?.count ?? 0, designs: d?.count ?? 0, refunds: g?.count ?? 0 };
 }
+
+// The admin panel can be added to a phone's Home Screen (owner, 2026-10-22): iPhones show its notifications only then.
+export const metadata: Metadata = { manifest: "/admin-app.webmanifest" };
 
 // Admin area (BLUEPRINT §13, §13.2; design/admin, owner 2026-10-10): sidebar, top bar with search, activity and
 // account menu; items follow the admin's permissions.

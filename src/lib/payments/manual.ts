@@ -1,11 +1,12 @@
 import "server-only";
+import { after } from "next/server";
 import { contestHref } from "@/lib/client/rules";
 import { audit, one } from "@/lib/admin/core";
-import { adminIdsWith } from "@/lib/admin/recipients";
 import { settleAddonPayment } from "@/lib/contests/addon-payments";
 import { announceForPayment } from "@/lib/contests/announce";
 import { contestRepository } from "@/lib/contests/services";
-import { notify } from "@/lib/notifications";
+import { formatTaka } from "@/lib/money";
+import { alertAdmins } from "@/lib/notifications/admin-alerts";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { settleProPayment } from "@/lib/pro/payments";
 import { markContestPromoUsed } from "@/lib/promos/promos";
@@ -164,7 +165,23 @@ export async function submitProof(
   if (qa) await db().from("qa_txn_codes").update({ used_by: row.id, used_at: new Date().toISOString() }).eq("code", txn).is("used_at", null);
 
   await notifyWithPush([payer.id], "payment_received", { amount: target.amount }, `/pay/${target.kind}/${target.paymentId}`);
-  await notify(await adminIdsWith("payments.view"), "payment_submitted_admin", { name: payer.name, amount: target.amount }, "/admin/payments/approvals", payer.id);
+  // The team hears at once, on the phone and by email too (owner, 2026-10-22): a paid contest waits for this approval.
+  const brand = target.contest?.brand ?? "";
+  after(() =>
+    alertAdmins({
+      permission: "payments.manage",
+      bellPermission: "payments.view",
+      type: "payment_submitted_admin",
+      data: { name: payer.name, amount: target.amount },
+      path: "/admin/payments/approvals",
+      actorId: payer.id,
+      notice: "admin_payments",
+      ref: row.id as string,
+      subject: "admin.alerts.payment.subject",
+      body: qa ? "admin.alerts.payment.bodyQa" : "admin.alerts.payment.body",
+      params: (t, locale) => ({ name: payer.name, amount: formatTaka(target.amount, locale), txn, what: t(`admin.alerts.payment.what.${target.kind}`, { brand }) }),
+    }),
+  );
   return { ok: true, proof: toProof(row as Record<string, unknown>) };
 }
 

@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/money";
 import type { AdminMe } from "./admin-nav";
 import { AdminIcon, type AdminIconName } from "./icons";
+import { PushSwitch } from "./push-switch";
 
 /** The avatar menu, top right (design/admin/shell-account-menu-open.html): who you are, shortcuts, sign out. */
 export function AccountMenu({ me, initial, unread, links }: { me: AdminMe; initial: string; unread: number; links: { href: string; label: string; icon: AdminIconName }[] }) {
@@ -70,6 +71,7 @@ export function AccountMenu({ me, initial, unread, links }: { me: AdminMe; initi
               ))}
             </div>
           )}
+          <PushSwitch />
           <form action={adminLogout} className="flex justify-end px-4 py-3.5">
             <button type="submit" role="menuitem" className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-tint px-[18px] text-[15px] font-bold text-primary hover:bg-[#f6dad8]">
               <AdminIcon name="logout" size={16} />

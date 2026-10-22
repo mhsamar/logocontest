@@ -39,6 +39,19 @@ describe("Admin › Notifications catalog (owner, 2026-10-15)", () => {
     for (const a of AUDIENCES) expect(NOTICE_ROWS.some((r) => r.audience === a), a).toBe(true);
   });
 
+  it("payments and withdrawals to check reach the admins in the app, on the phone and by email (owner, 2026-10-22)", () => {
+    expect(NOTICE_ROWS.find((r) => r.id === "admin_payments")?.channels).toEqual(["bell", "push", "email"]);
+    expect(rowOfType("payment_submitted_admin")?.id).toBe("admin_payments");
+    expect(rowOfType("withdrawal_requested_admin")?.id).toBe("admin_payments");
+    const holes = (s: unknown) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+    for (const k of ["payment.subject", "payment.body", "payment.bodyQa", "payment.what.contest", "payment.what.addon", "payment.what.pro", "withdrawal.subject", "withdrawal.body"]) {
+      expect(typeof text("en", `admin.alerts.${k}`), k).toBe("string");
+      expect(holes(text("bn", `admin.alerts.${k}`)), k).toEqual(holes(text("en", `admin.alerts.${k}`)));
+    }
+    // The email's button is the first link in its text.
+    for (const k of ["payment.body", "payment.bodyQa", "withdrawal.body"]) expect(holes(text("en", `admin.alerts.${k}`)), k).toContain("link");
+  });
+
   it("codes and security notices are always on", () => {
     for (const id of ["email_code", "password_reset", "account_status", "late_files", "agreements"]) expect(NOTICE_ROWS.find((r) => r.id === id)?.locked, id).toBe(true);
     const off = parseChannelsOff({ email_code: ["email"], account_status: ["bell", "email"] });

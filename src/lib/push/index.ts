@@ -49,11 +49,13 @@ export async function savePushSubscription(userId: string, input: unknown, userA
   return !error;
 }
 
-/** Sends a notification to every browser where the user allowed notifications. Never throws. */
-export async function notifyUser(userId: string, message: PushMessage): Promise<number> {
+/** Sends a notification to every browser where the user allowed notifications (or only this one). Never throws. */
+export async function notifyUser(userId: string, message: PushMessage, endpoint?: string): Promise<number> {
   try {
     const db = createAdminClient();
-    const { data } = await db.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId);
+    let query = db.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId);
+    if (endpoint) query = query.eq("endpoint", endpoint);
+    const { data } = await query;
     if (!data?.length) return 0;
     const sender = getPushSender();
     // While Backup links is on, a tap opens the backup address (owner, 2026-10-21); otherwise the browser's own one.

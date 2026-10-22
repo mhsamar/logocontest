@@ -85,7 +85,7 @@ Add these in **Vercel → Project → Settings → Environment Variables** (envi
 | `PAYOUT_DRIVER` | `manual` | withdrawals go to Admin → Withdrawals until bKash payouts are connected |
 | `EMAIL_DRIVER` | `log` until an email provider is connected | M9 |
 | `SMS_DRIVER` | `log` until an SMS gateway is connected | M9 |
-| `PUSH_DRIVER` | `log` (or `webpush` + the 3 VAPID values) | M9 |
+| `PUSH_DRIVER` | `webpush` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (`VAPID_SUBJECT` optional); `log` sends nothing | browser notifications: designers' alerts and the team's payment alerts on phones (admin account menu › Phone notifications › Send a test shows whether it works) |
 | `MODERATION_DRIVER`, `LOGO_SCAN_DRIVER` | `log` (or `google` + `GOOGLE_VISION_API_KEY`) | M9 |
 
 After changing any variable, **redeploy** (Vercel → Deployments → ⋯ → Redeploy) so the site picks it up.

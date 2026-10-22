@@ -1707,6 +1707,35 @@ const en = {
     here: { contest: "Open this contest in admin", person: "Find this person in admin" },
   },
   admin: {
+    alerts: {
+      payment: {
+        subject: "New bKash payment to check: {amount}",
+        body: "{name} sent {amount} by bKash for {what}.\nTransaction ID: {txn}\n\nFind this transaction ID in your bKash app, then approve or reject the payment: {link}",
+        bodyQa: "{name} sent {amount} for {what} with a QA test ID ({txn}), so no real money moved. Approve or reject it here: {link}",
+        what: { contest: "the contest “{brand}”", addon: "an add-on for “{brand}”", pro: "the Pro plan" },
+      },
+      withdrawal: {
+        subject: "Withdrawal to pay: {amount}",
+        body: "{name} asked to withdraw {amount} from their wallet. Send the money, then mark it paid: {link}",
+      },
+    },
+    push: {
+      title: "Phone notifications",
+      off: "Get a notification on this phone or computer when something needs the team: a payment to approve, a withdrawal, a support chat.",
+      turnOn: "Turn on",
+      turnOnAgain: "Turn on again",
+      turnedOn: "Turned on. Send a test to check it arrives.",
+      on: "On for this device.",
+      test: "Send a test",
+      testBody: "Test: phone notifications work. You'll hear here when a payment arrives.",
+      testSent: "Sent. It should arrive in a few seconds.",
+      testFailed: "Couldn't send it to this device. Tap Turn on again, then send another test.",
+      driverOff: "Phone notifications aren't set up on the server yet: on Vercel, PUSH_DRIVER must be webpush and the VAPID keys must be set.",
+      blocked: "Notifications are blocked for this site. Allow them in your browser's site settings, then try again.",
+      iphone: "On iPhone or iPad: on this admin page in Safari, tap Share › Add to Home Screen. Open the new icon, sign in, and turn this on there.",
+      unsupported: "This browser can't show notifications. Use Chrome on Android or on a computer.",
+      failed: "Couldn't turn it on. Try again.",
+    },
     // The .bd watch's alerts (owner, 2026-10-21): to admins who manage Settings, by email and push.
     domainWatch: {
       subjectDown: "logocontest.bd is down at BTCL",

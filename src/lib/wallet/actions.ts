@@ -2,13 +2,15 @@
 
 import { audit } from "@/lib/admin/core";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { adminUser } from "@/lib/admin/core";
-import { adminIdsWith } from "@/lib/admin/recipients";
 import { normalizeBdMobile } from "@/lib/phone";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
+import { formatTaka } from "@/lib/money";
 import { notify } from "@/lib/notifications";
+import { alertAdmins } from "@/lib/notifications/admin-alerts";
 import { payoutGateway } from "@/lib/payouts";
 import { bkashPayoutsReady } from "@/lib/payouts/ready";
 import { SETTINGS } from "@/lib/settings/registry";
@@ -69,8 +71,22 @@ export async function requestWithdrawal(input: {
       console.error("[payouts] bKash payout failed, sent to the admin queue:", sent.error);
     }
   }
-  // The admins hear about every request waiting to be paid (owner, 2026-10-12).
-  await notify(await adminIdsWith("withdrawals.view"), "withdrawal_requested_admin", { name: user.name, amount: input.amount }, "/admin/withdrawals", user.id);
+  // The admins hear about every request waiting to be paid (owner, 2026-10-12), on the phone and by email too (2026-10-22).
+  after(() =>
+    alertAdmins({
+      permission: "withdrawals.manage",
+      bellPermission: "withdrawals.view",
+      type: "withdrawal_requested_admin",
+      data: { name: user.name, amount: input.amount },
+      path: "/admin/withdrawals",
+      actorId: user.id,
+      notice: "admin_payments",
+      ref: withdrawal.id,
+      subject: "admin.alerts.withdrawal.subject",
+      body: "admin.alerts.withdrawal.body",
+      params: (_t, locale) => ({ name: user.name, amount: formatTaka(input.amount, locale) }),
+    }),
+  );
   refresh();
   return { ok: true, status: "requested", txnId: null };
 }
