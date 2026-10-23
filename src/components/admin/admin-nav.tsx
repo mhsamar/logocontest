@@ -224,6 +224,20 @@ export function AdminShell({
   useEffect(() => {
     loadRef.current();
   }, [path]);
+  // Signed in from a public page that had the Meta Pixel: reload once so Admin runs without it (its addresses carry
+  // customers' details; owner, 2026-10-24). Admin pages themselves never load it.
+  useEffect(() => {
+    try {
+      // Without the pixel: nothing to do, and the next sign-in from a pixel page may reload again.
+      if (typeof window.fbq !== "function") return sessionStorage.removeItem("lc-px-admin-reload");
+      // Only once in a row, so a reload that still had it can never loop.
+      if (sessionStorage.getItem("lc-px-admin-reload")) return;
+      sessionStorage.setItem("lc-px-admin-reload", "1");
+    } catch {
+      return;
+    }
+    window.location.reload();
+  }, []);
   const shown = live;
 
   const items = groups.flatMap((g) => g.items);

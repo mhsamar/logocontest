@@ -26,6 +26,9 @@ import { getMessages } from "@/lib/content/texts";
 import { can } from "@/lib/auth/policies";
 import { suspendedError } from "@/lib/moderation/suspension";
 import { getCurrentUser } from "@/lib/auth/session";
+import { headers } from "next/headers";
+import { NO_PIXEL_HEADER } from "@/lib/analytics/meta-pixel";
+import { viewingAs } from "@/lib/push";
 import { showsLanding } from "@/lib/home/landing";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/settings";
@@ -64,6 +67,23 @@ export const viewport: Viewport = {
   themeColor: "#8b0000",
 };
 
+// Meta Pixel base code (owner, 2026-10-24), exactly as Meta gave it. Only on the live site: local and preview builds
+// would send test visits and fake-gateway payments to the real pixel.
+const META_PIXEL = process.env.VERCEL_ENV === "production";
+const META_PIXEL_SCRIPT = `!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1804708190768737');
+fbq('track', 'PageView');`;
+const META_PIXEL_NOSCRIPT = `<img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1804708190768737&ev=PageView&noscript=1"
+/>`;
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { t, locale, currency } = await getI18n();
   const [messages, notice, user, ads] = await Promise.all([getMessages(locale), currentNotice(locale), getCurrentUser(), getSettings(["ads.enabled", "ads.adsense_client", "security.admin_idle_minutes"])]);
@@ -73,8 +93,21 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const guestHome = showsLanding(user?.role);
   // Suspended for 48 hours (owner, 2026-10-12): a bar on every page says until when and what is on hold.
   const held = suspendedError(user);
+  // The Meta Pixel never runs for the team, on Admin or unsubscribe pages, or while staff use "Log in as": those
+  // addresses and visits carry customers' details (owner, 2026-10-24).
+  const pixel = META_PIXEL && user?.role !== "admin" && (await headers()).get(NO_PIXEL_HEADER) !== "1" && !(user && (await viewingAs(user.id)));
   return (
     <html lang={locale} data-scroll-behavior="smooth" className={`${landingBody.variable} ${landingHeading.variable} ${banglaDigits.variable} ${bangla.variable} h-full antialiased`}>
+      <head>
+        {pixel && (
+          <>
+            {/* Meta Pixel Code */}
+            <script dangerouslySetInnerHTML={{ __html: META_PIXEL_SCRIPT }} />
+            <noscript dangerouslySetInnerHTML={{ __html: META_PIXEL_NOSCRIPT }} />
+            {/* End Meta Pixel Code */}
+          </>
+        )}
+      </head>
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} messages={messages} currency={currency}>
           <ToastProvider>

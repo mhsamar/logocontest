@@ -73,6 +73,14 @@ Visual style (owner, 2026-10-07; updated 2026-10-08 from the ofsp_ce reference):
 
 Loading (skeletons, not spinners, for lists and grids), empty, error with a retry button, and offline/slow connection for uploads (show progress per file and allow retry of a single failed file).
 
+### 1.4b Meta Pixel (owner, 2026-10-24)
+
+Meta's base code (pixel 1804708190768737) sits unchanged in the root layout's `<head>`, so every public page sends a PageView; only on the live site (`VERCEL_ENV=production`), never on local or preview builds. Never for the team: not for admin accounts, not on Admin, admin sign-in or signed unsubscribe pages, not while staff use "Log in as" (those addresses carry customers' details); Admin reloads once without it if a public page had loaded it. The Privacy Policy names Meta. Conversion events, each once per action and only after it succeeded (`src/lib/analytics/meta-pixel.ts`):
+- **InitiateCheckout:** a contest wizard (logo or any service) opened fresh, once per new contest in a tab; coming back to a saved draft sends nothing.
+- **CompleteRegistration:** right after the wizard created the client's account.
+- **Purchase** (`value` = what the client paid for the contest in taka, `currency: BDT`): on C-12 Contest live after a card payment, or on the client's contest page once an admin approved a bKash payment; within 48 hours of the payment, once per payment across all the client's devices (payments.pixel_sent_at, migration 0074), only once Meta's library has loaded, never for QA test codes. Add-ons, extra days and Pro never fire it.
+- **Lead:** right after a designer's account was created.
+
 ### 1.5 Motion (owner, 2026-10-08)
 
 Smooth, calm motion on every page so the site feels premium. Short and soft (about 0.2–0.9 s, ease-out), never bouncy or in the way, and nothing moves for people who ask for reduced motion.

@@ -198,7 +198,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "sharing",
         heading: "Who we share it with",
         blocks: [
-          "Only the services that help us run the site, and only what they need: Vercel (hosting), Supabase (database and file storage), bKash (payments in taka), Stripe (card payments in US dollars), Resend (emails), Google (Gemini AI and Cloud Vision) and SearchAPI (image search) for the logo checker and the support assistant, and your browser's notification service if you allow notifications. We share information with the authorities only when the law requires it. We never sell personal information.",
+          "Only the services that help us run the site, and only what they need: Vercel (hosting), Supabase (database and file storage), bKash (payments in taka), Stripe (card payments in US dollars), Resend (emails), Google (Gemini AI and Cloud Vision) and SearchAPI (image search) for the logo checker and the support assistant, Meta (Facebook) to measure our ads, and your browser's notification service if you allow notifications. We share information with the authorities only when the law requires it. We never sell personal information.",
         ],
       },
       {
@@ -208,6 +208,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
           "We use cookies to keep you logged in and to remember your language and currency.",
           "To see how the site is used, we count page visits with an anonymous visitor cookie: the page, the site you came from, your device type and your country. If you are logged in, the visit is linked to your account so our team can help you. We do not store your IP address with these visit records, and they are deleted after 180 days.",
           "When ads are shown on the site, they come from Google AdSense. Third-party vendors, including Google, use cookies to serve ads based on your earlier visits to this website or other websites. Google's use of advertising cookies lets it and its partners show you ads based on your visits to this site and other sites on the internet. You can turn off personalised ads in Google's Ads Settings (adssettings.google.com), or turn off some other vendors' cookies at www.aboutads.info.",
+          "We use the Meta Pixel to measure and improve our Facebook and Instagram ads. It sets a Meta cookie and sends Meta the pages you visit on our site, your IP address and browser details, and actions such as starting a contest, creating an account or paying for a contest (with the amount). It never runs on our team's admin pages. Meta may combine this with other information it holds about you. You can turn off ads based on this in your Facebook ad settings (facebook.com/adpreferences), or stop it by using a browser or extension that blocks trackers.",
         ],
       },
       {

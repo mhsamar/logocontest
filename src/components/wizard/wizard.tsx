@@ -36,6 +36,7 @@ import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadPending, loadState, savePending, saveState, type ServerFile, type WizardState } from "./state";
 import { wizardVisitId } from "./visit-id";
+import { pixelStartId, trackPixel } from "@/lib/analytics/meta-pixel";
 import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep, Part, type BriefChoices, type BriefStepProps } from "./steps-brief";
 import { FilesStep, PackageStep } from "./steps-order";
@@ -131,6 +132,13 @@ export function Wizard(props: WizardProps) {
     setStep(first);
     // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry.
     window.history.replaceState({ step: first }, "", `?step=${first}`);
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Meta Pixel (owner, 2026-10-24): a new contest started in this tab, once. Coming back to a saved draft sends nothing.
+  useEffect(() => {
+    if (!props.resume) trackPixel(`initiate:${pixelStartId()}`, "InitiateCheckout");
     // Run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -357,6 +365,8 @@ export function Wizard(props: WizardProps) {
           setError(t(res.error.key, res.error.params));
           return;
         }
+        // Meta Pixel: the client's account now exists (once: this branch runs only for a visitor).
+        trackPixel(`register:${res.contestId}`, "CompleteRegistration");
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
         if (props.shareSwitch) void setContestShare({ contestId: res.contestId, on: state.shareFb !== false });
         setPassword("");

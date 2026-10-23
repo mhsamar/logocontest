@@ -19,6 +19,8 @@ import { HandoverChat } from "@/components/handover/handover-chat";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { CheckerBox, CheckCardAction } from "@/components/logo-check/checker-box";
 import { CheckerProvider } from "@/components/logo-check/checker-context";
+import { PurchasePixel } from "@/components/analytics/purchase-pixel";
+import { freshPurchase } from "@/lib/analytics/meta-pixel";
 import { CheckLegend, ReportPanel } from "@/components/logo-check/judging";
 import { AddonsPanel } from "@/components/manage/addons-panel";
 import { OwnerActions } from "@/components/manage/owner-actions";
@@ -231,6 +233,8 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   return (
     <>
       <CheckerProvider setup={checkerOn && checks ? checker : null} lens={checker.lens}>
+        {/* Meta Pixel (owner, 2026-10-24): a bKash payment an admin approved shows here first (same key as the card path). */}
+        {contestPay && !unpaid && freshPurchase(contestPay.paidAt) && <PurchasePixel paymentId={contestPay.id} value={contestPay.amount} />}
         {sp.payment === "paid" && <p className="calert ok">{t("manage.payment.paid")}</p>}
         {sp.payment === "failed" && <p className="calert bad">{t("manage.payment.failed")}</p>}
 

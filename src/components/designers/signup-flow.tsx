@@ -25,6 +25,7 @@ import { BkashKindPicker } from "@/components/settings/bkash-kind";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { checkExtraAnswers, EMPTY_ONBOARDING, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
 import type { Answers, Lang } from "@/lib/services/types";
+import { trackPixel } from "@/lib/analytics/meta-pixel";
 
 const TOTAL = 4;
 
@@ -125,6 +126,8 @@ export function DesignerSignupFlow({ passwordMin, bioMax, onboarding = EMPTY_ONB
         const r = await createDesignerAccount({ ...form, payout: payout(), push }).catch((): StepResult => ({ ok: false, error: { key: "auth.errors.generic" } }));
         setResult(r);
         if (r.ok) {
+          // Meta Pixel (owner, 2026-10-24): the designer's account now exists. Only one sign-up can succeed per form.
+          trackPixel(`lead:${crypto.randomUUID()}`, "Lead");
           router.push("/contests");
           router.refresh();
         } else if (r.field) {

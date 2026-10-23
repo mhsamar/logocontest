@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { ContestLive } from "@/components/wizard/contest-live";
+import { PurchasePixel } from "@/components/analytics/purchase-pixel";
+import { freshPurchase } from "@/lib/analytics/meta-pixel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestRepository } from "@/lib/contests/services";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -32,10 +34,14 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/st
     const judgingDays = await getSetting("timers.judging_window_days");
     const pickBy = new Date(contest.endsAt.getTime() + judgingDays * 86_400_000);
     return (
-      <ContestLive
-        url={`${origin}/contest/${contest.slug}`}
-        pickBy={new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }).format(pickBy)}
-      />
+      <>
+        {/* Meta Pixel (owner, 2026-10-24): the card payment went through and the contest is live. */}
+        {payment.purpose === "contest" && freshPurchase(payment.paidAt) && <PurchasePixel paymentId={payment.id} value={payment.amount} />}
+        <ContestLive
+          url={`${origin}/contest/${contest.slug}`}
+          pickBy={new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }).format(pickBy)}
+        />
+      </>
     );
   }
 

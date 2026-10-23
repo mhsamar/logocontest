@@ -4,6 +4,7 @@ import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
 import { langOf, localizedPath, LOCALE_HEADER } from "@/lib/i18n/lang-path";
+import { NO_PIXEL_HEADER, noPixelPath } from "@/lib/analytics/meta-pixel";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -21,6 +22,9 @@ export async function proxy(request: NextRequest) {
   const lang = request.method === "GET" && !NO_LANG_PARAM.test(request.nextUrl.pathname) ? langOf(request.nextUrl.searchParams) : null;
   if (lang) request.headers.set(LOCALE_HEADER, lang);
   else request.headers.delete(LOCALE_HEADER);
+  // Pages that never get the Meta Pixel (Admin, signed unsubscribe links); the root layout reads this.
+  if (noPixelPath(request.nextUrl.pathname)) request.headers.set(NO_PIXEL_HEADER, "1");
+  else request.headers.delete(NO_PIXEL_HEADER);
   const response = await route(request);
   // Only a page opened in the browser keeps the language, never Next.js fetching a link ahead of time (those don't ask
   // for HTML). A browser's own early load of a Google result does count: its cookie is kept only if it is opened.

@@ -31,6 +31,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTaka } from "@/lib/money";
 import { subscribeToPush } from "@/lib/push/client";
+import { pixelStartId, trackPixel } from "@/lib/analytics/meta-pixel";
 import { answerText } from "./service-answer";
 import { FieldInput } from "./field-input";
 import { cleanAnswers, LIMITS, sizeText, type Answers, type BriefField, type Lang, type ServiceDef } from "@/lib/services/types";
@@ -104,6 +105,13 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
   const [contentOk, setContentOk] = useState(false);
+
+  // Meta Pixel (owner, 2026-10-24): a new contest started in this tab, once. Coming back to a saved draft sends nothing.
+  useEffect(() => {
+    if (!resume) trackPixel(`initiate:${pixelStartId()}`, "InitiateCheckout");
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep the brief on this device while it isn't saved on the server yet.
   useEffect(() => {
@@ -237,6 +245,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           }
           return setError(t(res.error.key, res.error.params));
         }
+        // Meta Pixel: the client's account now exists (once: this branch runs only for a visitor).
+        trackPixel(`register:${res.contestId}`, "CompleteRegistration");
         setD((cur) => ({ ...cur, contestId: res.contestId }));
         if (shareSwitch) void setContestShare({ contestId: res.contestId, on: d.shareFb !== false });
         setPassword("");
