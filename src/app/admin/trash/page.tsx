@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminHead } from "@/components/admin/page-head";
-import { AdmCard, AdmEmpty, Pill } from "@/components/admin/ui";
+import { AdmCard, AdmEmpty, isNewSince, NewPill, Pill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { trashList, type TrashRow } from "@/lib/admin/trash";
@@ -21,7 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
 // Admin › Trash (owner, 2026-10-14): deleted contests and users, Restore within 90 days, then erased for good.
 export default async function AdminTrashPage() {
   const me = await requirePermission("trash.view");
-  const [{ t, locale }, s] = await Promise.all([getI18n(), getSettings(["trash.keep_days", "trash.unpaid_hours"])]);
+  // Moved here by someone else since this admin last opened the Trash: "New" tag (owner, 2026-10-23).
+  const [{ t, locale }, s, visit] = await Promise.all([getI18n(), getSettings(["trash.keep_days", "trash.unpaid_hours"]), sectionVisit(me, "trash")]);
   const days = s["trash.keep_days"];
   const hours = s["trash.unpaid_hours"];
   const list = await trashList(days);
@@ -45,6 +48,7 @@ export default async function AdminTrashPage() {
                 <Link href={r.link} className="font-semibold text-ink hover:text-primary">
                   {r.title}
                 </Link>
+                {r.byId !== me.id && isNewSince(r.deletedAt, visit.since) && <NewPill label={t("admin.whatsNew.tag")} className="ml-2" />}
                 {r.sub && <span className="block text-sm text-muted">{r.sub}</span>}
                 <span className="mt-1 block text-sm text-ink">
                   {t("admin.trash.deleted", { date: date(r.deletedAt) })}
@@ -66,6 +70,7 @@ export default async function AdminTrashPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="trash" at={visit.at} />}
       <AdminHead title={t("admin.trash.title")} lead={t("admin.trash.lead", { days: formatNumber(days, locale), hours: formatNumber(hours, locale) })} />
       {section(list.contests, t("admin.trash.contests"), { restore: hasPermission(me, "contests.manage") || hasPermission(me, "trash.manage"), erase: me.isSuperAdmin }, (id) => restoreContestFromTrash.bind(null, id), (id) => eraseContestNow.bind(null, id))}
       {canUsers && section(list.users, t("admin.trash.users"), { restore: hasPermission(me, "users.manage") || hasPermission(me, "trash.manage"), erase: me.isSuperAdmin }, (id) => restoreUserFromTrash.bind(null, id), (id) => eraseUserNow.bind(null, id))}

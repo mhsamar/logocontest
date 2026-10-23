@@ -3,7 +3,9 @@ import Link from "next/link";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { CustomRange, PeriodTabs } from "@/components/admin/period";
-import { AdmCard, AdmEmpty, ADM_INPUT, IdChip, Pill } from "@/components/admin/ui";
+import { AdmCard, AdmEmpty, ADM_INPUT, IdChip, isNewSince, NewPill, Pill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { activityFeed, type Activity, type ActivityKind } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
 import { readPeriod, type PeriodKey } from "@/lib/admin/period";
@@ -50,7 +52,7 @@ const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia
 
 // A-21 Activity (BLUEPRINT §13.2 item 3; design/admin/activity.html, owner 2026-10-10): what people did, newest first.
 export default async function AdminActivityPage({ searchParams }: PageProps<"/admin/activity">) {
-  await requirePermission("dashboard.view");
+  const me = await requirePermission("dashboard.view");
   const sp = await searchParams;
   const { range, from, to, period, effective } = readPeriod(sp, KEYS, "7");
   const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -58,7 +60,8 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
   const who = WHO.find((w) => w === sp.who) ?? "all";
   const q = str(sp.q).trim().toLowerCase().slice(0, 60);
   const limit = Math.min(MAX, Math.max(PAGE, Math.floor(Number(str(sp.limit)) || PAGE)));
-  const [{ t, locale }, all] = await Promise.all([getI18n(), activityFeed(limit, effective)]);
+  // What happened since this admin last opened Activity gets a "New" tag (owner, 2026-10-23).
+  const [{ t, locale }, all, visit] = await Promise.all([getI18n(), activityFeed(limit, effective), sectionVisit(me, "activity")]);
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const tag = locale === "bn" ? "bn-BD" : "en-GB";
@@ -226,6 +229,7 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="activity" at={visit.at} />}
       <AdminHead title={t("admin.activity.title")} lead={t("admin.activity.lead")} actions={<PeriodTabs base="/admin/activity" keys={KEYS} current={range} fallback="7" />} />
       {range === "custom" && <CustomRange base="/admin/activity" from={from} to={to} valid={Boolean(period)} />}
 
@@ -322,6 +326,7 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
                         </span>
                         {line(a) && <span className="line-clamp-2 text-[14.5px] text-muted">{line(a)}</span>}
                         <span className="flex flex-wrap gap-1.5 pt-0.5">
+                          {isNewSince(a.at, visit.since) && <NewPill label={t("admin.whatsNew.tag")} />}
                           {roleLabel(a) && <Pill>{roleLabel(a)}</Pill>}
                           {a.contest?.number ? <IdChip prefix="LC" n={a.contest.number} /> : null}
                         </span>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { QuickDelete } from "@/components/admin/quick-delete";
+import { isNewSince, NewPill } from "@/components/admin/ui";
 import { ProfileFacts, RemindButtons } from "@/components/admin/remind-buttons";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,7 @@ function CheckLine({ u }: { u: UserCard }) {
  * row pins it, leaving the table goes back to the pinned one; the name is a normal link to the full profile. On
  * touch screens a tap opens the Quick view as a bottom sheet. Everything shown was loaded with the list.
  */
-export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canManage: boolean; meId: string }) {
+export function UsersBoard({ rows, canManage, meId, since = null }: { rows: UserCard[]; canManage: boolean; meId: string; /** Joined after this: "New" tag (owner, 2026-10-23). */ since?: string | null }) {
   const { t } = useI18n();
   const [pinned, setPinned] = useState<string | null>(rows[0]?.id ?? null);
   const [hover, setHover] = useState<string | null>(null);
@@ -132,9 +133,12 @@ export function UsersBoard({ rows, canManage, meId }: { rows: UserCard[]; canMan
                       <div className="flex items-center gap-3">
                         <Avatar u={u} size="sm" />
                         <div className="flex min-w-0 flex-col gap-0.5">
-                          <Link href={`/admin/users/${u.id}`} className="whitespace-nowrap font-bold text-ink hover:text-primary hover:underline">
-                            {u.name}
-                          </Link>
+                          <span className="flex items-center gap-2">
+                            <Link href={`/admin/users/${u.id}`} className="whitespace-nowrap font-bold text-ink hover:text-primary hover:underline">
+                              {u.name}
+                            </Link>
+                            {isNewSince(u.joinedAt, since ? new Date(since) : null) && <NewPill label={t("admin.whatsNew.tag")} />}
+                          </span>
                           {u.username && <span className="text-[13.5px] text-muted">@{u.username}</span>}
                           <CheckLine u={u} />
                         </div>

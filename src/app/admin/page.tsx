@@ -5,10 +5,12 @@ import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { DesignerMoneyCard } from "@/components/admin/designer-money";
 import { CustomRange, PeriodTabs } from "@/components/admin/period";
+import { WhatsNew } from "@/components/admin/whats-new";
 import { AdmCard, AdmEmpty, CardTitle, KpiGrid, KpiTile } from "@/components/admin/ui";
 import { adminUser } from "@/lib/admin/core";
+import { adminCounts } from "@/lib/admin/badges";
 import { dashboardStats } from "@/lib/admin/dashboard";
-import { firstAdminPage } from "@/lib/admin/nav";
+import { firstAdminPage, navFor } from "@/lib/admin/nav";
 import { PERIODS, readPeriod } from "@/lib/admin/period";
 import { hasPermission } from "@/lib/admin/permissions";
 import { cx } from "@/lib/cx";
@@ -28,7 +30,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   if (!me) notFound();
   if (!hasPermission(me, "dashboard.view")) redirect(firstAdminPage(me) ?? "/");
   const { range, from, to, period, effective } = readPeriod(await searchParams);
-  const [{ t, locale }, s] = await Promise.all([getI18n(), dashboardStats(effective)]);
+  const [{ t, locale }, s, counts] = await Promise.all([getI18n(), dashboardStats(effective), adminCounts(me)]);
   const taka = (n: number) => formatTaka(n, locale);
   const num = (n: number) => formatNumber(n, locale);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
@@ -50,6 +52,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       <AdminHead title={t("admin.dashboard.title")} lead={t("admin.dashboard.lead")} actions={switcher} />
 
       {range === "custom" && <CustomRange base="/admin" from={from} to={to} valid={Boolean(period)} />}
+
+      <WhatsNew items={navFor(me).flatMap((g) => g.items)} counts={counts} />
 
       <KpiGrid>
         <KpiTile label={t("admin.dashboard.tiles.live")} value={num(s.contestsLive)} icon="live" href="/admin/contests?status=open" />

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { AuditTabs } from "@/components/admin/session-bits";
 import { FILTER_INPUT, FilterBar, pageNum, Pager, qs, str } from "@/components/admin/table-bits";
+import { isNewSince, NewPill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { listAudit } from "@/lib/admin/misc";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -51,11 +54,15 @@ function actionLabel(t: (key: MessageKey) => string, action: string): string {
 export default async function AdminAuditPage({ searchParams }: PageProps<"/admin/audit">) {
   const me = await requirePermission("audit.view");
   const sp = await searchParams;
-  const q = { action: str(sp.action), page: pageNum(sp.page) };
+  // What the rest of the team did since this admin last looked: "New" tag, and a filter for just that (owner, 2026-10-23).
+  const visit = await sectionVisit(me, "audit");
+  const onlyNew = str(sp.new) === "1" && Boolean(visit.since);
+  const q = { action: str(sp.action), page: pageNum(sp.page), fresh: onlyNew && visit.since ? { since: visit.since, notBy: me.id } : null };
   const [{ t, locale }, list] = await Promise.all([getI18n(), listAudit(q)]);
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   return (
     <div className="space-y-4">
+      {visit.at && <SeenNow section="audit" at={visit.at} />}
       <AdminHead title={t("admin.audit.title")} lead={t("admin.audit.lead")} />
       <AuditTabs current="actions" t={t} staff={me.isSuperAdmin} />
       <FilterBar action="/admin/audit">
@@ -67,10 +74,16 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
             </option>
           ))}
         </select>
+        {visit.since && (
+          <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-ink">
+            <input type="checkbox" name="new" value="1" defaultChecked={onlyNew} className="size-4 accent-primary" />
+            {t("admin.whatsNew.teamOnly")}
+          </label>
+        )}
         <button className="min-h-10 rounded-lg bg-ink px-4 text-sm font-semibold text-white">{t("admin.filter")}</button>
       </FilterBar>
       {list.rows.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t("admin.audit.empty")}</p>
+        <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-10 text-center text-muted">{t(onlyNew ? "admin.whatsNew.teamNone" : "admin.audit.empty")}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-card ring-1 ring-line">
           <table className="w-full min-w-[48rem] text-left text-sm">
@@ -87,7 +100,10 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
                 const link = r.subjectId && LINKS[r.subjectType]?.(r.subjectId, (r.changes ?? {}) as Record<string, unknown>);
                 return (
                   <tr key={r.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{when(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">
+                      {when(r.createdAt)}
+                      {r.adminId && r.adminId !== me.id && isNewSince(r.createdAt, visit.since) && <NewPill label={t("admin.whatsNew.tag")} className="ml-2" />}
+                    </td>
                     <td className="px-4 py-3">{r.admin ?? "—"}</td>
                     <td className="px-4 py-3">
                       {link ? (
@@ -109,7 +125,7 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
           </table>
         </div>
       )}
-      <Pager page={q.page} pages={list.pages} href={(p) => `/admin/audit${qs({ action: q.action, page: p })}`} prev={t("admin.prev")} next={t("admin.next")} label={t("admin.pages")} />
+      <Pager page={q.page} pages={list.pages} href={(p) => `/admin/audit${qs({ action: q.action, new: onlyNew ? "1" : undefined, page: p })}`} prev={t("admin.prev")} next={t("admin.next")} label={t("admin.pages")} />
     </div>
   );
 }

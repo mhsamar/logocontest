@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/ui/logo";
-import { isReadOnlyPage, type AdminBadge, type AdminNavGroup } from "@/lib/admin/nav";
+import type { AdminCounts } from "@/lib/admin/badges";
+import { ADMIN_NEW, isReadOnlyPage, type AdminBadge, type AdminNavGroup, type AdminNew } from "@/lib/admin/nav";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
+import { formatNumber } from "@/lib/money";
 import { AccountMenu } from "./account-menu";
 import { ActivityDrawer } from "./activity-drawer";
 import { AdminIcon } from "./icons";
@@ -15,8 +17,50 @@ import { ReadOnlyProvider } from "./read-only";
 export type AdminMe = { name: string; title: string | null; isSuper: boolean; permissions: string[] };
 
 const initial = (name: string) => name.trim().slice(0, 1).toUpperCase() || "A";
+// How often the menu's counts are fetched again while Admin is open and visible, and the shortest gap between two.
+const COUNTS_EVERY_MS = 60_000;
+const COUNTS_GAP_MS = 15_000;
+const NO_FRESH = Object.fromEntries(ADMIN_NEW.map((k) => [k, 0])) as Record<AdminNew, number>;
 
-function NavList({ groups, counts, onPick }: { groups: AdminNavGroup[]; counts: Record<AdminBadge, number>; onPick?: () => void }) {
+/** The menu's live counts for the page (the Dashboard's What's new card); null until the first fetch. */
+const CountsContext = createContext<AdminCounts | null>(null);
+export const useAdminCounts = () => useContext(CountsContext);
+
+/** Tells the menu that a section's page was just drawn and recorded as a look. */
+const SeenContext = createContext<(section: AdminNew, at: string) => void>(() => undefined);
+
+/**
+ * On a section's own page (owner, 2026-10-23): each server render of it records a look (sectionVisit), and `at` is
+ * that render's time, so the menu's gold count for it goes to 0 every time, also after a tab, page or refresh.
+ */
+export function SeenNow({ section, at }: { section: AdminNew; at: string }) {
+  const seen = useContext(SeenContext);
+  useEffect(() => {
+    seen(section, at);
+  }, [seen, section, at]);
+  return null;
+}
+
+/** A menu count: red for work waiting, gold for what is new since the last visit (owner, 2026-10-23). */
+function Count({ n, kind }: { n: number; kind: "todo" | "fresh" }) {
+  const { t, locale } = useI18n();
+  if (n <= 0) return null;
+  const shown = n > 99 ? `${formatNumber(99, locale)}+` : formatNumber(n, locale);
+  return (
+    <span
+      title={t(kind === "todo" ? "admin.shell.todoCount" : "admin.shell.newCount", { n: formatNumber(n, locale) })}
+      className={cx(
+        "min-w-6 shrink-0 rounded-[7px] px-1.5 text-center text-[12.5px] font-bold tabular-nums",
+        kind === "todo" ? "bg-primary text-white" : "bg-gold text-gold-ink",
+      )}
+    >
+      <span aria-hidden>{shown}</span>
+      <span className="sr-only">{t(kind === "todo" ? "admin.shell.todoCount" : "admin.shell.newCount", { n: formatNumber(n, locale) })}</span>
+    </span>
+  );
+}
+
+function NavList({ groups, counts, onPick }: { groups: AdminNavGroup[]; counts: AdminCounts; onPick?: () => void }) {
   const { t } = useI18n();
   const path = usePathname();
   const active = (href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`));
@@ -27,7 +71,8 @@ function NavList({ groups, counts, onPick }: { groups: AdminNavGroup[]; counts: 
           <p className="m-0 px-3.5 pb-2 pt-[18px] text-xs font-bold uppercase tracking-[0.09em] text-adm-soft">{t(g.label)}</p>
           <ul className="m-0 list-none space-y-0.5 p-0">
             {g.items.map((item) => {
-              const n = item.badge ? counts[item.badge] : 0;
+              const todo = item.badge ? counts.todo[item.badge] : 0;
+              const fresh = item.fresh ? counts.fresh[item.fresh] : 0;
               const on = active(item.href);
               return (
                 <li key={item.href}>
@@ -42,7 +87,8 @@ function NavList({ groups, counts, onPick }: { groups: AdminNavGroup[]; counts: 
                   >
                     <AdminIcon name={item.icon} className={on ? "text-primary" : "text-adm-soft"} />
                     <span className="min-w-0 flex-1 truncate">{t(item.label)}</span>
-                    {n > 0 && <span className="min-w-6 rounded-[7px] bg-primary px-1.5 text-center text-[12.5px] font-bold tabular-nums text-white">{n}</span>}
+                    <Count n={todo} kind="todo" />
+                    <Count n={fresh} kind="fresh" />
                   </Link>
                 </li>
               );
@@ -81,20 +127,21 @@ function Me({ me }: { me: AdminMe }) {
 /** Admin layout (design/admin, owner 2026-10-10): white sidebar, top bar with search, activity and account menu. */
 export function AdminShell({
   groups,
-  counts,
+  todo,
   me,
   canSearch,
   canSeeActivity,
   children,
 }: {
   groups: AdminNavGroup[];
-  counts: Record<AdminBadge, number>;
+  /** Red counts from the server render; the gold ones load in the browser. */
+  todo: Record<AdminBadge, number>;
   me: AdminMe;
   canSearch: boolean;
   canSeeActivity: boolean;
   children: React.ReactNode;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const readOnly = isReadOnlyPage({ role: "admin", status: "active", isSuperAdmin: me.isSuper, adminActive: true, adminPermissions: me.permissions }, path);
@@ -111,7 +158,79 @@ export function AdminShell({
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const hrefs = new Set(groups.flatMap((g) => g.items.map((i) => i.href)));
+  // Menu counts (owner, 2026-10-23). Red ones come with the server render; both kinds are fetched when Admin opens,
+  // every minute while it is visible, and after moving to another page (at most every 15 s).
+  const [live, setLive] = useState<AdminCounts>({ todo, fresh: NO_FRESH });
+  const [fromServer, setFromServer] = useState(todo);
+  if (fromServer !== todo) {
+    setFromServer(todo);
+    setLive((c) => ({ ...c, todo }));
+  }
+  const [loaded, setLoaded] = useState(false);
+  const loadRef = useRef<(now?: boolean) => void>(() => undefined);
+  // When each section's page last recorded a look here: counts fetched before that keep its 0. Anything arriving while
+  // the admin stays on it shows at the next fetch.
+  const cleared = useRef<Partial<Record<AdminNew, number>>>({});
+  // A page put back by Back/Forward comes from the router's cache with its old `at`: no new look was recorded then.
+  const handled = useRef(new Set<string>());
+  const seen = useCallback((section: AdminNew, at: string) => {
+    const key = `${section}@${at}`;
+    if (handled.current.has(key)) return;
+    handled.current.add(key);
+    cleared.current[section] = Date.now();
+    setLive((c) => (c.fresh[section] === 0 ? c : { ...c, fresh: { ...c.fresh, [section]: 0 } }));
+  }, []);
+  useEffect(() => {
+    let stop = false;
+    let busy = false;
+    let again = false;
+    let last = 0;
+    const load = (now = false) => {
+      if (document.visibilityState !== "visible") return;
+      if (busy) {
+        if (now) again = true;
+        return;
+      }
+      if (!now && Date.now() - last < COUNTS_GAP_MS) return;
+      busy = true;
+      const started = (last = Date.now());
+      void fetch("/api/admin/counts", { cache: "no-store" })
+        .then((r) => (r.ok ? (r.json() as Promise<AdminCounts | null>) : null))
+        .then((c) => {
+          if (stop || !c) return;
+          setLoaded(true);
+          setLive((prev) => ({ todo: c.todo, fresh: Object.fromEntries(ADMIN_NEW.map((k) => [k, (cleared.current[k] ?? 0) > started ? prev.fresh[k] : c.fresh[k]])) as Record<AdminNew, number> }));
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          busy = false;
+          if (again && !stop) {
+            again = false;
+            load(true);
+          }
+        });
+    };
+    loadRef.current = load;
+    const onTick = () => load();
+    load(true);
+    const timer = window.setInterval(onTick, COUNTS_EVERY_MS);
+    document.addEventListener("visibilitychange", onTick);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onTick);
+    };
+  }, []);
+  useEffect(() => {
+    loadRef.current();
+  }, [path]);
+  const shown = live;
+
+  const items = groups.flatMap((g) => g.items);
+  const hrefs = new Set(items.map((i) => i.href));
+  // The phone menu button shows the total: red when something is waiting, gold when there is only news.
+  const todoTotal = items.reduce((sum, i) => sum + (i.badge ? shown.todo[i.badge] : 0), 0);
+  const freshTotal = items.reduce((sum, i) => sum + (i.fresh ? shown.fresh[i.fresh] : 0), 0);
 
   return (
     <div className="flex min-h-screen bg-adm-bg text-[16px] text-ink">
@@ -119,7 +238,7 @@ export function AdminShell({
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-adm-line bg-surface min-[981px]:flex">
         <Brand />
         <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
-          <NavList groups={groups} counts={counts} />
+          <NavList groups={groups} counts={shown} />
         </div>
         <Me me={me} />
       </aside>
@@ -141,7 +260,7 @@ export function AdminShell({
               <AdminIcon name="close" />
             </button>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <NavList groups={groups} counts={counts} onPick={() => setOpen(false)} />
+              <NavList groups={groups} counts={shown} onPick={() => setOpen(false)} />
             </div>
             <Me me={me} />
           </div>
@@ -153,11 +272,14 @@ export function AdminShell({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            aria-label={t("admin.shell.menu")}
+            aria-label={todoTotal || freshTotal ? t("admin.shell.menuCounts", { todo: formatNumber(todoTotal, locale), fresh: formatNumber(freshTotal, locale) }) : t("admin.shell.menu")}
             aria-expanded={open}
-            className="flex size-11 shrink-0 items-center justify-center rounded-[12px] border border-adm-line bg-surface text-adm-strong min-[981px]:hidden"
+            className="relative flex size-11 shrink-0 items-center justify-center rounded-[12px] border border-adm-line bg-surface text-adm-strong min-[981px]:hidden"
           >
             <AdminIcon name="menu" />
+            <span className="absolute -right-2 -top-2">
+              {todoTotal > 0 ? <Count n={todoTotal} kind="todo" /> : <Count n={freshTotal} kind="fresh" />}
+            </span>
           </button>
           {canSearch && (
             <form action="/admin/search" role="search" className="hidden h-11 max-w-[420px] flex-1 items-center gap-2.5 rounded-[12px] bg-adm-bg px-3.5 text-adm-soft min-[981px]:flex">
@@ -182,7 +304,7 @@ export function AdminShell({
             <AccountMenu
               me={me}
               initial={initial(me.name)}
-              unread={hrefs.has("/admin/support") ? counts.support : 0}
+              unread={hrefs.has("/admin/support") ? shown.todo.support : 0}
               links={[
                 { href: "/admin/support", label: t("admin.menu.messages"), icon: "messages" as const },
                 { href: "/admin/activity", label: t("admin.nav.activity"), icon: "activity" as const },
@@ -196,7 +318,11 @@ export function AdminShell({
 
         <main className="flex flex-1 flex-col gap-5 p-4 sm:p-7">
           {readOnly && <p className="m-0 rounded-[12px] bg-adm-sample-bg px-4 py-2.5 text-[15px] font-medium text-adm-sample">{t("admin.shell.viewOnly")}</p>}
-          <ReadOnlyProvider value={readOnly}>{children}</ReadOnlyProvider>
+          <CountsContext value={loaded ? shown : null}>
+            <SeenContext value={seen}>
+              <ReadOnlyProvider value={readOnly}>{children}</ReadOnlyProvider>
+            </SeenContext>
+          </CountsContext>
         </main>
       </div>
     </div>

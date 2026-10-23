@@ -1,34 +1,12 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-nav";
-import { navFor, type AdminBadge } from "@/lib/admin/nav";
+import { menuTodoCounts } from "@/lib/admin/badges";
+import { navFor } from "@/lib/admin/nav";
 import { hasPermission } from "@/lib/admin/permissions";
-import type { CurrentUser } from "@/lib/auth/policies";
 import { authorize } from "@/lib/auth/session";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 /** The top-bar search covers these lists (admin/search). */
 const SEARCH_AREAS = ["contests.view", "users.view", "payments.view"] as const;
-
-/** Badge counts, only for the queues this admin may see. */
-async function queueCounts(user: CurrentUser): Promise<Record<AdminBadge, number>> {
-  const zero = { reports: 0, claims: 0, withdrawals: 0, support: 0, approvals: 0, designs: 0, refunds: 0 };
-  if (!isSupabaseConfigured()) return zero;
-  const db = createAdminClient();
-  const head = { count: "exact" as const, head: true };
-  const [r, c, w, s, a, d, g] = await Promise.all([
-    hasPermission(user, "reports.view") ? db.from("reports").select("id", head).eq("status", "open") : null,
-    hasPermission(user, "claims.view") ? db.from("copy_claims").select("id", head).eq("status", "open") : null,
-    hasPermission(user, "withdrawals.view") ? db.from("withdrawals").select("id", head).eq("status", "requested") : null,
-    hasPermission(user, "support.view") ? db.from("support_threads").select("id", head).eq("status", "open").gt("unread_by_admin", 0) : null,
-    hasPermission(user, "payments.view") ? db.from("manual_payments").select("id", head).eq("status", "pending") : null,
-    // Designs the design check held (owner, 2026-10-15; migration 0061).
-    hasPermission(user, "designs.view") ? db.from("entries").select("id", head).eq("status", "held") : null,
-    // Money-back claims (owner, 2026-10-21): waiting for a decision, or approved and not paid yet.
-    hasPermission(user, "refunds.view") ? db.from("guarantee_claims").select("id", head).in("status", ["pending", "approved"]) : null,
-  ]);
-  return { reports: r?.count ?? 0, claims: c?.count ?? 0, withdrawals: w?.count ?? 0, support: s?.count ?? 0, approvals: a?.count ?? 0, designs: d?.count ?? 0, refunds: g?.count ?? 0 };
-}
 
 // The admin panel can be added to a phone's Home Screen (owner, 2026-10-22): iPhones show its notifications only then.
 export const metadata: Metadata = { manifest: "/admin-app.webmanifest" };
@@ -37,11 +15,12 @@ export const metadata: Metadata = { manifest: "/admin-app.webmanifest" };
 // account menu; items follow the admin's permissions.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await authorize("admin.access");
-  const counts = await queueCounts(user);
+  // Red counts for work waiting (owner, 2026-10-23); the gold "new" counts load in the browser.
+  const todo = await menuTodoCounts(user);
   return (
     <AdminShell
       groups={navFor(user)}
-      counts={counts}
+      todo={todo}
       me={{ name: user.name, title: user.adminTitle, isSuper: user.isSuperAdmin, permissions: user.adminPermissions }}
       canSearch={SEARCH_AREAS.some((p) => hasPermission(user, p))}
       canSeeActivity={hasPermission(user, "dashboard.view")}

@@ -1794,8 +1794,16 @@ const bn: Messages = {
       generic: "কাজটি হয়নি। আবার চেষ্টা করুন।",
     },
     groups: { overview: "সারসংক্ষেপ", work: "কাজ", people: "মানুষ", money: "টাকা", messages: "মেসেজ", content: "সাইটের কনটেন্ট", system: "সিস্টেম" },
-    shell: { brand: "অ্যাডমিন", superAdmin: "সুপার অ্যাডমিন", staff: "স্টাফ", viewSite: "সাইট দেখুন", menu: "অ্যাডমিন মেনু", close: "মেনু বন্ধ করুন", viewOnly: "আপনি এই পেজ দেখতে পারবেন, কিন্তু কিছু বদলাতে পারবেন না।", breadcrumb: "পথ", search: "কনটেস্ট, ইউজার, পেমেন্ট খুঁজুন", searchLabel: "খুঁজুন", account: "অ্যাকাউন্ট মেনু", newCount: "{n}টি নতুন" },
+    shell: { brand: "অ্যাডমিন", superAdmin: "সুপার অ্যাডমিন", staff: "স্টাফ", viewSite: "সাইট দেখুন", menu: "অ্যাডমিন মেনু", close: "মেনু বন্ধ করুন", viewOnly: "আপনি এই পেজ দেখতে পারবেন, কিন্তু কিছু বদলাতে পারবেন না।", breadcrumb: "পথ", search: "কনটেস্ট, ইউজার, পেমেন্ট খুঁজুন", searchLabel: "খুঁজুন", account: "অ্যাকাউন্ট মেনু", newCount: "{n}টি নতুন", todoCount: "{n}টি অপেক্ষায়", menuCounts: "অ্যাডমিন মেনু: {todo}টি অপেক্ষায়, {fresh}টি নতুন" },
     menu: { messages: "মেসেজ" },
+    whatsNew: {
+      title: "নতুন কী",
+      lead: "লাল: টিমের কাজের অপেক্ষায়। সোনালি: পেজটি শেষবার খোলার পর থেকে নতুন।",
+      none: "অপেক্ষায় কিছু নেই, শেষবার দেখার পর নতুন কিছুও নেই।",
+      tag: "নতুন",
+      teamOnly: "শুধু টিমের নতুন কাজ",
+      teamNone: "শেষবার দেখার পর টিমের নতুন কোনো কাজ নেই।",
+    },
     doors: {
       cards: { contests: "কনটেস্ট", designs: "ডিজাইন", payments: "পেমেন্ট" },
       toSite: "ওয়েবসাইটে যান",

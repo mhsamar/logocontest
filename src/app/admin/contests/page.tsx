@@ -4,7 +4,9 @@ import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { QuickDelete } from "@/components/admin/quick-delete";
 import { pageNum, Pager, qs, str } from "@/components/admin/table-bits";
-import { AdmCard, AdmEmpty, ADM_INPUT, IdChip, KpiGrid, KpiTile, Pill, StageSteps, TimeLeft } from "@/components/admin/ui";
+import { AdmCard, AdmEmpty, ADM_INPUT, IdChip, isNewSince, KpiGrid, KpiTile, NewPill, Pill, StageSteps, TimeLeft } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { contestStage, LIVE_STATUSES, OLD_STATUSES } from "@/lib/admin/contest-stage";
 import { adminContestOverview, type AdminContestOverviewRow } from "@/lib/admin/contests";
 import { requirePermission } from "@/lib/admin/core";
@@ -43,7 +45,9 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
   const sort: Sort = SORTS.find((x) => x === sp.sort) ?? (tab === "old" ? "newest" : "ending");
   const q = str(sp.q).trim().replace(/^lc-?/i, "").replace(/^0+(?=\d)/, "").toLowerCase();
   const page = pageNum(sp.page);
-  const [{ t, locale }, { rows, unpaid }] = await Promise.all([getI18n(), adminContestOverview()]);
+  // Contests that went live since this admin last opened Contests get a "New" tag (owner, 2026-10-23).
+  const [{ t, locale }, { rows, unpaid }, visit] = await Promise.all([getI18n(), adminContestOverview(), sectionVisit(admin, "contests")]);
+  const tag = (c: AdminContestOverviewRow) => (isNewSince(c.startsAt, visit.since) ? <NewPill label={t("admin.whatsNew.tag")} /> : null);
   const now = new Date();
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
@@ -61,10 +65,18 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
   const matches = (c: AdminContestOverviewRow) =>
     (!q || c.brand.toLowerCase().includes(q) || c.slug.includes(q) || (/^\d+$/.test(q) && c.number === Number(q))) && (!stage || contestStage(c.status).key === stage);
   const daysLeft = (c: AdminContestOverviewRow) => (c.endsAt ? c.endsAt.getTime() - now.getTime() : Number.POSITIVE_INFINITY);
+  // Until the admin picks another sort (Filter always sends one), new contests come first, so their tag is never below
+  // the cut.
+  const ownSort = sort !== (tab === "old" ? "newest" : "ending");
+  const fresh = (c: AdminContestOverviewRow) => (!ownSort && isNewSince(c.startsAt, visit.since) ? 1 : 0);
   const sorted = (list: AdminContestOverviewRow[]) =>
-    list.filter(matches).sort((a, b) =>
-      sort === "prize" ? b.prize - a.prize : sort === "designs" ? b.entries - a.entries : sort === "newest" ? b.createdAt.getTime() - a.createdAt.getTime() : daysLeft(a) - daysLeft(b),
-    );
+    list
+      .filter(matches)
+      .sort(
+        (a, b) =>
+          fresh(b) - fresh(a) ||
+          (sort === "prize" ? b.prize - a.prize : sort === "designs" ? b.entries - a.entries : sort === "newest" ? b.createdAt.getTime() - a.createdAt.getTime() : daysLeft(a) - daysLeft(b)),
+      );
 
   const link = (over: Record<string, string | number | undefined>) =>
     `/admin/contests${qs({ tab: tab === "all" ? undefined : tab, q: str(sp.q) || undefined, stage: stage || undefined, sort: sp.sort ? sort : undefined, ...over })}`;
@@ -150,7 +162,10 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
                     {avatar(c)}
                     <span className="flex min-w-0 flex-col gap-[3px]">
                       <strong className="truncate text-[16.5px] hover:text-primary">{c.brand}</strong>
-                      <IdChip prefix="LC" n={c.number} />
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <IdChip prefix="LC" n={c.number} />
+                        {tag(c)}
+                      </span>
                     </span>
                   </Link>
                 </td>
@@ -194,6 +209,7 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
                 </div>
                 <span className="text-[15px] text-muted">{t("admin.contests.clientIs", { name: c.client.name })}</span>
                 <div className="flex flex-wrap gap-1.5 pt-1">
+                  {tag(c)}
                   {c.featured && <Pill tone="dark">{t("admin.contests.badges.featured")}</Pill>}
                   {c.urgent && <Pill tone="red">{t("admin.contests.badges.urgent")}</Pill>}
                   {c.highlighted && <Pill tone="gold">{t("admin.contests.badges.highlighted")}</Pill>}
@@ -252,6 +268,7 @@ export default async function AdminContestsPage({ searchParams }: PageProps<"/ad
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="contests" at={visit.at} />}
       <AdminHead
         title={t("admin.contests.title")}
         lead={t("admin.contests.leadNew", { n: num(rows.length), live: num(live.length), old: num(old.length) })}

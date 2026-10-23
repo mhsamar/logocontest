@@ -67,13 +67,15 @@ export async function listBlockedTerms(): Promise<BlockedTerm[]> {
   return (data ?? []).map((r) => ({ id: r.id as number, term: r.term as string, language: r.language as string, type: r.type as string, createdAt: new Date(r.created_at as string) }));
 }
 
-export type AuditRow = { id: string; action: string; subjectType: string; subjectId: string | null; changes: Record<string, unknown>; admin: string | null; createdAt: Date };
+export type AuditRow = { id: string; action: string; subjectType: string; subjectId: string | null; changes: Record<string, unknown>; admin: string | null; adminId: string | null; createdAt: Date };
 
-export async function listAudit(q: { action: string; page: number }): Promise<{ rows: AuditRow[]; pages: number; actions: string[] }> {
+/** `fresh`: only what the rest of the team did since then (owner, 2026-10-23: "New from the team"). */
+export async function listAudit(q: { action: string; page: number; fresh?: { since: Date; notBy: string } | null }): Promise<{ rows: AuditRow[]; pages: number; actions: string[] }> {
   if (!isSupabaseConfigured()) return { rows: [], pages: 0, actions: [] };
   const db = createAdminClient();
-  let query = db.from("audit_logs").select("id, action, subject_type, subject_id, changes, created_at, admin:profiles!admin_id(name)", { count: "exact" });
+  let query = db.from("audit_logs").select("id, action, subject_type, subject_id, changes, created_at, admin_id, admin:profiles!admin_id(name)", { count: "exact" });
   if (q.action) query = query.eq("action", q.action);
+  if (q.fresh) query = query.gt("created_at", q.fresh.since.toISOString()).not("admin_id", "is", null).neq("admin_id", q.fresh.notBy);
   const from = (q.page - 1) * PAGE;
   const [{ data, count }, kinds] = await Promise.all([query.order("created_at", { ascending: false }).range(from, from + PAGE - 1), db.from("audit_logs").select("action").limit(5000)]);
   return {
@@ -84,6 +86,7 @@ export async function listAudit(q: { action: string; page: number }): Promise<{ 
       subjectId: (r.subject_id as string | null) ?? null,
       changes: (r.changes ?? {}) as Record<string, unknown>,
       admin: one(r.admin as { name: string } | { name: string }[] | null)?.name ?? null,
+      adminId: (r.admin_id as string | null) ?? null,
       createdAt: new Date(r.created_at as string),
     })),
     pages: Math.max(1, Math.ceil((count ?? 0) / PAGE)),

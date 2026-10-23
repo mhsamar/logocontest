@@ -256,14 +256,14 @@ export async function purgeExpiredTrash(now: Date, days: number, limit = 10): Pr
   return out;
 }
 
-export type TrashRow = { id: string; kind: "contest" | "user"; title: string; sub: string | null; link: string; deletedAt: Date; eraseAt: Date; by: string | null; reason: string | null; auto: boolean };
+export type TrashRow = { id: string; kind: "contest" | "user"; title: string; sub: string | null; link: string; deletedAt: Date; eraseAt: Date; by: string | null; byId: string | null; reason: string | null; auto: boolean };
 
 /** Everything in the Trash, newest first. */
 export async function trashList(days: number): Promise<{ contests: TrashRow[]; users: TrashRow[] }> {
   if (!isSupabaseConfigured()) return { contests: [], users: [] };
   const [{ data: contests }, { data: users }] = await Promise.all([
-    db().from("contests").select("id, slug, brand_name, contest_number, deleted_at, delete_reason, deleted_from_status, deleter:profiles!deleted_by(name), client:profiles!client_id(name)").eq("status", "deleted").order("deleted_at", { ascending: false }).limit(500),
-    db().from("profiles").select("id, name, username, role, deleted_at, delete_reason, deleter:profiles!deleted_by(name)").eq("status", "deleted").order("deleted_at", { ascending: false }).limit(500),
+    db().from("contests").select("id, slug, brand_name, contest_number, deleted_at, deleted_by, delete_reason, deleted_from_status, deleter:profiles!deleted_by(name), client:profiles!client_id(name)").eq("status", "deleted").order("deleted_at", { ascending: false }).limit(500),
+    db().from("profiles").select("id, name, username, role, deleted_at, deleted_by, delete_reason, deleter:profiles!deleted_by(name)").eq("status", "deleted").order("deleted_at", { ascending: false }).limit(500),
   ]);
   const erase = (d: string) => new Date(new Date(d).getTime() + days * DAY);
   return {
@@ -276,6 +276,7 @@ export async function trashList(days: number): Promise<{ contests: TrashRow[]; u
       deletedAt: new Date(c.deleted_at as string),
       eraseAt: erase(c.deleted_at as string),
       by: one(c.deleter as { name: string } | { name: string }[] | null)?.name ?? null,
+      byId: (c.deleted_by as string | null) ?? null,
       reason: c.delete_reason === "unpaid" ? null : ((c.delete_reason as string | null) ?? null),
       auto: c.delete_reason === "unpaid" && !c.deleter,
     })),
@@ -288,6 +289,7 @@ export async function trashList(days: number): Promise<{ contests: TrashRow[]; u
       deletedAt: new Date(u.deleted_at as string),
       eraseAt: erase(u.deleted_at as string),
       by: one(u.deleter as { name: string } | { name: string }[] | null)?.name ?? null,
+      byId: (u.deleted_by as string | null) ?? null,
       reason: (u.delete_reason as string | null) ?? null,
       auto: false,
     })),

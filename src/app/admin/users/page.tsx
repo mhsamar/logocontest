@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { UsersBoard } from "@/components/admin/users-board";
 import { requirePermission } from "@/lib/admin/core";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { hasPermission } from "@/lib/admin/permissions";
 import { adminUsersPage } from "@/lib/admin/users";
 import { parseUsersQuery, toggleShow, USER_ROLES, USER_SHOWS, USER_SORTS, USER_STATUSES, usersHref } from "@/lib/admin/users-query";
@@ -23,7 +25,8 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
   const admin = await requirePermission("users.view");
   const canManage = hasPermission(admin, "users.manage");
   const q = parseUsersQuery(await searchParams);
-  const [{ t, locale }, data] = await Promise.all([getI18n(), adminUsersPage(q, { canManage })]);
+  // People who joined since this admin last opened Users get a "New" tag (owner, 2026-10-23).
+  const [{ t, locale }, data, visit] = await Promise.all([getI18n(), adminUsersPage(q, { canManage }), sectionVisit(admin, "users")]);
   const fmt = (n: number) => formatNumber(n, locale);
   const c = data.counts;
   const page = Math.min(q.page, data.pages);
@@ -45,6 +48,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="users" at={visit.at} />}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="lc-d m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-ink max-[640px]:text-[26px]">{t("admin.users.title")}</h1>
@@ -141,7 +145,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
         </div>
       </section>
 
-      <UsersBoard rows={data.rows} canManage={canManage} meId={admin.id} />
+      <UsersBoard rows={data.rows} canManage={canManage} meId={admin.id} since={visit.since?.toISOString() ?? null} />
 
       {data.total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">

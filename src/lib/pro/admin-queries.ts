@@ -61,7 +61,7 @@ export function memberStatus(sub: Subscription, now: Date = new Date()): MemberS
 
 const rate = (wins: number, contests: number) => (contests > 0 ? Math.round((Math.min(wins, contests) / contests) * 100) : 0);
 
-export async function proOverview(rangeDays: 7 | 30 | 90, now: Date = new Date()): Promise<ProOverview> {
+export async function proOverview(rangeDays: 7 | 30 | 90, now: Date = new Date(), newSince: Date | null = null): Promise<ProOverview> {
   const { ready } = await getProSettings();
   const empty: ProOverview = {
     ready,
@@ -85,12 +85,18 @@ export async function proOverview(rangeDays: 7 | 30 | 90, now: Date = new Date()
   const month = dhakaMonth(now);
   const lastMonth = dhakaMonth(new Date(month.from.getTime() - DAY));
 
-  const [{ data: subRows }, { data: events }, { data: payments }, { data: logs }] = await Promise.all([
+  const [{ data: subRows }, { data: events }, { data: payments }, { data: latest }, { data: sinceVisit }] = await Promise.all([
     db().from("pro_subscriptions").select(`${SUB_COLUMNS}, cancel_note`).limit(5000),
     db().from("pro_funnel_events").select("designer_id, event, step, created_at").gte("created_at", since).order("created_at").limit(50000),
     db().from("pro_payments").select("designer_id, kind, amount_bdt, status, paid_at, created_at").gte("created_at", lastMonth.from.toISOString()).limit(20000),
     db().from("pro_activity_log").select("id, actor_id, action, designer_id, old_value, new_value, created_at").order("created_at", { ascending: false }).limit(12),
+    // Every line since the admin last looked (owner, 2026-10-23), so each new payment shows with its "New" tag and the
+    // log has no gaps.
+    newSince
+      ? db().from("pro_activity_log").select("id, actor_id, action, designer_id, old_value, new_value, created_at").gt("created_at", newSince.toISOString()).order("created_at", { ascending: false }).limit(500)
+      : Promise.resolve({ data: [] as never[] }),
   ]);
+  const logs = [...new Map([...(latest ?? []), ...(sinceVisit ?? [])].map((l) => [l.id, l])).values()].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const subs = (subRows ?? []).map((r) => toSubscription(r as Record<string, unknown>));
   const ev = (events ?? []) as Ev[];
 

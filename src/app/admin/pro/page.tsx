@@ -5,6 +5,13 @@ import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, MemberSearch, P
 import { trialOverview } from "@/lib/pro/trial-admin";
 import "@/components/pro/admin-pro.css";
 import { requirePermission } from "@/lib/admin/core";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
+import { isNewSince, NewPill } from "@/components/admin/ui";
+
+// Pro payments and trials are the plan's gold "new" count (owner, 2026-10-23): payments are tagged on these log lines,
+// trials on their own rows.
+const NEW_EVENTS = new Set(["paid", "renewed"]);
 import { hasPermission } from "@/lib/admin/permissions";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -32,7 +39,8 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
   const range = sp.range === "7" ? 7 : sp.range === "90" ? 90 : 30;
   const chip = CHIPS.find((c) => c === sp.members) ?? "all";
   const q = typeof sp.q === "string" ? sp.q.trim().replace(/^@/, "").toLowerCase().slice(0, 40) : "";
-  const [{ t, locale }, { settings: s, ready }, o, trials] = await Promise.all([getI18n(), getProSettings(), proOverview(range), trialOverview()]);
+  const visit = await sectionVisit(admin, "pro");
+  const [{ t, locale }, { settings: s, ready }, o, trials] = await Promise.all([getI18n(), getProSettings(), proOverview(range, new Date(), visit.since), trialOverview()]);
   const n = (v: number) => formatNumber(v, locale);
   const pct = (v: number) => `${n(v)}%`;
   const now = new Date();
@@ -60,6 +68,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
 
   return (
     <div className="ap">
+      {visit.at && <SeenNow section="pro" at={visit.at} />}
       <div className="ap-top">
         <div style={{ flex: "1 1 360px" }}>
           <h1 className="lc-d m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-ink">{t("pro.admin.title")}</h1>
@@ -387,7 +396,10 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
                   return (
                     <div key={r.id} className="ap-r tr">
                       <span className="ap-nm">
-                        <b>{r.designer.username ? <Link href={`/admin/users/${r.designer.id}`}>{r.designer.name}</Link> : r.designer.name}</b>
+                        <b>
+                          {r.designer.username ? <Link href={`/admin/users/${r.designer.id}`}>{r.designer.name}</Link> : r.designer.name}
+                          {isNewSince(r.startedAt, visit.since) && <NewPill label={t("admin.whatsNew.tag")} className="ml-2 align-middle" />}
+                        </b>
                         <em>{r.designer.username ? `@${r.designer.username}` : ""}{r.startedBy === "admin" ? ` · ${t("pro.trial.admin.byAdmin")}` : ""}</em>
                         <em>{t("pro.trial.admin.lifetime")}</em>
                       </span>
@@ -509,6 +521,7 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
                   <i />
                   <div>
                     <b>{a.actor ?? t("pro.admin.system")}</b> {describe(a)}
+                    {NEW_EVENTS.has(a.action) && isNewSince(a.at, visit.since) && <NewPill label={t("admin.whatsNew.tag")} className="ml-2 align-middle" />}
                     <em>{timeAgo(new Date(a.at), now, locale)}</em>
                   </div>
                 </div>

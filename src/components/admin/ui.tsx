@@ -55,6 +55,22 @@ export function Pill({ tone = "neutral", className, children }: { tone?: PillTon
   return <span className={cx("inline-flex items-center whitespace-nowrap rounded-full px-[9px] py-0.5 text-[12.5px] font-bold", PILL[tone], className)}>{children}</span>;
 }
 
+/** True when a row came in after the admin last opened its section (owner, 2026-10-23); never without a time. */
+export function isNewSince(at: Date | string | null | undefined, since: Date | null): boolean {
+  if (!at || !since) return false;
+  return new Date(at).getTime() > since.getTime();
+}
+
+/** The gold "New" tag on a row that came in since the admin's last visit to the section. */
+export function NewPill({ label, className }: { label: string; className?: string }) {
+  return (
+    <Pill tone="gold" className={cx("gap-1.5", className)}>
+      <span aria-hidden className="size-1.5 rounded-full bg-gold-ink" />
+      {label}
+    </Pill>
+  );
+}
+
 /** KPI tile: label, big number, optional line under it, and an icon square. `accent` is the red tile. */
 export function KpiTile({ label, value, hint, icon, href, accent = false }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: AdminIconName; href?: string; accent?: boolean }) {
   const body = (

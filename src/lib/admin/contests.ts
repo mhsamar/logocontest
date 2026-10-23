@@ -70,6 +70,8 @@ export type AdminContestOverviewRow = AdminContestRow & {
   highlighted: boolean;
   isPrivate: boolean;
   completedAt: Date | null;
+  /** When it went live (was paid). */
+  startsAt: Date | null;
 };
 
 /** Paid contests (not drafts or unpaid), newest first, up to 1,000, with their design counts. */
@@ -79,7 +81,7 @@ export async function adminContestOverview(): Promise<{ rows: AdminContestOvervi
   const [{ data }, unpaid] = await Promise.all([
     db
       .from("contests")
-      .select("id, slug, contest_number, brand_name, status, package, prize_amount, total_amount, ends_at, completed_at, created_at, is_promoted, is_urgent, is_highlighted, is_private, entries(count), client:profiles!client_id(id, name)")
+      .select("id, slug, contest_number, brand_name, status, package, prize_amount, total_amount, starts_at, ends_at, completed_at, created_at, is_promoted, is_urgent, is_highlighted, is_private, entries(count), client:profiles!client_id(id, name)")
       .not("status", "in", "(draft,pending_payment,deleted)")
       .order("created_at", { ascending: false })
       .limit(1000),
@@ -106,6 +108,7 @@ export async function adminContestOverview(): Promise<{ rows: AdminContestOvervi
       highlighted: Boolean(c.is_highlighted),
       isPrivate: Boolean(c.is_private),
       completedAt: c.completed_at ? new Date(c.completed_at as string) : null,
+      startsAt: c.starts_at ? new Date(c.starts_at as string) : null,
     };
   });
   return { rows, unpaid: unpaid.count ?? 0 };

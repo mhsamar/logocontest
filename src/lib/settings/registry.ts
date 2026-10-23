@@ -201,6 +201,10 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 24,
     description: "Hours before the end when the 'contest ends soon' notice goes out.",
   },
+  "timers.admin_visit_minutes": {
+    group: "timers", type: "int", schema: int(5, 1440), default: 30,
+    description: "Admin \"New\" tags (owner, 2026-10-23): pages of a section opened again within this many minutes count as the same visit, so their New tags stay put.",
+  },
   // Owner, 2026-10-15: the new-designs email (client-new-entries) goes at most once in this many hours per contest.
   "timers.new_entry_digest_hours": {
     group: "timers", type: "int", schema: int(1, 168), default: 24,

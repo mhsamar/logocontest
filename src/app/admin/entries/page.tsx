@@ -7,7 +7,10 @@ import { EntryThumb } from "@/components/admin/entry-thumb";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { str } from "@/components/admin/table-bits";
-import { AdmCard, ADM_INPUT, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
+import { AdmCard, ADM_INPUT, IdChip, isNewSince, KpiGrid, KpiTile, NewPill, Pill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
+import { showsNew } from "@/lib/admin/nav";
 import { requirePermission } from "@/lib/admin/core";
 import { duplicatePairs, heldEntries, recentEntries, type AdminEntry, type HeldEntry } from "@/lib/admin/moderation";
 import { approveEntry, clearDuplicate, removeEntry, removeHeldPicture } from "@/lib/admin/moderation-actions";
@@ -34,13 +37,22 @@ const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia
 // A-03 Designs (BLUEPRINT §13.4; design/admin/designs.html, owner 2026-10-10): the latest designs, flagged
 // near-duplicates side by side, and winners.
 export default async function AdminEntriesPage({ searchParams }: PageProps<"/admin/entries">) {
-  await requirePermission("designs.view");
+  const me = await requirePermission("designs.view");
   const sp = await searchParams;
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? "recent";
   const sort = SORTS.find((x) => x === sp.sort) ?? "newest";
   const contest = str(sp.contest);
   const q = str(sp.q).trim().toLowerCase().replace(/^lc-?0*/, "");
-  const [{ t, locale }, all, pairs, held, checkOn, approveAll] = await Promise.all([getI18n(), recentEntries(READ), duplicatePairs(), heldEntries(), getSetting("designs.relevance_check").catch(() => true), getSetting("designs.approve_all").catch(() => false)]);
+  const [{ t, locale }, all, pairs, held, checkOn, approveAll, visit] = await Promise.all([
+    getI18n(),
+    recentEntries(READ),
+    duplicatePairs(),
+    heldEntries(),
+    getSetting("designs.relevance_check").catch(() => true),
+    getSetting("designs.approve_all").catch(() => false),
+    // Designs sent since this admin last looked get a "New" tag (owner, 2026-10-23); only the tabs that show them count.
+    showsNew("designs", tab) ? sectionVisit(me, "designs") : Promise.resolve({ since: null, at: null }),
+  ]);
   const num = (n: number) => formatNumber(n, locale);
   const now = new Date();
   const when = (d: Date) => d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
@@ -94,6 +106,8 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
           <Pill tone="bad" className="absolute right-3 top-3">
             {t("admin.entries.statuses.removed" as MessageKey)}
           </Pill>
+        ) : isNewSince(e.createdAt, visit.since) ? (
+          <NewPill label={t("admin.whatsNew.tag")} className="absolute right-3 top-3" />
         ) : dhakaDay(e.createdAt) === today ? (
           <Pill tone="red" className="absolute right-3 top-3">
             {t("admin.entries.newToday")}
@@ -129,6 +143,7 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="designs" at={visit.at} />}
       <AdminHead title={t("admin.entries.title")} lead={t("admin.entries.leadNew")} />
 
       <KpiGrid>

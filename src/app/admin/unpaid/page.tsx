@@ -6,7 +6,9 @@ import { CopyLink } from "@/components/admin/copy-link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { QuickDelete } from "@/components/admin/quick-delete";
-import { AdmCard, AdmEmpty, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
+import { AdmCard, AdmEmpty, isNewSince, KpiGrid, KpiTile, NewPill, Pill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
 import { dhakaStart, unpaidContests, type UnpaidContest } from "@/lib/admin/analytics";
 import { requirePermission } from "@/lib/admin/core";
 import { dashboardStats } from "@/lib/admin/dashboard";
@@ -41,7 +43,15 @@ export default async function AdminUnpaidPage() {
   const canMessage = hasPermission(me, "messages.manage");
   // Call notes and Delete (owner, 2026-10-20): Unpaid contests · manage.
   const canManage = hasPermission(me, "unpaid.manage");
-  const [{ t, locale }, rows, stats, origin, leads] = await Promise.all([getI18n(), unpaidContests(), dashboardStats({ since: dhakaStart(29), until: null }), linkOrigin(), wizardLeads()]);
+  const [{ t, locale }, rows, stats, origin, leads, visit] = await Promise.all([
+    getI18n(),
+    unpaidContests(),
+    dashboardStats({ since: dhakaStart(29), until: null }),
+    linkOrigin(),
+    wizardLeads(),
+    // Contests and leads that came in since this admin last opened Unpaid get a "New" tag (owner, 2026-10-23).
+    sectionVisit(me, "unpaid"),
+  ]);
   const notes = await unpaidNotes(rows.map((r) => r.id));
   // A contest waiting for payment reached the payment page, even when the wizard didn't record the step.
   const stepOf = (r: UnpaidContest) => r.step ?? (r.status === "pending_payment" ? AT_PAYMENT : null);
@@ -78,6 +88,7 @@ export default async function AdminUnpaidPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="unpaid" at={visit.at} />}
       <AdminHead title={t("admin.unpaid.title")} lead={t("admin.unpaid.leadNew")} />
 
       <KpiGrid>
@@ -108,6 +119,7 @@ export default async function AdminUnpaidPage() {
                         <Link href={`/admin/contests/${r.slug}`} className="lc-d text-xl font-semibold tracking-[-0.02em] hover:text-primary">
                           {r.brand || "—"}
                         </Link>
+                        {isNewSince(r.createdAt, visit.since) && <NewPill label={t("admin.whatsNew.tag")} />}
                         <Pill>{t(`admin.unpaid.statuses.${r.status}`)}</Pill>
                         {step >= AT_PAYMENT && <Pill tone="warn">{t("admin.unpaid.stoppedAtPayment")}</Pill>}
                       </div>
@@ -249,7 +261,10 @@ export default async function AdminUnpaidPage() {
               {leads.map((l) => (
                 <li key={l.mobile} className="flex items-center justify-between gap-3 py-2.5">
                   <span className="flex min-w-0 flex-col">
-                    <strong className="truncate text-[15px]">{l.brand || "—"}</strong>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <strong className="truncate text-[15px]">{l.brand || "—"}</strong>
+                      {isNewSince(l.createdAt, visit.since) && <NewPill label={t("admin.whatsNew.tag")} />}
+                    </span>
                     <span className="text-[13.5px] text-muted">
                       {formatMobile(l.mobile)} · {t("admin.unpaid.leads.stopped", { step: stepName(Math.min(l.step, STEPS)) })} · {when(l.updatedAt)}
                     </span>

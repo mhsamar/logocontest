@@ -3,8 +3,15 @@ import type { AdminIconName } from "@/components/admin/icons";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { ADMIN_AREAS, hasPermission, type AdminArea, type AdminIdentity, type Permission } from "./permissions";
 
-export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals" | "designs" | "refunds";
-export type AdminNavItem = { href: string; icon: AdminIconName; label: MessageKey; perm: Permission | "super"; badge?: AdminBadge };
+/** Red counts: work waiting for the team. They go away when the work is done. */
+export type AdminBadge = "reports" | "claims" | "withdrawals" | "support" | "approvals" | "designs" | "refunds" | "copyright" | "agreements" | "cards" | "monthly";
+/**
+ * Gold counts (owner, 2026-10-23): what is new since this admin last opened the section. Opening it clears them.
+ * The key is also the section's row in admin_seen (migration 0073).
+ */
+export const ADMIN_NEW = ["contests", "unpaid", "designs", "users", "payments", "pro", "trash", "activity", "audit"] as const;
+export type AdminNew = (typeof ADMIN_NEW)[number];
+export type AdminNavItem = { href: string; icon: AdminIconName; label: MessageKey; perm: Permission | "super"; badge?: AdminBadge; fresh?: AdminNew };
 export type AdminNavGroup = { label: MessageKey; items: AdminNavItem[] };
 
 export const ADMIN_NAV: AdminNavGroup[] = [
@@ -14,35 +21,35 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin", icon: "dashboard", label: "admin.nav.dashboard", perm: "dashboard.view" },
       { href: "/admin/live", icon: "live", label: "admin.nav.live", perm: "live.view" },
       { href: "/admin/analytics", icon: "analytics", label: "admin.nav.analytics", perm: "dashboard.view" },
-      { href: "/admin/activity", icon: "activity", label: "admin.nav.activity", perm: "dashboard.view" },
+      { href: "/admin/activity", icon: "activity", label: "admin.nav.activity", perm: "dashboard.view", fresh: "activity" },
     ],
   },
   {
     label: "admin.groups.work",
     items: [
-      { href: "/admin/contests", icon: "contests", label: "admin.nav.contests", perm: "contests.view" },
+      { href: "/admin/contests", icon: "contests", label: "admin.nav.contests", perm: "contests.view", fresh: "contests" },
       { href: "/admin/services", icon: "services", label: "admin.nav.services", perm: "services.view" },
-      { href: "/admin/pro", icon: "pro", label: "admin.nav.pro", perm: "pro.view" },
-      { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view", badge: "designs" },
+      { href: "/admin/pro", icon: "pro", label: "admin.nav.pro", perm: "pro.view", fresh: "pro" },
+      { href: "/admin/entries", icon: "designs", label: "admin.nav.entries", perm: "designs.view", badge: "designs", fresh: "designs" },
       { href: "/admin/reports", icon: "reports", label: "admin.nav.reports", perm: "reports.view", badge: "reports" },
       { href: "/admin/claims", icon: "claims", label: "admin.nav.claims", perm: "claims.view", badge: "claims" },
-      { href: "/admin/copyright", icon: "checker", label: "admin.nav.copyright", perm: "copyright.view" },
-      { href: "/admin/unpaid", icon: "unpaid", label: "admin.nav.unpaid", perm: "unpaid.view" },
-      { href: "/admin/monthly", icon: "monthly", label: "admin.nav.monthly", perm: "monthly.view" },
+      { href: "/admin/copyright", icon: "checker", label: "admin.nav.copyright", perm: "copyright.view", badge: "copyright" },
+      { href: "/admin/unpaid", icon: "unpaid", label: "admin.nav.unpaid", perm: "unpaid.view", fresh: "unpaid" },
+      { href: "/admin/monthly", icon: "monthly", label: "admin.nav.monthly", perm: "monthly.view", badge: "monthly" },
     ],
   },
   {
     label: "admin.groups.people",
     items: [
-      { href: "/admin/users", icon: "users", label: "admin.nav.users", perm: "users.view" },
-      { href: "/admin/agreements", icon: "agreements", label: "admin.nav.agreements", perm: "agreements.view" },
+      { href: "/admin/users", icon: "users", label: "admin.nav.users", perm: "users.view", fresh: "users" },
+      { href: "/admin/agreements", icon: "agreements", label: "admin.nav.agreements", perm: "agreements.view", badge: "agreements" },
       { href: "/admin/team", icon: "team", label: "admin.nav.team", perm: "super" },
     ],
   },
   {
     label: "admin.groups.money",
     items: [
-      { href: "/admin/payments", icon: "payments", label: "admin.nav.payments", perm: "payments.view" },
+      { href: "/admin/payments", icon: "payments", label: "admin.nav.payments", perm: "payments.view", fresh: "payments" },
       // Manual bKash, payment methods and promo codes (owner, 2026-10-14).
       { href: "/admin/payments/approvals", icon: "approvals", label: "pay.admin.nav.approvals", perm: "payments.view", badge: "approvals" },
       { href: "/admin/payments/methods", icon: "methods", label: "pay.admin.nav.methods", perm: "payments.view" },
@@ -61,7 +68,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/messages", icon: "send", label: "admin.nav.messages", perm: "messages.view" },
       // Auto share (owner, 2026-10-19): Pinterest and the Facebook contest cards, both Content permissions.
       { href: "/admin/pinterest", icon: "pinterest", label: "admin.nav.pinterest", perm: "autoshare.view" },
-      { href: "/admin/contest-cards", icon: "cards", label: "admin.nav.contestCards", perm: "autoshare.view" },
+      { href: "/admin/contest-cards", icon: "cards", label: "admin.nav.contestCards", perm: "autoshare.view", badge: "cards" },
       // Who gets which notice, how and when (owner, 2026-10-15).
       { href: "/admin/notifications", icon: "bell", label: "admin.nav.notifications", perm: "notifications.view" },
     ],
@@ -85,12 +92,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "admin.groups.system",
     items: [
       { href: "/admin/settings", icon: "settings", label: "admin.nav.settings", perm: "settings.view" },
-      { href: "/admin/audit", icon: "audit", label: "admin.nav.audit", perm: "audit.view" },
+      { href: "/admin/audit", icon: "audit", label: "admin.nav.audit", perm: "audit.view", fresh: "audit" },
       // Logins and devices; staff activity for the Super admin (owner, 2026-10-14).
       { href: "/admin/sign-ins", icon: "signins", label: "admin.nav.signIns", perm: "audit.view" },
       { href: "/admin/staff-activity", icon: "staff", label: "admin.nav.staffActivity", perm: "super" },
       // Deleted contests and users (owner, 2026-10-14).
-      { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "trash.view" },
+      { href: "/admin/trash", icon: "trash", label: "admin.nav.trash", perm: "trash.view", fresh: "trash" },
     ],
   },
 ];
@@ -102,15 +109,37 @@ export function navFor(u: AdminIdentity): AdminNavGroup[] {
   return ADMIN_NAV.map((g) => ({ ...g, items: g.items.filter((i) => allowed(u, i)) })).filter((g) => g.items.length > 0);
 }
 
-/** The admin area a page belongs to, from the menu (the longest matching link wins). */
-export function areaOfPath(path: string): AdminArea | null {
+/** The menu item a page belongs to (the longest matching link wins). */
+export function navItemOfPath(path: string): AdminNavItem | null {
   let best: AdminNavItem | null = null;
   for (const item of ADMIN_NAV.flatMap((g) => g.items)) {
     const hit = item.href === "/admin" ? path === "/admin" : path === item.href || path.startsWith(`${item.href}/`);
     if (hit && (!best || item.href.length > best.href.length)) best = item;
   }
+  return best;
+}
+
+/** The admin area a page belongs to, from the menu. */
+export function areaOfPath(path: string): AdminArea | null {
+  const best = navItemOfPath(path);
   return best && best.perm !== "super" ? (best.perm.split(".")[0] as AdminArea) : null;
 }
+
+/** Tabs of a section's page that never show its new rows (held or failed ones): opening them isn't a look. */
+const QUIET_TABS: Partial<Record<AdminNew, readonly string[]>> = { designs: ["held", "duplicates", "winners"], payments: ["failed"] };
+
+/** True when this tab of the section's page can show its "New" tags. */
+export function showsNew(key: AdminNew, tab: string | null | undefined): boolean {
+  return !tab || !QUIET_TABS[key]?.includes(tab);
+}
+
+/** The menu item that carries a "new" section, for its permission. */
+export function freshItem(key: AdminNew): AdminNavItem | null {
+  return ADMIN_NAV.flatMap((g) => g.items).find((i) => i.fresh === key) ?? null;
+}
+
+/** True when this admin may see this menu item. */
+export const canSeeItem = allowed;
 
 /** True when this admin may only look at the page, not change anything on it. */
 export function isReadOnlyPage(u: AdminIdentity, path: string): boolean {

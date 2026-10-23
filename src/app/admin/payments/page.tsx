@@ -4,7 +4,10 @@ import { DayBarChart } from "@/components/admin/charts";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { pageNum, Pager, qs, str } from "@/components/admin/table-bits";
-import { AdmCard, AdmEmpty, ADM_INPUT, CardTitle, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";
+import { AdmCard, AdmEmpty, ADM_INPUT, CardTitle, IdChip, isNewSince, KpiGrid, KpiTile, NewPill, Pill } from "@/components/admin/ui";
+import { SeenNow } from "@/components/admin/admin-nav";
+import { sectionVisit } from "@/lib/admin/badges";
+import { showsNew } from "@/lib/admin/nav";
 import { requirePermission } from "@/lib/admin/core";
 import { paymentsOverview, splitOf, type PaymentRow } from "@/lib/admin/payments-overview";
 import { refundedPaymentIds } from "@/lib/guarantee/queries";
@@ -28,14 +31,15 @@ const dhakaDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia
 // A-06 Payments (BLUEPRINT §13.6; design/admin/payments.html, owner 2026-10-10): totals, paid per day, where the money
 // goes, every payment, and its details. Checking a payment with the gateway comes with SSLCommerz (milestone 9).
 export default async function AdminPaymentsPage({ searchParams }: PageProps<"/admin/payments">) {
-  await requirePermission("payments.view");
+  const me = await requirePermission("payments.view");
   const sp = await searchParams;
   // ?status= and ?purpose= from older links still work.
   const tab: Tab = TABS.find((x) => x === sp.tab) ?? (sp.status === "paid" ? "paid" : sp.status === "failed" ? "failed" : sp.purpose === "contest" ? "contests" : sp.purpose === "addon" || sp.purpose === "extension" ? "addons" : "all");
   const q = str(sp.q).trim().toLowerCase();
   const qNum = q.replace(/^lc-?/, "").replace(/^0+(?=\d)/, "");
   const page = pageNum(sp.page);
-  const [{ t, locale }, all, back] = await Promise.all([getI18n(), paymentsOverview(), refundedPaymentIds()]);
+  // Paid since this admin last opened Payments: "New" tag (owner, 2026-10-23).
+  const [{ t, locale }, all, back, visit] = await Promise.all([getI18n(), paymentsOverview(), refundedPaymentIds(), showsNew("payments", tab) ? sectionVisit(me, "payments") : Promise.resolve({ since: null, at: null })]);
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const short = (n: number) => (n >= 1000 ? `৳${num(Math.round(n / 100) / 10)}k` : taka(n));
@@ -79,7 +83,12 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
   const inTab = (p: PaymentRow) => (tab === "paid" ? p.status === "paid" : tab === "failed" ? p.status === "failed" : tab === "contests" ? p.purpose === "contest" : tab === "addons" ? p.purpose !== "contest" : true);
   const matches = (p: PaymentRow) =>
     !q || (p.txnId ?? "").toLowerCase().includes(q) || (p.contest?.brand ?? "").toLowerCase().includes(q) || (p.client?.name ?? "").toLowerCase().includes(q) || (/^\d+$/.test(qNum) && p.contest?.number === Number(qNum));
-  const list = all.filter(inTab).filter(matches);
+  // Payments paid since the admin last looked come first (the list is otherwise by when the payment was started).
+  const fresh = (p: PaymentRow) => (p.status === "paid" && isNewSince(p.paidAt, visit.since) ? 1 : 0);
+  const list = all
+    .filter(inTab)
+    .filter(matches)
+    .sort((a, b) => fresh(b) - fresh(a));
   const pages = Math.max(1, Math.ceil(list.length / PAGE));
   const rows = list.slice((page - 1) * PAGE, page * PAGE);
   const selected = all.find((p) => p.id === str(sp.sel)) ?? null;
@@ -170,6 +179,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
 
   return (
     <div className="flex flex-col gap-5">
+      {visit.at && <SeenNow section="payments" at={visit.at} />}
       <AdminHead title={t("admin.payments.title")} lead={t("admin.payments.leadNew", { n: num(paid.length), total: taka(paidSum) })} />
 
       {testOnes > 0 && (
@@ -311,9 +321,10 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps<"/ad
                     return (
                       <tr key={p.id} className={cx("border-t border-adm-line-soft", on ? "bg-adm-row" : "hover:bg-[#fafafb]")}>
                         <td className="px-5 py-3.5 align-top">
-                          <Link href={link({ sel: p.id })} scroll={false} className="flex flex-col">
+                          <Link href={link({ sel: p.id })} scroll={false} className="flex flex-col items-start">
                             <strong>{dayMonth(p.paidAt ?? p.createdAt)}</strong>
                             <span className="text-sm text-muted">{time(p.paidAt ?? p.createdAt)}</span>
+                            {fresh(p) === 1 && <NewPill label={t("admin.whatsNew.tag")} className="mt-1" />}
                           </Link>
                         </td>
                         <td className="px-3 py-3.5 align-top">

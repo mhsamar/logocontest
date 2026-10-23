@@ -1805,8 +1805,17 @@ const en = {
       generic: "That didn't work. Please try again.",
     },
     groups: { overview: "Overview", work: "Work", people: "People", money: "Money", messages: "Messages", content: "Site content", system: "System" },
-    shell: { brand: "Admin", superAdmin: "Super admin", staff: "Staff", viewSite: "View site", menu: "Admin menu", close: "Close menu", viewOnly: "You can view this page but not change anything on it.", breadcrumb: "Breadcrumb", search: "Search contests, users, payments", searchLabel: "Search", account: "Account menu", newCount: "{n} new" },
+    shell: { brand: "Admin", superAdmin: "Super admin", staff: "Staff", viewSite: "View site", menu: "Admin menu", close: "Close menu", viewOnly: "You can view this page but not change anything on it.", breadcrumb: "Breadcrumb", search: "Search contests, users, payments", searchLabel: "Search", account: "Account menu", newCount: "{n} new", todoCount: "{n} waiting", menuCounts: "Admin menu: {todo} waiting, {fresh} new" },
     menu: { messages: "Messages" },
+    // A-01 What's new (owner, 2026-10-23): the menu's red and gold counts on the Dashboard, and the tag on new rows.
+    whatsNew: {
+      title: "What's new",
+      lead: "Red: waiting for the team. Gold: new since you last opened that page.",
+      none: "Nothing waiting and nothing new since your last look.",
+      tag: "New",
+      teamOnly: "Only what's new from the team",
+      teamNone: "Nothing new from the team since your last look.",
+    },
     doors: {
       cards: { contests: "Contests", designs: "Designs", payments: "Payments" },
       toSite: "Go to the website",
