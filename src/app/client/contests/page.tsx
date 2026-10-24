@@ -144,9 +144,11 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
       <div className="mgrid" data-contest-list>
         {list.map((c) => {
           const paused = claims.get(c.id) === "pending";
-          const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status);
+          // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
+          const sent = waiting.has(c.id);
+          const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status, sent);
           const stages = contestStages(c.status);
-          const actHref = act === "pay" ? payHref(c.id, waiting) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
+          const actHref = act === "pay" || act === "waiting" ? payHref(c.id, waiting) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
           const kind = myTabOf(c.status);
           const line =
             c.status === "open"
@@ -156,7 +158,7 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
                   ? t("guarantee.status.title")
                   : t("cw.home.pickWithin", { left: left(c.judgingEndsAt) })
                 : kind === "unpaid"
-                  ? t("cw.my.briefStep")
+                  ? t(sent ? "cw.my.waitingStep" : "cw.my.briefStep")
                   : c.status === "completed"
                     ? t("cw.my.filesReady")
                     : t(`cw.status.${c.status}` as Parameters<typeof t>[0]);
@@ -166,7 +168,7 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
                 <Link href={contestHref(c.slug)} className="cover" aria-label={c.brandName}>
                   <Picture url={c.cover?.url ?? null} name={c.brandName} />
                 </Link>
-                <StatusPill status={c.status} t={t} />
+                <StatusPill status={c.status} waiting={sent} t={t} />
                 {c.status === "open" && c.unrated > 0 && <span className="clnew">{t("cw.home.newN", { n: num(c.unrated) })}</span>}
               </div>
               <div className="mcb">

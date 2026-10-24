@@ -150,7 +150,8 @@ export async function clientHome(user: CurrentUser): Promise<ClientHome> {
   const todo: HomeTodo[] = [
     ...contests.filter((c) => c.status === "judging" && !claiming.includes(c.id)).map((c) => ({ kind: "pick" as const, brand: c.brandName, n: c.entries, href: contestHref(c.slug, "designs", { sort: "top" }), until: c.judgingEndsAt })),
     ...(unrated > 0 ? [{ kind: "rate" as const, brand: running.find((c) => c.unrated > 0)?.brandName ?? "", n: unrated, href: contestHref([...running].sort((a, b) => b.unrated - a.unrated)[0].slug, "designs", { filter: "unrated" }), until: null }] : []),
-    ...unpaid.map((c) => ({ kind: "pay" as const, brand: c.brandName, n: 0, href: payHref(c.id, waiting), until: null })),
+    // A bKash payment waiting for an admin leaves the client nothing to do (owner, 2026-10-25).
+    ...unpaid.filter((c) => !waiting.has(c.id)).map((c) => ({ kind: "pay" as const, brand: c.brandName, n: 0, href: payHref(c.id, waiting), until: null })),
     ...(handovers.data ?? [])
       .filter((h) => h.status === "submitted")
       .flatMap((h) => {

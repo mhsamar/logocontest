@@ -193,11 +193,12 @@ export function contestStages(status: string): StageState[] {
 
 // ---- The main action on a contest card -----------------------------------------------------------------------------
 
-export type ContestAction = "pay" | "review" | "pick" | "files" | "details";
+export type ContestAction = "pay" | "waiting" | "review" | "pick" | "files" | "details";
 
 /** The one thing to do next with a contest (CLIENT-HANDOFF §3). */
-export function mainAction(status: string): ContestAction {
-  if (status === "draft" || status === "pending_payment") return "pay";
+/** `waiting`: the bKash payment was sent and an admin is checking it (owner, 2026-10-25): nothing left to pay. */
+export function mainAction(status: string, waiting = false): ContestAction {
+  if (status === "draft" || status === "pending_payment") return waiting ? "waiting" : "pay";
   if (status === "open") return "review";
   if (status === "judging") return "pick";
   if (status === "winner_selected" || status === "handover" || status === "completed") return "files";

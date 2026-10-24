@@ -158,9 +158,11 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const canEdit = contest.status === "open";
   const canExtend = contest.status === "open";
   // The main button follows what the contest needs now: pay, review, pick a winner or get the files.
-  const headAction = claimPending && mainAction(contest.rawStatus) === "pick" ? "details" : mainAction(contest.rawStatus);
+  // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
+  const sent = waiting.has(contest.id);
+  const headAction = claimPending && mainAction(contest.rawStatus) === "pick" ? "details" : mainAction(contest.rawStatus, sent);
   const headHref =
-    headAction === "pay"
+    headAction === "pay" || headAction === "waiting"
       ? payHref(contest.id, waiting)
       : headAction === "pick"
         ? contestHref(contest.slug, "designs", { sort: "top" })
@@ -246,7 +248,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           <div>
             <div className="dnl">
               <h1>{contest.brandName}</h1>
-              <StatusPill status={contest.rawStatus} t={t} />
+              <StatusPill status={contest.rawStatus} waiting={sent} t={t} />
             </div>
             <p>
               {t(`wizard.businessTypes.${contest.businessType}`)}
@@ -463,7 +465,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                 {t("cw.detail.newest")}
               </Link>
             </div>
-            {shown.length === 0 ? <Empty title={unpaid ? t("cw.detail.unpaidDesigns") : cancelled ? t("guarantee.hiddenDesigns") : t("manage.review.empty")} /> : <div className="dtg six">{shown.map(designCard)}</div>}
+            {shown.length === 0 ? <Empty title={unpaid ? t(sent ? "cw.detail.waitingDesigns" : "cw.detail.unpaidDesigns") : cancelled ? t("guarantee.hiddenDesigns") : t("manage.review.empty")} /> : <div className="dtg six">{shown.map(designCard)}</div>}
             {checkerOn && counts.all > 0 && <CheckLegend ranges={ranges} t={t} />}
             {checkerOn && !unpaid && (
               <div className="lc-tools" style={{ marginTop: 20 }}>
@@ -569,7 +571,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                   </div>
                   <div>
                     <span>{t("cw.detail.status")}</span>
-                    <b>{moneyBack ? t("guarantee.prizeState") : notShared ? t("guarantee.notShared") : t(`cw.detail.prizeState.${!contestPay ? "unpaid" : handover?.status === "approved" || contest.rawStatus === "completed" ? "released" : contest.rawStatus === "no_result" ? "shared" : "held"}`)}</b>
+                    <b>{moneyBack ? t("guarantee.prizeState") : notShared ? t("guarantee.notShared") : t(`cw.detail.prizeState.${!contestPay ? (sent ? "waiting" : "unpaid") : handover?.status === "approved" || contest.rawStatus === "completed" ? "released" : contest.rawStatus === "no_result" ? "shared" : "held"}`)}</b>
                   </div>
                 </div>
                 {payments.filter((p) => p.purpose !== "contest" && p.status === "paid").length > 0 && (
@@ -588,7 +590,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                 )}
                 {unpaid && (
                   <Link href={payHref(contest.id, waiting)} className="dbtn sm" style={{ marginTop: 14 }}>
-                    {t("cw.action.pay")}
+                    {t(sent ? "cw.action.waiting" : "cw.action.pay")}
                   </Link>
                 )}
               </section>

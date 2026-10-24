@@ -19,7 +19,8 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 /** The status chip on a contest picture: Open, Pick a winner, Not paid, Completed… */
-export function StatusPill({ status, t, className }: { status: string; t: Translate; className?: string }) {
+export function StatusPill({ status, t, className, waiting = false }: { status: string; t: Translate; className?: string; /** bKash payment sent, an admin is checking it. */ waiting?: boolean }) {
+  if (waiting && (status === "draft" || status === "pending_payment")) return <span className={cx("clst", "win", className)}>{t("cw.status.awaiting")}</span>;
   return <span className={cx("clst", STATUS_CLASS[status] ?? "dn", className)}>{t(`cw.status.${status in STATUS_CLASS ? status : "completed"}` as Parameters<Translate>[0])}</span>;
 }
 

@@ -117,13 +117,15 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
               {h.live.map((c) => {
                 // A money-back claim being checked pauses picking (owner, 2026-10-21).
                 const paused = h.claiming.includes(c.id);
-                const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status);
-                const href = act === "pay" ? payHref(c.id, h.payLinks) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
+                // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
+                const waiting = h.payLinks.has(c.id);
+                const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status, waiting);
+                const href = act === "pay" || act === "waiting" ? payHref(c.id, h.payLinks) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
                 return (
                   <article key={c.id} className="clc">
                     <div className="clci">
                       <Picture url={c.cover?.url ?? null} name={c.brandName} />
-                      <StatusPill status={c.status} t={t} />
+                      <StatusPill status={c.status} waiting={waiting} t={t} />
                       {c.status === "open" && c.unrated > 0 && <span className="clnew">{t("cw.home.newN", { n: num(c.unrated) })}</span>}
                     </div>
                     <div className="clcb">
@@ -134,8 +136,8 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
                       <div className="clm">
                         {c.status === "draft" || c.status === "pending_payment" ? (
                           <>
-                            <span>{t("cw.home.briefReady")}</span>
-                            <span>{t("cw.home.payToGo")}</span>
+                            <span>{t(waiting ? "cw.home.paySent" : "cw.home.briefReady")}</span>
+                            <span>{t(waiting ? "cw.home.goesLive" : "cw.home.payToGo")}</span>
                           </>
                         ) : (
                           <>
