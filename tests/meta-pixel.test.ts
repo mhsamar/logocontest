@@ -44,6 +44,14 @@ describe("Meta Pixel base code", () => {
   });
 });
 
+describe("Meta domain verification", () => {
+  it("is in the root layout's metadata, so every page's <head> has it", () => {
+    expect(read("src/app/layout.tsx")).toContain('"facebook-domain-verification": "mo7wzhn8u6wu6r14jt0kr0bf0cugg7"');
+    // The Pinterest claim stays.
+    expect(read("src/app/layout.tsx")).toContain('"p:domain_verify": "cb536e9e87dbc7662f94b8400e106a79"');
+  });
+});
+
 describe("trackPixel", () => {
   const store = new Map<string, string>();
   const fbq = vi.fn();

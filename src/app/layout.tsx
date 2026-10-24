@@ -58,8 +58,9 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: openGraphFor({ title: t("meta.title"), description: t("meta.description"), locale }),
     twitter: { card: "summary_large_image" },
     robots: searchIndexingOn() ? undefined : { index: false, follow: false },
-    // Pinterest "Claim your website" (owner, 2026-10-18): proves logocontest.bd is ours. Public by design.
-    other: { "p:domain_verify": "cb536e9e87dbc7662f94b8400e106a79" },
+    // Pinterest "Claim your website" (owner, 2026-10-18) and Meta domain verification (owner, 2026-10-24): prove
+    // logocontest.bd is ours. Public by design.
+    other: { "p:domain_verify": "cb536e9e87dbc7662f94b8400e106a79", "facebook-domain-verification": "mo7wzhn8u6wu6r14jt0kr0bf0cugg7" },
   };
 }
 
