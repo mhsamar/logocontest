@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { SeenNow } from "@/components/admin/admin-nav";
 import { AutoRefresh } from "@/components/admin/auto-refresh";
 import { AdminHead } from "@/components/admin/page-head";
+import { DetailsWhileLoading, LeadSelection } from "@/components/admin/unpaid/actions";
 import { LeadDetails } from "@/components/admin/unpaid/lead-details";
 import { LeadList, type Fmt } from "@/components/admin/unpaid/lead-list";
 import { FollowUpPlan, StuckFunnel, UnpaidStats, type PlanItem, type StatCard } from "@/components/admin/unpaid/overview";
 import { sectionVisit } from "@/lib/admin/badges";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
-import { leadHistory, stuckFunnel, unpaidBoard, type Lead } from "@/lib/admin/unpaid-board";
+import { cachedStuckFunnel, leadHistory, unpaidBoard, type Lead } from "@/lib/admin/unpaid-board";
 import { dhakaMidnight, inTab, isContactSearch, isOpen, matchesFilters, PAID, parseUnpaidQuery, sameDhakaDay, shownStatus, sortLeads, TABS, unpaidHref, type Tab } from "@/lib/admin/unpaid-rules";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -32,7 +33,7 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const [{ t, locale }, board, funnel, origin, visit] = await Promise.all([
     getI18n(),
     unpaidBoard(now, q.sel?.startsWith("g:") ? q.sel.slice(2) : undefined),
-    stuckFunnel(q.range, now),
+    cachedStuckFunnel(q.range),
     linkOrigin(),
     // Contests and leads that came in since this admin last opened Unpaid get a "New" tag (owner, 2026-10-23).
     sectionVisit(me, "unpaid"),
@@ -118,10 +119,15 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       {!board.ready && canManage && <p className="m-0 rounded-[12px] bg-adm-sample-bg px-4 py-3 text-[14px] font-semibold text-adm-sample">{t("admin.unpaid.fu.errors.notReady")}</p>}
       <UnpaidStats cards={cards} showLabel={t("admin.unpaid.fu.stats.show")} />
       <StuckFunnel funnel={funnel} q={q} t={t} num={num} stepName={stepName} empty={t("admin.dashboard.funnelEmpty")} />
+      {/* Clicking a person shows it at once (row marked, details faded) while their details load (owner, 2026-10-25). */}
+      <LeadSelection>
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
         <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} />
+        <DetailsWhileLoading>
         <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} payLink={payLink} gone={Boolean(q.sel && !selected)} />
+        </DetailsWhileLoading>
       </div>
+      </LeadSelection>
       <FollowUpPlan items={plan} q={q} t={t} label={planLabel} />
       <p className="m-0 text-center text-[14px] text-muted">{t("admin.unpaid.fu.footer")}</p>
     </div>

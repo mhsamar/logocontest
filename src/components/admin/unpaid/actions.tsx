@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useTransition } from "react";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { useReadOnly } from "@/components/admin/read-only";
 import { AdmCheckbox } from "@/components/admin/ui";
@@ -103,7 +103,7 @@ export function QuickReach({ leadKey, has, noteHref }: { leadKey: string; has: {
             <AdminIcon name={ICON[c]} size={15} />
           </button>
         ))}
-      <Link
+      <Link prefetch={false}
         href={noteHref}
         scroll={false}
         title={t("admin.unpaid.fu.list.addNote")}
@@ -518,22 +518,50 @@ export function Dropdown({ label, active, children }: { label: string; active: b
   );
 }
 
-/** A row in the list: selects the lead without jumping; on narrow screens it then scrolls to the details below. */
-export function LeadLink({ href, className, children, label }: { href: string; className?: string; children: React.ReactNode; label: string }) {
+/** Which person is being opened from the list, so the row and the details can show it at once (owner, 2026-10-25). */
+const Selecting = createContext<{ pending: string | null; select: (href: string) => void }>({ pending: null, select: () => undefined });
+
+/** Wraps the list and the details: opening a person is one navigation, and both sides know while it loads. */
+export function LeadSelection({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const [loading, start] = useTransition();
+  const [target, setTarget] = useState<string | null>(null);
+  const select = (href: string) => {
+    setTarget(href);
+    start(() => router.push(href, { scroll: false }));
+  };
+  return <Selecting value={{ pending: loading ? target : null, select }}>{children}</Selecting>;
+}
+
+/** The details while another person loads: faded and not clickable, so nothing is done to the person being left. */
+export function DetailsWhileLoading({ children }: { children: React.ReactNode }) {
+  const { pending } = useContext(Selecting);
+  return (
+    <div aria-busy={Boolean(pending)} className={cx("min-w-0 transition-opacity", pending && "pointer-events-none opacity-45")}>
+      {children}
+    </div>
+  );
+}
+
+/** A row in the list: opens the person without jumping; on narrow screens it scrolls to the details below. */
+export function LeadLink({ href, className, children, label }: { href: string; className?: string; children: React.ReactNode; label: string }) {
+  const { pending, select } = useContext(Selecting);
+  const opening = pending === href;
   return (
     <Link
+      prefetch={false}
       href={href}
       scroll={false}
       aria-label={label}
-      className={className}
+      aria-busy={opening}
+      className={cx(className, opening && "after:animate-pulse after:bg-white/40")}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
-        router.push(href, { scroll: false });
+        select(href);
         if (window.matchMedia("(max-width: 1250px)").matches) {
           const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-          window.setTimeout(() => document.getElementById("lead")?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" }), 120);
+          document.getElementById("lead")?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
         }
       }}
     >

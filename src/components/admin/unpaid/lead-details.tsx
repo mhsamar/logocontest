@@ -100,7 +100,7 @@ export function LeadDetails({
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h2 className="lc-d m-0 truncate text-[26px] font-semibold tracking-[-0.02em]">
               {lead.slug ? (
-                <Link href={`/admin/contests/${lead.slug}`} className="hover:text-primary">
+                <Link prefetch={false} href={`/admin/contests/${lead.slug}`} className="hover:text-primary">
                   {lead.brand || "—"}
                 </Link>
               ) : (
@@ -130,7 +130,7 @@ export function LeadDetails({
         {canManage && <ReachButtons leadKey={lead.key} has={{ mobile: lead.hasContact.mobile, email: lead.hasContact.email }} />}
         {canManage && payLink && open && <CopyLink value={payLink} label={t("admin.unpaid.fu.details.copyLink")} done={t("admin.unpaid.fu.details.copied")} />}
         {lead.slug && (
-          <Link href={`/admin/contests/${lead.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-[12px] px-2 text-[14px] font-bold text-primary hover:underline">
+          <Link prefetch={false} href={`/admin/contests/${lead.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-[12px] px-2 text-[14px] font-bold text-primary hover:underline">
             {t("admin.unpaid.fu.details.openContest")}
             <AdminIcon name="arrow" size={14} />
           </Link>

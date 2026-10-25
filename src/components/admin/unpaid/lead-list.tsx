@@ -51,7 +51,7 @@ export const deviceIcon = (d: string | null) => (d === "desktop" ? "computer" : 
 
 const Option = ({ href, on, children }: { href: string; on: boolean; children: React.ReactNode }) => (
   <li>
-    <Link href={href} scroll={false} aria-current={on ? "true" : undefined} className={cx("flex min-h-9 items-center rounded-[8px] px-2.5 text-[13.5px] font-semibold hover:bg-[#F4F5F7]", on && "text-primary")}>
+    <Link prefetch={false} href={href} scroll={false} aria-current={on ? "true" : undefined} className={cx("flex min-h-9 items-center rounded-[8px] px-2.5 text-[13.5px] font-semibold hover:bg-[#F4F5F7]", on && "text-primary")}>
       {children}
     </Link>
   </li>
@@ -100,7 +100,7 @@ export function LeadList({
       </div>
       <nav className="flex flex-wrap gap-1.5" aria-label={t("admin.unpaid.fu.list.title")}>
         {TABS.map((tab) => (
-          <Link key={tab} href={unpaidHref(q, { tab, sel: null })} scroll={false} aria-current={q.tab === tab ? "page" : undefined} className={cx("inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-bold", q.tab === tab ? "bg-[#111216] text-white" : "bg-[#F4F5F7] text-ink hover:bg-[#ECEDF0]")}>
+          <Link prefetch={false} key={tab} href={unpaidHref(q, { tab, sel: null })} scroll={false} aria-current={q.tab === tab ? "page" : undefined} className={cx("inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-bold", q.tab === tab ? "bg-[#111216] text-white" : "bg-[#F4F5F7] text-ink hover:bg-[#ECEDF0]")}>
             {t(`admin.unpaid.fu.list.tabs.${tab}`)}
             <i className="not-italic opacity-60 tabular-nums">{num(counts[tab])}</i>
           </Link>
@@ -157,7 +157,7 @@ export function LeadList({
         </Dropdown>
         {q.only && <span className="inline-flex min-h-8 items-center rounded-[9px] bg-[#111216] px-2.5 text-[12.5px] font-bold text-white">{t("admin.unpaid.fu.list.foundByContact")}</span>}
         {filtered && (
-          <Link href={unpaidHref({ ...q, q: "", step: null, owner: null, amount: null, started: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
+          <Link prefetch={false} href={unpaidHref({ ...q, q: "", step: null, owner: null, amount: null, started: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
             {t("admin.unpaid.fu.list.filters.clear")}
           </Link>
         )}

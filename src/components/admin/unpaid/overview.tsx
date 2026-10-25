@@ -26,7 +26,7 @@ export function UnpaidStats({ cards, showLabel }: { cards: StatCard[]; showLabel
       {cards.map((c) => {
         const tone = TONE[c.tone];
         return (
-          <Link key={c.key} href={c.href} title={showLabel} className={cx("group flex min-w-0 flex-col gap-1 rounded-[18px] border px-[18px] py-4 transition-[transform,box-shadow] motion-safe:hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-14px_rgba(17,18,22,.35)]", tone.card)}>
+          <Link prefetch={false} key={c.key} href={c.href} title={showLabel} className={cx("group flex min-w-0 flex-col gap-1 rounded-[18px] border px-[18px] py-4 transition-[transform,box-shadow] motion-safe:hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-14px_rgba(17,18,22,.35)]", tone.card)}>
             <span className={cx("flex items-center justify-between gap-2 text-[13.5px] font-bold", tone.text)}>
               <span className="truncate">{c.label}</span>
               <AdminIcon name="arrow" size={14} className="shrink-0 opacity-45 transition-transform group-hover:opacity-100 motion-safe:group-hover:translate-x-[3px]" />
@@ -60,7 +60,7 @@ export function StuckFunnel({ funnel, q, t, num, stepName, empty }: { funnel: Fu
         </div>
         <nav className="flex flex-wrap gap-1.5" aria-label={t("admin.unpaid.fu.funnel.title")}>
           {RANGES.map((r) => (
-            <Link key={r} href={unpaidHref(q, { range: r })} scroll={false} aria-current={q.range === r ? "true" : undefined} className={cx(SEG, segOn(q.range === r))}>
+            <Link prefetch={false} key={r} href={unpaidHref(q, { range: r })} scroll={false} aria-current={q.range === r ? "true" : undefined} className={cx(SEG, segOn(q.range === r))}>
               {t(`admin.unpaid.fu.funnel.ranges.${r}` as MessageKey)}
             </Link>
           ))}
@@ -75,7 +75,7 @@ export function StuckFunnel({ funnel, q, t, num, stepName, empty }: { funnel: Fu
               const on = q.step === s.n;
               return (
                 <li key={s.n} className="min-w-0">
-                  <Link
+                  <Link prefetch={false}
                     href={stepHref(s.n)}
                     aria-current={on ? "true" : undefined}
                     aria-label={t("admin.unpaid.fu.funnel.reached", { n: num(s.count), step: stepName(s.n) })}
@@ -118,7 +118,7 @@ export function StuckFunnel({ funnel, q, t, num, stepName, empty }: { funnel: Fu
                   </span>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="m-0 min-w-[200px] flex-1 text-[13px] text-muted">{t(`admin.unpaid.fu.funnel.tips.d${d.from}` as MessageKey)}</p>
-                    <Link href={unpaidHref(q, { tab: "all", step: d.from, sel: null }, "#ulist")} className="inline-flex min-h-9 items-center gap-1.5 rounded-[10px] border border-[#E3E4E8] bg-surface px-3 text-[13px] font-bold hover:border-primary hover:text-primary max-[520px]:w-full max-[520px]:justify-center">
+                    <Link prefetch={false} href={unpaidHref(q, { tab: "all", step: d.from, sel: null }, "#ulist")} className="inline-flex min-h-9 items-center gap-1.5 rounded-[10px] border border-[#E3E4E8] bg-surface px-3 text-[13px] font-bold hover:border-primary hover:text-primary max-[520px]:w-full max-[520px]:justify-center">
                       {t("admin.unpaid.fu.funnel.see")}
                       <AdminIcon name="arrow" size={13} />
                     </Link>
@@ -151,7 +151,7 @@ export function FollowUpPlan({ items, q, t, label }: { items: PlanItem[]; q: Unp
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
                 {list.slice(0, 12).map((i) => (
                   <li key={`${i.key}-${i.at.getTime()}`}>
-                    <Link
+                    <Link prefetch={false}
                       href={unpaidHref(q, { sel: i.key }, "#lead")}
                       className={cx("flex items-center gap-3 rounded-[12px] border px-3 py-2.5 hover:border-primary", g === "overdue" ? "border-[#F3D2CF] bg-[#FFF8F7]" : "border-adm-line-soft bg-[#FAFAFB]", i.done && "opacity-60")}
                     >

@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminIdsWith } from "./recipients";
@@ -345,6 +346,12 @@ export async function stuckFunnel(range: Range, now = new Date()): Promise<Funne
   for (const c of await inChunks(ids, (part) => db.from("contests").select("id").in("id", part).in("status", LIVE_OR_LATER))) paid.add(c.id as string);
   return funnelCounts(rows.map((r) => ({ stage: stageOf(r.furthest_step as number, r.created_at as string), paid: Boolean(r.contest_id && paid.has(r.contest_id as string)) })));
 }
+
+/**
+ * The funnel for the page, kept for a minute: it doesn't change with the person opened, so clicking through the list
+ * doesn't count thousands of visits again each time (owner, 2026-10-25).
+ */
+export const cachedStuckFunnel = unstable_cache(async (range: Range) => stuckFunnel(range, new Date()), ["unpaid-funnel-v1"], { revalidate: 60 });
 
 // ---- History ----------------------------------------------------------------------------------------------------------
 

@@ -355,6 +355,20 @@ describe("blocks and the rest of the site", () => {
     expect(read("src/app/admin/unpaid/page.tsx")).toContain("gone={Boolean(q.sel && !selected)}");
   });
 
+  it("clicking a person opens them at once: the row and the details show it's loading, and links don't prefetch the page", () => {
+    const actions = read("src/components/admin/unpaid/actions.tsx");
+    expect(actions).toContain("start(() => router.push(href, { scroll: false }));");
+    expect(actions).toContain('className={cx("min-w-0 transition-opacity", pending && "pointer-events-none opacity-45")}');
+    const page = read("src/app/admin/unpaid/page.tsx");
+    expect(page).toContain("<LeadSelection>");
+    expect(page).toContain("<DetailsWhileLoading>");
+    expect(page).toContain("cachedStuckFunnel(q.range)");
+    for (const f of ["overview", "lead-list", "lead-details", "actions"]) {
+      const src = read(`src/components/admin/unpaid/${f}.tsx`);
+      expect(src.match(/<Link\b/g)?.length, f).toBe(src.match(/<Link\b[^>]*?prefetch=\{false\}|<Link\s+prefetch=\{false\}/g)?.length);
+    }
+  });
+
   it("a draft the team is following up is not moved to the Trash after 72 hours, and never stalls the others", () => {
     const trash = read("src/lib/admin/trash.ts");
     expect(trash).toContain(".range(kept, kept + limit - 1)");
