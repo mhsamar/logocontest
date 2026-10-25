@@ -301,7 +301,9 @@ export function Wizard(props: WizardProps) {
   const onNext = () => {
     if (!valid) return;
     // A new client's mobile for the team (owner, 2026-10-14): saved once step 1 is checked, then with the brand name.
-    const lead = () => saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, country, brandName: state.brief.brandName, service: "logo" });
+    // With the name, email and WhatsApp tick from step 1 (owner, 2026-10-25), so the team knows who to call.
+    const lead = () =>
+      saveWizardLead({ visitId: wizardVisitId(), mobile: state.mobile, country, brandName: state.brief.brandName, service: "logo", name: personName, email: state.email, whatsapp: hidden.has("whatsapp") ? undefined : state.whatsapp === true });
     if (!props.user && step === S.logo) void lead();
     if (step === S.you) {
       startBusy(async () => {

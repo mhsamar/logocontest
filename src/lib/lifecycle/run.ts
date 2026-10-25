@@ -14,6 +14,7 @@ import { emailContestEnding, emailPickWinner, sendClientDigests } from "@/lib/em
 import { runProJobs, type ProJobReport } from "@/lib/pro/jobs";
 import { releaseStalePromos } from "@/lib/promos/promos";
 import { purgeExpiredTrash, trashUnpaidContests } from "@/lib/admin/trash";
+import { alertNewLeads } from "@/lib/admin/lead-alerts";
 import { broadcastToDesigners } from "@/lib/notifications/broadcast";
 import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
@@ -25,7 +26,7 @@ import { testContestIds } from "@/lib/seo/test-accounts";
  * The 15-minute lifecycle job (BLUEPRINT §6). Every step is safe to run again: the database functions
  * check the state first, and notices are recorded in lifecycle_events so each goes out once.
  */
-export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; trashed?: number; erased?: number; digests?: number; errors: string[] };
+export type LifecycleReport = { pro?: ProJobReport; endingSoon: number; judging: number; reminders: number; forfeited: number; noResult: number; released: number; unsuspended: number; monthClosed: string | null; claimReminders: number; announced: number; designerReminders: number; filesDue: number; lateStrikes: number; trashed?: number; erased?: number; digests?: number; leadAlerts?: number; errors: string[] };
 
 type ContestRow = { id: string; slug: string; brand_name: string; client_id: string; status: string; ends_at: string | null; judging_ends_at: string | null; prize_amount: number };
 
@@ -379,6 +380,8 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     if (views.error) fail("page_views", "-", views.error.message);
     // Wizard mobile numbers (owner, 2026-10-14) are kept 90 days. Before migration 0052 there is no table: ignored.
     await db.from("wizard_leads").delete().lt("created_at", new Date(now.getTime() - 90 * day).toISOString());
+    // Their alerts in the team's bells name the person, so they go with them (an alert comes at most two days after).
+    await db.from("notifications").delete().eq("type", "lead_new_admin").lt("created_at", new Date(now.getTime() - 88 * day).toISOString());
     if (online.error) fail("presence", "-", online.error.message);
   }
 
@@ -411,6 +414,15 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
   // Designer Pro plan (owner, 2026-10-13): expiry, renewal and invite/saved reminders, quality scores.
   report.pro = await runProJobs(now);
   for (const e of report.pro.errors) report.errors.push(`pro ${e}`);
+
+  // New clients who gave their mobile number but haven't signed up (owner, 2026-10-25): the team hears about each
+  // person once, a few minutes later, so they can call while it's fresh. Last, so slow alert emails never hold up
+  // prizes or suspensions.
+  try {
+    report.leadAlerts = await alertNewLeads(now);
+  } catch (e) {
+    fail("leads", "-", e);
+  }
 
   return report;
 }

@@ -51,9 +51,9 @@ describe("Admin › Unpaid contests", () => {
     const sql = readFileSync("supabase/migrations/0068_unpaid_notes.sql", "utf8");
     for (const o of ["mistake", "later", "restart", "help", "price", "no_answer", "not_interested", "other"]) expect(sql).toContain(`'${o}'`);
   });
-  it("a contest waiting for payment counts as stopped at payment, and the advice never says 'stopped at —'", () => {
-    const page = readFileSync("src/app/admin/unpaid/page.tsx", "utf8");
-    expect(page).toContain('r.step ?? (r.status === "pending_payment" ? AT_PAYMENT : null)');
-    expect(page).toContain('"admin.unpaid.next.unknownBody"');
+  it("a contest waiting for payment counts as stopped at payment, and a saved draft at least past Prize (never 'stopped at —')", () => {
+    // Rebuilt as the follow-up page (owner, 2026-10-25): every lead has a stage.
+    const board = readFileSync("src/lib/admin/unpaid-board.ts", "utf8");
+    expect(board).toContain('Math.max(c.status === "pending_payment" ? AT_PAYMENT : DRAFT_STAGE, ...vs.map((v) => stageOf(v.furthest_step as number, v.created_at as string)))');
   });
 });

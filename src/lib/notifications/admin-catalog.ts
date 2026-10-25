@@ -26,6 +26,8 @@ export type TimingKey =
   | "rewards.claim_reminder_days"
   | "rewards.claim_reminders_max"
   | "notify.chat_email_minutes"
+  | "notify.lead_alert_minutes"
+  | "notify.lead_alert_emails_day"
   | "notify.saved_reminder_hours"
   | "notify.invite_reminder_hours"
   | "notify.pro_renewal_days"
@@ -121,6 +123,8 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("admin_designs", "admin", ["entry_held_admin"], ["bell", "push"]),
   // A paid contest waits for this approval, so it also goes to the phone and by email (owner, 2026-10-22).
   row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell", "push", "email"], { email: "notification" }),
+  // A new client who gave their number but didn't sign up (owner, 2026-10-25): call them while they still remember.
+  row("admin_leads", "admin", ["lead_new_admin", "leads_new_admin"], ["bell", "push", "email"], { email: "notification", timing: ["notify.lead_alert_minutes", "notify.lead_alert_emails_day"] }),
   row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),

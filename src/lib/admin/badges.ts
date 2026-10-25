@@ -1,4 +1,5 @@
 import "server-only";
+import { hiddenUnpaidIds, notIn } from "./unpaid-hidden";
 import { cache } from "react";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { facebookConfigured } from "@/lib/cards/facebook";
@@ -100,7 +101,10 @@ async function freshCount(user: CurrentUser, key: AdminNew, since: string): Prom
     }
     case "unpaid": {
       // The wizard leads exactly as the page lists them (one per number, not signed up), new ones by first contact.
-      const [contests, leads] = await Promise.all([db.from("contests").select("id", head).in("status", ["draft", "pending_payment"]).gt("created_at", since), wizardLeads()]);
+      // Drafts closed as fake and hidden don't count (owner, 2026-10-25).
+      const hidden = notIn(await hiddenUnpaidIds());
+      const fresh = db.from("contests").select("id", head).in("status", ["draft", "pending_payment"]).gt("created_at", since);
+      const [contests, leads] = await Promise.all([hidden ? fresh.not("id", "in", hidden) : fresh, wizardLeads()]);
       return n(contests) + leads.filter((l) => l.createdAt.getTime() > Date.parse(since)).length;
     }
     case "designs": {

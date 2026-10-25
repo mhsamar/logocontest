@@ -1,4 +1,5 @@
 import "server-only";
+import { hiddenUnpaidIds, notIn } from "./unpaid-hidden";
 import { isSupabaseConfigured } from "@/lib/env";
 import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,6 +31,9 @@ export async function listAdminContests(q: { search: string; status: string; pag
     .select("id, slug, contest_number, brand_name, status, prize_amount, total_amount, ends_at, created_at, client:profiles!client_id(id, name)", { count: "exact" });
   if ((ADMIN_CONTEST_STATUSES as readonly string[]).includes(q.status)) query = query.eq("status", q.status);
   else query = query.not("status", "in", "(draft,pending_payment,deleted)");
+  // Drafts closed as fake and hidden on Unpaid contests stay out of this list too (owner, 2026-10-25).
+  const hidden = q.status === "draft" || q.status === "pending_payment" ? notIn(await hiddenUnpaidIds()) : null;
+  if (hidden) query = query.not("id", "in", hidden);
   const term = q.search.trim().replace(/[%,()#]/g, "");
   if (term) query = /^\d+$/.test(term) ? query.eq("contest_number", Number(term)) : query.or(`brand_name.ilike.%${term}%,slug.ilike.%${term}%`);
   const from = (q.page - 1) * PAGE;
@@ -78,6 +82,8 @@ export type AdminContestOverviewRow = AdminContestRow & {
 export async function adminContestOverview(): Promise<{ rows: AdminContestOverviewRow[]; unpaid: number }> {
   if (!isSupabaseConfigured()) return { rows: [], unpaid: 0 };
   const db = createAdminClient();
+  const hidden = notIn(await hiddenUnpaidIds());
+  const unpaidCount = db.from("contests").select("id", { count: "exact", head: true }).in("status", ["draft", "pending_payment"]);
   const [{ data }, unpaid] = await Promise.all([
     db
       .from("contests")
@@ -85,7 +91,7 @@ export async function adminContestOverview(): Promise<{ rows: AdminContestOvervi
       .not("status", "in", "(draft,pending_payment,deleted)")
       .order("created_at", { ascending: false })
       .limit(1000),
-    db.from("contests").select("id", { count: "exact", head: true }).in("status", ["draft", "pending_payment"]),
+    hidden ? unpaidCount.not("id", "in", hidden) : unpaidCount,
   ]);
   const rows = (data ?? []).map((c) => {
     const client = one(c.client as { id: string; name: string } | { id: string; name: string }[] | null);

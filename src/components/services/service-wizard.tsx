@@ -215,7 +215,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           return setAccountError({ field: phoneKeys.includes(k) ? "mobile" : "email", message: t(k, res.error.params), taken: k === "auth.errors.phoneTaken" || k === "wizard.errors.emailTaken" });
         }
         // A new client's mobile for the team (owner, 2026-10-14), so they can help if the visitor doesn't finish.
-        void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug });
+        void saveWizardLead({ visitId: wizardVisitId(), mobile, country, brandName: d.title, service: service.slug, name: personName, email, whatsapp });
         go("brief");
       });
     }

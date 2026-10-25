@@ -120,6 +120,9 @@ export const NOTIFICATION_TYPES = [
   "payment_approved_addon",
   "payment_rejected",
   "payment_submitted_admin",
+  // A new client gave their number but didn't sign up (owner, 2026-10-25): one person, or several at once.
+  "lead_new_admin",
+  "leads_new_admin",
   // Money-back guarantee (owner, 2026-10-21)
   "guarantee_available",
   "guarantee_claimed",

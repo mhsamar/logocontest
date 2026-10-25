@@ -142,9 +142,9 @@ describe("where each event fires", () => {
     expect(px.indexOf("if (!loaded) return;")).toBeLessThan(px.indexOf("claimPurchasePixel(paymentId)"));
   });
 
-  it("the privacy policy names Meta, and its date moved on", () => {
+  it("the privacy policy names Meta, and its date moved on (again for wizard leads, 2026-10-25)", () => {
     for (const f of ["src/lib/legal/en.ts", "src/lib/legal/bn.ts"]) expect(read(f), f).toContain("Meta Pixel");
-    expect(read("src/lib/legal/types.ts")).toContain('export const LEGAL_VERSION = "2026-10-24";');
+    expect(read("src/lib/legal/types.ts")).toContain('export const LEGAL_VERSION = "2026-10-25";');
   });
 
   it("Lead: only after the designer's account was created", () => {

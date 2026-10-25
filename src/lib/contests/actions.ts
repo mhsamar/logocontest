@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { sendVerificationEmail } from "@/lib/auth/email-service";
+import { contactBlocked } from "@/lib/auth/contact-blocks";
 import { emailRejection } from "@/lib/auth/email-check";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -146,6 +147,8 @@ export async function saveDraft(input: { brief: unknown; order: unknown; contest
   if (!data || service === "bad") return err("wizard.errors.incomplete");
   const off = await serviceOff(service?.slug);
   if (off) return off;
+  // A new contest from a phone or email the team blocked (Unpaid contests › Close as fake, owner 2026-10-25).
+  if (!input.contestId && (await contactBlocked({ mobile: user.mobile, email: user.email }))) return err("wizard.errors.blocked");
 
   const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId, service);
   if (!result.ok) return err(SAVE_ERRORS[result.error]);
@@ -169,6 +172,7 @@ export async function checkAccountDetails(input: { mobile: string; email: string
   // Real emails only, no temporary inboxes (owner, 2026-10-14).
   const rejected = await emailRejection(email);
   if (rejected) return err(rejected.key, rejected.params);
+  if (await contactBlocked({ mobile, email })) return err("wizard.errors.blocked");
   const taken = await accountTaken(mobile, email);
   if (taken) return err(taken === "mobile" ? "auth.errors.phoneTaken" : "wizard.errors.emailTaken");
   return { ok: true, mobile, email };
@@ -210,6 +214,8 @@ export async function createAccountAndDraft(input: {
 
   const tooShort = await passwordError(input.password);
   if (tooShort?.error) return { ok: false, error: tooShort.error };
+  // Before the account is made, so a blocked person gets no account either.
+  if (await contactBlocked({ mobile, email })) return err("wizard.errors.blocked");
 
   const taken = await accountTaken(mobile, email);
   if (taken) return err(taken === "mobile" ? "auth.errors.phoneTaken" : "wizard.errors.emailTaken");

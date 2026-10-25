@@ -11,7 +11,7 @@ export type LegalSection = { id: string; heading: string; blocks: LegalBlock[] }
 export type LegalDoc = { title: string; description: string; summary: string[]; sections: LegalSection[] };
 
 /** Bump when the wording changes; shown as "Last updated" and stored with each signed agreement. */
-export const LEGAL_VERSION = "2026-10-24";
+export const LEGAL_VERSION = "2026-10-25";
 
 export type AgreementText = { title: string; intro: string; clauses: string[]; closing: string };
 

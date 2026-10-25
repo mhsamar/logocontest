@@ -215,16 +215,31 @@ export async function purgeUser(userId: string): Promise<void> {
 /** Contests still unpaid `hours` after they were started go to the Trash (not while a bKash payment waits). */
 export async function trashUnpaidContests(now: Date, hours: number, limit = 100): Promise<number> {
   if (!isSupabaseConfigured() || hours <= 0) return 0;
-  const { data } = await db().from("contests").select("id").in("status", ["draft", "pending_payment"]).lt("created_at", new Date(now.getTime() - hours * HOUR).toISOString()).limit(limit);
-  const ids = (data ?? []).map((r) => r.id as string);
-  if (!ids.length) return 0;
-  const [waiting, paid] = await Promise.all([
-    db().from("manual_payments").select("contest_id").eq("status", "pending").in("contest_id", ids),
-    db().from("payments").select("contest_id").eq("status", "paid").in("contest_id", ids),
-  ]);
-  const keep = new Set([...(waiting.data ?? []), ...(paid.data ?? [])].map((r) => r.contest_id as string));
+  const cutoff = new Date(now.getTime() - hours * HOUR).toISOString();
   let n = 0;
-  for (const id of ids.filter((x) => !keep.has(x))) if ((await trashContest(id, null, "unpaid")).ok) n++;
+  // Oldest first, a page at a time: drafts kept back (below) never stop the ones after them (owner, 2026-10-25).
+  // Trashed ones leave the list, so each page starts after the ones kept so far.
+  let kept = 0;
+  for (let page = 0; page < 10 && n < limit; page++) {
+    const { data } = await db().from("contests").select("id").in("status", ["draft", "pending_payment"]).lt("created_at", cutoff).order("created_at", { ascending: true }).order("id", { ascending: true }).range(kept, kept + limit - 1);
+    const ids = (data ?? []).map((r) => r.id as string);
+    if (!ids.length) break;
+    const [waiting, paid, followed] = await Promise.all([
+      db().from("manual_payments").select("contest_id").eq("status", "pending").in("contest_id", ids),
+      db().from("payments").select("contest_id").eq("status", "paid").in("contest_id", ids),
+      // Still being followed up on Unpaid contests (owner, 2026-10-25): a call logged or one planned, not closed.
+      // Before migration 0076 the table is missing and nothing is kept back.
+      db().from("unpaid_leads").select("contest_id, contacts_count, next_followup_at").neq("status", "closed").in("contest_id", ids),
+    ]);
+    const inFollowUp = (followed.data ?? []).filter((r) => Number(r.contacts_count ?? 0) > 0 || r.next_followup_at);
+    const keep = new Set([...(waiting.data ?? []), ...(paid.data ?? []), ...inFollowUp].map((r) => r.contest_id as string));
+    for (const id of ids) {
+      if (n >= limit) break;
+      if (keep.has(id) || !(await trashContest(id, null, "unpaid")).ok) kept++;
+      else n++;
+    }
+    if (ids.length < limit) break;
+  }
   return n;
 }
 

@@ -155,6 +155,8 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   payment_approved_addon: "money",
   payment_rejected: "money",
   payment_submitted_admin: "admin",
+  lead_new_admin: "admin",
+  leads_new_admin: "admin",
 };
 
 const P = {

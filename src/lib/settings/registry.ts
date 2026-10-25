@@ -680,6 +680,16 @@ export const SETTINGS = {
     group: "notifications", type: "int", schema: int(1, 1440), default: 30,
     description: "Chat emails: at most one per conversation in this many minutes.",
   },
+  // Owner, 2026-10-25: most clients sign up within 5 minutes, so the team hears only about those who didn't.
+  "notify.lead_alert_minutes": {
+    group: "notifications", type: "int", schema: int(5, 1440), default: 15,
+    description: "New clients who gave their mobile number: tell the team if they still haven't signed up this many minutes later.",
+  },
+  // Anyone can type a number on the form, so these alert emails stop here each day (bell and phone go on).
+  "notify.lead_alert_emails_day": {
+    group: "notifications", type: "int", schema: int(0, 500), default: 20,
+    description: "New-client alerts: at most this many emails a day in all; after that only the bell and phone.",
+  },
   "notify.saved_reminder_hours": {
     group: "notifications", type: "json", schema: z.array(z.number().int().min(1).max(168)).min(1).max(2), default: [24, 2],
     description: "Pro: hours before a saved contest ends when its reminder goes (one or two numbers).",

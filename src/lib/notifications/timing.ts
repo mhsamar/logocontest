@@ -19,6 +19,8 @@ export const TIMING_INFO: Record<TimingKey, { unit: TimingUnit; list: boolean }>
   "rewards.claim_reminder_days": { unit: "days", list: false },
   "rewards.claim_reminders_max": { unit: "times", list: false },
   "notify.chat_email_minutes": { unit: "minutes", list: false },
+  "notify.lead_alert_minutes": { unit: "minutes", list: false },
+  "notify.lead_alert_emails_day": { unit: "times", list: false },
   "notify.saved_reminder_hours": { unit: "hours", list: true },
   "notify.invite_reminder_hours": { unit: "hours", list: false },
   "notify.pro_renewal_days": { unit: "days", list: true },
