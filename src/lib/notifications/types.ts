@@ -125,6 +125,13 @@ export const NOTIFICATION_TYPES = [
   "leads_new_admin",
   // Someone answered the help message an admin sent on Start a contest (owner, 2026-10-25).
   "help_reply_admin",
+  // Unpaid contests, phase 3 (owner, 2026-10-26): the team's instant alerts.
+  "unpaid_new_admin",
+  "unpaid_failed_admin",
+  "unpaid_back_admin",
+  "unpaid_live_admin",
+  "followup_due_admin",
+  "followup_overdue_admin",
   // Money-back guarantee (owner, 2026-10-21)
   "guarantee_available",
   "guarantee_claimed",

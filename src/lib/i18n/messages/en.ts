@@ -651,6 +651,7 @@ const en = {
         "contest-won": { label: "Wins", hint: "When your design wins, with your prize and what to do next." },
         "client-new-entries": { label: "New designs", hint: "A summary of new designs in your contest, at most once a day." },
         "client-pick-winner": { label: "Pick a winner", hint: "When your contest ends and it's time to choose." },
+        "contest-reminder": { label: "Reminders to finish a contest", hint: "When you saved a contest but haven't paid yet (at most two)." },
         "chat-message": { label: "Messages", hint: "New chat messages about a contest; a quick back-and-forth sends just one email." },
         "logo-check-ready": { label: "Logo check reports", hint: "When a logo check you ran is ready." },
         "pro-receipt": { label: "Pro receipts", hint: "A receipt each time you pay for Pro." },
@@ -669,6 +670,19 @@ const en = {
       settings: "Help and contact",
       always: "Codes and security emails still come, so you can always log in safely.",
       invalid: "This unsubscribe link doesn't work. Write to us from Help and contact and we'll stop the emails.",
+    },
+    // To a client who saved a contest but didn't pay (owner, 2026-10-26; Design/unpaid-contests §9).
+    reminder: {
+      button: "Finish my contest",
+      yourContest: "your contest",
+      first: {
+        subject: "Your contest is saved — finish in 1 minute",
+        body: "Your {brand} contest is saved. Choose how to pay and it goes live, so designers can start sending designs:\n\n{link}\n\nAny question? Just reply to this email.",
+      },
+      last: {
+        subject: "Need help finishing your contest?",
+        body: "Your {brand} contest is still waiting. If anything stopped you — the prize, the payment or the brief — we're happy to help: reply to this email or call us at {phone}.\n\nFinish it here: {link}",
+      },
     },
     reset: {
       button: "Choose a new password",
@@ -1286,6 +1300,13 @@ const en = {
       lead_new_admin: "New client to call: {name} started a contest but hasn't signed up yet.",
       leads_new_admin: "{number} new clients started a contest but haven't signed up yet. Call them to help.",
       help_reply_admin: "Someone answered your help message on Start a contest. Open Unpaid contests to reply.",
+      // Unpaid contests, phase 3 (owner, 2026-10-26)
+      unpaid_new_admin: "New unpaid contest: {brand} stopped at {step} · {amount}.",
+      unpaid_failed_admin: "Payment for {brand} didn't go through: {reason}",
+      unpaid_back_admin: "{brand} came back to their unpaid contest ({step}).",
+      unpaid_live_admin: "Someone is creating a contest now ({step}).",
+      followup_due_admin: "Follow-up with {brand} in {minutes} min.",
+      followup_overdue_admin: "Follow-up with {brand} wasn't done on its day.",
       // Money-back guarantee (owner, 2026-10-21)
       guarantee_available: "{brand} ended with fewer than {number} different designers. You can claim your money back on the contest page.",
       guarantee_claimed: "We got your money-back claim for {brand}. Our team is checking it.",
@@ -1756,6 +1777,16 @@ const en = {
       withdrawal: {
         subject: "Withdrawal to pay: {amount}",
         body: "{name} asked to withdraw {amount} from their wallet. Send the money, then mark it paid: {link}",
+      },
+      // Unpaid contests' instant alerts by email (owner, 2026-10-26): no name or brand, as for new clients.
+      unpaid: {
+        new_unpaid: "A client stopped before paying",
+        payment_failed: "A client's payment didn't go through",
+        came_back: "A client came back to their unpaid contest",
+        creating_now: "Someone is creating a contest now",
+        followup_due: "Your follow-up is coming up",
+        followup_overdue: "A follow-up wasn't done on its day",
+        body: "{what}.\n\nSee who it is and call them: {link}",
       },
       lead: {
         // No name or brand in the email: it stays in mailboxes after the lead is deleted (owner, 2026-10-25).
@@ -2413,6 +2444,59 @@ const en = {
       },
     },
     unpaid: {
+      // Phase 3 (owner, 2026-10-26; Design/unpaid-contests §2, §9): instant alerts and automatic reminders.
+      alerts: {
+        title: "Instant alerts",
+        sub: "Get told the moment new unpaid data comes in. One setting for the whole team.",
+        save: "Save",
+        saved: "Instant alerts saved.",
+        on: "Alerts on",
+        off: "Alerts off",
+        events: {
+          new_unpaid: { label: "New unpaid contest", hint: "Someone stops before paying (after {minutes} min of no activity)" },
+          payment_failed: { label: "Payment failed", hint: "Card error, or a bKash payment the team couldn't approve" },
+          came_back: { label: "They came back", hint: "A client with an unpaid draft opens it again" },
+          creating_now: { label: "Someone is creating a contest now", hint: "Every new person on Start a contest" },
+          followup_due: { label: "Follow-up is due", hint: "{due} min before the time set (to its owner)" },
+          followup_overdue: { label: "Follow-up overdue", hint: "Not done by the end of its day (to its owner)" },
+        },
+        sendTo: "Send to",
+        ways: { popup: "Admin pop-up", sound: "Sound", push: "Browser / phone push", email: "Email", sms: "SMS" },
+        smsOff: "SMS needs an SMS provider — not set up yet.",
+        soundNeedsPopup: "The sound comes with the admin pop-up.",
+        quiet: "Quiet hours",
+        quietWindow: "{from} – {to}",
+        quietOff: "Off",
+        quietNote: "In quiet hours alerts only collect in the bell list: no pop-up, sound, push or email.",
+        manageOnly: "Only Unpaid contests · Manage can change these.",
+        reasons: { card: "the card payment didn't go through" },
+        pop: {
+          new_unpaid: "New unpaid contest",
+          payment_failed: "Payment failed",
+          came_back: "They came back",
+          creating_now: "Someone is creating a contest",
+          followup_due: "Follow-up is due",
+          followup_overdue: "Follow-up overdue",
+          justNow: "just now",
+          call: "Call now",
+          open: "Open",
+          close: "Close",
+          more: "+{n} more in the bell",
+        },
+      },
+      reminders: {
+        title: "Automatic reminders",
+        sub: "Sent to the client by itself. Stops when they pay, reply, or you close the lead.",
+        after: "After {time}",
+        hour: "1 hour",
+        hours: "{n} hours",
+        days: "{n} days",
+        first: "Email: “Your contest is saved — finish in 1 minute” + payment link",
+        sms: "SMS with payment link",
+        last: "Last email + offer help",
+        note: "Only to clients with an account and a saved contest, between 8 am and 10 pm. Each email has its own Unsubscribe link. Change the hours in Admin › Notifications.",
+        saved: "Automatic reminders saved.",
+      },
       // Follow-ups (owner, 2026-10-25; Design/unpaid-contests).
       fu: {
         lead: "Everyone who started a contest but didn't pay. See where they got stuck, call or message them, keep notes, plan the next follow-up, and close fake ones.",
@@ -2572,6 +2656,8 @@ const en = {
           next: "Next follow-up",
           when: "Date and time",
           assign: "Assign to",
+          remind: "Remind me by",
+          remindWays: { alert: "Admin alert", email: "Email", sms: "SMS" },
           save: "Save follow-up",
           cancel: "Cancel",
           saved: "Follow-up saved.",
@@ -2707,6 +2793,8 @@ const en = {
           help_reply: "Replied to the help message",
           help_call_me: "Asked for a call",
           help_no_thanks: "Said no thanks to the help message",
+          remind_first: "Reminder email sent to finish the contest",
+          remind_last: "Last reminder email sent (with an offer of help)",
         },
         close: {
           label: "Close this lead:",
@@ -4074,6 +4162,8 @@ const en = {
       earlyAccess: "Pro designers get it {n} minutes before everyone else.",
       earlyAccessOff: "Pro early access is off, so everyone hears at the same time.",
       changeInPro: "Change in Pro plan",
+      alsoUnpaid: "Which events alert, pop-up, sound and quiet hours (or which reminders go) are set in Unpaid contests.",
+      changeInUnpaid: "Change in Unpaid contests",
       alsoUser: "Each person can still stop this email with the Unsubscribe link in it.",
       tiers: {
         title: "Designer emails by plan",
@@ -4136,6 +4226,9 @@ const en = {
         notify_chat_email_minutes: "Chat email gap",
         notify_lead_alert_minutes: "Minutes after they give their number",
         notify_lead_alert_emails_day: "Emails a day, at most",
+        notify_followup_due_minutes: "Minutes before the follow-up",
+        notify_unpaid_reminder_first_hours: "First email, hours after their last activity",
+        notify_unpaid_reminder_last_hours: "Last email, hours after the contest was started",
         notify_saved_reminder_hours: "Hours before the end",
         notify_invite_reminder_hours: "Hours before the end",
         notify_pro_renewal_days: "Days before the plan ends",
@@ -4382,6 +4475,18 @@ const en = {
           label: "New clients who didn't sign up",
           when: "Someone gave their mobile number on the contest form but still has no account after the set minutes. Once per person. After the daily email limit, only the bell and phone.",
         },
+        admin_unpaid: {
+          label: "Unpaid contests: instant alerts",
+          when: "A saved contest stopped before paying, a payment failed, a client came back to their draft, or someone started a contest. To everyone with Unpaid contests · View.",
+        },
+        admin_followups: {
+          label: "Follow-ups due and overdue",
+          when: "A planned follow-up is coming up, or wasn't done on its day. Only to the person who owns it.",
+        },
+        unpaid_reminders: {
+          label: "Reminders to finish a contest",
+          when: "A client saved a contest but didn't pay: a first email, and a last one with an offer of help. Never after they pay or reply.",
+        },
         admin_help: {
           label: "Answers to your help message",
           when: "Someone you sent a help message to on Start a contest replied or asked for a call. Only you, the admin who wrote.",
@@ -4510,6 +4615,8 @@ const en = {
         unpaid_watch: "Watched someone fill in Start a contest",
         unpaid_offer_help: "Sent a help message on Start a contest",
         unpaid_help_reply: "Replied in a Start a contest help chat",
+        unpaid_alert_settings: "Changed the unpaid contests' instant alerts",
+        unpaid_reminder_settings: "Changed the automatic reminders to clients",
         remove_entry: "Removed a design",
         correct_name: "Corrected a person's name",
         remind_user: "Sent a profile reminder",

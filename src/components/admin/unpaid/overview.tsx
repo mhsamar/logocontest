@@ -144,7 +144,7 @@ export function FollowUpPlan({ items, q, t, label }: { items: PlanItem[]; q: Unp
       {groups.length === 0 ? (
         <p className="m-0 text-[15px] text-muted">{t("admin.unpaid.fu.plan.empty")}</p>
       ) : (
-        <div className="grid gap-4 min-[901px]:grid-cols-2 min-[1251px]:grid-cols-4">
+        <div className="grid gap-4 min-[901px]:max-[1250px]:grid-cols-2">
           {groups.map(({ g, list }) => (
             <div key={g} className="flex min-w-0 flex-col gap-2">
               <h3 className={cx("m-0 text-[12px] font-extrabold uppercase tracking-[0.08em]", g === "overdue" ? "text-[#B3261E]" : "text-[#8A8C96]")}>{t(`admin.unpaid.fu.plan.${g}`)}</h3>

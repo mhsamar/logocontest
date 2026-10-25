@@ -10,6 +10,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/money";
 import { AccountMenu } from "./account-menu";
+import { AdminAlerts } from "./admin-alerts";
 import { ActivityDrawer } from "./activity-drawer";
 import { AdminIcon } from "./icons";
 import { ReadOnlyProvider } from "./read-only";
@@ -314,6 +315,8 @@ export function AdminShell({
               <span className="max-sm:sr-only">{t("admin.shell.viewSite")}</span>
               <AdminIcon name="external" size={16} />
             </a>
+            {/* The admin's own notifications, and the unpaid instant alerts popping up (owner, 2026-10-26). */}
+            <AdminAlerts />
             {canSeeActivity && <ActivityDrawer />}
             <AccountMenu
               me={me}

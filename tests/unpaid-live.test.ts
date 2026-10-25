@@ -159,6 +159,9 @@ vi.mock("@/lib/auth/session", () => ({ getCurrentUser: async () => who.user }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: (n: string) => (n === "lc_as" && who.as ? { value: who.as } : undefined) }) }));
 vi.mock("@/lib/contests/pricing-config", () => ({ getPricingConfig: async () => { throw new Error("not needed"); } }));
 vi.mock("@/lib/notifications/broadcast", () => ({ notifyWithPush: async (...args: unknown[]) => void pushes.push(args) }));
+// Phase 3's instant alerts from this route (someone new on the page, a client back to their draft): recorded here.
+const liveAlerts = vi.hoisted(() => ({ creating: [] as unknown[][], back: [] as unknown[][] }));
+vi.mock("@/lib/admin/unpaid-alerts", () => ({ alertCreating: async (...a: unknown[]) => void liveAlerts.creating.push(a), alertCameBack: async (...a: unknown[]) => void liveAlerts.back.push(a) }));
 // The bell and push go out after the visitor's answer is sent back; here, at once.
 vi.mock("next/server", async (load) => ({ ...(await load<typeof import("next/server")>()), after: (fn: () => unknown) => void fn() }));
 
@@ -191,10 +194,24 @@ beforeEach(() => {
 
 describe("the live route", () => {
   it("keeps a guest's step and form answers (never their details), with a rough city and no address", async () => {
+    liveAlerts.creating.length = 0;
     expect(await ping({ s: "logo", st: 3, p: 3, n: 8, a: { brand: "Sample Tea", password: "x", email: "a@b.c" }, d: "brand", loc: "bn" })).toEqual({ offer: null });
     const row = db.tables.wizard_live[0];
     expect(row).toMatchObject({ visit_id: V, user_id: null, stage: 3, pos: 3, steps_total: 8, doing: "brand", answers: { brand: "Sample Tea" }, device: "mobile", city: "Dhaka City", locale: "bn", ended_at: null });
     expect(JSON.stringify(row)).not.toMatch(/10\.0\.|a@b\.c|password/);
+    // A new visit: "Someone is creating a contest now" (phase 3) is told once, not on the next ping.
+    await ping({ s: "logo", st: 3 });
+    expect(liveAlerts.creating.map((a) => a.slice(0, 2))).toEqual([[V, 3]]);
+  });
+
+  it("checks \"They came back\" when a client opens their own draft on a new visit (phase 3)", async () => {
+    const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab";
+    db.tables.contests = [{ id: A, client_id: "ca" }];
+    who.user = { id: "ca", role: "client", mobile: "+8801711111111" };
+    liveAlerts.back.length = 0;
+    await ping({ st: 8, c: A });
+    await ping({ st: 8, c: A });
+    expect(liveAlerts.back.map((a) => a[0])).toEqual([A]);
   });
 
   it("ignores the team, designers and the Super admin's \"Log in as\"", async () => {

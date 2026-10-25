@@ -178,6 +178,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "To keep the site safe: the no-contact filter, copy checks, reports, and preventing fraud.",
               "To help you finish a contest you started: our team may call, message or email you about it, and keeps short notes of those calls. If we confirm by phone that a contest was fake, we may keep its mobile number and email to stop new contests from them.",
               "To offer help while you fill in Start a contest: our team may show you one short message on that page, never during payment. You can reply, ask for a call or close it; our team sees your answers next to the notes about your contest.",
+              "To remind you about a contest you saved but didn't pay for: we may email you up to two reminders with a link to finish it, only if you have an account. They stop as soon as you pay or reply, and you can unsubscribe from them alone.",
               "To follow the law and, when needed, to take legal action about copied designs or fraud.",
             ],
           },

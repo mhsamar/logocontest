@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { SeenNow } from "@/components/admin/admin-nav";
 import { AutoRefresh } from "@/components/admin/auto-refresh";
+import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
 import { DetailsWhileLoading, LeadSelection } from "@/components/admin/unpaid/actions";
 import { LeadDetails } from "@/components/admin/unpaid/lead-details";
 import { LeadList, type Fmt } from "@/components/admin/unpaid/lead-list";
 import { LiveNow } from "@/components/admin/unpaid/live";
+import { AutoReminders, InstantAlerts } from "@/components/admin/unpaid/alerts";
 import { FollowUpPlan, StuckFunnel, UnpaidStats, type PlanItem, type StatCard } from "@/components/admin/unpaid/overview";
 import { sectionVisit } from "@/lib/admin/badges";
 import { requirePermission } from "@/lib/admin/core";
@@ -16,6 +18,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { formatMobile, maskBdMobile } from "@/lib/phone";
+import { getSettings } from "@/lib/settings";
 import { linkOrigin } from "@/lib/site-origin";
 import { firstName } from "@/lib/wizard-live-rules";
 
@@ -40,6 +43,11 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
     // Contests and leads that came in since this admin last opened Unpaid get a "New" tag (owner, 2026-10-23).
     sectionVisit(me, "unpaid"),
   ]);
+  // Phase 3 (owner, 2026-10-26): the team's Instant alerts and the Automatic reminders to clients, one setting each.
+  const settings = await getSettings(["notify.unpaid_alerts", "notify.followup_due_minutes", "notify.lead_alert_minutes", "notify.unpaid_reminders", "notify.unpaid_reminder_first_hours", "notify.unpaid_reminder_last_hours"]);
+  const alerts = settings["notify.unpaid_alerts"];
+  const alertsOn = Object.values(alerts.events).some(Boolean) && (alerts.send.popup || alerts.send.push || alerts.send.email);
+  const remindDefault = [...(alerts.send.popup || alerts.send.push ? ["alert" as const] : []), ...(alerts.send.email ? ["email" as const] : [])];
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const tag = locale === "bn" ? "bn-BD" : "en-GB";
@@ -109,12 +117,19 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
         title={t("admin.unpaid.title")}
         lead={t("admin.unpaid.fu.lead")}
         actions={
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#E4F5EC] px-3 py-1 text-[13px] font-bold text-[#14633C]">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full rounded-full bg-[#2BB673] opacity-60 motion-safe:animate-ping" />
-              <span className="relative size-2 rounded-full bg-[#2BB673]" />
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#E4F5EC] px-3 py-1 text-[13px] font-bold text-[#14633C]">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full rounded-full bg-[#2BB673] opacity-60 motion-safe:animate-ping" />
+                <span className="relative size-2 rounded-full bg-[#2BB673]" />
+              </span>
+              {t("admin.unpaid.fu.live")}
             </span>
-            {t("admin.unpaid.fu.live")}
+            {/* Instant alerts on or off (phase 3), a jump to their switches. */}
+            <a href="#unot" className={alertsOn ? "inline-flex items-center gap-1.5 rounded-full bg-[#111216] px-3 py-1 text-[13px] font-bold text-white" : "inline-flex items-center gap-1.5 rounded-full bg-[#F1F1F5] px-3 py-1 text-[13px] font-bold text-[#6A6D78]"}>
+              <AdminIcon name="bell" size={13} />
+              {t(alertsOn ? "admin.unpaid.alerts.on" : "admin.unpaid.alerts.off")}
+            </a>
           </span>
         }
       />
@@ -128,11 +143,18 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
         <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} />
         <DetailsWhileLoading>
-        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} payLink={payLink} gone={Boolean(q.sel && !selected)} />
+        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} payLink={payLink} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} />
         </DetailsWhileLoading>
       </div>
       </LeadSelection>
-      <FollowUpPlan items={plan} q={q} t={t} label={planLabel} />
+      {/* The plan, Instant alerts and Automatic reminders side by side (Design/unpaid-contests, phase 3). */}
+      <div className="grid items-start gap-4 min-[901px]:grid-cols-2 min-[1251px]:grid-cols-3">
+        <div className="min-w-0 min-[901px]:max-[1250px]:col-span-2">
+          <FollowUpPlan items={plan} q={q} t={t} label={planLabel} />
+        </div>
+        <InstantAlerts value={alerts} minutes={{ newUnpaid: settings["notify.lead_alert_minutes"], due: settings["notify.followup_due_minutes"] }} canManage={canManage} />
+        <AutoReminders value={settings["notify.unpaid_reminders"]} hours={{ first: settings["notify.unpaid_reminder_first_hours"], last: settings["notify.unpaid_reminder_last_hours"] }} canManage={canManage} />
+      </div>
       <p className="m-0 text-center text-[14px] text-muted">{t("admin.unpaid.fu.footer")}</p>
     </div>
   );

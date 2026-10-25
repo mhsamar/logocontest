@@ -402,6 +402,8 @@ export async function emailProRenewal(designerId: string, days: number, until: D
  * their own language; then the template's "Hi …," is left out. Security emails always go and have no Unsubscribe.
  */
 export async function emailNotification(input: {
+  /** The reminder to finish an unpaid contest uses its own key, so it has its own Unsubscribe (owner, 2026-10-26). */
+  key?: "notification" | "contest-reminder";
   to: { userId?: string | null; email?: string; name?: string | null };
   title: string;
   body: string;
@@ -419,7 +421,7 @@ export async function emailNotification(input: {
   const own = [...(origin ? [origin] : []), ...ownOrigins()];
   const link = input.buttonUrl ?? input.body.match(/https?:\/\/\S+/g)?.map((u) => u.replace(/[.,;:!?)]+$/, "")).find((u) => isOwnUrl(u, own));
   return sendEmail({
-    key: "notification",
+    key: input.key ?? "notification",
     to: input.to,
     security: input.security,
     ref: input.ref,
@@ -449,9 +451,11 @@ export async function emailText(input: {
   notice?: string;
   /** Another sender than EMAIL_FROM (owner, 2026-10-21: the .bd watch's alerts). */
   from?: string;
+  key?: "notification" | "contest-reminder";
 }): Promise<SendStatus> {
   const t = await translatorFor(input.locale);
   return emailNotification({
+    key: input.key,
     to: { userId: input.userId, email: input.email },
     title: input.subject,
     body: input.body,

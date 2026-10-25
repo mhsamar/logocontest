@@ -35,6 +35,7 @@ const SAMPLE: Record<EmailKey, EmailData> = {
   "logo-check-ready": { match_level: "No close match", match_percent: 12, file_name: "your logo", report_id: "CC-0042", checked_at: "15 Oct 2026, 2:10 pm", checks_left: "98", report_url: `${SITE}/dashboard/logo-checks` },
   "pro-receipt": { receipt_no: "PRO-000123", amount: "499", payment_method: "bKash", period_end: "15 Nov 2026", dashboard_url: `${SITE}/dashboard` },
   "pro-renewal": { days_left: 7, period_end: "22 Oct 2026", amount: "499", checks_used: 12, checks_limit: 100, wins_month: 1, renew_url: `${SITE}/pro/checkout?renew=1`, manage_url: `${SITE}/dashboard/profile#subscription` },
+  "contest-reminder": { title: "Your contest is saved — finish in 1 minute", body: "Your Sample Tea contest is saved.\nFinish here: https://logocontest.bd/client/contests/x", preview: "Your Sample Tea contest is saved.", button_text: "Finish my contest", button_url: `${SITE}/client/contests/x` },
   notification: { title: "Your prize was released", body: "Your prize of ৳4,250 is in your wallet.\nWithdraw any time.", preview: "Your prize is in your wallet.", button_text: "Open wallet", button_url: `${SITE}/dashboard/wallet` },
 };
 

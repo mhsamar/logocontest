@@ -100,7 +100,7 @@ export function previewOf(body: string): string {
 export function render(key: EmailKey, data: EmailData): Rendered {
   const { subject, preheader } = CATALOG[key];
   const full: EmailData = { ...data };
-  if (key === "notification") full.body_html = bodyHtml(str(data.body), str(data.site_url));
+  if (key === "notification" || key === "contest-reminder") full.body_html = bodyHtml(str(data.body), str(data.site_url));
   full.subject = oneLine(fill(subject, full, false), 150);
   full.preheader = oneLine(fill(preheader, full, false), 140);
   const html = fill(TEMPLATES[key], full, true);

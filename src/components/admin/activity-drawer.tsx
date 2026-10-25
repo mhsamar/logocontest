@@ -46,7 +46,7 @@ export function ActivityDrawer() {
   return (
     <>
       <button type="button" onClick={show} aria-label={t("admin.drawer.title")} aria-expanded={open} className="flex size-11 items-center justify-center rounded-[12px] border border-adm-line bg-surface text-adm-strong hover:bg-adm-bg">
-        <AdminIcon name="bell" />
+        <AdminIcon name="activity" />
       </button>
       {open && (
         <div className="fixed inset-0 z-[70] flex justify-end">

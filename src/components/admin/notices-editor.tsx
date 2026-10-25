@@ -213,6 +213,14 @@ export function NoticesEditor({
             )}
 
             {r.alsoIn === "user" && r.channels.includes("email") && !r.locked && <p className="m-0 mt-2 text-[12.5px] text-muted">{t("admin.notices.alsoUser")}</p>}
+            {r.alsoIn === "unpaid" && (
+              <p className="m-0 mt-2 text-[12.5px] text-muted">
+                {t("admin.notices.alsoUnpaid")}{" "}
+                <Link href="/admin/unpaid#unot" className="font-bold text-primary hover:underline">
+                  {t("admin.notices.changeInUnpaid")}
+                </Link>
+              </p>
+            )}
             {r.alsoIn === "pro" && (
               <p className="m-0 mt-2 text-[12.5px] text-muted">
                 {t(autoRemind ? "admin.notices.alsoProOn" : "admin.notices.alsoProOff")}{" "}

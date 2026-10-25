@@ -12,6 +12,7 @@ import { LOGO } from "@/lib/services/types";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { leadPath } from "./lead-path";
+import { alertsSchema, inQuietHours } from "./unpaid-alert-rules";
 
 /** At most this many people get their own alert per run; more at once go out as one summary. */
 export const LEAD_ALERTS_MAX = 3;
@@ -30,10 +31,16 @@ type Row = Record<string, unknown>;
  */
 export async function alertNewLeads(now = new Date()): Promise<number> {
   // Turned off in Admin › Notifications: nobody is marked "alerted" without being told.
-  const [bellOn, pushOn, emailOn] = await Promise.all(CHANNELS.map((c) => noticeOn("admin_leads", c)));
-  if (!bellOn && !pushOn && !emailOn) return 0;
+  const [bellOn, pushSwitch, emailSwitch] = await Promise.all(CHANNELS.map((c) => noticeOn("admin_leads", c)));
+  if (!bellOn && !pushSwitch && !emailSwitch) return 0;
   const db = createAdminClient();
-  const s = await getSettings(["notify.lead_alert_minutes", "notify.lead_alert_emails_day"]);
+  const s = await getSettings(["notify.lead_alert_minutes", "notify.lead_alert_emails_day", "notify.unpaid_alerts"]);
+  // Unpaid contests' Instant alerts (owner, 2026-10-26): a guest who left a number is a "New unpaid contest" too, so
+  // that switch, the team's push choice and quiet hours apply (the bell still gets it).
+  const team = alertsSchema.parse(s["notify.unpaid_alerts"] ?? {});
+  const awake = team.events.new_unpaid && !inQuietHours(team.quiet, now);
+  const pushOn = pushSwitch && awake && team.send.push;
+  const emailOn = emailSwitch && awake;
   const dueBy = new Date(now.getTime() - s["notify.lead_alert_minutes"] * 60_000);
   const { data, error } = await db
     .from("wizard_leads")
@@ -99,6 +106,7 @@ export async function alertNewLeads(now = new Date()): Promise<number> {
     if (!n) return 0;
     await alertAdmins({
       permission: "unpaid.view",
+      push: pushOn,
       type: "leads_new_admin",
       data: { number: n },
       path: "/admin/unpaid",
@@ -128,6 +136,7 @@ export async function alertNewLeads(now = new Date()): Promise<number> {
     const firstAt = new Date(Math.min(...rows.map((r) => Date.parse(r.created_at as string))));
     await alertAdmins({
       permission: "unpaid.view",
+      push: pushOn,
       type: "lead_new_admin",
       data: { name: latest("name") || (fromBrand.length >= 2 ? fromBrand : "") || "—" },
       path: leadPath(visitId),

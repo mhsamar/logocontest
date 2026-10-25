@@ -31,7 +31,10 @@ export type TimingKey =
   | "notify.saved_reminder_hours"
   | "notify.invite_reminder_hours"
   | "notify.pro_renewal_days"
-  | "notify.upgrade_reminder_hours";
+  | "notify.upgrade_reminder_hours"
+  | "notify.followup_due_minutes"
+  | "notify.unpaid_reminder_first_hours"
+  | "notify.unpaid_reminder_last_hours";
 
 export type NoticeRow = {
   id: string;
@@ -46,7 +49,7 @@ export type NoticeRow = {
   /** Pro early access (minutes) is part of this row's timing; it is changed in Admin › Pro plan. */
   earlyAccess?: boolean;
   /** Also switched on or off elsewhere (shown as a note). */
-  alsoIn?: "pro" | "user";
+  alsoIn?: "pro" | "user" | "unpaid";
 };
 
 const row = (id: string, audience: Audience, types: NotificationType[], channels: Channel[], more: Partial<NoticeRow> = {}): NoticeRow => ({ id, audience, types, channels, ...more });
@@ -99,6 +102,9 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("handover_submitted", "client", ["handover_submitted"], ["bell"]),
   row("winner_changes", "client", ["repick_winner", "winner_picked_by_admin", "no_result_client"], ["bell"]),
   // Money-back guarantee (owner, 2026-10-21): too few designers, the claim, the decision and the money back.
+  // Unpaid contests, phase 3 (owner, 2026-10-26): emails to a client who saved a contest but didn't pay; each also
+  // switched on or off in Admin › Unpaid contests, and each client can unsubscribe from them alone.
+  row("unpaid_reminders", "client", [], ["email"], { email: "contest-reminder", timing: ["notify.unpaid_reminder_first_hours", "notify.unpaid_reminder_last_hours"], alsoIn: "unpaid" }),
   row("guarantee", "client", ["guarantee_available", "guarantee_claimed", "guarantee_approved", "guarantee_rejected", "guarantee_refunded"], ["bell", "email"], { email: "notification" }),
 
   // ---- Everyone ----
@@ -127,6 +133,10 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("admin_leads", "admin", ["lead_new_admin", "leads_new_admin"], ["bell", "push", "email"], { email: "notification", timing: ["notify.lead_alert_minutes", "notify.lead_alert_emails_day"] }),
   // Someone answered the one help message an admin sent on Start a contest (owner, 2026-10-25): reply while they're there.
   row("admin_help", "admin", ["help_reply_admin"], ["bell", "push"]),
+  // Unpaid contests, phase 3 (owner, 2026-10-26): the team's instant alerts; which ones, and pop-up, sound and quiet
+  // hours, are set in Admin › Unpaid contests. Follow-up alerts go to the person who owns the follow-up.
+  row("admin_unpaid", "admin", ["unpaid_new_admin", "unpaid_failed_admin", "unpaid_back_admin", "unpaid_live_admin"], ["bell", "push", "email"], { email: "notification", alsoIn: "unpaid" }),
+  row("admin_followups", "admin", ["followup_due_admin", "followup_overdue_admin"], ["bell", "push", "email"], { email: "notification", timing: ["notify.followup_due_minutes"], alsoIn: "unpaid" }),
   row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),

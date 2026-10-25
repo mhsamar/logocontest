@@ -158,6 +158,12 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   lead_new_admin: "admin",
   leads_new_admin: "admin",
   help_reply_admin: "admin",
+  unpaid_new_admin: "admin",
+  unpaid_failed_admin: "admin",
+  unpaid_back_admin: "admin",
+  unpaid_live_admin: "admin",
+  followup_due_admin: "admin",
+  followup_overdue_admin: "admin",
 };
 
 const P = {

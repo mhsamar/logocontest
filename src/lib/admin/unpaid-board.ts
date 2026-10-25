@@ -22,6 +22,7 @@ import {
   type LeadStatus,
   type Range,
 } from "./unpaid-rules";
+import { cleanRemindBy, type RemindWay } from "./unpaid-alert-rules";
 
 /**
  * Admin › Unpaid contests, follow-ups (owner, 2026-10-25; Design/unpaid-contests): everyone who started a contest but
@@ -59,6 +60,7 @@ export type Lead = LeadState & {
   closedBy: string | null;
   owner: { id: string; name: string } | null;
   nextType: How | null;
+  remindBy: RemindWay[] | null;
   lastContact: { type: string; at: Date; result: string | null } | null;
   paymentFailed: PaymentFailure | null;
   visits: number;
@@ -166,6 +168,8 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
     contacts: Number(r?.contacts_count ?? 0),
     nextAt: date(r?.next_followup_at),
     nextType: (r?.next_followup_type as How | null | undefined) ?? null,
+    // "Remind me by" (phase 3; none before migration 0078).
+    remindBy: cleanRemindBy(r?.remind_by),
     owner: ownerOf(r),
     ownerId: (r?.owner_id as string | null | undefined) ?? null,
     lastContact: r?.last_contact_at ? { type: String(r.last_contact_type ?? "note"), at: new Date(r.last_contact_at as string), result: (r.last_result as string | null) ?? null } : null,
@@ -419,11 +423,14 @@ export async function leadHistory(lead: Lead, contact: Contact | undefined): Pro
     }
   }
   if (lead.contestId) {
-    const [notes, pays, proofs] = await Promise.all([
+    const [notes, pays, proofs, reminders] = await Promise.all([
       unpaidNotes([lead.contestId]),
       db.from("payments").select("status, created_at").eq("purpose", "contest").eq("contest_id", lead.contestId).order("created_at", { ascending: false }).limit(10),
       db.from("manual_payments").select("status, note, created_at, reviewed_at").eq("kind", "contest").eq("contest_id", lead.contestId).order("created_at", { ascending: false }).limit(10),
+      // The automatic reminders that really went (phase 3, owner 2026-10-26).
+      db.from("email_log").select("ref, created_at").eq("template", "contest-reminder").eq("status", "sent").in("ref", [`remind:${lead.contestId}:first`, `remind:${lead.contestId}:last`]),
     ]);
+    for (const r of reminders.data ?? []) items.push({ at: new Date(r.created_at as string), by: null, kind: "email", event: String(r.ref).endsWith(":last") ? "remind_last" : "remind_first", tone: "amber" });
     for (const n of notes?.get(lead.contestId) ?? []) items.push({ at: n.at, by: n.by, kind: "note", event: "old_note", result: OLD_OUTCOME[n.outcome], note: n.note, tone: "neutral" });
     for (const p of pays.data ?? []) {
       items.push({ at: new Date(p.created_at as string), by: null, kind: "system", event: p.status === "failed" ? "payment_failed" : p.status === "paid" ? "paid" : "payment_started", tone: p.status === "failed" ? "bad" : p.status === "paid" ? "good" : "neutral" });

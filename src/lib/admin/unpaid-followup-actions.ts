@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatMobile } from "@/lib/phone";
 import { adminUser, audit, superAdmin } from "./core";
 import { adminIdsWith } from "./recipients";
+import { cleanRemindBy } from "./unpaid-alert-rules";
 import {
   afterResult,
   dhakaMidnight,
@@ -109,7 +110,7 @@ const completes = (row: Row, now: Date) => {
   return due && due.getTime() < dhakaMidnight(now, 1).getTime() ? due.toISOString() : null;
 };
 
-export async function logFollowUp(key: string, input: { how: string; result?: string | null; note?: string; next: string; pickAt?: string | null; ownerId?: string | null }): Promise<Result> {
+export async function logFollowUp(key: string, input: { how: string; result?: string | null; note?: string; next: string; pickAt?: string | null; ownerId?: string | null; remindBy?: string[] | null }): Promise<Result> {
   const admin = await adminUser("unpaid.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!isHow(input.how) || !isNextPreset(input.next)) return fail("admin.errors.generic");
@@ -150,6 +151,9 @@ export async function logFollowUp(key: string, input: { how: string; result?: st
     .eq("id", row.id as string);
   if (error) return fail("admin.errors.generic");
   await db.from("lead_activities").insert({ lead_id: row.id, admin_id: admin.id, kind: how, result, note, next_followup_at: next ? next.toISOString() : null, completes_at: done, event: after.close ? "closed_not_interested" : null });
+  // "Remind me by" (phase 3, owner 2026-10-26): written on its own, so a follow-up still saves before migration 0078.
+  const remindBy = cleanRemindBy(input.remindBy);
+  if (next && remindBy) await db.from("unpaid_leads").update({ remind_by: remindBy }).eq("id", row.id as string);
   await audit(admin.id, "unpaid_followup", "lead", key, { how, result, next: input.next, owner: owner !== admin.id ? owner : undefined, closed: after.close });
   refresh();
   return { ok: true };

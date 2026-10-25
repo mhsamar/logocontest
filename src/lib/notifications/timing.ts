@@ -25,6 +25,9 @@ export const TIMING_INFO: Record<TimingKey, { unit: TimingUnit; list: boolean }>
   "notify.invite_reminder_hours": { unit: "hours", list: false },
   "notify.pro_renewal_days": { unit: "days", list: true },
   "notify.upgrade_reminder_hours": { unit: "hours", list: true },
+  "notify.followup_due_minutes": { unit: "minutes", list: false },
+  "notify.unpaid_reminder_first_hours": { unit: "hours", list: false },
+  "notify.unpaid_reminder_last_hours": { unit: "hours", list: false },
 };
 
 /** How a timing is shown in its box: "12, 6" or "24". */

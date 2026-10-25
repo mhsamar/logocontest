@@ -13,6 +13,8 @@ export const EMAIL_KEYS = [
   "contest-won",
   "client-new-entries",
   "client-pick-winner",
+  // A client who saved a contest but didn't pay (owner, 2026-10-26): the notification layout, its own Unsubscribe.
+  "contest-reminder",
   "chat-message",
   "logo-check-ready",
   "pro-receipt",
@@ -33,6 +35,7 @@ export const CATALOG: Record<EmailKey, { subject: string; preheader: string }> =
   "contest-won": { subject: "You won {{contest_title}}!", preheader: "Prize ৳{{prize}}. Upload your final files." },
   "client-new-entries": { subject: "{{new_count}} new designs in {{contest_title}}", preheader: "Take a look and rate them." },
   "client-pick-winner": { subject: "Pick a winner for {{contest_title}}", preheader: "{{entry_count}} designs are waiting." },
+  "contest-reminder": { subject: "{{title}}", preheader: "{{preview}}" },
   "chat-message": { subject: "{{sender_name}} sent you a message", preheader: "{{message_preview}}" },
   "logo-check-ready": { subject: "Logo check: {{match_level}} · {{file_name}}", preheader: "Report {{report_id}} is ready." },
   "pro-receipt": { subject: "Receipt {{receipt_no}} · Pro plan ৳{{amount}}", preheader: "Your Pro plan is active until {{period_end}}." },
@@ -51,7 +54,7 @@ export const isOptionalKey = (v: unknown): v is OptionalKey => isEmailKey(v) && 
 /** The switches on each role's Email settings (the welcome email goes once, so it has none). */
 export const SETTINGS_KEYS: Record<"designer" | "client", OptionalKey[]> = {
   designer: ["contest-new", "contest-invite", "contest-ending", "entry-shortlisted", "contest-won", "chat-message", "logo-check-ready", "pro-receipt", "pro-renewal", "notification"],
-  client: ["client-new-entries", "client-pick-winner", "chat-message", "logo-check-ready", "notification"],
+  client: ["client-new-entries", "client-pick-winner", "contest-reminder", "chat-message", "logo-check-ready", "notification"],
 };
 
 /**

@@ -40,6 +40,7 @@ export type SendInput = {
 /** The Admin › Notifications row of emails that belong to one row only. */
 const NOTICE_OF: Partial<Record<EmailKey, string>> = {
   welcome: "welcome",
+  "contest-reminder": "unpaid_reminders",
   "contest-invite": "pro_invited",
   "contest-ending": "contest_ending",
   "entry-shortlisted": "entry_shortlisted",

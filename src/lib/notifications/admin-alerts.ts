@@ -33,6 +33,8 @@ export async function alertAdmins(input: {
   ref: string;
   /** False: the bell and phone only (a daily email limit was reached). */
   email?: boolean;
+  /** False: no phone notification (quiet hours, or turned off for these alerts). */
+  push?: boolean;
   subject: MessageKey;
   body: MessageKey;
   /** The email's {placeholders}, in the reader's language; {link} is added. */
@@ -45,7 +47,8 @@ export async function alertAdmins(input: {
       await notify(lookers, input.type, input.data, input.path, input.actorId);
     }
     if (!ids.length) return;
-    await notifyWithPush(ids, input.type, input.data, input.path, input.actorId);
+    if (input.push === false) await notify(ids, input.type, input.data, input.path, input.actorId);
+    else await notifyWithPush(ids, input.type, input.data, input.path, input.actorId);
     if (input.email === false) return;
     const { data } = await createAdminClient().from("profiles").select("id, email, locale").in("id", ids);
     const link = `${await linkOrigin()}${input.path}`;

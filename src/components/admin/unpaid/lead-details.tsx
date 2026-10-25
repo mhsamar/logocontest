@@ -5,6 +5,7 @@ import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdmCard, IdChip } from "@/components/admin/ui";
 import { closeLead, reopenLead } from "@/lib/admin/unpaid-followup-actions";
 import type { HistoryItem, Lead } from "@/lib/admin/unpaid-board";
+import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
 import { cx } from "@/lib/cx";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -46,6 +47,7 @@ export function LeadDetails({
   masked,
   payLink,
   gone = false,
+  remindDefault = ["alert"],
 }: {
   lead: Lead | null;
   status: ShownStatus | null;
@@ -58,6 +60,8 @@ export function LeadDetails({
   me: string;
   masked: string | null;
   payLink: string | null;
+  /** "Remind me by" when the follow-up has no choice of its own: the team's Instant alerts (phase 3). */
+  remindDefault?: RemindWay[];
   /** A link named a lead that is no longer on the list. */
   gone?: boolean;
 }) {
@@ -212,7 +216,7 @@ export function LeadDetails({
 
       {/* Log a follow-up | History */}
       <div className="grid gap-4 min-[901px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        {canManage && open ? <LogFollowUp key={lead.key} leadKey={lead.key} owners={ownerList} ownerId={ownerId} planned={Boolean(lead.nextAt)} /> : null}
+        {canManage && open ? <LogFollowUp key={lead.key} leadKey={lead.key} owners={ownerList} ownerId={ownerId} planned={Boolean(lead.nextAt)} remindBy={lead.remindBy ?? remindDefault} /> : null}
         <div className={cx("flex min-w-0 flex-col gap-2", !(canManage && open) && "min-[901px]:col-span-2")}>
           <h3 className="m-0 text-[17px] font-semibold">{t("admin.unpaid.fu.history.title")}</h3>
           {history.length === 0 ? (

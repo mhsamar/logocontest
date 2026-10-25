@@ -10,8 +10,11 @@ import type { ShownNotification } from "@/lib/notifications/render";
 import { NotificationRow } from "./notification-row";
 
 
-/** Header bell (owner, 2026-10-08): unread count, the latest notifications, mark all as read. */
-export function NotificationBell({ items, unread }: { items: ShownNotification[]; unread: number }) {
+/**
+ * Header bell (owner, 2026-10-08): unread count, the latest notifications, mark all as read. The admin panel has it too
+ * (owner, 2026-10-26), with its own button look and its list reloaded by the panel after marking (`onRead`).
+ */
+export function NotificationBell({ items, unread, onRead, buttonClass, panelClass }: { items: ShownNotification[]; unread: number; onRead?: () => void; buttonClass?: string; panelClass?: string }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -39,7 +42,7 @@ export function NotificationBell({ items, unread }: { items: ShownNotification[]
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`${t("notifications.open")}${unread ? ` (${count})` : ""}`}
-        className="relative flex size-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-white/70"
+        className={buttonClass ?? "relative flex size-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-white/70"}
       >
         <svg viewBox="0 0 24 24" className={cx("size-5", unread > 0 && "origin-top animate-wiggle")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />
@@ -52,7 +55,7 @@ export function NotificationBell({ items, unread }: { items: ShownNotification[]
       </button>
 
       {open && (
-        <div className="absolute -right-14 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] lg:right-0 overflow-hidden rounded-2xl bg-surface shadow-panel ring-1 ring-line animate-fade-in">
+        <div className={cx("absolute -right-14 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] lg:right-0 overflow-hidden rounded-2xl bg-surface shadow-panel ring-1 ring-line animate-fade-in", panelClass)}>
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <p className="font-semibold text-ink">{t("notifications.title")}</p>
             {unread > 0 && (
@@ -61,7 +64,8 @@ export function NotificationBell({ items, unread }: { items: ShownNotification[]
                 onClick={() =>
                   start(async () => {
                     await markAllRead();
-                    router.refresh();
+                    if (onRead) onRead();
+                    else router.refresh();
                   })
                 }
                 className="text-xs font-semibold text-primary hover:underline"
@@ -79,7 +83,7 @@ export function NotificationBell({ items, unread }: { items: ShownNotification[]
                 return (
                   <li key={n.id}>
                     {n.link ? (
-                      <Link href={n.link} onClick={() => (setOpen(false), !n.read && void markRead(n.id))} className="flex items-start gap-3 px-4 py-3 hover:bg-canvas">
+                      <Link href={n.link} onClick={() => (setOpen(false), !n.read && void markRead(n.id).then(() => onRead?.()))} className="flex items-start gap-3 px-4 py-3 hover:bg-canvas">
                         {inner}
                       </Link>
                     ) : (

@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { closeAsFake, findLeadsByContact, followUpDone, logFollowUp, planFollowUp, reachLead } from "@/lib/admin/unpaid-followup-actions";
 import { FAKE_REASONS, HOWS, isContactSearch, NEXT_PRESETS, RESULTS, unpaidHref, type How, type NextPreset, type Result, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
+import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -188,7 +189,7 @@ function OwnerSelect({ id, owners, value, onChange }: { id: string; owners: { id
 }
 
 /** "Log a follow-up" (handoff §6): how, result, what was said, next follow-up, who. Result "Fake contest" opens Close as fake. */
-export function LogFollowUp({ leadKey, owners, ownerId, planned }: { leadKey: string; owners: { id: string; name: string }[]; ownerId: string; planned: boolean }) {
+export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: savedRemind = ["alert"] }: { leadKey: string; owners: { id: string; name: string }[]; ownerId: string; planned: boolean; remindBy?: RemindWay[] }) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
@@ -199,11 +200,14 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned }: { leadKey: st
   const [next, setNext] = useState<NextPreset>("2h");
   const [picked, setPicked] = useState(nowLocal);
   const [owner, setOwner] = useState(ownerId);
+  // Shown as saved (or as the team's setting); only sent when changed, so a note never overwrites it.
+  const [remindBy, setRemindBy] = useState<RemindWay[]>(savedRemind);
+  const [remindTouched, setRemindTouched] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null);
   const [fakeOpen, setFakeOpen] = useState(false);
   const [pending, start] = useTransition();
   const noteRef = useRef<HTMLTextAreaElement>(null);
-  const reset = () => (setHow("call"), setResult(null), setNote(""), setNext("2h"), setOwner(ownerId), setError(null));
+  const reset = () => (setHow("call"), setResult(null), setNote(""), setNext("2h"), setOwner(ownerId), setRemindBy(savedRemind), setRemindTouched(false), setError(null));
   // A note leaves the planned follow-up as it is unless another time is picked; a call or message plans the next one.
   const pickHow = (h: How) => {
     setHow(h);
@@ -230,7 +234,7 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned }: { leadKey: st
   const save = () =>
     start(async () => {
       setError(null);
-      const r = await logFollowUp(leadKey, { how, result: how === "note" ? null : result, note, next, pickAt: next === "pick" ? picked : null, ownerId: owner });
+      const r = await logFollowUp(leadKey, { how, result: how === "note" ? null : result, note, next, pickAt: next === "pick" ? picked : null, ownerId: owner, remindBy: remindTouched ? remindBy : null });
       if (!r.ok) return setError(r.error);
       toast(t("admin.unpaid.fu.log.saved"));
       reset();
@@ -289,6 +293,21 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned }: { leadKey: st
         {t("admin.unpaid.fu.log.assign")}
         <OwnerSelect id={`assign-${leadKey}`} owners={owners} value={owner} onChange={setOwner} />
       </label>
+      {next !== "none" && (
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+          <legend className="mb-2 text-[13px] font-extrabold text-adm-strong">{t("admin.unpaid.fu.log.remind")}</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {(["alert", "email"] as const).map((w) => (
+              <button key={w} type="button" aria-pressed={remindBy.includes(w)} onClick={() => (setRemindTouched(true), setRemindBy(remindBy.includes(w) ? remindBy.filter((x) => x !== w) : [...remindBy, w]))} className={chip(remindBy.includes(w))}>
+                {t(`admin.unpaid.fu.log.remindWays.${w}`)}
+              </button>
+            ))}
+            <button type="button" disabled aria-pressed={false} title={t("admin.unpaid.alerts.smsOff")} className={cx(chip(false), "cursor-not-allowed opacity-50")}>
+              {t("admin.unpaid.fu.log.remindWays.sms")}
+            </button>
+          </div>
+        </fieldset>
+      )}
       {error && <Alert tone="danger">{t(error)}</Alert>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" loading={pending} disabled={how !== "note" && !result}>

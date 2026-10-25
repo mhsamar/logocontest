@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEFAULT_CAPTION, DEFAULT_HASHTAGS } from "@/lib/cards/rules";
 import { howVideoSchema, NO_VIDEO } from "@/lib/home/how-video";
+import { alertsSchema, DEFAULT_ALERTS, DEFAULT_REMINDERS, remindersSchema } from "@/lib/admin/unpaid-alert-rules";
 
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
 const intList = z.array(z.number().int().positive()).min(1);
@@ -689,6 +690,28 @@ export const SETTINGS = {
   "notify.lead_alert_emails_day": {
     group: "notifications", type: "int", schema: int(0, 500), default: 20,
     description: "New-client alerts: at most this many emails a day in all; after that only the bell and phone.",
+  },
+  // Unpaid contests, phase 3 (owner, 2026-10-26): one setting for the whole team, changed on Admin › Unpaid contests.
+  "notify.unpaid_alerts": {
+    group: "notifications", type: "json", schema: alertsSchema, default: DEFAULT_ALERTS,
+    description: "Unpaid contests › Instant alerts: which events alert the team, how (pop-up, sound, push, email) and the quiet hours.",
+  },
+  "notify.followup_due_minutes": {
+    group: "notifications", type: "int", schema: int(5, 120), default: 10,
+    description: "Follow-up is due: tell the person who owns it this many minutes before the time they set.",
+  },
+  "notify.unpaid_reminders": {
+    group: "notifications", type: "json", schema: remindersSchema, default: DEFAULT_REMINDERS,
+    description: "Unpaid contests › Automatic reminders: the first and the last email to a client who saved a contest but didn't pay.",
+  },
+  "notify.unpaid_reminder_first_hours": {
+    group: "notifications", type: "int", schema: int(1, 24), default: 1,
+    description: "Automatic reminders: the first email goes this many hours after the client's last activity on their unpaid contest.",
+  },
+  // Owner, 2026-10-26: before the Trash (72 hours), so the last email still finds the contest.
+  "notify.unpaid_reminder_last_hours": {
+    group: "notifications", type: "int", schema: int(24, 70), default: 48,
+    description: "Automatic reminders: the last email (with an offer of help) goes this many hours after the contest was started.",
   },
   "notify.saved_reminder_hours": {
     group: "notifications", type: "json", schema: z.array(z.number().int().min(1).max(168)).min(1).max(2), default: [24, 2],

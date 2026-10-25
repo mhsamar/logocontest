@@ -140,6 +140,20 @@
     ]
   },
   {
+    "key": "contest-reminder",
+    "group": "Client",
+    "subject": "{{title}}",
+    "preheader": "{{preview}}",
+    "vars": [
+      "first_name",
+      "title",
+      "body",
+      "preview",
+      "button_text (optional)",
+      "button_url (optional)"
+    ]
+  },
+  {
     "key": "chat-message",
     "group": "Everyone",
     "subject": "{{sender_name}} sent you a message",

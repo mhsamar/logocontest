@@ -4,6 +4,7 @@ import { AT_PAYMENT } from "@/lib/admin/unpaid-rules";
 import { countryOf, deviceOf, isBot } from "@/lib/analytics/rules";
 import { cityFrom, ipFrom } from "@/lib/auth/device";
 import { getCurrentUser } from "@/lib/auth/session";
+import { alertCameBack, alertCreating } from "@/lib/admin/unpaid-alerts";
 import { calculatePrice } from "@/lib/contests/pricing";
 import { getPricingConfig } from "@/lib/contests/pricing-config";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const iso = now.toISOString();
   const [{ data: row, error }, { data: offer }] = await Promise.all([
-    db.from("wizard_live").select("stage, contest_id, user_id, service, answers, total").eq("visit_id", visitId).maybeSingle(),
+    db.from("wizard_live").select("stage, contest_id, user_id, service, answers, total, updated_at").eq("visit_id", visitId).maybeSingle(),
     db.from("help_offers").select("id, status, admin_id, admin_seen_at, contest_id, user_id, answered_at, unread_by_admin").eq("visit_id", visitId).maybeSingle(),
   ]);
   // Before migration 0077: nothing to do. Any other database trouble: try again later, keeping what the page shows.
@@ -143,6 +144,10 @@ export async function POST(req: NextRequest) {
   };
   if (row) await db.from("wizard_live").update({ ...live, ...(row.stage !== stage ? { step_since: iso } : {}) }).eq("visit_id", visitId);
   else await db.from("wizard_live").insert({ visit_id: visitId, ...live, started_at: iso, step_since: iso });
+  // The team's instant alerts (owner, 2026-10-26), after this answer is sent: someone new on Start a contest, or a client
+  // opening their unpaid draft again (a new visit, or this tab back after half an hour).
+  if (!row) after(() => alertCreating(visitId, stage, now));
+  if (contestId && (!row || now.getTime() - Date.parse(row.updated_at as string) > 30 * 60_000)) after(() => alertCameBack(contestId!, now));
 
   // The one help message, only to the person it was sent to.
   const act = body.h?.act;

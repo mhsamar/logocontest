@@ -35,7 +35,8 @@ for (const file of files) {
     const img = new RegExp(`<img src="\\{\\{${v}\\}\\}"[^>]*>`);
     if (img.test(html)) html = swap(html, img, (m) => `{{#if ${v}}}${m}{{/if}}`, file);
   }
-  if (key === "notification") {
+  // The reminder to finish an unpaid contest (owner, 2026-10-26) has the same layout, with its own Unsubscribe.
+  if (key === "notification" || key === "contest-reminder") {
     html = swap(html, /(<p [^>]*>Hi \{\{first_name\}\},<\/p>)/, "{{#if first_name}}$1{{/if}}", file);
     html = swap(html, "{{body}}", "{{{body_html}}}", file);
   }
