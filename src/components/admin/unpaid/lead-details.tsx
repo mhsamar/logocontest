@@ -23,7 +23,7 @@ const TONE: Record<HistoryItem["tone"], string> = {
   amber: "bg-[#FFF1D6] text-[#8A5A00]",
   neutral: "bg-[#F1F1F5] text-[#6A6D78]",
 };
-const KIND_ICON: Record<HistoryItem["kind"], AdminIconName> = { call: "phone", whatsapp: "whatsapp", sms: "sms", email: "mail", note: "note", system: "flag" };
+const KIND_ICON: Record<HistoryItem["kind"], AdminIconName> = { call: "phone", whatsapp: "whatsapp", sms: "sms", email: "mail", note: "note", system: "flag", chat: "chat" };
 
 function duration(ms: number, t: Fmt["t"], num: Fmt["num"]) {
   const m = Math.max(0, Math.floor(ms / 60_000));
@@ -226,7 +226,7 @@ export function LeadDetails({
                   </span>
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-[12.5px] text-muted">
-                      <b className="text-adm-strong">{h.by ?? t("admin.unpaid.fu.history.system")}</b> · {when(h.at)}
+                      <b className="text-adm-strong">{h.by ?? (h.visitor ? (lead.clientName ?? t("admin.unpaid.fu.list.guest")) : t("admin.unpaid.fu.history.system"))}</b> · {when(h.at)}
                     </span>
                     <p className="m-0 text-[14px]">
                       <b>

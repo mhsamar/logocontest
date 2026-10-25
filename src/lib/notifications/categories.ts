@@ -157,6 +157,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   payment_submitted_admin: "admin",
   lead_new_admin: "admin",
   leads_new_admin: "admin",
+  help_reply_admin: "admin",
 };
 
 const P = {

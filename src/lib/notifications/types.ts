@@ -123,6 +123,8 @@ export const NOTIFICATION_TYPES = [
   // A new client gave their number but didn't sign up (owner, 2026-10-25): one person, or several at once.
   "lead_new_admin",
   "leads_new_admin",
+  // Someone answered the help message an admin sent on Start a contest (owner, 2026-10-25).
+  "help_reply_admin",
   // Money-back guarantee (owner, 2026-10-21)
   "guarantee_available",
   "guarantee_claimed",

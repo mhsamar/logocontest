@@ -5,6 +5,7 @@ import { AdminHead } from "@/components/admin/page-head";
 import { DetailsWhileLoading, LeadSelection } from "@/components/admin/unpaid/actions";
 import { LeadDetails } from "@/components/admin/unpaid/lead-details";
 import { LeadList, type Fmt } from "@/components/admin/unpaid/lead-list";
+import { LiveNow } from "@/components/admin/unpaid/live";
 import { FollowUpPlan, StuckFunnel, UnpaidStats, type PlanItem, type StatCard } from "@/components/admin/unpaid/overview";
 import { sectionVisit } from "@/lib/admin/badges";
 import { requirePermission } from "@/lib/admin/core";
@@ -16,6 +17,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { formatMobile, maskBdMobile } from "@/lib/phone";
 import { linkOrigin } from "@/lib/site-origin";
+import { firstName } from "@/lib/wizard-live-rules";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -118,6 +120,8 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       />
       {!board.ready && canManage && <p className="m-0 rounded-[12px] bg-adm-sample-bg px-4 py-3 text-[14px] font-semibold text-adm-sample">{t("admin.unpaid.fu.errors.notReady")}</p>}
       <UnpaidStats cards={cards} showLabel={t("admin.unpaid.fu.stats.show")} />
+      {/* Who is on Start a contest this minute, Watch and Offer help (owner, 2026-10-25; phase 2): refreshes itself. */}
+      <LiveNow canManage={canManage} me={firstName(me.name) || me.name} />
       <StuckFunnel funnel={funnel} q={q} t={t} num={num} stepName={stepName} empty={t("admin.dashboard.funnelEmpty")} />
       {/* Clicking a person shows it at once (row marked, details faded) while their details load (owner, 2026-10-25). */}
       <LeadSelection>

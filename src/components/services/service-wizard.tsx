@@ -4,11 +4,14 @@ import { ShareOnFacebook } from "@/components/wizard/share-facebook";
 import { setContestShare } from "@/lib/cards/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox, TextAreaField, TextField } from "@/components/ui/field";
 import { wizardVisitId } from "@/components/wizard/visit-id";
+import { HelpCard } from "@/components/wizard/help-card";
+import { useWizardLive } from "@/components/wizard/use-wizard-live";
+import { SERVICE_STAGE, serviceLiveAnswers } from "@/lib/wizard-live-rules";
 import { deleteFile, getFile } from "@/components/wizard/file-store";
 import type { LocalFile, ServerFile } from "@/components/wizard/state";
 import { Part } from "@/components/wizard/steps-brief";
@@ -94,6 +97,9 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
+  const [paying, setPaying] = useState(false);
+  // Room kept under the last fields for the help card, so it never sits over them (owner, 2026-10-25).
+  const [helpSpace, setHelpSpace] = useState(0);
   const [mobile, setMobile] = useState("");
   // Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14).
   const [country, setCountry] = useState("BD");
@@ -147,6 +153,14 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const index = steps.indexOf(step);
   const brief = { ...emptyBrief(), brandName: d.title.trim(), businessDescription: d.description.trim(), businessType: "other" as const, noWebsite: true };
   const svc = { slug: service.slug, answers: d.answers };
+
+  // "Creating a contest right now" (owner, 2026-10-25): the step and a few answers for the team (never the contact
+  // details, password or payment choices), and the one help message they may send.
+  const bar = useRef<HTMLDivElement>(null);
+  const files = (d.localFiles?.length ?? 0) + serverFiles.length;
+  const liveAnswers = useMemo(() => serviceLiveAnswers(d, files), [d, files]);
+  // Pay pressed: "went to payment" (9) at once, so no help message is sent while checkout starts.
+  const live = useWizardLive({ on: true, service: service.slug, stage: paying ? SERVICE_STAGE.pay + 1 : SERVICE_STAGE[step], pos: index + 1, of: steps.length, contestId: d.contestId, answers: liveAnswers });
 
   // Step 1 for a visitor (owner, 2026-10-17, as in the logo contest): real name, mobile and email, asked once.
   const personName = name.trim().replace(/\s+/g, " ");
@@ -254,9 +268,17 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
         await afterSave(res.contestId);
       });
     }
+    // Pay pressed (not just saving): the team's live list hears "went to payment" and no help shows.
+    setPaying(true);
     return start(async () => {
-      const res = await startCheckout({ contestId: d.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: contentOk });
-      if (res && !res.ok) setError(t(res.error.key, res.error.params));
+      const res = await startCheckout({ contestId: d.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: contentOk }).catch((e: unknown) => {
+        setPaying(false);
+        throw e;
+      });
+      if (res && !res.ok) {
+        setPaying(false);
+        setError(t(res.error.key, res.error.params));
+      }
     });
   };
 
@@ -523,7 +545,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
             </div>
           )}
 
-          <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
+          {helpSpace > 0 && <div aria-hidden style={{ height: helpSpace }} />}
+          <div ref={bar} className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
             {showPrice && <PriceBar price={price} feePercent={price?.feePercent ?? cfg.serviceFeePercent} />}
             <Button size="lg" block onClick={onNext} loading={busy}>
               {step === "pay" ? t("services.wizard.pay") : t("services.wizard.next")}
@@ -532,6 +555,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
         </div>
         {showPrice && <PriceSidebar price={price} feePercent={price?.feePercent ?? cfg.serviceFeePercent} />}
       </div>
+      {/* Never once Pay is pressed (owner, 2026-10-25). */}
+      <HelpCard offer={live.offer} act={live.act} onClose={live.close} hidden={paying} above={bar} onSpace={setHelpSpace} />
     </div>
   );
 }

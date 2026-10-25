@@ -155,6 +155,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "Account: name, username, mobile number, email, password (stored only in scrambled form), photo, language.",
               "Clients: business name, the contest brief and files you upload, payments.",
               "Starting a contest before signing up: the name, mobile number, email and WhatsApp choice you type on the first step, your brand name and how far you got, so our team can call to help if you don't finish.",
+              "While you fill in Start a contest: the step you are on, how long you have been on the page, your device type, your rough city (worked out from your internet address, which is not stored) and the answers you give on that form, so our team can see if you need help. Never your password, payment details or anything else you type. Until you give your contact details on the first step, our team sees you only as \"Guest\".",
               "Designers: bio, portfolio details, designs and final files, payout details (bKash number or bank account), and the originality agreement (full name, mobile, address, ID type and ID number, typed signature).",
               "Activity: comments, ratings, reports, notifications, and the date, time, IP address and browser when you accept declarations or sign the agreement.",
               "Payments: amount, status and the transaction ID. Card details and bKash PINs are never entered on our site.",
@@ -176,6 +177,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
               "To answer support chats (first with our AI assistant) and to run logo checks.",
               "To keep the site safe: the no-contact filter, copy checks, reports, and preventing fraud.",
               "To help you finish a contest you started: our team may call, message or email you about it, and keeps short notes of those calls. If we confirm by phone that a contest was fake, we may keep its mobile number and email to stop new contests from them.",
+              "To offer help while you fill in Start a contest: our team may show you one short message on that page, never during payment. You can reply, ask for a call or close it; our team sees your answers next to the notes about your contest.",
               "To follow the law and, when needed, to take legal action about copied designs or fraud.",
             ],
           },
@@ -217,7 +219,7 @@ export const LEGAL_EN: Record<LegalSlug, LegalDoc> = {
         id: "keep",
         heading: "How long we keep it",
         blocks: [
-          "We keep account information while your account is open. A deleted account stays in our trash for {trashDays} days so it can be restored, then it is erased. Contest, payment, wallet and agreement records are kept for as long as the law and possible disputes require, because they are needed to prove payments and copyright transfers. Login records are deleted after 180 days. Details from a contest started without signing up are deleted after 90 days.",
+          "We keep account information while your account is open. A deleted account stays in our trash for {trashDays} days so it can be restored, then it is erased. Contest, payment, wallet and agreement records are kept for as long as the law and possible disputes require, because they are needed to prove payments and copyright transfers. Login records are deleted after 180 days. Details from a contest started without signing up are deleted after 90 days. What you fill in on Start a contest is seen live by our team and deleted after a day; help messages from that page are deleted after 90 days.",
         ],
       },
       {

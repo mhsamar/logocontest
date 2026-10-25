@@ -382,6 +382,9 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     await db.from("wizard_leads").delete().lt("created_at", new Date(now.getTime() - 90 * day).toISOString());
     // Their alerts in the team's bells name the person, so they go with them (an alert comes at most two days after).
     await db.from("notifications").delete().eq("type", "lead_new_admin").lt("created_at", new Date(now.getTime() - 88 * day).toISOString());
+    // Start a contest's live answers (owner, 2026-10-25) are kept a day, help chats 90 days. Before migration 0077: ignored.
+    await db.from("wizard_live").delete().lt("updated_at", new Date(now.getTime() - day).toISOString());
+    await db.from("help_offers").delete().lt("created_at", new Date(now.getTime() - 90 * day).toISOString());
     if (online.error) fail("presence", "-", online.error.message);
   }
 

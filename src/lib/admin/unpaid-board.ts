@@ -359,7 +359,9 @@ export type HistoryItem = {
   at: Date;
   /** Who: an admin's name, or null for the system. */
   by: string | null;
-  kind: "call" | "whatsapp" | "sms" | "email" | "note" | "system";
+  kind: "call" | "whatsapp" | "sms" | "email" | "note" | "system" | "chat";
+  /** The person themselves wrote it (the help chat on Start a contest), not the team or the system. */
+  visitor?: boolean;
   /** What happened, as a message key part (see admin.unpaid.fu.history.*) with its values. */
   event: string;
   result?: string | null;
@@ -391,6 +393,29 @@ export async function leadHistory(lead: Lead, contact: Contact | undefined): Pro
       const tone: HistoryItem["tone"] =
         a.event === "closed_fake" ? "bad" : kind === "system" ? "neutral" : kind === "email" ? "amber" : kind === "sms" ? "info" : kind === "note" ? "neutral" : result === "no_answer" || result === "wrong_number" ? "amber" : "good";
       items.push({ at: new Date(a.created_at as string), by: a.admin_id ? (name.get(a.admin_id as string) ?? "—") : null, kind, event: (a.event as string) || "contact", result, note: (a.note as string | null) ?? null, next: date(a.next_followup_at), tone });
+    }
+  }
+  // The help chat from Start a contest (owner, 2026-10-25): by this draft, the client's account, or the visits that gave
+  // this number (also from before they signed up).
+  let visitIds = lead.visitIds;
+  if (lead.kind === "contest" && contact?.mobile) {
+    const { data: gave } = await db.from("wizard_leads").select("visit_id").eq("mobile", contact.mobile).limit(50);
+    visitIds = [...new Set([...visitIds, ...(gave ?? []).map((g) => g.visit_id as string)])];
+  }
+  const ids = visitIds.filter((v) => /^[0-9a-f-]{36}$/i.test(v)).slice(0, 100);
+  const chats = [lead.contestId ? `contest_id.eq.${lead.contestId}` : null, lead.clientId ? `user_id.eq.${lead.clientId}` : null, ids.length ? `visit_id.in.(${ids.join(",")})` : null].filter(Boolean);
+  if (chats.length) {
+    const { data: offers } = await db.from("help_offers").select("id").or(chats.join(",")).order("created_at", { ascending: false }).limit(10);
+    const { data: messages } = offers?.length ? await db.from("help_messages").select("offer_id, from_admin, admin_id, kind, body, created_at").in("offer_id", offers.map((o) => o.id as string)).order("id", { ascending: true }).limit(400) : { data: [] as Row[] };
+    const adminIds = [...new Set((messages ?? []).map((m) => m.admin_id as string).filter(Boolean))];
+    const { data: admins } = adminIds.length ? await db.from("profiles").select("id, name").in("id", adminIds) : { data: [] as Row[] };
+    const name = new Map((admins ?? []).map((a) => [a.id as string, a.name as string]));
+    const opened = new Set<string>();
+    for (const m of messages ?? []) {
+      const first = m.from_admin === true && !opened.has(m.offer_id as string);
+      if (first) opened.add(m.offer_id as string);
+      const event = m.from_admin ? (first ? "help_offered" : "help_admin_reply") : m.kind === "call_me" ? "help_call_me" : m.kind === "no_thanks" ? "help_no_thanks" : "help_reply";
+      items.push({ at: new Date(m.created_at as string), by: m.admin_id ? (name.get(m.admin_id as string) ?? "—") : null, visitor: !m.from_admin, kind: "chat", event, note: (m.body as string | null) || null, tone: m.kind === "no_thanks" ? "amber" : m.from_admin ? "info" : "good" });
     }
   }
   if (lead.contestId) {

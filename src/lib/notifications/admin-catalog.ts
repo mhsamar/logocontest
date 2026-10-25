@@ -125,6 +125,8 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("admin_payments", "admin", ["payment_submitted_admin", "withdrawal_requested_admin"], ["bell", "push", "email"], { email: "notification" }),
   // A new client who gave their number but didn't sign up (owner, 2026-10-25): call them while they still remember.
   row("admin_leads", "admin", ["lead_new_admin", "leads_new_admin"], ["bell", "push", "email"], { email: "notification", timing: ["notify.lead_alert_minutes", "notify.lead_alert_emails_day"] }),
+  // Someone answered the one help message an admin sent on Start a contest (owner, 2026-10-25): reply while they're there.
+  row("admin_help", "admin", ["help_reply_admin"], ["bell", "push"]),
   row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
   row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),

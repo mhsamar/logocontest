@@ -275,6 +275,14 @@ const PATHS = {
       <path d="M8 20h8M12 16v4" />
     </>
   ),
+  // Unpaid contests, phase 2 (owner, 2026-10-25): Watch and Offer help.
+  eye: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
 } as const;
 
 export type AdminIconName = keyof typeof PATHS;

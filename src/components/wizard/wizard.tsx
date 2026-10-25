@@ -36,6 +36,9 @@ import { deleteFile, getFile } from "./file-store";
 import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadPending, loadState, savePending, saveState, type ServerFile, type WizardState } from "./state";
 import { wizardVisitId } from "./visit-id";
+import { HelpCard } from "./help-card";
+import { useWizardLive } from "./use-wizard-live";
+import { logoLiveAnswers } from "@/lib/wizard-live-rules";
 import { pixelStartId, trackPixel } from "@/lib/analytics/meta-pixel";
 import { AccountStep, PasswordStep } from "./steps-account";
 import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep, Part, type BriefChoices, type BriefStepProps } from "./steps-brief";
@@ -101,9 +104,13 @@ export function Wizard(props: WizardProps) {
   const [terms, setTerms] = useState(false);
   const [uploads, setUploads] = useState<UploadState[]>([]);
   const [busy, startBusy] = useTransition();
+  const [paying, setPaying] = useState(false);
+  // Room kept under the last fields for the help card, so it never sits over them (owner, 2026-10-25).
+  const [helpSpace, setHelpSpace] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [fromReview, setFromReview] = useState(false);
   const top = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
 
   // ---- load + autosave ------------------------------------------------------
   useEffect(() => {
@@ -153,6 +160,12 @@ export function Wizard(props: WizardProps) {
     if (!state) return;
     void recordWizardStep(wizardVisitId(), step, contestId);
   }, [step, contestId, state === null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "Creating a contest right now" (owner, 2026-10-25): the step and the form's answers for the team (never the
+  // contact details, password or payment choices), and the one help message they may send.
+  const liveAnswers = useMemo(() => (state ? logoLiveAnswers(state.brief, state.order, state.localFiles.length + serverFiles.length) : {}), [state, serverFiles.length]);
+  // Pay pressed: "went to payment" (9) at once, so no help message is sent while checkout starts.
+  const live = useWizardLive({ on: state !== null, service: "logo", stage: paying ? S.review + 1 : step, pos: steps.indexOf(step) + 1, of: steps.length, contestId, answers: liveAnswers });
 
   const go = useCallback(
     (to: number, push = true) => {
@@ -382,12 +395,20 @@ export function Wizard(props: WizardProps) {
       return;
     }
     if (step === S.review) {
+      // Pay pressed (not just saving the review): the team's live list hears "went to payment" and no help shows.
+      setPaying(true);
       startBusy(async () => {
         // 9 = went to payment, on the drop-off chart (Admin › Dashboard).
         void recordWizardStep(wizardVisitId(), S.review + 1, state.contestId);
-        const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) });
+        const res = await startCheckout({ contestId: state.contestId!, method: method!, promo: promoNow?.code ?? null, acceptedTerms: terms, acceptedContentRules: Boolean(state.contentOk) }).catch((e: unknown) => {
+          setPaying(false);
+          throw e;
+        });
         // On success the action redirects to the gateway, so we only get here on failure.
-        if (res && !res.ok) setError(t(res.error.key, res.error.params));
+        if (res && !res.ok) {
+          setPaying(false);
+          setError(t(res.error.key, res.error.params));
+        }
       });
       return;
     }
@@ -634,7 +655,8 @@ export function Wizard(props: WizardProps) {
             )}
 
             {/* Bottom bar: sticky on phones, inline on larger screens */}
-            <div className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
+            {helpSpace > 0 && <div aria-hidden style={{ height: helpSpace }} />}
+            <div ref={bar} className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
               {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
               <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy}>
                 {nextLabel}
@@ -647,6 +669,8 @@ export function Wizard(props: WizardProps) {
           {showPrice && <PriceSidebar price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
         </div>
       </div>
+      {/* Not while the content rules are open, and never once Pay is pressed (owner, 2026-10-25). */}
+      <HelpCard offer={live.offer} act={live.act} onClose={live.close} hidden={!state.contentOk || paying} above={bar} onSpace={setHelpSpace} />
     </div>
   );
 }
