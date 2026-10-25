@@ -106,6 +106,9 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
           <Pill tone="bad" className="absolute right-3 top-3">
             {t("admin.entries.statuses.removed" as MessageKey)}
           </Pill>
+        ) : e.status === "withdrawn" ? (
+          // Taken back by its designer (owner, 2026-10-25): hidden on the contest page, so it says so here.
+          <Pill className="absolute right-3 top-3">{t("admin.entries.statuses.withdrawn" as MessageKey)}</Pill>
         ) : isNewSince(e.createdAt, visit.since) ? (
           <NewPill label={t("admin.whatsNew.tag")} className="absolute right-3 top-3" />
         ) : dhakaDay(e.createdAt) === today ? (

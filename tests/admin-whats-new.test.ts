@@ -97,7 +97,8 @@ describe("wiring", () => {
     expect(badges).toContain('.not("status", "in", "(draft,pending_payment,deleted)").gt("starts_at", since)');
     expect(badges).toContain('hasPermission(user, "users.view") ? db.from("profiles")');
     expect(read("src/app/admin/trash/page.tsx")).toContain("r.byId !== me.id && isNewSince(r.deletedAt, visit.since)");
-    expect(badges).toContain('.not("status", "in", "(removed,held,winner)")');
+    // A withdrawn design isn't tagged New on Admin › Designs, so it isn't counted either (owner, 2026-10-25).
+    expect(badges).toContain('.not("status", "in", "(removed,held,winner,withdrawn)")');
     expect(badges).toContain('db.from("pro_activity_log").select("id", head).in("action", ["paid", "renewed"])');
     expect(read("src/app/admin/entries/page.tsx")).toContain('showsNew("designs", tab) ? sectionVisit(me, "designs")');
     expect(read("src/app/admin/payments/page.tsx")).toContain(".sort((a, b) => fresh(b) - fresh(a))");

@@ -1,6 +1,8 @@
 import "server-only";
 import { isSupabaseConfigured } from "@/lib/env";
+import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { toAsciiDigits } from "@/lib/phone";
+import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { one } from "./core";
 import { avatarUrl } from "@/lib/profile/avatar";
@@ -93,7 +95,13 @@ export type AdminUserDetail = AdminUserRow & {
   balance: number | null;
   strikeHistory: { id: string; reason: string; issuerRole: string; issuer: string | null; contest: { slug: string; brand: string } | null; createdAt: Date; removedAt: Date | null }[];
   contests: { slug: string; brand: string; status: string; createdAt: Date }[];
-  entries: { slug: string; brand: string; number: number; status: string; createdAt: Date }[];
+  /**
+   * A designer's latest designs with their first picture (owner, 2026-10-25), and when a design left the contest:
+   * withdrawn by the designer, or removed by the team (from the audit log).
+   */
+  entries: DesignerEntry[];
+  /** Designs that left their contest (withdrawn or removed), up to 100, for the Activity even when they are older. */
+  leftEntries: DesignerEntry[];
   /** The profile page's extra facts (design/admin/user-profile.html, owner 2026-10-10). */
   bio: string | null;
   designer: {
@@ -118,7 +126,8 @@ export type AdminUserDetail = AdminUserRow & {
   agreementOn: boolean;
 };
 
-export async function getUser(id: string): Promise<AdminUserDetail | null> {
+/** `pictures`: sign links to design pictures (only for staff who may see designs, owner 2026-10-25). */
+export async function getUser(id: string, { pictures = false }: { pictures?: boolean } = {}): Promise<AdminUserDetail | null> {
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = createAdminClient();
   const { data: p } = await db.from("profiles").select(`${COLUMNS}, business_name, bio, deleted_at, delete_reason, email_verified_at, avatar_path, skills, tools, experience_years, languages`).eq("id", id).maybeSingle();
@@ -135,7 +144,7 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
     db.from("strikes").select("id, reason, issuer_role, created_at, removed_at, issuer:profiles!issued_by(name), contest:contests!contest_id(slug, brand_name)").eq("user_id", id).order("created_at", { ascending: false }),
     p.role === "client" ? db.from("contests").select("slug, brand_name, status, created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [] }),
     p.role === "designer"
-      ? db.from("entries").select("number, status, created_at, contest:contests!contest_id(slug, brand_name)").eq("designer_id", id).order("created_at", { ascending: false }).limit(30)
+      ? db.from("entries").select(ENTRY_COLS).eq("designer_id", id).order("created_at", { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     p.role === "designer" ? db.rpc("wallet_balance", { p_designer_id: id }) : Promise.resolve({ data: null }),
     isDesigner ? db.from("entries").select("id", head).eq("designer_id", id) : none,
@@ -188,11 +197,63 @@ export async function getUser(id: string): Promise<AdminUserDetail | null> {
       };
     }),
     contests: ((contests.data ?? []) as { slug: string; brand_name: string; status: string; created_at: string }[]).map((c) => ({ slug: c.slug, brand: c.brand_name, status: c.status, createdAt: new Date(c.created_at) })),
-    entries: ((entries.data ?? []) as { number: number; status: string; created_at: string; contest: unknown }[]).map((e) => {
-      const c = one(e.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);
-      return { slug: c?.slug ?? "", brand: c?.brand_name ?? "", number: e.number, status: e.status, createdAt: new Date(e.created_at) };
-    }),
+    ...(await (async () => {
+      const recent = (entries.data ?? []) as unknown as EntryRow[];
+      const { data: gone } = isDesigner ? await db.from("entries").select(ENTRY_COLS).eq("designer_id", id).in("status", ["withdrawn", "removed"]).order("created_at", { ascending: false }).limit(100) : { data: [] };
+      const left = (gone ?? []) as unknown as EntryRow[];
+      const all = await designerEntries(id, [...recent, ...left.filter((g) => !recent.some((r) => r.id === g.id))], { pictures });
+      const byId = new Map(all.map((e) => [e.id, e]));
+      return { entries: recent.map((r) => byId.get(r.id)!), leftEntries: left.map((r) => byId.get(r.id)!) };
+    })()),
   };
+}
+
+/** A designer's design on their admin profile (owner, 2026-10-25). */
+export type DesignerEntry = { id: string; slug: string; brand: string; number: number; status: string; createdAt: Date; coverUrl: string | null; withdrawnAt: Date | null; removedAt: Date | null };
+
+const ENTRY_COLS = "id, number, status, created_at, withdrawn_at, contest_id, contest:contests!contest_id(slug, brand_name), images:entry_images!entry_id(position, preview_path)";
+export type EntryRow = { id: string; number: number; status: string; created_at: string; withdrawn_at: string | null; contest_id: string; contest: unknown; images: { position: number; preview_path: string }[] | null };
+
+/**
+ * A designer's designs for their profile: the first picture of each (a one-hour link, only when `pictures`) and when
+ * each left its contest. Withdrawn by the designer: withdrawn_at (kept when the team removes it later). Removed by
+ * the team: the first Remove in the audit log, else the upheld report on it, else the upheld copy claim in its contest.
+ */
+export async function designerEntries(designerId: string, rows: EntryRow[], { pictures = false }: { pictures?: boolean } = {}): Promise<DesignerEntry[]> {
+  const db = createAdminClient();
+  const cover = (r: EntryRow) => [...(r.images ?? [])].sort((a, b) => a.position - b.position)[0]?.preview_path ?? null;
+  const paths = pictures ? rows.map(cover).filter((x): x is string => Boolean(x)) : [];
+  const removed = rows.filter((r) => r.status === "removed");
+  const removedIds = removed.map((r) => r.id);
+  const contestIds = [...new Set(removed.map((r) => r.contest_id))];
+  type Row = Record<string, unknown>;
+  const none = Promise.resolve({ data: [] as Row[] });
+  const [urls, removals, reports, claims] = await Promise.all([
+    paths.length ? getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, 3600).catch(() => new Map<string, string>()) : Promise.resolve(new Map<string, string>()),
+    removedIds.length ? db.from("audit_logs").select("subject_id, created_at").eq("action", "remove_entry").eq("subject_type", "entry").in("subject_id", removedIds).order("created_at", { ascending: false }) : none,
+    removedIds.length ? db.from("reports").select("entry_id, resolved_at").eq("status", "upheld").in("entry_id", removedIds).order("resolved_at", { ascending: false }) : none,
+    contestIds.length ? db.from("copy_claims").select("contest_id, resolved_at").eq("designer_id", designerId).eq("status", "upheld").in("contest_id", contestIds).order("resolved_at", { ascending: false }) : none,
+  ]);
+  // Newest first, so each map keeps the earliest time.
+  const at = (list: Row[] | null, key: string, time: string) => new Map((list ?? []).filter((r) => r[time]).map((r) => [r[key] as string, new Date(r[time] as string)]));
+  const byAudit = at(removals.data as Row[] | null, "subject_id", "created_at");
+  const byReport = at(reports.data as Row[] | null, "entry_id", "resolved_at");
+  const byClaim = at(claims.data as Row[] | null, "contest_id", "resolved_at");
+  return rows.map((e) => {
+    const c = one(e.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);
+    const p = cover(e);
+    return {
+      id: e.id,
+      slug: c?.slug ?? "",
+      brand: c?.brand_name ?? "",
+      number: e.number,
+      status: e.status,
+      createdAt: new Date(e.created_at),
+      coverUrl: p ? (urls.get(p) ?? null) : null,
+      withdrawnAt: e.withdrawn_at && (e.status === "withdrawn" || e.status === "removed") ? new Date(e.withdrawn_at) : null,
+      removedAt: e.status === "removed" ? (byAudit.get(e.id) ?? byReport.get(e.id) ?? byClaim.get(e.contest_id) ?? null) : null,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

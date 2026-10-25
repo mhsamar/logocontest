@@ -1,6 +1,6 @@
 "use server";
 
-import { hasPermission, type Permission } from "@/lib/admin/permissions";
+import { canSeeDesigns } from "@/lib/admin/permissions";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getFileStorage } from "@/lib/storage";
@@ -22,12 +22,10 @@ export type AdminDesign = {
   comments: { id: string; body: string; at: string; name: string; role: string; hidden: boolean }[];
 };
 
-/** Admin areas that show designs; any one of them may open the viewer. */
-const AREAS: Permission[] = ["designs.view", "contests.view", "reports.view", "claims.view", "monthly.view", "content.view"];
 
 export async function loadAdminDesign(entryId: string): Promise<AdminDesign | null> {
   const admin = await adminUser();
-  if (!admin || !AREAS.some((p) => hasPermission(admin, p)) || !UUID.test(entryId) || !isSupabaseConfigured()) return null;
+  if (!admin || !canSeeDesigns(admin) || !UUID.test(entryId) || !isSupabaseConfigured()) return null;
   const db = createAdminClient();
   const { data: r } = await db
     .from("entries")

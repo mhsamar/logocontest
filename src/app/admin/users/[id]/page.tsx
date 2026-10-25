@@ -5,9 +5,10 @@ import { AdminAction } from "@/components/admin/admin-action";
 import { ProfileFacts, RemindButtons } from "@/components/admin/remind-buttons";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";
-import { AdmCard, AdmEmpty, Pill, type PillTone } from "@/components/admin/ui";
+import { DesignerDesigns, UserTimeline, type TimelineItem } from "@/components/admin/user-work";
+import { AdmCard, AdmEmpty, Pill } from "@/components/admin/ui";
 import { adminUser, requirePermission } from "@/lib/admin/core";
-import { hasPermission } from "@/lib/admin/permissions";
+import { canSeeDesigns, hasPermission } from "@/lib/admin/permissions";
 import { correctUserName, giveStrike, removeStrike, setTestAccount, setUserStatus } from "@/lib/admin/user-actions";
 import { deleteUser, eraseUserNow, restoreUserFromTrash } from "@/lib/admin/trash-actions";
 import { impersonateUser, sendResetEmail, setUserPassword, signOutEverywhere, signOutOneDevice } from "@/lib/admin/security-actions";
@@ -31,14 +32,15 @@ export async function generateMetadata(): Promise<Metadata> {
 const STATUS_DOT: Record<string, string> = { active: "bg-adm-pay", suspended: "bg-adm-warn", banned: "bg-adm-bad", deleted: "bg-adm-bad" };
 const TABS = ["activity", "work", "withdrawals", "strikes"] as const;
 type Tab = (typeof TABS)[number];
-const ENTRY_TONE: Record<string, PillTone> = { winner: "gold", active: "good", removed: "bad", held: "warn" };
 
 // A-05 User profile (BLUEPRINT §13; design/admin/user-profile.html, owner 2026-10-10): who they are, their work and
 // money, strikes, and the admin actions.
 export default async function AdminUserPage({ params, searchParams }: PageProps<"/admin/users/[id]">) {
-  await requirePermission("users.view");
+  const viewer = await requirePermission("users.view");
+  // Design pictures only for staff who may see designs elsewhere (owner, 2026-10-25).
+  const pictures = canSeeDesigns(viewer);
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [{ t, locale }, u, me, sessions] = await Promise.all([getI18n(), getUser(id), adminUser(), userSessions(id, 20)]);
+  const [{ t, locale }, u, me, sessions] = await Promise.all([getI18n(), getUser(id, { pictures }), adminUser(), userSessions(id, 20)]);
   if (!u) notFound();
   const self = me?.id === u.id;
   const { "trash.keep_days": keepDays, "security.impersonate_minutes": impersonateMinutes } = await getSettings(["trash.keep_days", "security.impersonate_minutes"]);
@@ -63,7 +65,8 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
   const publicHref = u.username && u.role !== "admin" ? `/${u.role === "designer" ? "d" : "c"}/${u.username}` : null;
 
   // The Activity timeline: what this person did, newest first.
-  const timeline: { at: Date; icon: AdminIconName; title: string; line?: string; href?: string }[] = [
+  // Design events show the design's first picture (owner, 2026-10-25).
+  const timeline: TimelineItem[] = [
     { at: u.createdAt, icon: "joined" as const, title: t("admin.users.tl.joined") },
     ...(d?.agreedAt ? [{ at: d.agreedAt, icon: "agreements" as const, title: t("admin.users.tl.agreed") }] : []),
     ...u.entries.map((e) => ({
@@ -72,7 +75,21 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
       title: e.status === "winner" ? t("admin.users.tl.won", { brand: e.brand }) : t("admin.users.tl.sent", { brand: e.brand }),
       line: t("admin.users.tl.entry", { n: num(e.number), status: t(`admin.entries.statuses.${e.status}` as MessageKey) }),
       href: `/admin/contests/${e.slug}`,
+      ...(pictures ? { thumb: { url: e.coverUrl, n: e.number } } : {}),
     })),
+    // A design that left its contest is its own event (owner, 2026-10-25): the designer withdrew it, and/or the team
+    // removed it. Either way it is hidden on the contest page; admins still see it. From all such designs, not only
+    // the newest 30.
+    ...u.leftEntries.flatMap((e) =>
+      (
+        [
+          [e.withdrawnAt, "admin.users.tl.withdrew"],
+          [e.removedAt, "admin.users.tl.removedByTeam"],
+        ] as const
+      ).flatMap(([at, title]) =>
+        at ? [{ at, icon: "trash" as const, title: t(title, { brand: e.brand, n: num(e.number) }), line: t("admin.users.tl.goneLine"), href: `/admin/contests/${e.slug}`, ...(pictures ? { thumb: { url: e.coverUrl, n: e.number } } : {}) }] : [],
+      ),
+    ),
     ...u.contests.map((c) => ({ at: c.createdAt, icon: "contests" as const, title: t("admin.users.tl.started", { brand: c.brand }), line: t(`status.${c.status}` as MessageKey), href: `/admin/contests/${c.slug}` })),
     ...(d?.withdrawals ?? []).map((w) => ({ at: w.createdAt, icon: "withdrawals" as const, title: t("admin.users.tl.withdrawal", { amount: taka(w.amount) }), line: t(`admin.activity.lines.withdrawal.${w.status}` as MessageKey) })),
     ...u.strikeHistory.map((s) => ({ at: s.createdAt, icon: "reports" as const, title: t("admin.users.tl.strike"), line: s.reason })),
@@ -394,33 +411,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
 
             <div className="p-4 sm:p-5">
               {tab === "activity" && (
-                <ol className="m-0 flex list-none flex-col p-0">
-                  {timeline.slice(0, 60).map((x, i) => {
-                    const body = (
-                      <>
-                        <span className="w-[86px] shrink-0 pt-1 text-sm font-semibold tabular-nums text-muted">{when(x.at)}</span>
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f0f1f4] text-adm-strong">
-                          <AdminIcon name={x.icon} size={16} />
-                        </span>
-                        <span className="flex min-w-0 flex-col gap-0.5">
-                          <strong className="text-[15.5px]">{x.title}</strong>
-                          {x.line && <span className="text-[14.5px] text-muted">{x.line}</span>}
-                        </span>
-                      </>
-                    );
-                    return (
-                      <li key={i} className="border-t border-adm-line-soft first:border-t-0">
-                        {x.href ? (
-                          <Link href={x.href} className="flex gap-3 py-3.5 hover:bg-[#fafafb]">
-                            {body}
-                          </Link>
-                        ) : (
-                          <div className="flex gap-3 py-3.5">{body}</div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
+                <UserTimeline items={timeline.slice(0, 60)} when={when} num={num} />
               )}
 
               {tab === "work" &&
@@ -428,19 +419,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
                   u.entries.length === 0 ? (
                     <AdmEmpty>{t("admin.users.none")}</AdmEmpty>
                   ) : (
-                    <ul className="m-0 flex list-none flex-col p-0">
-                      {u.entries.map((e, i) => (
-                        <li key={i} className={rowLink}>
-                          <Link href={`/admin/contests/${e.slug}`} className="font-bold hover:text-primary">
-                            {t("admin.activity.design", { brand: e.brand, n: num(e.number) })}
-                          </Link>
-                          <span className="flex items-center gap-2 text-sm text-muted">
-                            <Pill tone={ENTRY_TONE[e.status] ?? "neutral"}>{t(`admin.entries.statuses.${e.status}` as MessageKey)}</Pill>
-                            {formatDate(e.createdAt, locale, "short")}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <DesignerDesigns entries={u.entries} canOpen={pictures} t={t} num={num} when={when} day={(d) => formatDate(d, locale, "short")} />
                   )
                 ) : u.contests.length === 0 ? (
                   <AdmEmpty>{t("admin.users.none")}</AdmEmpty>

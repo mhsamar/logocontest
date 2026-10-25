@@ -30,12 +30,16 @@ export async function removeEntry(entryId: string, f: Fields): Promise<Result> {
   if (!e) return fail("auth.errors.generic");
   if (e.status === "winner") return fail("admin.entries.isWinner");
   const db = createAdminClient();
-  const { error } = await db.from("entries").update({ status: "removed" }).eq("id", e.id).in("status", ["active", "rejected", "withdrawn", "held"]);
+  const { data: changed, error } = await db.from("entries").update({ status: "removed" }).eq("id", e.id).in("status", ["active", "rejected", "withdrawn", "held"]).select("id");
   if (error) return fail("admin.errors.generic");
   // A nude or sexual design: removed, and the designer is banned for good (owner, 2026-10-12).
   const adult = f.adult === "1";
-  await audit(admin.id, "remove_entry", "entry", e.id, { reason, contest: e.slug, number: e.number, adult: adult || undefined });
-  await notify([e.designerId], "entry_removed", { brand: e.brand, number: e.number, reason }, `/contest/${e.slug}`, admin.id);
+  // Already removed (another tab, or a later click in the copyright checker): no second record or notice (owner,
+  // 2026-10-25: the designer's profile dates the removal from the first one). An adult ban still goes ahead.
+  if (changed?.length) {
+    await audit(admin.id, "remove_entry", "entry", e.id, { reason, contest: e.slug, number: e.number, adult: adult || undefined });
+    await notify([e.designerId], "entry_removed", { brand: e.brand, number: e.number, reason }, `/contest/${e.slug}`, admin.id);
+  }
   if (adult) {
     const { error: banError } = await db.from("profiles").update({ status: "banned", suspended_until: null }).eq("id", e.designerId).neq("role", "admin");
     if (banError) return fail("admin.errors.generic");

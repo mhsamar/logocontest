@@ -82,6 +82,11 @@ export function hasPermission(u: AdminIdentity | null | undefined, perm: Permiss
   return u!.adminPermissions.includes(perm) || (perm.endsWith(".view") && u!.adminPermissions.includes(`${area}.manage`));
 }
 
+/** Admin areas that show designs: any one of them may open the design viewer and see design pictures elsewhere. */
+const DESIGN_AREAS: Permission[] = ["designs.view", "contests.view", "reports.view", "claims.view", "monthly.view", "content.view"];
+/** Whether this staff member may see design pictures (the viewer; a designer's profile, owner 2026-10-25). */
+export const canSeeDesigns = (u: AdminIdentity | null | undefined) => DESIGN_AREAS.some((p) => hasPermission(u, p));
+
 /** Cleans a submitted permission list: known ones only, and "manage" always brings its "view". */
 export function cleanPermissions(input: unknown): Permission[] {
   const list = Array.isArray(input) ? input.filter((p): p is Permission => typeof p === "string" && isPermission(p)) : [];

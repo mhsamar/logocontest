@@ -109,7 +109,7 @@ async function freshCount(user: CurrentUser, key: AdminNew, since: string): Prom
     }
     case "designs": {
       // As the Designs page: winning, held and removed designs show their own status instead of "New".
-      const r = await db.from("entries").select("id", head).not("status", "in", "(removed,held,winner)").gt("created_at", since);
+      const r = await db.from("entries").select("id", head).not("status", "in", "(removed,held,winner,withdrawn)").gt("created_at", since);
       return n(r);
     }
     case "users": {
