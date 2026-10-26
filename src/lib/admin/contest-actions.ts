@@ -11,7 +11,9 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { designerFeeWithCode, markPromoUsed } from "@/lib/promos/promos";
 import { feeRateFor } from "@/lib/wallet/fees";
-import { adminUser, audit, cleanReason, UUID } from "./core";
+import { adminUser, audit, cleanReason, superAdmin, UUID } from "./core";
+import { switchOnAddon } from "@/lib/contests/addon-payments";
+import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { emailWon } from "@/lib/email/events";
 
@@ -38,6 +40,27 @@ export async function extendContest(contestId: string, f: Fields): Promise<Resul
   if (error) return fail("admin.contests.notOpen");
   await audit(admin.id, "extend_contest", "contest", c.id, { days, reason });
   await notify([c.client_id, ...(await contestDesignerIds(c.id))], "contest_extended", { brand: c.brand_name, days }, `/contest/${c.slug}`, admin.id);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Super admin: switch Featured, Private or Blind on for the client's live contest, free (owner, 2026-10-26). The same
+ * safe switch as a free add-on (open contest, not on yet, no bKash payment for it waiting); no payment is recorded, so
+ * revenue and refunds stay true. In the audit log with the reason; the client is told (bell and phone).
+ */
+export async function grantAddon(contestId: string, f: Fields): Promise<Result> {
+  const admin = await superAdmin();
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const addon = f.addon;
+  if (addon !== "promote" && addon !== "private" && addon !== "blind") return fail("admin.errors.generic");
+  const res = await switchOnAddon(c.id, addon);
+  if (!res.ok) return fail(res.error === "closed" ? "manage.addons.closed" : res.error === "active" ? "manage.addons.alreadyActive" : res.error === "waiting" ? "admin.contests.addonWaiting" : "admin.errors.generic");
+  await audit(admin.id, "grant_addon", "contest", c.id, { addon, reason });
+  await notifyWithPush([c.client_id], "addon_granted", { brand: c.brand_name, addon }, `${contestHref(c.slug, "payment")}#addons`, admin.id);
   refresh();
   return { ok: true };
 }

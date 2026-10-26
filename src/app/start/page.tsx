@@ -37,7 +37,9 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     if (service && !isLogo(service.slug))
       return serviceWizard(service, user, { contestId: draft.id, title: draft.brief.brandName, description: draft.brief.businessDescription, answers: draft.serviceBrief, order: draft.order }, params.step === "pay" || params.step === undefined);
   }
-  if (draft || params.step !== undefined || typeof params.name === "string") {
+  // A logo-wizard link: a draft, a numbered step (?step=pay|edit belong to another design type's saved contest, which
+  // this person can't open), or a name from the home page.
+  if (draft || (typeof params.step === "string" && /^\d+$/.test(params.step)) || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
     return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);

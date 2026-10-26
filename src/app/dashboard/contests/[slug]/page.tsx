@@ -469,8 +469,10 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
             <div className="mt-4">
               <AddonsPanel
                 contestId={contest.id}
-                open={!adminView && contest.status === "open"}
-                closedNote={adminView ? t("manage.adminView.addons") : undefined}
+                open={(!adminView || user.isSuperAdmin) && contest.status === "open"}
+                closedNote={adminView && !user.isSuperAdmin ? t("manage.adminView.addons") : undefined}
+                // The Super admin adds add-ons here for free (owner, 2026-10-26); other staff only look.
+                grant={adminView && user.isSuperAdmin}
                 active={{
                   promote: contest.isPromoted,
                   private: contest.isPrivate,

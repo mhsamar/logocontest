@@ -34,6 +34,8 @@ export function renderNotification(n: AppNotification, t: Translate, locale: Loc
     // Unpaid contests (owner, 2026-10-26): the step they stopped at, and minutes to a follow-up.
     step: typeof n.data.step === "number" ? t(`admin.dashboard.steps.s${Math.min(Math.max(Math.round(n.data.step), 1), 10)}` as MessageKey) : "",
     minutes: fmt(n.data.minutes),
+    // An add-on the team added for free (owner, 2026-10-26): its name in the reader's language.
+    addon: n.data.addon === "promote" || n.data.addon === "private" || n.data.addon === "blind" ? t(`manage.addons.${n.data.addon}.title`) : "",
   });
   const link = n.link && role === "client" ? clientPathFor(n.link) : n.link;
   return { id: n.id, type: n.type, category: categoryOf(n.type), text, ago: timeAgo(n.createdAt, now, locale), link, read: n.read };

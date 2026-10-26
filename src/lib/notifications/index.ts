@@ -11,7 +11,7 @@ import { typeChannelOn } from "./switches";
 import { NOTIFICATION_TYPES, type NotificationType } from "./types";
 export { NOTIFICATION_TYPES, type NotificationType };
 
-export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number; reason?: string; month?: string; hours?: number; liker?: string; entry?: string; suspend?: number; ban?: number; picture?: number; step?: number; minutes?: number; lead?: string; pop?: boolean };
+export type NotificationData = { brand?: string; number?: number; stars?: number; name?: string; days?: number; amount?: number; reason?: string; month?: string; hours?: number; liker?: string; entry?: string; suspend?: number; ban?: number; picture?: number; step?: number; minutes?: number; lead?: string; pop?: boolean; addon?: string };
 
 export type AppNotification = { id: string; type: NotificationType; data: NotificationData; link: string | null; read: boolean; createdAt: Date };
 

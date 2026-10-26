@@ -3,7 +3,7 @@ import type { CurrentUser } from "@/lib/auth/policies";
 import { getPaymentGateway } from "@/lib/payments";
 import type { VerifiedCallback } from "@/lib/payments/gateway";
 import { gatewayMethod, isManual, type MethodKey } from "@/lib/payments/manual-rules";
-import { openStripeCheckout } from "@/lib/payments/stripe-api";
+import { expireSession, openStripeCheckout } from "@/lib/payments/stripe-api";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -114,8 +114,7 @@ export async function startAddonCheckout(
  */
 export async function activateFreeAddon(user: CurrentUser, contestId: string, addon: AddonKey): Promise<{ ok: true; slug: string } | { ok: false; error: "not_found" | "closed" | "active" | "not_free" | "waiting" }> {
   if (addon === "logo_scan") return { ok: false, error: "active" };
-  const db = createAdminClient();
-  const { data: c } = await db
+  const { data: c } = await createAdminClient()
     .from("contests")
     .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan")
     .eq("id", contestId)
@@ -124,14 +123,32 @@ export async function activateFreeAddon(user: CurrentUser, contestId: string, ad
   const prices = await addonPrices();
   // Free from the prize, or an add-on whose price the team set to ৳0 (a ৳0 payment can't be made).
   if (!addonsFreeFor(c.prize_amount, { addonsFreeFrom: prices.allFreeFrom }) && prices[addon] > 0) return { ok: false, error: "not_free" };
+  return switchOnAddon(c.id, addon);
+}
+
+/**
+ * Switches one add-on on with no payment: the contest is open, the add-on still off, and no bKash payment for it waits
+ * for the team (else approving it later would charge for one given free). Shared by a client's free add-on and the
+ * Super admin's grant (owner, 2026-10-26), so both go the same safe way.
+ */
+export async function switchOnAddon(contestId: string, addon: Exclude<AddonKey, "logo_scan">): Promise<{ ok: true; slug: string } | { ok: false; error: "not_found" | "closed" | "active" | "waiting" }> {
+  const db = createAdminClient();
+  const { data: c } = await db.from("contests").select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan").eq("id", contestId).maybeSingle<ContestFlags>();
+  if (!c) return { ok: false, error: "not_found" };
   if (c.status !== "open") return { ok: false, error: "closed" };
   if (c[ACTIVE[addon]]) return { ok: false, error: "active" };
-  // A bKash payment for this add-on already waits for the team: they decide it first, so nobody pays for a free one.
-  const { data: open } = await db.from("payments").select("id").eq("contest_id", c.id).eq("addon", addon).eq("status", "initiated");
+  // Its checkouts still open, so nobody pays for one that is on free: a bKash payment already sent waits for the team
+  // (they decide it first); a card page still open is closed at Stripe (paid already, or Stripe can't be reached:
+  // wait too); a bKash payment nobody sent is closed.
+  const { data: open } = await db.from("payments").select("id, gateway, provider_ref").eq("contest_id", c.id).eq("addon", addon).eq("status", "initiated");
   const ids = (open ?? []).map((p) => p.id as string);
   if (ids.length) {
     const { count } = await db.from("manual_payments").select("id", { count: "exact", head: true }).in("payment_id", ids).eq("status", "pending");
     if ((count ?? 0) > 0) return { ok: false, error: "waiting" };
+    for (const p of open ?? []) {
+      if (p.gateway === "stripe" && p.provider_ref && !(await expireSession(p.provider_ref as string))) return { ok: false, error: "waiting" };
+      await db.rpc("fail_addon_payment", { p_payment_id: p.id, p_raw: { closed: "switched on without payment" } });
+    }
   }
   // Only while the contest is open and the add-on still off, so two clicks never do it twice.
   const { data } = await db.from("contests").update({ [ACTIVE[addon]]: true }).eq("id", c.id).eq("status", "open").eq(ACTIVE[addon], false).select("id");

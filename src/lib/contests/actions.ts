@@ -138,7 +138,7 @@ const SAVE_ERRORS: Record<string, MessageKey> = {
 };
 
 /** Saves the wizard as a server draft for a signed-in client (after C-08, or "Save & exit"). */
-export async function saveDraft(input: { brief: unknown; order: unknown; contestId: string | null; service?: ServiceArg }): Promise<WizardResult<{ contestId: string }>> {
+export async function saveDraft(input: { brief: unknown; order: unknown; contestId: string | null; service?: ServiceArg; acceptedContentRules?: boolean }): Promise<WizardResult<{ contestId: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const user = await currentClient();
   if (!user) return err("wizard.errors.signInAgain");
@@ -152,7 +152,18 @@ export async function saveDraft(input: { brief: unknown; order: unknown; contest
 
   const result = await contestService().saveDraft(user.id, data.brief, data.order, input.contestId, service);
   if (!result.ok) return err(SAVE_ERRORS[result.error]);
+  if (input.acceptedContentRules) await rememberContentRules(result.contest.id, user.id);
   return { ok: true, contestId: result.contest.id };
+}
+
+/**
+ * The client agreed to the content rules for this contest (owner, 2026-10-26): kept with the draft, so reopening it
+ * (after inviting Pro designers, a cancelled card payment, from the dashboard, on any device) never asks again. The
+ * first time is kept; Pay records it too. Never fails the save.
+ */
+async function rememberContentRules(contestId: string, clientId: string): Promise<void> {
+  const { error } = await createAdminClient().from("contests").update({ content_rules_agreed_at: new Date().toISOString() }).eq("id", contestId).eq("client_id", clientId).is("content_rules_agreed_at", null);
+  if (error) console.error("[wizard] content rules:", error.message);
 }
 
 async function accountTaken(mobile: string, email: string): Promise<"mobile" | "email" | null> {
@@ -197,6 +208,8 @@ export async function createAccountAndDraft(input: {
   push?: unknown;
   /** A non-logo contest (owner, 2026-10-13). */
   service?: ServiceArg;
+  /** The content rules were agreed in the wizard (owner, 2026-10-26): kept with the draft. */
+  acceptedContentRules?: boolean;
 }): Promise<WizardResult<{ contestId: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
   const data = parse(input.brief, input.order);
@@ -265,6 +278,7 @@ export async function createAccountAndDraft(input: {
 
   const saved = await contestService().saveDraft(created.data.user.id, data.brief, data.order, null, service);
   if (!saved.ok) return err(SAVE_ERRORS[saved.error]);
+  if (input.acceptedContentRules) await rememberContentRules(saved.contest.id, created.data.user.id);
   return { ok: true, contestId: saved.contest.id };
 }
 

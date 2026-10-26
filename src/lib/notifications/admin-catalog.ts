@@ -93,7 +93,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("pro_weekly", "pro", ["pro_weekly"], ["bell", "push", "email"], { email: "notification", alsoIn: "user" }),
 
   // ---- Clients ----
-  row("payments", "client", ["payment_received", "payment_approved_contest", "payment_approved_addon", "payment_rejected"], ["bell", "push"]),
+  row("payments", "client", ["payment_received", "payment_approved_contest", "payment_approved_addon", "payment_rejected", "addon_granted"], ["bell", "push"]),
   row("entry_new", "client", ["entry_new"], ["bell", "email"], { email: "client-new-entries", timing: ["timers.new_entry_digest_hours"], alsoIn: "user" }),
   row("entry_comment_designer", "client", ["entry_comment_designer"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("ending_soon", "client", ["ending_soon", "ending_soon_extend"], ["bell"], { timing: ["timers.ending_soon_notice_hours"] }),

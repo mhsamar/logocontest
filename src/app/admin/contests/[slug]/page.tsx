@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
-import { cancelContest, extendContest, forceAward } from "@/lib/admin/contest-actions";
+import { cancelContest, extendContest, forceAward, grantAddon } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
 import { adminContestFiles, getAdminContest, getContestClient } from "@/lib/admin/contests";
@@ -23,6 +23,9 @@ import { requirePermission } from "@/lib/admin/core";
 import { showMobile } from "@/lib/payments/manual-rules";
 import { formatMobile } from "@/lib/phone";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
+
+/** The add-ons a Super admin can add, and the contest flag each switches on. */
+const GRANT_FLAG = { promote: "is_promoted", private: "is_private", blind: "is_blind" } as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -146,6 +149,19 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
               { name: "reason", kind: "reason" },
             ]}
             run={extendContest.bind(null, c.id)}
+          />
+        )}
+        {/* Super admin: an add-on for the client, free (owner, 2026-10-26). */}
+        {me.isSuperAdmin && c.status === "open" && (["promote", "private", "blind"] as const).some((a) => !c.flags.includes(GRANT_FLAG[a])) && (
+          <AdminAction
+            label={t("admin.contests.addAddon")}
+            body={t("admin.contests.addAddonBody")}
+            fields={[
+              { name: "addon", kind: "select", label: t("admin.contests.addonField"), options: (["promote", "private", "blind"] as const).filter((a) => !c.flags.includes(GRANT_FLAG[a])).map((a) => ({ value: a, label: t(`manage.addons.${a}.title`) })) },
+              { name: "reason", kind: "reason" },
+            ]}
+            run={grantAddon.bind(null, c.id)}
+            done={t("manage.addons.granted")}
           />
         )}
         {canAward && (

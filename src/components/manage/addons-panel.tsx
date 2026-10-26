@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { extendContest, grantAddon } from "@/lib/admin/contest-actions";
 import { buyAddon } from "@/lib/contests/addon-actions";
 import type { AddonKey } from "@/lib/contests/addons";
 import { addonsFreeFor } from "@/lib/contests/pricing";
@@ -63,8 +64,14 @@ export function AddonsPanel({
   prize,
   methods,
   closedNote,
+  grant = false,
 }: {
   contestId: string;
+  /**
+   * The Super admin on the client's page (owner, 2026-10-26): adds any add-on for free with a reason (audit log); the
+   * client is told. No payment and no payment method.
+   */
+  grant?: boolean;
   /** Instead of "only while the contest is live", e.g. for the admin's read-only view (owner, 2026-10-14). */
   closedNote?: string;
   /** Payment methods switched on in Admin › Payments › Methods (owner, 2026-10-14). */
@@ -86,6 +93,7 @@ export function AddonsPanel({
   const [days, setDays] = useState(extensionDays[0] ?? 3);
   const [method, setMethod] = useState<string | null>(methods[0]?.key ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
   const [busy, start] = useTransition();
   const nf = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US");
   // In the visitor's currency (owner, 2026-10-14: US dollars for visitors from abroad).
@@ -106,6 +114,16 @@ export function AddonsPanel({
 
   const pay = () =>
     start(async () => {
+      if (grant) {
+        if (!buying) return;
+        setError(null);
+        const res = buying === "extend" ? await extendContest(contestId, { days: String(days), reason }) : await grantAddon(contestId, { addon: buying, reason });
+        if (!res.ok) return setError(t(res.error));
+        setBuying(null);
+        setReason("");
+        toast(t("manage.addons.granted"));
+        return router.refresh();
+      }
       if (!buying || (!method && !isFree(buying))) return;
       setError(null);
       const res = await buyAddon(buying === "extend" ? { contestId, extensionDays: days, method: method ?? "" } : { contestId, addon: buying, method: method ?? "" });
@@ -120,6 +138,11 @@ export function AddonsPanel({
 
   return (
     <>
+      {grant && (
+        <p className="mb-3 rounded-[16px] bg-primary/5 px-4 py-3 text-[14px] font-semibold leading-snug text-primary" role="note">
+          {t("manage.addons.grantNote")}
+        </p>
+      )}
       {allFree && (
         <p className="mb-3 rounded-[16px] bg-success/10 px-4 py-3 text-[15px] font-semibold leading-snug text-success" role="note" data-addons-free>
           {t("manage.addons.allFree", { amount: taka(prices.allFreeFrom ?? 0) })}
@@ -201,9 +224,15 @@ export function AddonsPanel({
         footer={
           <div className="w-full space-y-2">
             {error && <Alert tone="danger">{error}</Alert>}
-            <Button block size="lg" onClick={pay} loading={busy} disabled={!method && !(buying && isFree(buying))}>
-              {buying ? (isFree(buying) ? t("manage.addons.addFree") : t("manage.addons.pay", { amount: taka(price(buying)) })) : ""}
-            </Button>
+            {grant ? (
+              <Button block size="lg" onClick={pay} loading={busy} disabled={reason.trim().length < 3}>
+                {t("manage.addons.grantButton")}
+              </Button>
+            ) : (
+              <Button block size="lg" onClick={pay} loading={busy} disabled={!method && !(buying && isFree(buying))}>
+                {buying ? (isFree(buying) ? t("manage.addons.addFree") : t("manage.addons.pay", { amount: taka(price(buying)) })) : ""}
+              </Button>
+            )}
           </div>
         }
       >
@@ -228,10 +257,16 @@ export function AddonsPanel({
             })}
           </div>
         )}
-        {buying && !isFree(buying) && (
+        {buying && !isFree(buying) && !grant && (
           <div className="mt-5">
             <MethodPicker methods={methods} value={method} onChange={setMethod} title={t("manage.addons.payWith")} />
           </div>
+        )}
+        {grant && buying && (
+          <label className="mt-5 flex flex-col gap-1.5 text-sm font-semibold text-ink">
+            {t("manage.addons.grantReason")}
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} rows={3} placeholder={t("manage.addons.grantReasonHint")} className="rounded-[14px] border border-line px-3.5 py-3 text-[15px] font-normal outline-none focus:border-primary" />
+          </label>
         )}
       </Modal>
     </>

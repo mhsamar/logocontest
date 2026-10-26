@@ -95,10 +95,13 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
     payMethods(),
   ]);
   const share = await shareChoice(resume?.contestId ?? null);
-  // A saved draft's reference images (owner, 2026-10-17: every contest has them).
-  const files: ServerFile[] = resume
-    ? ((await createAdminClient().from("contest_files").select("id, original_name, mime_type, type").eq("contest_id", resume.contestId).order("created_at")).data ?? []).map((f) => ({ id: f.id as string, name: f.original_name as string, type: f.mime_type as string, isCurrentLogo: false }))
-    : [];
+  // A saved draft's reference images (owner, 2026-10-17: every contest has them), and whether its content rules were
+  // agreed already (owner, 2026-10-26: then the tick at Pay is ticked).
+  const db = createAdminClient();
+  const [stored, agreed] = resume
+    ? await Promise.all([db.from("contest_files").select("id, original_name, mime_type, type").eq("contest_id", resume.contestId).order("created_at"), db.from("contests").select("content_rules_agreed_at").eq("id", resume.contestId).maybeSingle()])
+    : [null, null];
+  const files: ServerFile[] = (stored?.data ?? []).map((f) => ({ id: f.id as string, name: f.original_name as string, type: f.mime_type as string, isCurrentLogo: false }));
   return (
     <ServiceWizard
       key={service.slug}
@@ -108,7 +111,7 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
       user={svcUser}
       pricing={pricing}
       passwordMin={s["auth.password_min_length"]}
-      resume={resume ? { ...resume, files } : null}
+      resume={resume ? { ...resume, files, contentOk: Boolean(agreed?.data?.content_rules_agreed_at) } : null}
       inviteFirst={inviteFirst}
       startAtPay={startAtPay}
       methods={methods}
@@ -165,16 +168,18 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
     if (draftId) {
       const draft = contests.find((c) => c.id === draftId && (c.status === "draft" || c.status === "pending_payment"));
       if (draft) {
-        const { data: files } = await createAdminClient()
-          .from("contest_files")
-          .select("id, original_name, mime_type, type")
-          .eq("contest_id", draft.id)
-          .order("created_at");
+        const db = createAdminClient();
+        const [{ data: files }, { data: agreed }] = await Promise.all([
+          db.from("contest_files").select("id, original_name, mime_type, type").eq("contest_id", draft.id).order("created_at"),
+          // Already agreed to the content rules for this contest: not asked again (owner, 2026-10-26).
+          db.from("contests").select("content_rules_agreed_at").eq("id", draft.id).maybeSingle(),
+        ]);
         resume = {
           contestId: draft.id,
           brief: draft.brief,
           order: draft.order,
           files: (files ?? []).map((f): ServerFile => ({ id: f.id, name: f.original_name, type: f.mime_type, isCurrentLogo: f.type === "current_logo" })),
+          contentOk: Boolean(agreed?.content_rules_agreed_at),
         };
       }
     }

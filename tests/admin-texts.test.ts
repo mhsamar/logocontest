@@ -7,7 +7,7 @@ const AUDIT_ACTIONS = [
   "reveal_id_number", "resolve_copy_claim", "give_strike", "remove_strike", "suspend_user", "ban_user", "reactivate_user", "resolve_report",
   "cancel_contest", "extend_contest", "force_award", "edit_brief", "add_contest_files", "remove_contest_file", "tell_contest_files", "remove_entry", "clear_duplicate", "update_settings",
   "add_blocked_term", "remove_blocked_term", "feature_logo", "unfeature_logo", "mark_withdrawal_paid", "reject_withdrawal", "confirm_monthly_winner", "gift_sent",
-  "remind_user",
+  "remind_user", "grant_addon",
 ];
 
 describe("admin texts", () => {

@@ -119,6 +119,8 @@ export const NOTIFICATION_TYPES = [
   "payment_approved_contest",
   "payment_approved_addon",
   "payment_rejected",
+  // A Super admin added an add-on to the client's contest for free (owner, 2026-10-26).
+  "addon_granted",
   "payment_submitted_admin",
   // A new client gave their number but didn't sign up (owner, 2026-10-25): one person, or several at once.
   "lead_new_admin",

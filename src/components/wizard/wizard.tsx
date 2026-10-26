@@ -54,7 +54,8 @@ export type WizardProps = {
   fileLimits: { maxFiles: number; maxMb: number };
   passwordMin: number;
   previous: { id: string; brandName: string; brief: Brief }[];
-  resume: { contestId: string; brief: Brief; order: Order; files: ServerFile[] } | null;
+  /** A saved draft reopened; `contentOk`: the content rules were already agreed for it (owner, 2026-10-26). */
+  resume: { contestId: string; brief: Brief; order: Order; files: ServerFile[]; contentOk?: boolean } | null;
   initialStep: number | null;
   prefillName: string;
   /** Admin lists (A-15): business types in order (hidden ones left out) and suggested colours. */
@@ -111,6 +112,10 @@ export function Wizard(props: WizardProps) {
   const [fromReview, setFromReview] = useState(false);
   const top = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  // Once the contest is saved, the address keeps it (owner, 2026-10-26): a reload or Back reopens that contest (with
+  // its answers and agreement), never a new blank one.
+  const draftRef = useRef<string | null>(null);
+  const stepUrl = useCallback((to: number) => `?${new URLSearchParams({ ...(draftRef.current ? { draft: draftRef.current } : {}), step: String(to) })}`, []);
 
   // ---- load + autosave ------------------------------------------------------
   useEffect(() => {
@@ -121,7 +126,9 @@ export function Wizard(props: WizardProps) {
       // 2026-10-22: they were dropped when the client came back from inviting Pro designers).
       const pending = loadPending(props.resume.contestId);
       const keep = pending.length ? pending : saved?.contestId === props.resume.contestId ? saved.localFiles : [];
-      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId, shareFb: props.resumeShare ?? true, localFiles: keep };
+      // Agreed to the content rules already (on the server, or on this device for this contest): never asked twice.
+      const agreed = props.resume.contentOk === true || (saved?.contestId === props.resume.contestId && saved.contentOk === true);
+      next = { ...initialState(props.resume.order), brief: props.resume.brief, contestId: props.resume.contestId, shareFb: props.resumeShare ?? true, localFiles: keep, ...(agreed ? { contentOk: true } : {}) };
     } else {
       // A new contest starts blank (owner, 2026-10-14). What this device kept is only reused while that contest isn't
       // saved yet; a saved one is a draft on the server, opened from the dashboard instead.
@@ -137,8 +144,10 @@ export function Wizard(props: WizardProps) {
     const wanted = props.initialStep ?? (fromHero && props.user ? S.business : 1);
     const first = firstReachable(wanted, next, steps, props.pricing, onboarding);
     setStep(first);
-    // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry.
-    window.history.replaceState({ step: first }, "", `?step=${first}`);
+    // Drop ?name= so a reload doesn't overwrite later edits, and give Back a history entry. On the next tick: on a fresh
+    // page Next's router only starts listening to the address after this, and would put its old one back.
+    draftRef.current = next.contestId;
+    window.setTimeout(() => window.history.replaceState({ step: first }, "", stepUrl(first)), 0);
     // Run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -167,19 +176,29 @@ export function Wizard(props: WizardProps) {
   // Pay pressed: "went to payment" (9) at once, so no help message is sent while checkout starts.
   const live = useWizardLive({ on: state !== null, service: "logo", stage: paying ? S.review + 1 : step, pos: steps.indexOf(step) + 1, of: steps.length, contestId, answers: liveAnswers });
 
+  // The contest is saved: its address carries it on every step (also one reached with Back from before the save). A
+  // fresh history state, so Next's router learns the address too and doesn't put the old one back.
+  useEffect(() => {
+    if (!contestId) return;
+    draftRef.current = contestId;
+    if (new URLSearchParams(window.location.search).get("draft") === contestId) return;
+    window.history.replaceState({ step }, "", stepUrl(step));
+  }, [contestId, step, stepUrl]);
+
   const go = useCallback(
     (to: number, push = true) => {
       setStep(to);
       setError(null);
-      if (push) window.history.pushState({ step: to }, "", `?step=${to}`);
+      if (push) window.history.pushState({ step: to }, "", stepUrl(to));
       top.current?.scrollIntoView({ block: "start" });
     },
-    [],
+    [stepUrl],
   );
 
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
-      const s = (e.state as { step?: number } | null)?.step;
+      // Next's router may rewrite an entry's state without our step: the address has it too.
+      const s = (e.state as { step?: number } | null)?.step ?? Number(new URLSearchParams(window.location.search).get("step"));
       if (s && steps.includes(s)) setStep(s);
     };
     window.addEventListener("popstate", onPop);
@@ -198,16 +217,19 @@ export function Wizard(props: WizardProps) {
   // ---- server draft + uploads ----------------------------------------------
   const persistDraft = useCallback(
     async (s: WizardState): Promise<WizardResult<{ contestId: string }>> => {
-      let result = await saveDraft({ brief: s.brief, order: s.order, contestId: s.contestId });
+      // The content rules agreed in this wizard go with the draft, so reopening it never asks again (owner, 2026-10-26).
+      let result = await saveDraft({ brief: s.brief, order: s.order, contestId: s.contestId, acceptedContentRules: s.contentOk === true });
       if (!result.ok && s.contestId && !result.error.field) {
         // The stored draft may belong to another account on this device: start a new one.
-        result = await saveDraft({ brief: s.brief, order: s.order, contestId: null });
+        result = await saveDraft({ brief: s.brief, order: s.order, contestId: null, acceptedContentRules: s.contentOk === true });
       }
       if (!result.ok) {
         setError(t(result.error.key, result.error.params));
         return result;
       }
       const { contestId } = result;
+      // In the address from the very next step (Next's router keeps it).
+      draftRef.current = contestId;
       setState((cur) => (cur ? { ...cur, contestId } : cur));
       // The Facebook switch is saved on its own (owner, 2026-10-19), so the draft itself stays as it was.
       if (props.shareSwitch) void setContestShare({ contestId, on: s.shareFb !== false });
@@ -369,6 +391,7 @@ export function Wizard(props: WizardProps) {
           email: state.email,
           brief: state.brief,
           order: state.order,
+          acceptedContentRules: state.contentOk === true,
         });
         if (!res.ok) {
           // The mobile or email was taken in the meantime: back to step 1 to change it.
@@ -382,6 +405,7 @@ export function Wizard(props: WizardProps) {
         }
         // Meta Pixel: the client's account now exists (once: this branch runs only for a visitor).
         trackPixel(`register:${res.contestId}`, "CompleteRegistration");
+        draftRef.current = res.contestId;
         setState((cur) => (cur ? { ...cur, contestId: res.contestId } : cur));
         if (props.shareSwitch) void setContestShare({ contestId: res.contestId, on: state.shareFb !== false });
         setPassword("");

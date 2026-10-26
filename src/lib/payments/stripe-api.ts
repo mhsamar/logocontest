@@ -64,6 +64,20 @@ export async function createStripeCheckout(input: {
   return toSession(await call("/checkout/sessions", { method: "POST", body, idempotencyKey: `checkout-${input.paymentId}` }));
 }
 
+/**
+ * Closes a Checkout page nobody paid yet, so it can't take money any more (owner, 2026-10-26: an add-on the team gave
+ * free). True when it is closed (now or already); false when it was paid or Stripe can't be reached.
+ */
+export async function expireSession(id: string): Promise<boolean> {
+  if (!/^cs_[A-Za-z0-9_]+$/.test(id)) return false;
+  try {
+    return toSession(await call(`/checkout/sessions/${id}/expire`, { method: "POST", body: new URLSearchParams() })).status === "expired";
+  } catch {
+    // Already closed (or paid): Stripe says which.
+    return (await retrieveSession(id))?.status === "expired";
+  }
+}
+
 export async function retrieveSession(id: string): Promise<StripeSession | null> {
   if (!/^cs_[A-Za-z0-9_]+$/.test(id)) return null;
   try {

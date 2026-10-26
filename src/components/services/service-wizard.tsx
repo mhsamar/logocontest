@@ -52,7 +52,8 @@ export type ServiceWizardProps = {
   user: { name: string; mobile: string } | null;
   pricing: PricingConfig;
   passwordMin: number;
-  resume: { contestId: string; title: string; description: string; answers: Answers; order: Order; files?: ServerFile[] } | null;
+  /** A saved draft reopened; `contentOk`: its content rules were agreed already (owner, 2026-10-26). */
+  resume: { contestId: string; title: string; description: string; answers: Answers; order: Order; files?: ServerFile[]; contentOk?: boolean } | null;
   /** Reference images (owner, 2026-10-17: every contest has them, like the logo contest). */
   fileLimits: { maxFiles: number; maxMb: number };
   /** The money-back guarantee's number of designers while it is offered (owner, 2026-10-21), else null. */
@@ -110,7 +111,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [method, setMethod] = useState<string | null>(methods.length === 1 ? methods[0].key : null);
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [terms, setTerms] = useState(false);
-  const [contentOk, setContentOk] = useState(false);
+  // Agreed already for this contest (e.g. before a cancelled card payment): ticked, never asked twice.
+  const [contentOk, setContentOk] = useState(resume?.contentOk === true);
 
   // Meta Pixel (owner, 2026-10-24): a new contest started in this tab, once. Coming back to a saved draft sends nothing.
   useEffect(() => {
@@ -153,6 +155,23 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const index = steps.indexOf(step);
   const brief = { ...emptyBrief(), brandName: d.title.trim(), businessDescription: d.description.trim(), businessType: "other" as const, noWebsite: true };
   const svc = { slug: service.slug, answers: d.answers };
+
+  // Once the contest is saved, its address keeps it (owner, 2026-10-26): a reload or Back reopens it (at Pay, or at its
+  // brief), never a new blank one.
+  useEffect(() => {
+    if (!d.contestId) return;
+    // A fresh history state on the next tick, so Next's router (listening only from then on a fresh page) learns the
+    // address too and doesn't put the old one back.
+    const id = window.setTimeout(() => {
+      const q = new URLSearchParams(window.location.search);
+      const at = step === "pay" ? "pay" : "edit";
+      if (q.get("draft") === d.contestId && q.get("step") === at) return;
+      q.set("draft", d.contestId!);
+      q.set("step", at);
+      window.history.replaceState(null, "", `?${q}`);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [d.contestId, step]);
 
   // "Creating a contest right now" (owner, 2026-10-25): the step and a few answers for the team (never the contact
   // details, password or payment choices), and the one help message they may send.
