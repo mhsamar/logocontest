@@ -19,7 +19,7 @@ function listen(frame: HTMLIFrameElement | null, video: HowVideo) {
   const win = frame?.contentWindow;
   if (!win) return;
   if (video.kind === "youtube") win.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), PLAYER_ORIGIN.youtube);
-  else if (video.kind === "vimeo") for (const value of ["play", "playProgress"]) win.postMessage(JSON.stringify({ method: "addEventListener", value }), PLAYER_ORIGIN.vimeo);
+  else if (video.kind === "vimeo") for (const value of ["play", "playProgress", "pause", "ended"]) win.postMessage(JSON.stringify({ method: "addEventListener", value }), PLAYER_ORIGIN.vimeo);
 }
 
 const onPhoneChange = (cb: () => void) => {
@@ -58,9 +58,16 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
   const heard = useRef(false);
   const played = useRef(false);
   const state = useRef<number | null>(null);
+  // Playing right now, as far as the player said; and whether it was when the page hid it (then it goes on after).
+  const playing = useRef(false);
+  const resume = useRef(false);
+  // They asked for sound (Tap for sound, or opened it again): said again once the player is ready.
+  const wantSound = useRef(false);
 
   const shown = Boolean(video && ready && mode && !hidden && !atPay && !(phone && helpShown));
   const open = shown && mode === "open";
+  // Never the bigger size under the help card (it sits on the right from tablets up).
+  const large = big && !helpShown;
 
   useEffect(() => {
     let closed = false;
@@ -100,11 +107,15 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
       if (!d || typeof d !== "object") return;
       heard.current = true;
       if (kind === "youtube") {
-        if (typeof d.info?.playerState === "number") state.current = d.info.playerState;
+        if (typeof d.info?.playerState === "number") {
+          state.current = d.info.playerState;
+          playing.current = d.info.playerState === 1 || d.info.playerState === 3;
+        }
         if (d.info?.playerState === 1) played.current = true;
         if (typeof d.info?.muted === "boolean") setMuted(d.info.muted);
       } else {
-        if (d.event === "play" || d.event === "playProgress") played.current = true;
+        if (d.event === "play" || d.event === "playProgress") played.current = playing.current = true;
+        if (d.event === "pause" || d.event === "ended") playing.current = false;
         if (d.method === "getMuted" && typeof d.value === "boolean") setMuted(d.value);
       }
     };
@@ -112,12 +123,22 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
     return () => window.removeEventListener("message", onMessage);
   }, [video, started]);
 
-  // Paused whenever it is out of sight (closed, payment, help card) or the browser tab is hidden.
+  // Paused whenever it is out of sight (closed, payment, help card) or the browser tab is hidden; when it is back it goes
+  // on only if it was playing then, never a video they paused or that ended.
   useEffect(() => {
     openNow.current = open;
     if (!video) return;
-    if (!open) return playerCommand(frame.current, video.video, "pause");
-    const onTab = () => playerCommand(frame.current, video.video, document.visibilityState === "hidden" ? "pause" : "play");
+    const stop = () => {
+      resume.current ||= playing.current;
+      playerCommand(frame.current, video.video, "pause");
+    };
+    const go = () => {
+      if (resume.current) playerCommand(frame.current, video.video, "play");
+      resume.current = false;
+    };
+    if (!open) return stop();
+    go();
+    const onTab = () => (document.visibilityState === "hidden" ? stop() : go());
     document.addEventListener("visibilitychange", onTab);
     return () => document.removeEventListener("visibilitychange", onTab);
   }, [open, video]);
@@ -154,6 +175,8 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
         else next = Math.min(vh - bar.top + GAP, Math.max(GAP, vh - h - GAP));
       }
       setLift(Math.round(next));
+      // A field reached with the keyboard is scrolled clear of the video, never left under it.
+      document.documentElement.style.scrollPaddingBottom = across ? `${Math.round(next + h + GAP)}px` : "";
     };
     const soon = () => {
       if (!raf) raf = window.requestAnimationFrame(place);
@@ -161,6 +184,8 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
     soon();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(soon);
     if (above.current) ro?.observe(above.current);
+    // The help card's room moves the bar without resizing it: its parent grows.
+    if (above.current?.parentElement) ro?.observe(above.current.parentElement);
     const el = mode === "open" ? win.current : small.current;
     if (el) ro?.observe(el);
     window.addEventListener("scroll", soon, { passive: true });
@@ -170,9 +195,14 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
       ro?.disconnect();
       window.removeEventListener("scroll", soon);
       window.removeEventListener("resize", soon);
-      onSpace(0);
+      document.documentElement.style.scrollPaddingBottom = "";
     };
-  }, [shown, mode, big, phone, above, onSpace]);
+  }, [shown, mode, large, phone, above, onSpace]);
+  // Its room goes when it is out of sight or gone (not between sizes, so the page doesn't jump).
+  useEffect(() => {
+    if (!shown) onSpace(0);
+  }, [shown, onSpace]);
+  useEffect(() => () => onSpace(0), [onSpace]);
 
   if (!video || !mode || typeof document === "undefined") return null;
   const v = video.video;
@@ -197,7 +227,13 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
   const loaded = () => {
     [0, 400, 1000, 2000].forEach((ms) => window.setTimeout(() => listen(frame.current, v), ms));
     // The player ignores commands until it is ready: say again whether it should play.
-    [1200, 3000].forEach((ms) => window.setTimeout(() => playerCommand(frame.current, v, openNow.current && document.visibilityState === "visible" ? "play" : "pause"), ms));
+    [1200, 3000].forEach((ms) =>
+      window.setTimeout(() => {
+        const go = openNow.current && document.visibilityState === "visible";
+        if (go && wantSound.current) playerCommand(frame.current, v, "unmute");
+        playerCommand(frame.current, v, go ? "play" : "pause");
+      }, ms),
+    );
     if (started === "sound") window.setTimeout(() => check(0), 3500);
   };
 
@@ -217,18 +253,26 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
     setMode("open");
     if (!started) setStarted("user");
     else {
+      wantSound.current = true;
       playerCommand(frame.current, v, "unmute");
       playerCommand(frame.current, v, "play");
       setMuted(false);
     }
     window.requestAnimationFrame(() => win.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }));
   };
+  // A tap before the player is ready is said again a moment later.
   const sound = () => {
-    playerCommand(frame.current, v, "unmute");
-    playerCommand(frame.current, v, "play");
+    wantSound.current = true;
     setMuted(false);
+    [0, 800, 2000].forEach((ms) =>
+      window.setTimeout(() => {
+        playerCommand(frame.current, v, "unmute");
+        playerCommand(frame.current, v, "play");
+      }, ms),
+    );
   };
-  const icon = "flex size-8 flex-none items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/15 hover:text-white";
+  // The site's red focus ring is hard to see on the dark window: white there.
+  const icon = "flex size-7 flex-none items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-white! min-[721px]:size-8";
 
   return createPortal(
     <>
@@ -238,18 +282,22 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
         aria-label={t("wizard.video.label")}
         style={{ bottom: lift }}
         className={cx(
-          "fixed left-3 z-40 overflow-hidden rounded-2xl bg-[#15090A] text-white shadow-raised ring-1 ring-black/10 motion-safe:animate-rise min-[721px]:left-6",
-          big ? "w-[calc(100vw-24px)] min-[721px]:w-[min(560px,calc(100vw-48px))]" : "w-[44vw] max-w-[220px] min-[721px]:w-[300px] min-[721px]:max-w-none [@media(max-height:500px)]:w-[220px]",
+          "fixed left-3 z-20 overflow-hidden rounded-2xl bg-[#15090A] text-white shadow-raised ring-1 ring-black/10 motion-safe:animate-rise min-[721px]:left-6",
+          // Bigger, but never taller than the screen (phones held sideways).
+          large ? "w-[calc(100vw-24px)] max-w-[calc((100dvh-140px)*16/9)] min-[721px]:w-[min(560px,calc(100vw-48px))]" : "w-[44vw] max-w-[220px] min-[721px]:w-[300px] min-[721px]:max-w-none [@media(max-height:500px)]:w-[220px]",
           !open && "hidden",
         )}
       >
-        <div className="flex items-center gap-0.5 py-0.5 pl-3 pr-1">
-          <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">{t("wizard.video.title")}</span>
-          <button type="button" onClick={() => setBig(!big)} aria-label={t(big ? "wizard.video.smaller" : "wizard.video.bigger")} className={icon}>
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              {big ? <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /> : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}
-            </svg>
-          </button>
+        <div className="flex items-center gap-0.5 py-0.5 pl-2.5 pr-1 min-[721px]:pl-3">
+          {/* Two short lines rather than cut off (Bangla on the narrowest phones). */}
+          <span className="line-clamp-2 min-w-0 flex-1 text-[11.5px] font-bold leading-[1.4] min-[721px]:text-[12.5px]">{t("wizard.video.title")}</span>
+          {!helpShown && (
+            <button type="button" onClick={() => setBig(!big)} aria-label={t(large ? "wizard.video.smaller" : "wizard.video.bigger")} className={icon}>
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                {large ? <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /> : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}
+              </svg>
+            </button>
+          )}
           <button type="button" onClick={close} aria-label={t("wizard.video.close")} className={icon}>
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" />
@@ -274,8 +322,8 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
                   type="button"
                   onClick={sound}
                   className={cx(
-                    "absolute left-1.5 top-1.5 inline-flex items-center rounded-full bg-white font-bold text-[#111216] shadow-[0_6px_16px_rgba(0,0,0,.35)]",
-                    big ? "min-h-9 gap-1.5 px-3.5 text-[14px]" : "min-h-7 gap-1 px-2.5 text-[11.5px] min-[721px]:min-h-8 min-[721px]:text-[12.5px]",
+                    "absolute left-1.5 top-1.5 inline-flex items-center rounded-full bg-white font-bold text-[#111216] shadow-[0_6px_16px_rgba(0,0,0,.35)] focus-visible:outline-white!",
+                    large ? "min-h-9 gap-1.5 px-3.5 text-[14px]" : "min-h-7 gap-1 px-2.5 text-[11.5px] min-[721px]:min-h-8 min-[721px]:text-[12.5px]",
                   )}
                 >
                   <SoundIcon />
@@ -287,7 +335,7 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
             <button
               type="button"
               onClick={() => setStarted("user")}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[radial-gradient(80%_70%_at_75%_30%,rgba(179,32,27,.75),rgba(139,0,0,0)_70%),#15090A] text-[13px] font-bold"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[radial-gradient(80%_70%_at_75%_30%,rgba(179,32,27,.75),rgba(139,0,0,0)_70%),#15090A] text-[13px] font-bold focus-visible:-outline-offset-4! focus-visible:outline-white!"
             >
               <span className="flex size-11 items-center justify-center rounded-full bg-white text-[#111216] shadow-[0_8px_20px_rgba(0,0,0,.35)]">
                 <PlayIcon className="ml-0.5 size-5" />
@@ -304,7 +352,7 @@ export function StartVideoCorner({ video, ready, atPay, hidden, helpShown, above
           onClick={reopen}
           aria-label={t("wizard.video.open")}
           style={{ bottom: lift }}
-          className="fixed left-3 z-40 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#15090A] pl-2 pr-4 text-[14px] font-bold text-white shadow-raised ring-1 ring-black/10 motion-safe:animate-rise min-[721px]:left-6"
+          className="fixed left-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#15090A] pl-2 pr-4 text-[14px] font-bold text-white shadow-raised ring-1 ring-black/10 motion-safe:animate-rise min-[721px]:left-6"
         >
           <span className="flex size-7 items-center justify-center rounded-full bg-white text-[#111216]">
             <PlayIcon className="ml-0.5 size-3.5" />

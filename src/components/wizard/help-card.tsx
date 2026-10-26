@@ -72,6 +72,8 @@ export function HelpCard({ offer, act, hidden, above, onClose, onSpace }: { offe
     soon();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(soon);
     if (above.current) ro?.observe(above.current);
+    // The corner video's room moves the bar without resizing it: its parent grows (owner, 2026-10-26).
+    if (above.current?.parentElement) ro?.observe(above.current.parentElement);
     if (card.current) ro?.observe(card.current);
     window.addEventListener("scroll", soon, { passive: true });
     window.addEventListener("resize", soon);

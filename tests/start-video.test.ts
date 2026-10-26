@@ -129,9 +129,21 @@ describe("Start a contest: the tutorial video in the corner", () => {
     expect(corner).toContain('const CLOSED_KEY = "lc-start-video";');
     expect(corner).toContain('window.localStorage.setItem(CLOSED_KEY, "1");');
     expect(corner).toContain('setMode(closed ? "small" : "open");');
-    // Paused whenever it is out of sight; and out of sight on phones while the help card is open.
-    expect(corner).toContain('if (!open) return playerCommand(frame.current, video.video, "pause");');
+    // Paused whenever it is out of sight, and it goes on afterwards only if it was playing (never one they paused).
+    expect(corner).toContain("if (!open) return stop();");
+    expect(corner).toContain("resume.current ||= playing.current;");
+    expect(corner).toContain('if (resume.current) playerCommand(frame.current, video.video, "play");');
+    expect(corner).toContain('const onTab = () => (document.visibilityState === "hidden" ? stop() : go());');
+    // Out of sight on phones while the help card is open; never the bigger size under it.
     expect(corner).toContain("!(phone && helpShown)");
+    expect(corner).toContain("const large = big && !helpShown;");
+    // Never taller than the screen; its room isn't reset between sizes (no jump); and both cards follow each other's room.
+    expect(corner).toContain("max-w-[calc((100dvh-140px)*16/9)]");
+    expect(corner).toContain("if (!shown) onSpace(0);");
+    expect(corner).toContain("if (above.current?.parentElement) ro?.observe(above.current.parentElement);");
+    expect(read("src/components/wizard/help-card.tsx")).toContain("if (above.current?.parentElement) ro?.observe(above.current.parentElement);");
+    // A tap on Tap for sound before the player is ready is said again.
+    expect(corner).toContain("[0, 800, 2000].forEach((ms) =>");
     // Privacy-friendly players only (youtube-nocookie, Vimeo do-not-track).
     expect(corner).not.toMatch(/youtube\.com\/embed|vimeo\.com\/video/);
   });
