@@ -196,6 +196,8 @@ vi.mock("@/lib/admin/core", () => ({
   audit: async (...args: unknown[]) => void audits.push(args),
 }));
 vi.mock("@/lib/admin/recipients", () => ({ adminIdsWith: async () => ["a1", "a2"] }));
+// The resume link has its own tests (tests/resume-link.test.ts).
+vi.mock("@/lib/contests/resume", () => ({ noteResume: vi.fn(), resumeLink: async (id: string) => `https://logocontest.bd/r/link-${id}`, resumeTarget: async () => ({}) }));
 
 const C = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0";
 const KEY = `c:${C}`;
@@ -300,7 +302,8 @@ describe("follow-up actions", () => {
     db.tables.blocked_contacts.push({ id: "other", kind: "mobile", value: "+8801711111111", lead_id: "another-lead", lifted_at: null });
     who.admin = { id: "s1", isSuperAdmin: true };
     expect(await reopenLead(KEY, { reason: "my mistake" })).toEqual({ ok: true });
-    expect(db.tables.unpaid_leads[0]).toMatchObject({ status: "new", hidden: false, closed_reason: null });
+    // Not blocked any more either (its resume link works again; owner, 2026-10-26).
+    expect(db.tables.unpaid_leads[0]).toMatchObject({ status: "new", hidden: false, blocked: false, closed_reason: null });
     const mine = db.tables.blocked_contacts.filter((b) => b.lead_id === db.tables.unpaid_leads[0].id);
     expect(mine.length).toBe(2);
     expect(mine.every((b) => b.lifted_at && b.lifted_by === "s1")).toBe(true);

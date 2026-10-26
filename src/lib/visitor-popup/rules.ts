@@ -26,6 +26,7 @@ export type PopupStore = { never?: boolean; until?: number };
  * checks, where people come to read one thing.
  */
 const BLOCKED = [
+  "/r",
   "/login",
   "/designers/signup",
   "/start",

@@ -10,7 +10,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { closeAsFake, findLeadsByContact, followUpDone, logFollowUp, planFollowUp, reachLead } from "@/lib/admin/unpaid-followup-actions";
+import { closeAsFake, findLeadsByContact, followUpDone, logFollowUp, planFollowUp, reachLead, resumeLinkFor } from "@/lib/admin/unpaid-followup-actions";
 import { FAKE_REASONS, HOWS, isContactSearch, NEXT_PRESETS, RESULTS, unpaidHref, type How, type NextPreset, type Result, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
 import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { cx } from "@/lib/cx";
@@ -89,8 +89,68 @@ export function ReachButtons({ leadKey, has }: { leadKey: string; has: { mobile:
   );
 }
 
-/** The row's small Call and WhatsApp buttons, and Add note (opens the form as a note). */
-export function QuickReach({ leadKey, has, noteHref }: { leadKey: string; has: { mobile: boolean }; noteHref: string }) {
+/**
+ * Copy the client's resume link (owner, 2026-10-26): it opens their unpaid contest at the step where they stopped,
+ * without a password. Made and logged on the server at the click ("no log, no link"), so it never sits in the page.
+ */
+export function CopyResume({ leadKey, big = false }: { leadKey: string; big?: boolean }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const readOnly = useReadOnly();
+  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (readOnly) return null;
+  const label = t("admin.unpaid.fu.details.copyLink");
+  const copy = async () => {
+    setBusy(true);
+    let why: MessageKey = "admin.errors.generic";
+    const made = resumeLinkFor(leadKey).then((r) => {
+      if (r.ok) return r.link;
+      if (r.error) why = r.error;
+      throw new Error("no link");
+    });
+    made.catch(() => {});
+    try {
+      try {
+        // Safari only lets the clipboard wait for the server when it gets the promise at once, inside the click.
+        await navigator.clipboard.write([new ClipboardItem({ "text/plain": made.then((l) => new Blob([l], { type: "text/plain" })) })]);
+      } catch {
+        await navigator.clipboard.writeText(await made);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // The clipboard said no: shown to copy by hand. No link (contest paid, closed, or no permission): an error.
+      const link = await made.catch(() => null);
+      if (link) window.prompt(label, link);
+      else toast(t(why), "danger");
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (big)
+    return (
+      <button type="button" onClick={copy} disabled={busy} className={OUTLINE}>
+        <AdminIcon name={copied ? "check" : "link"} size={16} />
+        <span aria-live="polite">{copied ? t("admin.unpaid.fu.details.copied") : label}</span>
+      </button>
+    );
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      disabled={busy}
+      title={copied ? t("admin.unpaid.fu.details.copied") : label}
+      aria-label={copied ? t("admin.unpaid.fu.details.copied") : label}
+      className={cx("relative z-10 flex size-8 items-center justify-center rounded-[9px] border border-[#E3E4E8] bg-surface text-adm-strong hover:bg-[#111216] hover:text-white disabled:opacity-50", copied && "border-adm-good text-adm-good")}
+    >
+      <AdminIcon name={copied ? "check" : "link"} size={15} />
+    </button>
+  );
+}
+
+/** The row's small Call and WhatsApp buttons, the client's resume link, and Add note (opens the form as a note). */
+export function QuickReach({ leadKey, has, resume = false, noteHref }: { leadKey: string; has: { mobile: boolean }; resume?: boolean; noteHref: string }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
   const { go, pending } = useReach(leadKey);
@@ -104,6 +164,7 @@ export function QuickReach({ leadKey, has, noteHref }: { leadKey: string; has: {
             <AdminIcon name={ICON[c]} size={15} />
           </button>
         ))}
+      {resume && <CopyResume leadKey={leadKey} />}
       <Link prefetch={false}
         href={noteHref}
         scroll={false}

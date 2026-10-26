@@ -226,7 +226,7 @@ export function LeadList({
                     </span>
                     {l.wonBack && <span className="text-[12.5px] font-semibold text-adm-good">{taka(l.wonBack.amount)} · {day(l.wonBack.at)}</span>}
                   </span>
-                  {canManage && l.status !== "closed" && !l.wonBackAt && <QuickReach leadKey={l.key} has={{ mobile: l.hasContact.mobile }} noteHref={unpaidHref(q, { sel: l.key }, "#log-note")} />}
+                  {canManage && l.status !== "closed" && !l.wonBackAt && <QuickReach leadKey={l.key} has={{ mobile: l.hasContact.mobile }} resume={l.kind === "contest" && Boolean(l.contestId) && l.stage < PAID} noteHref={unpaidHref(q, { sel: l.key }, "#log-note")} />}
                 </div>
               </li>
             );

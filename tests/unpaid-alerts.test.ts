@@ -209,6 +209,8 @@ vi.mock("@/lib/i18n/server", () => ({ getI18n: async () => ({ locale: "en", t: (
 vi.mock("@/lib/site-origin", () => ({ linkOrigin: async () => "https://logocontest.bd" }));
 vi.mock("@/lib/payments/manual", () => ({ awaitingApproval: async (ids: string[]) => new Map((db.tables.manual_payments ?? []).filter((m) => m.status === "pending" && ids.includes(m.contest_id as string)).map((m) => [m.contest_id as string, m.id as string])) }));
 vi.mock("@/lib/auth/contact-blocks", () => ({ contactBlocked: async () => false }));
+// The reminder's button is the client's resume link (owner, 2026-10-26; tests/resume-link.test.ts).
+vi.mock("@/lib/contests/resume", () => ({ resumeLink: async (id: string) => `https://logocontest.bd/r/link-${id}` }));
 
 const NOW = at("2026-10-26T06:00:00Z"); // noon in Dhaka
 const C = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0";
@@ -342,7 +344,8 @@ describe("automatic reminders", () => {
     db.tables.contests = [draft()];
     expect(await runUnpaidReminders(NOW)).toBe(1);
     expect(sent.email[0]).toMatchObject({ key: "contest-reminder", userId: "u1", notice: "unpaid_reminders", ref: `remind:${C}:first` });
-    expect(String(sent.email[0].body)).toContain(`https://logocontest.bd/client/contests/${C}`);
+    // The resume link: it opens the draft without a password (owner, 2026-10-26).
+    expect(String(sent.email[0].body)).toContain(`https://logocontest.bd/r/link-${C}`);
     expect(await runUnpaidReminders(NOW)).toBe(0);
     expect(db.tables.lifecycle_events.map((e) => e.kind)).toEqual(["remind_first"]);
   });

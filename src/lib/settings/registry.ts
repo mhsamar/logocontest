@@ -618,6 +618,11 @@ export const SETTINGS = {
     description: "Google AdSense publisher ID (ca-pub-…). Google places the ads itself (Auto ads); choose where in your AdSense account. Also fills /ads.txt.",
   },
 
+  // The client's resume-contest link (owner, 2026-10-26): signs them in without a password, so it doesn't last long.
+  "security.resume_link_days": {
+    group: "security", type: "int", schema: int(1, 30), default: 7,
+    description: "How many days a client's resume-contest link works (Unpaid contests and the reminder emails). It always stops once the contest is paid, deleted or closed.",
+  },
   // ---- Logins and devices (owner, 2026-10-14; migration 0055) --------------------------------------------------------
   "security.max_devices": {
     group: "security", type: "int", schema: int(1, 10), default: 3,

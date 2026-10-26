@@ -2623,8 +2623,9 @@ const en = {
           noEmail: "No email",
           sms: "SMS",
           email: "Email",
-          copyLink: "Copy payment link",
+          copyLink: "Copy resume link",
           copied: "Copied",
+          resumeHint: "Opens their contest at the step where they stopped, without a password. Works for {days} days, or until they pay.",
           openContest: "Open the contest",
           guestNote: "No account yet, so there is no draft or payment link. Call them to help them sign up.",
           oldGuest: "They came before names and emails were saved.",
@@ -2802,6 +2803,8 @@ const en = {
           help_no_thanks: "Said no thanks to the help message",
           remind_first: "Reminder email sent to finish the contest",
           remind_last: "Last reminder email sent (with an offer of help)",
+          resume_link: "Copied the resume link",
+          resume_opened: "Opened the resume link",
         },
         close: {
           label: "Close this lead:",
@@ -2840,6 +2843,7 @@ const en = {
           note: "Write the note.",
           closed: "This lead is closed.",
           when: "Pick a date and time in the future.",
+          noResume: "No resume link: the draft was deleted or paid, the lead is closed, or the client's account isn't active.",
         },
       },
       leads: {
@@ -4572,6 +4576,8 @@ const en = {
         send_password_reset: "Sent a password reset email",
         set_password: "Set a new password for a user",
         impersonate_user: "Logged in as a user",
+        unpaid_resume_link: "Copied a client's resume link",
+        resume_link_signin: "Client signed in with a resume link",
         trash_contest: "Deleted a contest (to the Trash)",
         restore_contest: "Restored a contest from the Trash",
         erase_contest: "Erased a contest for good",
@@ -5631,6 +5637,20 @@ const en = {
     title: "Page not found",
     body: "This page doesn't exist, or it hasn't been built yet.",
     home: "Go to the home page",
+  },
+  // The client's resume-contest link (owner, 2026-10-26).
+  resume: {
+    meta: "Continue your contest",
+    metaDescription: "Your contest on logocontest.bd is saved. Open it where you stopped, no password needed.",
+    title: "Continue your contest",
+    body: "“{brand}” is saved. Tap below to open it where you stopped. No password needed.",
+    button: "Continue my contest",
+    switching: "Tapping this logs out the account that is logged in on this device now.",
+    staff: "You're logged in as staff. This link only opens the client's own account, so it doesn't work for staff.",
+    failed: "That didn't work. Please try again, or call us at {phone}.",
+    expiredTitle: "This link doesn't work any more",
+    expiredBody: "It may be more than {days} days old, or this contest is already paid or closed. Log in to see your contests, or call us at {phone}.",
+    login: "Log in",
   },
   wizard: {
     // Owner, 2026-10-12: agreed before a contest is made.

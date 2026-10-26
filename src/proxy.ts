@@ -51,7 +51,8 @@ async function route(request: NextRequest): Promise<NextResponse> {
   // This login was signed out (owner, 2026-10-14): a page goes to the sign-in page with the reason; anything else just
   // carries on signed out.
   const isPage = request.method === "GET" && !pathname.startsWith("/api/") && (request.headers.get("accept") ?? "").includes("text/html");
-  if (ended && isPage) {
+  // Not a resume link (owner, 2026-10-26): it signs the client in by itself, without the sign-in page.
+  if (ended && isPage && !pathname.startsWith("/r/")) {
     const url = request.nextUrl.clone();
     const admin = pathname === "/admin" || pathname.startsWith("/admin/");
     url.pathname = admin ? "/admin-login" : "/login";

@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
       // The same site on the backup and Vercel addresses (owner, 2026-10-21) stays out of search engines: only
       // logocontest.bd is listed.
       { source: "/:path*", missing: [{ type: "host", value: canonicalHostPattern() }], headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
+      // A resume link signs a client in (owner, 2026-10-26): the next page only learns "logocontest.bd", never the link,
+      // so it can't reach the Meta pixel there. Not "no-referrer": server actions need the Origin header. Last wins.
+      { source: "/r/:token", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
     ];
   },
   // Browsers and apps that ask for /favicon.ico get the site icon (QA, 2026-10-18); the icon itself is set in Admin.

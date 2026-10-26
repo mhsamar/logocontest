@@ -21,6 +21,8 @@ export function trackablePath(raw: unknown): string | null {
   if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//")) return null;
   const path = raw.split(/[?#]/)[0].slice(0, 300);
   if (/^\/(admin|api|dev|_next|auth)(\/|$)/.test(path)) return null;
+  // A resume link's token signs a client in (owner, 2026-10-26): counted, never kept.
+  if (path === "/r" || path.startsWith("/r/")) return "/r";
   return path;
 }
 

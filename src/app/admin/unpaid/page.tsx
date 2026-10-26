@@ -19,7 +19,6 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { formatMobile, maskBdMobile } from "@/lib/phone";
 import { getSettings } from "@/lib/settings";
-import { linkOrigin } from "@/lib/site-origin";
 import { firstName } from "@/lib/wizard-live-rules";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,16 +34,15 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const canManage = hasPermission(me, "unpaid.manage");
   const q = parseUnpaidQuery(await searchParams);
   const now = new Date();
-  const [{ t, locale }, board, funnel, origin, visit] = await Promise.all([
+  const [{ t, locale }, board, funnel, visit] = await Promise.all([
     getI18n(),
     unpaidBoard(now, q.sel?.startsWith("g:") ? q.sel.slice(2) : undefined),
     cachedStuckFunnel(q.range),
-    linkOrigin(),
     // Contests and leads that came in since this admin last opened Unpaid get a "New" tag (owner, 2026-10-23).
     sectionVisit(me, "unpaid"),
   ]);
   // Phase 3 (owner, 2026-10-26): the team's Instant alerts and the Automatic reminders to clients, one setting each.
-  const settings = await getSettings(["notify.unpaid_alerts", "notify.followup_due_minutes", "notify.lead_alert_minutes", "notify.unpaid_reminders", "notify.unpaid_reminder_first_hours", "notify.unpaid_reminder_last_hours"]);
+  const settings = await getSettings(["notify.unpaid_alerts", "notify.followup_due_minutes", "notify.lead_alert_minutes", "notify.unpaid_reminders", "notify.unpaid_reminder_first_hours", "notify.unpaid_reminder_last_hours", "security.resume_link_days"]);
   const alerts = settings["notify.unpaid_alerts"];
   const alertsOn = Object.values(alerts.events).some(Boolean) && (alerts.send.popup || alerts.send.push || alerts.send.email);
   const remindDefault = [...(alerts.send.popup || alerts.send.push ? ["alert" as const] : []), ...(alerts.send.email ? ["email" as const] : [])];
@@ -79,7 +77,8 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const contact = selected ? board.contacts.get(selected.key) : undefined;
   const history = selected ? await leadHistory(selected, contact) : [];
   const masked = canManage && contact?.mobile ? (contact.mobile.startsWith("+880") ? maskBdMobile(contact.mobile) : `${formatMobile(contact.mobile).slice(0, 4)} •••• ${contact.mobile.slice(-3)}`) : null;
-  const payLink = selected?.kind === "contest" && selected.contestId && selected.stage < PAID ? `${origin}/start?draft=${selected.contestId}&step=11` : null;
+  // The client's resume link (owner, 2026-10-26): made and logged on the server when it is copied.
+  const resumeDays = selected?.kind === "contest" && selected.contestId && selected.stage < PAID ? settings["security.resume_link_days"] : null;
 
   // The six numbers (handoff §1), each a way into the list.
   const open = board.leads.filter(isOpen);
@@ -143,7 +142,7 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
         <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} />
         <DetailsWhileLoading>
-        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} payLink={payLink} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} />
+        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} />
         </DetailsWhileLoading>
       </div>
       </LeadSelection>

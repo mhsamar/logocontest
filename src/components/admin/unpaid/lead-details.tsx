@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AdminAction } from "@/components/admin/admin-action";
-import { CopyLink } from "@/components/admin/copy-link";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdmCard, IdChip } from "@/components/admin/ui";
 import { closeLead, reopenLead } from "@/lib/admin/unpaid-followup-actions";
@@ -9,7 +8,7 @@ import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
 import { cx } from "@/lib/cx";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { CloseFakeButton, LogFollowUp, NextFollowUpActions, ReachButtons, RevealContact } from "./actions";
+import { CloseFakeButton, CopyResume, LogFollowUp, NextFollowUpActions, ReachButtons, RevealContact } from "./actions";
 import { LeadAvatar, StatusPill, type Fmt } from "./lead-list";
 
 /**
@@ -45,7 +44,7 @@ export function LeadDetails({
   owners,
   me,
   masked,
-  payLink,
+  resumeDays,
   gone = false,
   remindDefault = ["alert"],
 }: {
@@ -59,7 +58,8 @@ export function LeadDetails({
   owners: { id: string; name: string }[];
   me: string;
   masked: string | null;
-  payLink: string | null;
+  /** How long the client's resume link works, when there is one (an unpaid draft). */
+  resumeDays: number | null;
   /** "Remind me by" when the follow-up has no choice of its own: the team's Instant alerts (phase 3). */
   remindDefault?: RemindWay[];
   /** A link named a lead that is no longer on the list. */
@@ -132,7 +132,7 @@ export function LeadDetails({
       </div>
       <div className="flex flex-wrap gap-2">
         {canManage && <ReachButtons leadKey={lead.key} has={{ mobile: lead.hasContact.mobile, email: lead.hasContact.email }} />}
-        {canManage && payLink && open && <CopyLink value={payLink} label={t("admin.unpaid.fu.details.copyLink")} done={t("admin.unpaid.fu.details.copied")} />}
+        {canManage && resumeDays !== null && open && <CopyResume leadKey={lead.key} big />}
         {lead.slug && (
           <Link prefetch={false} href={`/admin/contests/${lead.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-[12px] px-2 text-[14px] font-bold text-primary hover:underline">
             {t("admin.unpaid.fu.details.openContest")}
@@ -140,6 +140,7 @@ export function LeadDetails({
           </Link>
         )}
       </div>
+      {canManage && resumeDays !== null && open && <p className="-mt-2 m-0 text-[12.5px] text-muted">{t("admin.unpaid.fu.details.resumeHint", { days: num(resumeDays) })}</p>}
       {lead.kind === "guest" && <p className="m-0 text-[13.5px] text-muted">{lead.detailsSaved || lead.clientName ? t("admin.unpaid.fu.details.guestNote") : t("admin.unpaid.fu.details.oldGuest")}</p>}
 
       {/* Where they stopped */}

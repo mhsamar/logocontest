@@ -7,6 +7,7 @@ import { noticeOn } from "@/lib/notifications/switches";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { linkOrigin } from "@/lib/site-origin";
+import { resumeLink } from "@/lib/contests/resume";
 import { clientHour, reminderDue, remindersStopped, REPLY_RESULTS } from "./unpaid-alert-rules";
 
 /**
@@ -155,7 +156,7 @@ export async function runUnpaidReminders(now = new Date()): Promise<number> {
       ref: `remind:${id}:${due1}`,
       buttonKey: "email.reminder.button",
       subject: t(`email.reminder.${due1}.subject`),
-      body: t(`email.reminder.${due1}.body`, { brand, link: `${origin}/client/contests/${id}`, phone: s["contact.phone"] }),
+      body: t(`email.reminder.${due1}.body`, { brand, link: await resumeLink(id, now, locale === "bn" ? "bn" : "en").catch(() => `${origin}/client/contests/${id}`), phone: s["contact.phone"] }),
     });
     if (status === "sent") {
       count++;

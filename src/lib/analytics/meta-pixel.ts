@@ -21,7 +21,7 @@ const PREFIX = "lc-px:";
  * these requests with this header and the root layout leaves the base code out.
  */
 export const NO_PIXEL_HEADER = "x-lc-no-pixel";
-export const noPixelPath = (path: string) => /^\/(admin|admin-login|admin-signed-out)(\/|$)|^\/email\/unsubscribe(\/|$)/.test(path);
+export const noPixelPath = (path: string) => /^\/(admin|admin-login|admin-signed-out|r)(\/|$)|^\/email\/unsubscribe(\/|$)/.test(path);
 /**
  * A contest payment counts as a new Purchase for this long after it was paid: the client usually sees it live at once
  * (card) or soon after an admin approves it (bKash). Older payments never fire, so clients who paid before the pixel
