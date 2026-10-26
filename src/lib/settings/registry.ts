@@ -888,6 +888,19 @@ export const SETTINGS = {
     group: "how", type: "string", schema: z.string().regex(/^(how_designer\/[0-9a-f-]{36}\.(png|jpg|webp))?$/), default: "",
     description: "Cover picture of the designers' video, shown before it plays. Empty shows the built-in cover.",
   },
+  // The tutorial video that floats in a corner of Start a contest (owner, 2026-10-26), also edited in Admin → Homepage.
+  "how.video_start": {
+    group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
+    description: "Start a contest: the tutorial video in the corner (a YouTube or Vimeo link, checked when saved). Empty uses the How it works video for clients.",
+  },
+  "how.start_video_on": {
+    group: "how", type: "bool", schema: z.boolean(), default: true,
+    description: "Show the tutorial video in a corner of Start a contest (logo and design services).",
+  },
+  "how.start_video_autoplay": {
+    group: "how", type: "bool", schema: z.boolean(), default: true,
+    description: "Start the Start a contest video by itself (muted, with Tap for sound) until the visitor closes it.",
+  },
   // The live designers tag in the home hero (owner, 2026-10-11; migration 0037): shown only from these numbers.
   "home.live_online_min": {
     group: "live", type: "int", schema: int(0, 100000), default: 10,

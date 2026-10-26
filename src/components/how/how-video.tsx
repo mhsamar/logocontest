@@ -7,7 +7,7 @@ import { embedUrl, PLAYER_ORIGIN, type HowVideo } from "@/lib/home/how-video";
 type Texts = { kicker: string; title: string; body: string; sound: string; play: string; player: string };
 
 /** Asks the video player (YouTube or Vimeo) to do something, without loading either site's script. */
-function command(frame: HTMLIFrameElement | null, video: HowVideo, action: "play" | "pause" | "unmute") {
+export function playerCommand(frame: HTMLIFrameElement | null, video: HowVideo, action: "play" | "pause" | "unmute" | "mute") {
   const win = frame?.contentWindow;
   if (!win || (video.kind !== "youtube" && video.kind !== "vimeo")) return;
   const origin = PLAYER_ORIGIN[video.kind];
@@ -16,13 +16,15 @@ function command(frame: HTMLIFrameElement | null, video: HowVideo, action: "play
     if (action === "unmute") {
       send("unMute");
       send("setVolume", [100]);
-    } else send(action === "play" ? "playVideo" : "pauseVideo");
+    } else if (action === "mute") send("mute");
+    else send(action === "play" ? "playVideo" : "pauseVideo");
   } else {
     const send = (method: string, value?: unknown) => win.postMessage(JSON.stringify(value === undefined ? { method } : { method, value }), origin);
     if (action === "unmute") {
       send("setMuted", false);
       send("setVolume", 1);
-    } else send(action);
+    } else if (action === "mute") send("setMuted", true);
+    else send(action);
   }
 }
 
@@ -52,15 +54,15 @@ export function HowVideoPlayer({ video, cover, autoplay, texts }: { video: HowVi
         inView.current = e.intersectionRatio >= 0.5;
         if (inView.current) {
           if (mayAuto) setStarted((s) => s ?? "auto");
-          command(frame.current, video, "play");
-        } else command(frame.current, video, "pause");
+          playerCommand(frame.current, video, "play");
+        } else playerCommand(frame.current, video, "pause");
       },
       { threshold: [0, 0.5] },
     );
     io.observe(el);
     const onTab = () => {
-      if (document.visibilityState === "hidden") command(frame.current, video, "pause");
-      else if (inView.current) command(frame.current, video, "play");
+      if (document.visibilityState === "hidden") playerCommand(frame.current, video, "pause");
+      else if (inView.current) playerCommand(frame.current, video, "play");
     };
     document.addEventListener("visibilitychange", onTab);
     return () => {
@@ -84,14 +86,14 @@ export function HowVideoPlayer({ video, cover, autoplay, texts }: { video: HowVi
             referrerPolicy="strict-origin-when-cross-origin"
             className="absolute inset-0 size-full border-0"
             // The player ignores commands until it is ready: say again whether it should play, in case it scrolled away meanwhile.
-            onLoad={() => [1200, 3000].forEach((ms) => setTimeout(() => command(frame.current, video, inView.current && document.visibilityState === "visible" ? "play" : "pause"), ms))}
+            onLoad={() => [1200, 3000].forEach((ms) => setTimeout(() => playerCommand(frame.current, video, inView.current && document.visibilityState === "visible" ? "play" : "pause"), ms))}
           />
           {started === "auto" && muted && (
             <button
               type="button"
               onClick={() => {
-                command(frame.current, video, "unmute");
-                command(frame.current, video, "play");
+                playerCommand(frame.current, video, "unmute");
+                playerCommand(frame.current, video, "play");
                 setMuted(false);
               }}
               className="absolute bottom-[14%] left-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[15px] font-bold text-[#111216] shadow-[0_8px_20px_rgba(0,0,0,.35)] sm:left-6"

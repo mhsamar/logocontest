@@ -37,6 +37,8 @@ import { PriceBar, PriceSidebar } from "./price-summary";
 import { initialState, loadPending, loadState, savePending, saveState, type ServerFile, type WizardState } from "./state";
 import { wizardVisitId } from "./visit-id";
 import { HelpCard } from "./help-card";
+import { StartVideoCorner } from "./start-video";
+import type { StartVideo } from "@/lib/home/how-video";
 import { useWizardLive } from "./use-wizard-live";
 import { logoLiveAnswers } from "@/lib/wizard-live-rules";
 import { pixelStartId, trackPixel } from "@/lib/analytics/meta-pixel";
@@ -71,6 +73,8 @@ export type WizardProps = {
   /** "Share my contest on Facebook" (owner, 2026-10-19), once migration 0067 has run; the resumed draft's choice. */
   shareSwitch?: boolean;
   resumeShare?: boolean;
+  /** The tutorial video in the corner (owner, 2026-10-26), or null when it is off. */
+  video?: StartVideo | null;
 };
 
 
@@ -108,6 +112,8 @@ export function Wizard(props: WizardProps) {
   const [paying, setPaying] = useState(false);
   // Room kept under the last fields for the help card, so it never sits over them (owner, 2026-10-25).
   const [helpSpace, setHelpSpace] = useState(0);
+  // And for the tutorial video in the corner (owner, 2026-10-26).
+  const [videoSpace, setVideoSpace] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [fromReview, setFromReview] = useState(false);
   const top = useRef<HTMLDivElement>(null);
@@ -680,6 +686,7 @@ export function Wizard(props: WizardProps) {
 
             {/* Bottom bar: sticky on phones, inline on larger screens */}
             {helpSpace > 0 && <div aria-hidden style={{ height: helpSpace }} />}
+            {videoSpace > helpSpace && <div aria-hidden style={{ height: videoSpace - helpSpace }} />}
             <div ref={bar} className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
               {showPrice && <PriceBar key={step} price={price} feePercent={price?.feePercent ?? props.pricing.serviceFeePercent} />}
               <Button size="lg" block onClick={onNext} disabled={!valid} loading={busy}>
@@ -695,6 +702,8 @@ export function Wizard(props: WizardProps) {
       </div>
       {/* Not while the content rules are open, and never once Pay is pressed (owner, 2026-10-25). */}
       <HelpCard offer={live.offer} act={live.act} onClose={live.close} hidden={!state.contentOk || paying} above={bar} onSpace={setHelpSpace} />
+      {/* Once the content rules are agreed; out of the way on Review and pay (owner, 2026-10-26). */}
+      <StartVideoCorner video={props.video ?? null} ready={state.contentOk === true} atPay={step === S.review} hidden={paying} helpShown={helpSpace > 0} above={bar} onSpace={setVideoSpace} />
     </div>
   );
 }

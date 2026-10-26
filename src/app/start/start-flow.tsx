@@ -15,6 +15,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import type { Lang, ServiceDef } from "@/lib/services/types";
 import { getSettings } from "@/lib/settings";
+import { pickStartVideo } from "@/lib/home/how-video";
 import { openMethods } from "@/lib/payments/methods";
 import { getProSettings } from "@/lib/pro/settings";
 import { allProIds } from "@/lib/pro/status";
@@ -85,14 +86,21 @@ const profileOf = async (user: CurrentUser | null) => {
   return { name: profile && profile.name !== profile.business_name ? profile.name : "", mobile: user.mobile };
 };
 
+/** The tutorial video in the corner of Start a contest (owner, 2026-10-26; Admin › Homepage), or null. */
+async function startVideo() {
+  const s = await getSettings(["how.start_video_on", "how.video_start", "how.video_client", "how.start_video_autoplay"]);
+  return pickStartVideo({ on: s["how.start_video_on"], start: s["how.video_start"], client: s["how.video_client"], autoplay: s["how.start_video_autoplay"] });
+}
+
 /** The wizard of a non-logo service (fresh, or resuming one of the client's drafts). */
 export async function serviceWizard(service: ServiceDef, user: CurrentUser | null, resume: ServiceWizardProps["resume"] = null, startAtPay = false) {
-  const [pricing, s, svcUser, inviteFirst, methods] = await Promise.all([
+  const [pricing, s, svcUser, inviteFirst, methods, video] = await Promise.all([
     getPricingConfig(),
     getSettings(["auth.password_min_length", "limits.brief_max_files", "limits.brief_file_max_mb", "guarantee.enabled", "guarantee.min_designers"]),
     profileOf(user),
     invitesAvailable(),
     payMethods(),
+    startVideo(),
   ]);
   const share = await shareChoice(resume?.contestId ?? null);
   // A saved draft's reference images (owner, 2026-10-17: every contest has them), and whether its content rules were
@@ -117,6 +125,7 @@ export async function serviceWizard(service: ServiceDef, user: CurrentUser | nul
       methods={methods}
       fileLimits={{ maxFiles: s["limits.brief_max_files"], maxMb: s["limits.brief_file_max_mb"] }}
       guarantee={s["guarantee.enabled"] ? s["guarantee.min_designers"] : null}
+      video={video}
     />
   );
 }
@@ -143,7 +152,7 @@ export async function serviceDraftOf(user: CurrentUser | null, draftId: string |
 
 /** The original logo wizard, C-01 … C-11 (UI-JOURNEY §4), with its ?step=, ?draft= and ?name= links. */
 export async function logoWizard(params: StartParams, user: CurrentUser | null) {
-  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods, onboarding] = await Promise.all([
+  const [pricing, s, businessTypes, colours, wizardUser, inviteFirst, methods, onboarding, video] = await Promise.all([
     getPricingConfig(),
     getSettings(["limits.brief_max_files", "limits.brief_file_max_mb", "auth.password_min_length", "guarantee.enabled", "guarantee.min_designers"]),
     visibleList("business_types", "en"),
@@ -152,6 +161,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
     invitesAvailable(),
     payMethods(),
     getOnboarding("client"),
+    startVideo(),
   ]);
 
   let previous: WizardProps["previous"] = [];
@@ -207,6 +217,7 @@ export async function logoWizard(params: StartParams, user: CurrentUser | null) 
       onboarding={onboarding}
       shareSwitch={share.ready}
       resumeShare={share.resumed}
+      video={video}
     />
   );
 }

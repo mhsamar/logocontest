@@ -8,6 +8,9 @@ import { z } from "zod";
 
 export const HOW_VIDEO_TABS = ["client", "designer"] as const;
 export type HowVideoTab = (typeof HOW_VIDEO_TABS)[number];
+/** The videos set in Admin → Homepage: the two How it works tabs and the Start a contest corner video (owner, 2026-10-26). */
+export const VIDEO_SLOTS = [...HOW_VIDEO_TABS, "start"] as const;
+export type VideoSlot = (typeof VIDEO_SLOTS)[number];
 
 export const howVideoSchema = z.union([
   z.object({ url: z.literal(""), kind: z.literal(""), id: z.literal(""), hash: z.literal("") }),
@@ -57,10 +60,14 @@ export function parseVideoUrl(input: string): HowVideo | null {
   return null;
 }
 
-/** The embed address for a stored video. `muted` starts it without sound (browsers only auto-play muted videos). */
-export function embedUrl(video: HowVideo, opts: { autoplay: boolean; muted: boolean }): string | null {
+/**
+ * The embed address for a stored video. `muted` starts it without sound (browsers only auto-play muted videos, unless
+ * the visitor has tapped the page). `origin`: this site, so YouTube tells the page whether it plays and is muted.
+ */
+export function embedUrl(video: HowVideo, opts: { autoplay: boolean; muted: boolean; origin?: string }): string | null {
   if (video.kind === "youtube") {
     const q = new URLSearchParams({ autoplay: opts.autoplay ? "1" : "0", mute: opts.muted ? "1" : "0", playsinline: "1", rel: "0", modestbranding: "1", enablejsapi: "1" });
+    if (opts.origin) q.set("origin", opts.origin);
     return `https://www.youtube-nocookie.com/embed/${video.id}?${q}`;
   }
   if (video.kind === "vimeo") {
@@ -73,3 +80,24 @@ export function embedUrl(video: HowVideo, opts: { autoplay: boolean; muted: bool
 
 /** Where player messages go, so a command only ever reaches the video's own site. */
 export const PLAYER_ORIGIN = { youtube: "https://www.youtube-nocookie.com", vimeo: "https://player.vimeo.com" } as const;
+
+/** The tutorial video that floats on Start a contest (owner, 2026-10-26), and whether it may start by itself. */
+export type StartVideo = { video: HowVideo; autoplay: boolean };
+
+/**
+ * A few seconds after it started with sound, from what the player said: "playing" when it played; "wait" while it has
+ * said nothing yet or is still loading (a slow connection gets two more looks); else "muted": the browser refused sound,
+ * so it plays muted with Tap for sound instead of standing still.
+ */
+export function afterSoundTry(s: { played: boolean; heard: boolean; state: number | null; tries: number }): "playing" | "wait" | "muted" {
+  if (s.played) return "playing";
+  if (s.tries < 2 && (!s.heard || s.state === 3)) return "wait";
+  return "muted";
+}
+
+/** Its own video, else the How it works video for clients; null when it is switched off or there is no video. */
+export function pickStartVideo(s: { on: boolean; start: HowVideo; client: HowVideo; autoplay: boolean }): StartVideo | null {
+  if (!s.on) return null;
+  const video = s.start.kind ? s.start : s.client;
+  return video.kind ? { video, autoplay: s.autoplay } : null;
+}

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, TextAreaField, TextField } from "@/components/ui/field";
 import { wizardVisitId } from "@/components/wizard/visit-id";
 import { HelpCard } from "@/components/wizard/help-card";
+import { StartVideoCorner } from "@/components/wizard/start-video";
+import type { StartVideo } from "@/lib/home/how-video";
 import { useWizardLive } from "@/components/wizard/use-wizard-live";
 import { SERVICE_STAGE, serviceLiveAnswers } from "@/lib/wizard-live-rules";
 import { deleteFile, getFile } from "@/components/wizard/file-store";
@@ -67,6 +69,8 @@ export type ServiceWizardProps = {
   /** "Share my contest on Facebook" (owner, 2026-10-19), once migration 0067 has run; the resumed draft's choice. */
   shareSwitch?: boolean;
   resumeShare?: boolean;
+  /** The tutorial video in the corner (owner, 2026-10-26), or null when it is off. */
+  video?: StartVideo | null;
 };
 
 /**
@@ -76,7 +80,7 @@ export type ServiceWizardProps = {
  * in the logo contest, with "Tell us about you" (real name, mobile and email, asked once), sets a password with the
  * prize, and every contest has reference images.
  */
-export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits, shareSwitch, resumeShare, guarantee = null }: ServiceWizardProps) {
+export function ServiceWizard({ service, user, pricing, passwordMin, resume, inviteFirst, startAtPay, methods, fileLimits, shareSwitch, resumeShare, guarantee = null, video = null }: ServiceWizardProps) {
   // The prize is typed in taka, so its hints stay in taka; the rest is in the visitor's currency (owner, 2026-10-14).
   const { t, locale, price: money } = useI18n();
   const router = useRouter();
@@ -101,6 +105,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
   const [paying, setPaying] = useState(false);
   // Room kept under the last fields for the help card, so it never sits over them (owner, 2026-10-25).
   const [helpSpace, setHelpSpace] = useState(0);
+  // And for the tutorial video in the corner (owner, 2026-10-26).
+  const [videoSpace, setVideoSpace] = useState(0);
   const [mobile, setMobile] = useState("");
   // Any country, Bangladesh by default; and "on WhatsApp" (owner, 2026-10-14).
   const [country, setCountry] = useState("BD");
@@ -565,6 +571,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
           )}
 
           {helpSpace > 0 && <div aria-hidden style={{ height: helpSpace }} />}
+          {videoSpace > helpSpace && <div aria-hidden style={{ height: videoSpace - helpSpace }} />}
           <div ref={bar} className="sticky bottom-0 -mx-4 mt-8 border-t border-line bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur min-[721px]:static min-[721px]:mx-0 min-[721px]:border-0 min-[721px]:bg-transparent min-[721px]:px-0 min-[721px]:pt-0">
             {showPrice && <PriceBar price={price} feePercent={price?.feePercent ?? cfg.serviceFeePercent} />}
             <Button size="lg" block onClick={onNext} loading={busy}>
@@ -576,6 +583,8 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
       </div>
       {/* Never once Pay is pressed (owner, 2026-10-25). */}
       <HelpCard offer={live.offer} act={live.act} onClose={live.close} hidden={paying} above={bar} onSpace={setHelpSpace} />
+      {/* No content rules pop-up here (they are ticked at Pay), so it opens at once; out of the way at Pay (owner, 2026-10-26). */}
+      <StartVideoCorner video={video} ready atPay={step === "pay"} hidden={paying} helpShown={helpSpace > 0} above={bar} onSpace={setVideoSpace} />
     </div>
   );
 }

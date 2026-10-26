@@ -5,18 +5,21 @@ import { adminUser, audit } from "@/lib/admin/core";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { HOW_VIDEO_TABS, NO_VIDEO, parseVideoUrl, type HowVideo, type HowVideoTab } from "./how-video";
+import { NO_VIDEO, parseVideoUrl, VIDEO_SLOTS, type HowVideo, type VideoSlot } from "./how-video";
 
 /**
- * Admin → Homepage, "How it works videos" (owner, 2026-10-11): the two video links and the auto-play switch.
+ * Admin → Homepage, "How it works videos" (owner, 2026-10-11): the two video links and the auto-play switch; since
+ * 2026-10-26 also the Start a contest corner video, with its on/off and auto-play switches.
  * Site content: needs content.manage; every change goes to the audit log.
  */
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 
-const KEY = { client: "how.video_client", designer: "how.video_designer" } as const;
+const KEY = { client: "how.video_client", designer: "how.video_designer", start: "how.video_start" } as const;
+const SWITCHES = ["how.video_autoplay", "how.start_video_on", "how.start_video_autoplay"] as const;
+type HowSwitch = (typeof SWITCHES)[number];
 
-async function store(key: "how.video_client" | "how.video_designer" | "how.video_autoplay", value: unknown, adminId: string) {
+async function store(key: (typeof KEY)[VideoSlot] | HowSwitch, value: unknown, adminId: string) {
   const def = SETTINGS[key];
   const db = createAdminClient();
   const { data: before } = await db.from("settings").select("value").eq("key", key).maybeSingle();
@@ -24,10 +27,10 @@ async function store(key: "how.video_client" | "how.video_designer" | "how.video
   return { error, before: before?.value ?? null };
 }
 
-/** Saves a tab's video from a pasted YouTube or Vimeo link; an empty link removes the video. */
-export async function saveHowVideo(tab: HowVideoTab, link: string): Promise<Result> {
+/** Saves a video from a pasted YouTube or Vimeo link; an empty link removes the video. */
+export async function saveHowVideo(tab: VideoSlot, link: string): Promise<Result> {
   const admin = await adminUser("content.manage");
-  if (!admin || !(HOW_VIDEO_TABS as readonly string[]).includes(tab)) return { ok: false, error: "auth.errors.generic" };
+  if (!admin || !(VIDEO_SLOTS as readonly string[]).includes(tab)) return { ok: false, error: "auth.errors.generic" };
   let video: HowVideo = NO_VIDEO;
   if (link.trim()) {
     const parsed = parseVideoUrl(link);
@@ -41,12 +44,13 @@ export async function saveHowVideo(tab: HowVideoTab, link: string): Promise<Resu
   return { ok: true };
 }
 
-export async function setHowAutoplay(on: boolean): Promise<Result> {
+/** One of the card's switches: How it works auto-play, and the Start a contest video's on/off and auto-play. */
+export async function setHowSwitch(key: HowSwitch, on: boolean): Promise<Result> {
   const admin = await adminUser("content.manage");
-  if (!admin) return { ok: false, error: "auth.errors.generic" };
-  const { error, before } = await store("how.video_autoplay", Boolean(on), admin.id);
+  if (!admin || !(SWITCHES as readonly string[]).includes(key)) return { ok: false, error: "auth.errors.generic" };
+  const { error, before } = await store(key, Boolean(on), admin.id);
   if (error) return { ok: false, error: "admin.errors.generic" };
-  await audit(admin.id, "update_settings", "settings", "how.video_autoplay", { from: before, to: Boolean(on) });
+  await audit(admin.id, "update_settings", "settings", key, { from: before, to: Boolean(on) });
   refresh();
   return { ok: true };
 }

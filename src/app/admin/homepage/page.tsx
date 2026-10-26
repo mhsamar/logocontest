@@ -27,7 +27,7 @@ export default async function AdminHomepagePage() {
   const [picked, available, s, en, bn] = await Promise.all([
     entriesByIds(featured.map((f) => f.entryId)),
     entriesByIds(candidates),
-    getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer"]),
+    getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer", "how.video_start", "how.start_video_on", "how.start_video_autoplay"]),
     translatorFor("en"),
     translatorFor("bn"),
   ]);
@@ -44,10 +44,19 @@ export default async function AdminHomepagePage() {
       cover: <PictureField kind={kind} url={pictureUrl(s[tab === "client" ? "how.cover_client" : "how.cover_designer"])} fallback={null} />,
     };
   });
+  // The Start a contest corner video (owner, 2026-10-26): the clients' video until it has its own.
+  const startVideo: HowVideoTabData = {
+    tab: "start",
+    title: t("admin.homepage.videos.start"),
+    hint: t("admin.homepage.videos.startHint"),
+    video: s["how.video_start"],
+    fallback: { video: s["how.video_client"], note: t("admin.homepage.videos.usingClient") },
+    none: t("admin.homepage.videos.startNone"),
+  };
   return (
     <div className="space-y-6">
       <AdminHead title={t("admin.homepage.title")} lead={t("admin.homepage.lead")} />
-      <HowVideosCard tabs={videoTabs} autoplay={s["how.video_autoplay"]} />
+      <HowVideosCard tabs={videoTabs} autoplay={s["how.video_autoplay"]} start={{ data: startVideo, on: s["how.start_video_on"], autoplay: s["how.start_video_autoplay"] }} />
       <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
         <h2 className="font-semibold text-ink">
           {t("admin.homepage.featured")} <span className="text-muted">({picked.length})</span>
