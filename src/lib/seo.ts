@@ -27,8 +27,12 @@ export function robotsUnless(indexable: boolean): { robots?: { index: false; fol
   return indexable ? {} : { robots: { index: false, follow: true } };
 }
 
-/** Paths kept out of search engines (robots.txt). */
-export const PRIVATE_PATHS = ["/dashboard", "/admin", "/api", "/dev", "/auth", "/notifications", "/support", "/start/result", "/verify-email", "/reset-password", "/forgot-password", "/styleguide"];
+/**
+ * Paths kept out of search engines (robots.txt). Not /support (Search Console, 2026-10-26): public pages link to it, so
+ * blocking it kept its address in Google ("Indexed, though blocked by robots.txt"); Google must read it to see its
+ * noindex and the redirect to the noindex log-in page.
+ */
+export const PRIVATE_PATHS = ["/dashboard", "/admin", "/api", "/dev", "/auth", "/notifications", "/start/result", "/verify-email", "/reset-password", "/forgot-password", "/styleguide"];
 
 /** Open Graph for one page. A page that sets openGraph replaces the layout's, so this keeps the shared fields. */
 export function openGraphFor(o: { title: string; description?: string; path?: string; locale: "en" | "bn"; images?: string[] }) {

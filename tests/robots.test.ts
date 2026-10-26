@@ -15,6 +15,17 @@ describe("robots.txt", () => {
     expect(rules.find((x) => x.userAgent === "*")?.disallow).toBe("/");
     expect(r.sitemap).toBeUndefined();
   });
+  it("after launch: /support can be read, so Google sees its noindex and drops it (it is linked from public pages)", async () => {
+    vi.stubEnv("SEO_NOINDEX", "false");
+    const { default: robots } = await import("@/app/robots");
+    const r = robots();
+    const rules = Array.isArray(r.rules) ? r.rules : [r.rules];
+    const all = rules.find((x) => x.userAgent === "*")!;
+    expect(all.disallow).toEqual(expect.arrayContaining(["/dashboard", "/admin", "/api"]));
+    expect(all.disallow).not.toContain("/support");
+    const src = (await import("node:fs")).readFileSync("src/app/support/page.tsx", "utf8");
+    expect(src).toContain("robots: { index: false }");
+  });
   it("the Pinterest site check code is on every page", async () => {
     const src = (await import("node:fs")).readFileSync("src/app/layout.tsx", "utf8");
     expect(src).toContain('"p:domain_verify": "cb536e9e87dbc7662f94b8400e106a79"');
