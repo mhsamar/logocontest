@@ -199,7 +199,7 @@ function toReward(r: Record<string, unknown>): MonthlyReward | null {
     winner: {
       id: w.id as string,
       name: ((w.name as string) || "").trim() || (w.username ? `@${w.username as string}` : "—"),
-      avatarUrl: avatarUrl(w.avatar_path as string | null),
+      avatarUrl: avatarUrl(w.avatar_path as string | null, { full: true }),
       locale: w.locale === "bn" ? "bn" : "en",
     },
   };

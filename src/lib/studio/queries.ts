@@ -101,7 +101,7 @@ async function withFiles(rows: Light[]): Promise<StudioDesign[]> {
   }
   const paths = [...byEntry.values()].flat().map((f) => f.preview_path);
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600)
+    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640 })
     .catch(() => new Map<string, string>());
   return rows.map((r) => {
     const designer = r.contest.is_blind ? null : one(r.designer);
@@ -180,7 +180,7 @@ export async function studioHero(): Promise<StudioHero> {
       )
       .eq("position", 0);
     const urls = await getFileStorage()
-      .createReadUrls(ENTRY_FILES_BUCKET, (data ?? []).map((d) => d.preview_path as string), 3600)
+      .createReadUrls(ENTRY_FILES_BUCKET, (data ?? []).map((d) => d.preview_path as string), 3600, { width: 640 })
       .catch(() => new Map<string, string>());
     for (const d of data ?? []) {
       const url = urls.get(d.preview_path as string);

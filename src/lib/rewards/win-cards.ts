@@ -77,7 +77,7 @@ function toCard(r: Raw): WinCard | null {
       id: d.id as string,
       name: ((d.name as string) || "").trim() || (d.username ? `@${d.username as string}` : "—"),
       username: (d.username as string | null) ?? null,
-      avatarUrl: avatarUrl(d.avatar_path as string | null),
+      avatarUrl: avatarUrl(d.avatar_path as string | null, { full: true }),
       locale: d.locale === "bn" ? "bn" : "en",
       email: (d.email as string | null) ?? null,
     },

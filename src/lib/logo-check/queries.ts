@@ -132,7 +132,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
   const rawMatches = [...((r.matches as Record<string, unknown>[] | null) ?? [])].sort((a, b) => (a.position as number) - (b.position as number));
   const paths = [r.image_path as string, ...rawMatches.map((m) => m.image_path as string).filter(Boolean)];
   const urls = await getFileStorage()
-    .createReadUrls(LOGO_CHECKS_BUCKET, paths, 3600)
+    .createReadUrls(LOGO_CHECKS_BUCKET, paths, 3600, { width: 640 })
     .catch(() => new Map<string, string>());
   const { count } = await createAdminClient().from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", contest.id).neq("status", "failed").neq("source", "pre_submit");
   const limits = await checkLimits();
@@ -243,7 +243,7 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   // Not the checks of a cancelled contest (money back, or cancelled by the team; owner, 2026-10-21).
   const list = ((rows ?? []) as unknown as Record<string, unknown>[]).filter((r) => one(r.contest as { status: string } | { status: string }[] | null)?.status !== "cancelled");
   const urls = await getFileStorage()
-    .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600)
+    .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600, { width: 240 })
     .catch(() => new Map<string, string>());
   const checks: MyCheck[] = list.map((r) => {
     const c = one(r.contest as { id: string; slug: string; brand_name: string; contest_number: number | null; prize_amount: number; logo_scan: boolean } | null);
@@ -302,7 +302,7 @@ export async function adminChecks(): Promise<AdminCheckRow[]> {
     .limit(500);
   const list = (data ?? []) as unknown as Record<string, unknown>[];
   const urls = await getFileStorage()
-    .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600)
+    .createReadUrls(LOGO_CHECKS_BUCKET, list.map((r) => r.image_path as string), 3600, { width: 240 })
     .catch(() => new Map<string, string>());
   // Number each contest's counted checks in the order they were made.
   const order = new Map<string, string[]>();

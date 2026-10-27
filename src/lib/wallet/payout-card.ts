@@ -32,7 +32,7 @@ export async function renderPayoutCard(withdrawalId: string, viewer: { id: strin
     lineHtml: escapeHtml(t(data.method_type === "bank" ? "payoutCard.lineBank" : "payoutCard.line", { amount: "\u0000" })).replace("\u0000", `<strong>${escapeHtml(amount)}</strong>`),
     amount,
     footer: t("payoutCard.footer"),
-    photoUrl: avatarUrl(d.avatar_path),
+    photoUrl: avatarUrl(d.avatar_path, { full: true }),
   });
   return renderPng(html, CARD_SIZES[size]);
 }

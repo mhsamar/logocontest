@@ -117,7 +117,7 @@ function score(scores: unknown, key: string): number | null {
 async function toCheck(r: Record<string, unknown>): Promise<DesignerCheck> {
   const matches = [...((r.matches as Record<string, unknown>[] | null) ?? [])].sort((a, b) => (a.position as number) - (b.position as number)).slice(0, 4);
   const paths = [r.image_path as string, ...matches.map((m) => m.image_path as string).filter(Boolean)];
-  const urls = await getFileStorage().createReadUrls(LOGO_CHECKS_BUCKET, paths, 3600).catch(() => new Map<string, string>());
+  const urls = await getFileStorage().createReadUrls(LOGO_CHECKS_BUCKET, paths, 3600, { width: 640 }).catch(() => new Map<string, string>());
   const lockedUntil = r.locked_until ? new Date(r.locked_until as string).getTime() : 0;
   const status = r.status as CheckStatus;
   return {

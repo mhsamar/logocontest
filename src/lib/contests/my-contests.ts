@@ -49,7 +49,7 @@ async function latestDesigns(contestIds: string[]): Promise<Map<string, string[]
     paths.set(r.contest_id as string, list);
   }
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, [...paths.values()].flat(), 3600)
+    .createReadUrls(ENTRY_FILES_BUCKET, [...paths.values()].flat(), 3600, { width: 640 })
     .catch(() => new Map<string, string>());
   for (const [id, list] of paths) out.set(id, list.map((p) => urls.get(p)).filter((u): u is string => Boolean(u)));
   return out;

@@ -97,5 +97,6 @@ async function route(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|apple-icon|icon$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // Not the picture routes (owner, 2026-10-27): they need no login, and the CDN keeps them.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|apple-icon|icon$|api/img/|api/avatar/|api/email/image/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

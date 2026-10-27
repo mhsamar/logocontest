@@ -79,7 +79,7 @@ async function signFiles(ids: string[]): Promise<Record<string, StudioFile[]>> {
     byEntry.set(img.entry_id as string, list);
   }
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, [...byEntry.values()].flat().map((f) => f.path), 3600)
+    .createReadUrls(ENTRY_FILES_BUCKET, [...byEntry.values()].flat().map((f) => f.path), 3600, { width: 640 })
     .catch(() => new Map<string, string>());
   const out: Record<string, StudioFile[]> = {};
   for (const id of ids) out[id] = (byEntry.get(id) ?? []).flatMap((f) => (urls.has(f.path) ? [{ url: urls.get(f.path)!, label: f.label }] : []));

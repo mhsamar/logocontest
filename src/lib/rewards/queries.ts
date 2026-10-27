@@ -104,7 +104,7 @@ export async function winningDesigns(q: { month?: string | null; type?: string |
   const designs = mapped.sort((a, b) => b.finishedAt.getTime() - a.finishedAt.getTime()).slice(0, q.limit ?? 60);
   const paths = designs.map((d) => d.coverUrl).filter((p): p is string => Boolean(p));
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600)
+    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640 })
     .catch(() => new Map<string, string>());
   return designs.map((d) => ({ ...d, coverUrl: d.coverUrl ? (urls.get(d.coverUrl) ?? null) : null }));
 }

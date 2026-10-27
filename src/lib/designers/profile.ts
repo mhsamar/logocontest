@@ -105,7 +105,7 @@ const isPublic = (e: EntryRow) => isPublicDesign(e, e.contest);
 async function coverUrls(paths: (string | null)[]): Promise<Map<string, string>> {
   const list = paths.filter((p): p is string => Boolean(p));
   return getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, [...new Set(list)], 3600)
+    .createReadUrls(ENTRY_FILES_BUCKET, [...new Set(list)], 3600, { width: 640 })
     .catch(() => new Map<string, string>());
 }
 

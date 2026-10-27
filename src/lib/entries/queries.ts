@@ -127,7 +127,8 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
   // A locked design's pictures are never signed for this viewer.
   const paths = sorted.flatMap((r) => (locked.has(r.id) ? [] : r.images.slice(0, previewLimit).map((i) => i.preview_path)));
   const [urls, counts, votes] = await Promise.all([
-    getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS).catch(() => new Map<string, string>()),
+    // Grid tiles are small; the open design gets the full picture.
+    getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS, { width: previewLimit <= 4 ? 640 : 1000 }).catch(() => new Map<string, string>()),
     commentCounts(sorted.map((r) => r.id)),
     voteCounts(sorted.map((r) => r.id), viewer?.id ?? null),
   ]);
@@ -260,7 +261,7 @@ export async function leadingDesigns(contests: { id: string; isBlind: boolean; i
     if (!cur || better(rank(e), rank(cur)) > 0) best.set(r.contest_id as string, e);
   }
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, [...best.values()].map((b) => b.path), LINK_SECONDS)
+    .createReadUrls(ENTRY_FILES_BUCKET, [...best.values()].map((b) => b.path), LINK_SECONDS, { width: 640 })
     .catch(() => new Map<string, string>());
   for (const [contestId, b] of best) {
     const url = urls.get(b.path);

@@ -351,7 +351,7 @@ export async function clientProfileData(by: { id?: string; username?: string }):
     const imgs = ((w.images ?? []) as { position: number; preview_path: string }[]).sort((a, b) => a.position - b.position);
     return imgs[0] ? [imgs[0].preview_path] : [];
   });
-  const urls = paths.length ? await getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, 3600).catch(() => new Map<string, string>()) : new Map<string, string>();
+  const urls = paths.length ? await getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640 }).catch(() => new Map<string, string>()) : new Map<string, string>();
   const byId = new Map(list.map((c) => [c.id as string, c]));
   const winners = (winRows ?? []).flatMap((w) => {
     const c = byId.get(w.contest_id as string);
