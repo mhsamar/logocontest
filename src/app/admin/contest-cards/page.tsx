@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { requirePermission } from "@/lib/admin/core";
 import { facebookConfigured } from "@/lib/cards/facebook";
 import { banglaLine, CARD_SIZES, cardEligibility, MAIN_SIZE, MAX_ATTEMPTS, type CardSizeKey } from "@/lib/cards/rules";
-import { cardsReady, cardStats, imageUrl, listCards, type CardListItem } from "@/lib/cards/store";
+import { type CardListItem, cardsReady, cardStats, listCards, smallUrl } from "@/lib/cards/store";
 import { cx } from "@/lib/cx";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
@@ -66,7 +66,8 @@ export default async function AdminContestCardsPage({ searchParams }: PageProps<
   const href = (q: Record<string, string>) => `/admin/contest-cards?${new URLSearchParams({ ...(tab !== "all" ? { tab } : {}), ...q }).toString()}`;
 
   const view = (c: CardListItem): CardView => {
-    const images = Object.fromEntries(CARD_SIZES.map((x) => [x.key, imageUrl(c.images, x.key)]).filter(([, u]) => u)) as Partial<Record<CardSizeKey, string>>;
+    // The small display copies (owner, 2026-10-27); downloads and Facebook use the full pictures.
+    const images = Object.fromEntries(CARD_SIZES.map((x) => [x.key, smallUrl(c.images, x.key)]).filter(([, u]) => u)) as Partial<Record<CardSizeKey, string>>;
     const elig = cardEligibility({ status: c.contest.status, isPrivate: false, isNda: false, shareOnFacebook: true, endsAt: c.contest.endsAt ? new Date(c.contest.endsAt) : null }, now);
     return {
       id: c.id,
@@ -118,7 +119,7 @@ export default async function AdminContestCardsPage({ searchParams }: PageProps<
               <ul className="m-0 flex list-none flex-col gap-2 p-0" data-card-list>
                 {list.map((c) => {
                   const st = statusOf(c, t, locale);
-                  const thumb = imageUrl(c.images, MAIN_SIZE);
+                  const thumb = smallUrl(c.images, MAIN_SIZE);
                   const on = picked?.id === c.id;
                   return (
                     <li key={c.id}>

@@ -3,7 +3,7 @@ import { getContestBySlug } from "@/lib/contests/browse";
 import { contestStatusLine, isLatin, logoDataUrl, PIN_SIZE, PinFrame } from "@/lib/og";
 import { contestIndexable } from "@/lib/seo";
 import { isTestAccount } from "@/lib/seo/test-accounts";
-import { pictureDataUrl, SHARE_PICTURE_HEADERS } from "@/lib/share/design";
+import { asJpeg, pictureDataUrl } from "@/lib/share/design";
 
 // A contest's Pinterest picture (owner, 2026-10-18): its leading design (if any), brand, prize and state. Only for
 // contests anyone may see; private and NDA contests are "not found".
@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const [logoSrc, picture] = await Promise.all([logoDataUrl(), contest.cover ? pictureDataUrl(contest.cover.url) : null]);
   const brand = isLatin(contest.brandName) ? contest.brandName : "Logo design contest";
   const status = contestStatusLine(contest.rawStatus, contest.endsAt);
-  return new ImageResponse(
+  return asJpeg(new ImageResponse(
     (
       <PinFrame logoSrc={logoSrc} picture={picture}>
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -28,6 +28,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         </div>
       </PinFrame>
     ),
-    { ...PIN_SIZE, headers: SHARE_PICTURE_HEADERS },
-  );
+    PIN_SIZE,
+  ));
 }

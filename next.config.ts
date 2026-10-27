@@ -52,6 +52,8 @@ const nextConfig: NextConfig = {
   // The compressed Chromium files are read at run time, so they are added to the functions that make certificates.
   outputFileTracingIncludes: {
     "/api/logo-checks/**": ["./node_modules/@sparticuz/chromium/bin/**"],
+    // The designers' originality report PDF is drawn the same way (owner, 2026-10-27: its Chrome was missing).
+    "/api/entries/report/**": ["./node_modules/@sparticuz/chromium/bin/**"],
     // Win cards and monthly prize cards (owner, 2026-10-11) are pictures made the same way.
     "/api/cards/**": ["./node_modules/@sparticuz/chromium/bin/**"],
     // Contest cards (owner, 2026-10-19): drawn by the 15-minute job and by Admin › Contest cards.

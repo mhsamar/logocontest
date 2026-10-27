@@ -164,7 +164,7 @@ export function CardDetail({ card, fbReady }: { card: CardView; fbReady: boolean
               </Button>
             )}
             {src && (
-              <a href={`/api/contest-cards/${card.id}/${size}.png`} className={buttonClasses({ variant: "secondary" })} download>
+              <a href={`/api/contest-cards/${card.id}/${size}`} className={buttonClasses({ variant: "secondary" })} download>
                 <AdminIcon name="download" size={16} />
                 {t("admin.cards.detail.downloadPng")}
               </a>

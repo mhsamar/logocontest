@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import sharp from "sharp";
 import en from "@/lib/i18n/messages/en";
 import { getService } from "@/lib/services/store";
 import { isLogo } from "@/lib/services/types";
@@ -123,23 +124,45 @@ export async function makeCaption(c: CardContestRow, now: Date): Promise<string>
   });
 }
 
-/** The four stored pictures, when they were drawn (v, for fresh links) and with which template version (t). */
-export type CardImages = Partial<Record<CardSizeKey, string>> & { v?: number; t?: number };
+/**
+ * The four stored pictures (a high-quality JPEG each: posted to Facebook and downloaded), their small display copies
+ * (a 400 px WebP of about 15–20 KB, shown in Admin; owner, 2026-10-27), when they were drawn (v, for fresh links) and
+ * with which template version (t). Cards drawn before 2026-10-27 are PNG with no display copies.
+ */
+export type CardImages = Partial<Record<CardSizeKey, string>> & { small?: Partial<Record<CardSizeKey, string>>; v?: number; t?: number };
 
 export const publicUrl = (path: string, v?: number) => `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "")}/storage/v1/object/public/${CARDS_BUCKET}/${path}${v ? `?v=${v}` : ""}`;
 export const imageUrl = (images: CardImages, size: CardSizeKey) => (images[size] ? publicUrl(images[size]!, images.v) : null);
+/** The small display copy where there is one, else the picture itself. */
+export const smallUrl = (images: CardImages, size: CardSizeKey) => (images.small?.[size] ? publicUrl(images.small[size]!, images.v) : imageUrl(images, size));
 
-/** Draws the four sizes and stores them at <contest>/<kind>-<style>-<size>.png (a new drawing replaces the old one). */
+/**
+ * Draws the four sizes and stores each as <contest>/<kind>-<style>-<size>.jpg plus its display copy -400.webp (a new
+ * drawing replaces the old one). Owner, 2026-10-27: the PNGs were about 3.3 MB a contest; the JPEGs (quality 85, no
+ * visible change) are about 0.35 MB and the display copies about 55 KB.
+ */
 export async function drawCard(c: CardContestRow, kind: CardKind, style: CardStyle, lineBn: string | null, now: Date): Promise<CardImages> {
   const { data } = await cardFacts(c, now, lineBn, kind === "last24");
   const pngs = await renderCard(data, style);
-  const images: CardImages = { v: now.getTime(), t: CARD_TEMPLATE_VERSION };
+  const images: CardImages = { v: now.getTime(), t: CARD_TEMPLATE_VERSION, small: {} };
+  const store = (path: string, bytes: Uint8Array, contentType: string) =>
+    // A day: a new drawing changes ?v=, so nobody sees an old one.
+    db().storage.from(CARDS_BUCKET).upload(path, bytes, { contentType, upsert: true, cacheControl: "86400" });
   for (const s of CARD_SIZES) {
-    const path = `${c.id}/${kind}-${style}-${s.key}.png`;
-    const { error } = await db().storage.from(CARDS_BUCKET).upload(path, pngs[s.key], { contentType: "image/png", upsert: true, cacheControl: "300" });
-    if (error) throw new Error(`Storage: ${error.message}`);
-    images[s.key] = path;
+    const base = `${c.id}/${kind}-${style}-${s.key}`;
+    const [jpg, small] = await Promise.all([
+      sharp(pngs[s.key]).jpeg({ quality: 85, mozjpeg: true }).toBuffer(),
+      sharp(pngs[s.key]).resize({ width: 400 }).webp({ quality: 75, effort: 5 }).toBuffer(),
+    ]);
+    for (const [path, bytes, type] of [[`${base}.jpg`, jpg, "image/jpeg"], [`${base}-400.webp`, small, "image/webp"]] as const) {
+      const { error } = await store(path, new Uint8Array(bytes), type);
+      if (error) throw new Error(`Storage: ${error.message}`);
+    }
+    images[s.key] = `${base}.jpg`;
+    images.small![s.key] = `${base}-400.webp`;
   }
+  // The same card drawn before as PNG is replaced by these.
+  await db().storage.from(CARDS_BUCKET).remove(CARD_SIZES.map((s) => `${c.id}/${kind}-${style}-${s.key}.png`)).catch(() => null);
   return images;
 }
 

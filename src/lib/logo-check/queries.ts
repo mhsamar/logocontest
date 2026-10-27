@@ -94,7 +94,8 @@ export type CheckView = CheckListItem & {
   sources: Sources | null;
   paid: boolean;
   amount: number;
-  certificate: { pdf: boolean; png: boolean };
+  /** picture: the stored certificate picture (JPEG since 2026-10-27, PNG before). */
+  certificate: { pdf: boolean; png: boolean; picture: string | null };
   finishedAt: string | null;
   /** True while no runner holds a check that isn't finished (a status poll then starts it again). */
   stale: boolean;
@@ -162,7 +163,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     sources: (r.sources as Sources | null) ?? null,
     paid: Boolean(r.paid),
     amount: (r.amount as number) ?? 0,
-    certificate: { pdf: Boolean(r.certificate_pdf_path), png: Boolean(r.certificate_png_path) },
+    certificate: { pdf: Boolean(r.certificate_pdf_path), png: Boolean(r.certificate_png_path), picture: (r.certificate_png_path as string | null) ?? null },
     finishedAt: (r.finished_at as string | null) ?? null,
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < Date.now(),
     costUsd: Number(r.cost_usd) || 0,

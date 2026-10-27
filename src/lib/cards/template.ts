@@ -53,9 +53,9 @@ export function cardMarkup(d: CardData, style: CardStyle, size: CardSizeKey): st
 
 /**
  * Bumped whenever the card's look changes; cards not posted yet are drawn again with the new look by the job
- * (owner, 2026-10-20: 2 fixed the ৳ sign on the server).
+ * (owner, 2026-10-20: 2 fixed the ৳ sign on the server; 2026-10-27: 3 stores JPEG and small display copies).
  */
-export const CARD_TEMPLATE_VERSION = 2;
+export const CARD_TEMPLATE_VERSION = 3;
 
 /** A whole page for the renderer: the fonts (Latin, Bangla and the link's typewriter font), the card's look and one card. */
 export function cardPage(d: CardData, style: CardStyle, size: CardSizeKey): string {

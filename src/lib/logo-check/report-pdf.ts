@@ -72,5 +72,5 @@ h1{margin:6px 0 0;font-size:34px;line-height:1.08;font-weight:600;letter-spacing
 }
 
 export async function reportPdf(r: EntryReport, origin: string): Promise<Uint8Array> {
-  return (await renderCertificate(await reportHtml(r, origin))).pdf;
+  return (await renderCertificate(await reportHtml(r, origin), { picture: false })).pdf;
 }

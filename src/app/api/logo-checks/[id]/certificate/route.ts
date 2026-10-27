@@ -8,13 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Rendering with headless Chrome can take a while the first time.
 export const maxDuration = 120;
 
-/** Downloads the Logo Research Certificate as PDF (default) or PNG; made now if it doesn't exist yet. */
+/** Downloads the Logo Research Certificate as PDF (default) or as a picture (?format=png: JPEG since 2026-10-27); made now if it doesn't exist yet. */
 export async function GET(req: NextRequest, { params }: RouteContext<"/api/logo-checks/[id]/certificate">) {
   const { id } = await params;
   const view = await checkView(id, await getCurrentUser());
   if (!view || view.status !== "done") return NextResponse.json({ ok: false }, { status: 404 });
   const png = req.nextUrl.searchParams.get("format") === "png";
-  let path = `${view.id}/certificate.${png ? "png" : "pdf"}`;
+  let path = png ? (view.certificate.picture ?? `${view.id}/certificate.png`) : `${view.id}/certificate.pdf`;
   if (!(png ? view.certificate.png : view.certificate.pdf)) {
     try {
       const made = await makeCertificate(view.id, req.nextUrl.origin);
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: RouteContext<"/api/logo-
       return NextResponse.json({ ok: false, error: "certificate" }, { status: 500 });
     }
   }
-  const name = `${certNumber(view.number)}-logo-research-certificate.${png ? "png" : "pdf"}`;
+  const name = `${certNumber(view.number)}-logo-research-certificate.${path.split(".").pop()}`;
   const { data } = await createAdminClient().storage.from(LOGO_CHECKS_BUCKET).createSignedUrl(path, 300, { download: name });
   if (!data?.signedUrl) return NextResponse.json({ ok: false }, { status: 404 });
   return NextResponse.redirect(data.signedUrl);

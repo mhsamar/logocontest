@@ -3939,7 +3939,7 @@ const en = {
         schedule: "Schedule",
         scheduleTitle: "Schedule this post",
         scheduleLead: "Facebook publishes it at this time (your computer's time; 10 minutes to 30 days ahead).",
-        downloadPng: "Download PNG",
+        downloadPng: "Download picture",
         zip: "All sizes (.zip)",
         remake: "Make again",
         skip: "Skip — don't post this one",

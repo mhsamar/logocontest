@@ -1,4 +1,5 @@
 import "server-only";
+import sharp from "sharp";
 import { ENTRY_FILES_BUCKET } from "@/lib/entries/queries";
 import { differenceHash } from "@/lib/entries/images";
 import { getSettings } from "@/lib/settings";
@@ -319,11 +320,17 @@ async function work(check: CheckRow, origin: string) {
     await flagIfHigh(check.id).catch((e) => console.error("[logo-check] flag:", e instanceof Error ? e.message : e));
     return;
   }
+  // A designer's own Pro check has no certificate to download (owner, 2026-10-27: Chrome ran for nothing).
+  if (!check.contest_id) return;
   // The certificate is made now; if this fails it is made when it is first downloaded.
   await makeCertificate(check.id, origin).catch((e) => console.error("[logo-check] certificate:", e instanceof Error ? e.message : e));
 }
 
-/** Builds the certificate PDF and PNG for a finished check and stores both. Returns their paths. */
+/**
+ * Builds the certificate PDF and picture for a finished check and stores both. Returns their paths. Owner, 2026-10-27
+ * (lighter downloads, same look): the pictures inside are JPEGs sized to their boxes (a mockup's logo made the PDF
+ * 1.7 MB), and the picture is a 1240 px JPEG (150 dpi A4) instead of a 2x PNG.
+ */
 export async function makeCertificate(id: string, origin: string): Promise<{ pdf: string; png: string }> {
   const store = getFileStorage();
   const { data: c } = await db()
@@ -338,7 +345,11 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
   const contest = one(c.contest as unknown as { brand_name: string; contest_number: number | null } | null);
   const entry = one(c.entry as unknown as { number: number; designer: { name: string } | { name: string }[] | null } | null);
   const matches = [...((c.matches as unknown as { position: number; image_path: string; similarity: number; is_close: boolean; site: string | null; same: string[]; different: string[]; found_by: MatchSource }[]) ?? [])].sort((a, b) => a.position - b.position);
-  const toUri = async (path: string) => `data:image/png;base64,${Buffer.from(await store.download(LOGO_CHECKS_BUCKET, path)).toString("base64")}`;
+  // About three times the box it sits in (sharp when printed), on the certificate's white.
+  const toUri = async (path: string, box: { width: number; height: number }) => {
+    const jpg = await sharp(await store.download(LOGO_CHECKS_BUCKET, path)).resize({ ...box, fit: "inside", withoutEnlargement: true }).flatten({ background: "#ffffff" }).jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+    return `data:image/jpeg;base64,${jpg.toString("base64")}`;
+  };
   const scores = c.scores as Record<"uniqueness" | "legibility" | "colour" | "overall", { score: number }>;
   const sources = c.sources as Sources;
   const limits = await checkLimits();
@@ -347,7 +358,7 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
   const data: CertificateData = {
     number: c.number as number,
     origin,
-    logoDataUri: await toUri(c.image_path as string),
+    logoDataUri: await toUri(c.image_path as string, { width: 510, height: 450 }),
     contest: `${contest?.brand_name ?? ""}${contest?.contest_number ? ` · LC-${String(contest.contest_number).padStart(4, "0")}` : ""}`,
     design: entry ? `Design #${entry.number}` : "Uploaded image",
     designer: entry ? (one(entry.designer)?.name ?? null) : null,
@@ -357,7 +368,7 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
     headline: head.headline,
     subline: head.subline,
     // A designer's contest check keeps no copies of other people's logos: those tiles show the source only.
-    matches: await Promise.all(matches.slice(0, 4).map(async (m) => ({ dataUri: m.image_path ? await toUri(m.image_path) : null, similarity: m.similarity, close: m.is_close, where: m.found_by === "site" ? "logocontest.bd" : (m.site ?? "the web") }))),
+    matches: await Promise.all(matches.slice(0, 4).map(async (m) => ({ dataUri: m.image_path ? await toUri(m.image_path, { width: 324, height: 184 }) : null, similarity: m.similarity, close: m.is_close, where: m.found_by === "site" ? "logocontest.bd" : (m.site ?? "the web") }))),
     closest: matches[0] ? { same: matches[0].same, different: matches[0].different } : null,
     scores: [
       { label: "Uniqueness", score: scores.uniqueness.score },
@@ -370,9 +381,10 @@ export async function makeCertificate(id: string, origin: string): Promise<{ pdf
     report: c.entry_id ? await validReportOf(c.entry_id as string).then((r) => (r ? { id: r.reportId, url: `${printedOrigin(origin)}/verify/${r.reportId}` } : null)) : null,
   };
   const { pdf, png } = await renderCertificate(await certificateHtml(data));
-  const paths = { pdf: `${id}/certificate.pdf`, png: `${id}/certificate.png` };
+  const picture = await sharp(png).resize({ width: 1240 }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+  const paths = { pdf: `${id}/certificate.pdf`, png: `${id}/certificate.jpg` };
   await store.upload(LOGO_CHECKS_BUCKET, paths.pdf, pdf, "application/pdf");
-  await store.upload(LOGO_CHECKS_BUCKET, paths.png, png, "image/png");
+  await store.upload(LOGO_CHECKS_BUCKET, paths.png, new Uint8Array(picture), "image/jpeg");
   await db().from("logo_checks").update({ certificate_pdf_path: paths.pdf, certificate_png_path: paths.png }).eq("id", id);
   return paths;
 }

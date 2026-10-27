@@ -124,8 +124,8 @@ h1{margin:0;font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.035
 </div></div></body></html>`;
 }
 
-/** Renders the certificate to an A4 PDF and a PNG (2x) from the same HTML. */
-export async function renderCertificate(html: string): Promise<{ pdf: Uint8Array; png: Uint8Array }> {
+/** Renders the certificate to an A4 PDF and a PNG (2x) from the same HTML; `picture: false` skips the PNG (a report). */
+export async function renderCertificate(html: string, opts: { picture?: boolean } = {}): Promise<{ pdf: Uint8Array; png: Uint8Array }> {
   const browser = await launchChrome();
   try {
     const page = await browser.newPage();
@@ -137,6 +137,7 @@ export async function renderCertificate(html: string): Promise<{ pdf: Uint8Array
       await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => ((i.onload = r), (i.onerror = r))))));
     });
     const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 }, pageRanges: "1" });
+    if (opts.picture === false) return { pdf: new Uint8Array(pdf), png: new Uint8Array() };
     const png = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: 794, height: 1123 } });
     return { pdf: new Uint8Array(pdf), png: new Uint8Array(png) };
   } finally {

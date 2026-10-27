@@ -93,6 +93,21 @@ describe("design pictures through the site", () => {
     expect((await GET(new Request("https://x"), { params: Promise.resolve({ path: ["..", "secret.png"] }) })).status).toBe(404);
   });
 
+  it("share pictures take the site's WebP design pictures (as JPEG) and are sent as JPEG; cards and certificates are lighter", () => {
+    const share = read("src/lib/share/design.ts");
+    expect(share).toContain("if (!/^image\\/webp/.test(type)) return null;");
+    expect(share).toContain('url.startsWith("/") ? `${await internalOrigin()}${url}` : url');
+    for (const f of ["src/app/opengraph-image.tsx", "src/app/contest/[slug]/opengraph-image.tsx", "src/app/contest/[slug]/pin/route.tsx", "src/app/contest/[slug]/design/[number]/opengraph-image.tsx", "src/app/contest/[slug]/design/[number]/pin/route.tsx"]) expect(read(f), f).toContain("asJpeg(");
+    const cards = read("src/lib/cards/store.ts");
+    expect(cards).toContain('[`${base}.jpg`, jpg, "image/jpeg"], [`${base}-400.webp`, small, "image/webp"]');
+    expect(read("src/lib/cards/template.ts")).toContain("export const CARD_TEMPLATE_VERSION = 3;");
+    const run = read("src/lib/logo-check/run.ts");
+    expect(run).toContain("const paths = { pdf: `${id}/certificate.pdf`, png: `${id}/certificate.jpg` };");
+    expect(run).toContain("if (!check.contest_id) return;");
+    expect(read("src/lib/logo-check/report-pdf.ts")).toContain("{ picture: false }");
+    expect(read("next.config.ts")).toContain('"/api/entries/report/**": ["./node_modules/@sparticuz/chromium/bin/**"],');
+  });
+
   it("the picture routes skip the login check on every request, and the grid asks for small pictures", () => {
     expect(read("src/proxy.ts")).toContain("api/img/|api/avatar/|api/email/image/|");
     expect(read("src/lib/entries/queries.ts")).toContain("{ width: previewLimit <= 4 ? 640 : 1000 }");
