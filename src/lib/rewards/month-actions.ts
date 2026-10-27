@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { remindReward } from "./claims";
 import { approveMonth, clearTestMonth, closeMonth } from "./month-close";
 import { isMonthKey, monthKey, previousMonth } from "./rules";
+import { settingsChanged } from "@/lib/settings";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 const fail = (error: MessageKey): Result => ({ ok: false, error });
@@ -57,6 +58,7 @@ export async function setRewardSwitch(key: RewardSwitch, on: boolean): Promise<R
   if (!admin || !SWITCHES.includes(key)) return fail("auth.errors.generic");
   const def = SETTINGS[key];
   const { error } = await createAdminClient().from("settings").upsert({ key, value: on, type: def.type, group: def.group, description: def.description, updated_by: admin.id });
+  settingsChanged();
   if (error) return fail("admin.errors.generic");
   await audit(admin.id, "update_settings", "settings", "rewards", { changes: { [key]: { to: on } } });
   refresh();

@@ -6,13 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // after it succeeded.
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
+// Meta's code with one change (owner, 2026-10-27): its script is fetched once the page has loaded (pages were slow on
+// phones); fbq exists at once and queues the PageView.
 const SNIPPET = `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
+n.queue=[];var go=function(){t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+s.parentNode.insertBefore(t,s)};
+if(b.readyState==='complete')setTimeout(go,0);else f.addEventListener('load',function(){setTimeout(go,0)})}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1804708190768737');
 fbq('track', 'PageView');`;
@@ -21,6 +24,26 @@ src="https://www.facebook.com/tr?id=1804708190768737&ev=PageView&noscript=1"
 />`;
 
 describe("Meta Pixel base code", () => {
+  it("queues the PageView at once and fetches Meta's script only after the page has loaded", () => {
+    vi.useFakeTimers();
+    const added: string[] = [];
+    let onLoad: (() => void) | null = null;
+    const win: Record<string, unknown> = { addEventListener: (ev: string, fn: () => void) => ev === "load" && (onLoad = fn) };
+    const doc = {
+      readyState: "interactive",
+      createElement: () => ({}) as { src?: string },
+      getElementsByTagName: () => [{ parentNode: { insertBefore: (t: { src: string }) => added.push(t.src) } }],
+    };
+    new Function("window", "document", "fbq", SNIPPET.replace("fbq('init'", "window.fbq('init'").replace("fbq('track'", "window.fbq('track'"))(win, doc, undefined);
+    const fbq = win.fbq as { queue: unknown[][] };
+    expect(fbq.queue.map((q) => q[0])).toEqual(["init", "track"]);
+    expect(added).toEqual([]);
+    (onLoad as unknown as () => void)();
+    vi.runAllTimers();
+    expect(added).toEqual(["https://connect.facebook.net/en_US/fbevents.js"]);
+    vi.useRealTimers();
+  });
+
   it("sits unchanged in the root layout's head, first, on the live site only", () => {
     const layout = read("src/app/layout.tsx");
     expect(layout).toContain(SNIPPET);

@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { adminUser, audit, cleanReason, UUID } from "./core";
 import { toAsciiDigits } from "@/lib/phone";
 import { PRICING_KEYS, tiersProblem, type DesignerTier } from "./pricing-keys";
+import { settingsChanged } from "@/lib/settings";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
@@ -67,6 +68,7 @@ export async function saveSettings(group: string, values: Record<string, string>
   const { error } = await db.from("settings").upsert(
     changed.map((c) => ({ key: c.key, value: c.value, type: SETTINGS[c.key].type, group: SETTINGS[c.key].group, description: SETTINGS[c.key].description, updated_by: admin.id })),
   );
+  settingsChanged();
   if (error) return fail("admin.errors.generic");
   await audit(admin.id, "update_settings", "settings", group, { reason, changes: Object.fromEntries(changed.map((c) => [c.key, { from: before.get(c.key) ?? null, to: c.value }])) });
   if (changed.some((c) => c.key === "site.backup_links")) forgetBackupLinks();

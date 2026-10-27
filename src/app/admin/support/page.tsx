@@ -36,7 +36,7 @@ export default async function AdminSupportPage({ searchParams }: PageProps<"/adm
 
   return (
     <div className="space-y-4">
-      <AutoRefresh seconds={8} />
+      <AutoRefresh seconds={20} />
       <AdminHead title={t("admin.support.title")} lead={t("admin.support.lead")} />
       <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <section className={cx("overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-line", detail && "hidden lg:block")}>

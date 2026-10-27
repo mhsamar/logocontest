@@ -9,6 +9,7 @@ import { boardsOf, pinterestConfigured } from "./api";
 import { runPinterest } from "./job";
 import { PINTEREST_RULES, type PinterestRule } from "./rules";
 import { accessToken, clearConnection, setBoard } from "./store";
+import { settingsChanged } from "@/lib/settings";
 
 /** Admin › Pinterest (owner, 2026-10-19). Every action needs Content · manage and lands in the audit log. */
 
@@ -18,6 +19,7 @@ const fail = (error: MessageKey, params?: Record<string, string>): Result => ({ 
 async function saveSetting(key: "pinterest.on" | "pinterest.rule", value: boolean | string, by: string) {
   const def = SETTINGS[key];
   const { error } = await createAdminClient().from("settings").upsert({ key, value, type: def.type, group: def.group, description: def.description, updated_by: by });
+  settingsChanged();
   if (error) throw new Error(error.message);
   await audit(by, "update_settings", "settings", "pinterest", { changes: { [key]: { to: value } } });
 }

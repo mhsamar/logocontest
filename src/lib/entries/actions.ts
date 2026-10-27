@@ -4,6 +4,7 @@ import { contestHref } from "@/lib/client/rules";
 import { randomUUID } from "node:crypto";
 import { refresh } from "next/cache";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { blockedTerms } from "@/lib/contests/community";
@@ -330,17 +331,19 @@ export async function postEntryComment(_prev: EntryCommentState, formData: FormD
   const designerLink = `/contest/${c.slug}?tab=entries&entry=${data.number}`;
   // chat-message.html (owner, 2026-10-15) between the client and the designer, at most one per design every 30 minutes.
   const chat = { contestId: c.id, entryNo: data.number as number, message: body, thread: `comments:${entryId}` };
-  if (user.id === c.client_id) {
-    await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
-    await emailChat({ ...chat, to: data.designer_id as string, senderName: "The client", path: designerLink, notice: "entry_comment_client" });
-  } else if (user.id === data.designer_id) {
-    await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
-    await emailChat({ ...chat, to: c.client_id, senderName: `The designer of #${data.number}`, path: clientLink, notice: "entry_comment_designer" });
-  }
-  else {
-    await notify([data.designer_id], "entry_comment_other", n, designerLink, user.id);
-    await notify([c.client_id], "entry_comment_other", n, clientLink, user.id);
-  }
+  // Told after the answer (owner, 2026-10-27: the comment waited for the email to go).
+  after(async () => {
+    if (user.id === c.client_id) {
+      await notify([data.designer_id], "entry_comment_client", n, designerLink, user.id);
+      await emailChat({ ...chat, to: data.designer_id as string, senderName: "The client", path: designerLink, notice: "entry_comment_client" });
+    } else if (user.id === data.designer_id) {
+      await notify([c.client_id], "entry_comment_designer", n, clientLink, user.id);
+      await emailChat({ ...chat, to: c.client_id, senderName: `The designer of #${data.number}`, path: clientLink, notice: "entry_comment_designer" });
+    } else {
+      await notify([data.designer_id], "entry_comment_other", n, designerLink, user.id);
+      await notify([c.client_id], "entry_comment_other", n, clientLink, user.id);
+    }
+  });
   refresh();
   return { status: "ok" };
 }

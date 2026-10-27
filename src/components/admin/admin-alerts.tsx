@@ -86,7 +86,13 @@ export function AdminAlerts() {
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), EVERY_MS);
+    // A window left open behind others checks once a minute (owner, 2026-10-27: database traffic).
+    let lastAt = Date.now();
+    const id = window.setInterval(() => {
+      if (!document.hasFocus() && Date.now() - lastAt < 60_000) return;
+      lastAt = Date.now();
+      void load();
+    }, EVERY_MS);
     const onShow = () => void load();
     document.addEventListener("visibilitychange", onShow);
     return () => {

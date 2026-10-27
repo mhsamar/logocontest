@@ -189,12 +189,12 @@ function table(name: string) {
 }
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ refresh: vi.fn() }));
+vi.mock("next/cache", () => ({ refresh: vi.fn(), unstable_cache: (fn: unknown) => fn, updateTag: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/env", () => ({ isSupabaseConfigured: () => true }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (n: string) => table(n) }) }));
 vi.mock("@/lib/settings", async () => {
   const { parseSetting } = await import("@/lib/settings/registry");
-  return { getSettings: async (keys: string[]) => Object.fromEntries(keys.map((k) => [k, parseSetting(k as never, db.settings[k])])) };
+  return { getSettings: async (keys: string[]) => Object.fromEntries(keys.map((k) => [k, parseSetting(k as never, db.settings[k])])), settingsChanged: vi.fn() };
 });
 vi.mock("@/lib/admin/core", () => ({
   adminUser: async (perm?: string) => (who.admin && (!perm || who.perm.includes(perm)) ? who.admin : null),

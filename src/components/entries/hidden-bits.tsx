@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
@@ -33,7 +32,6 @@ export function LockedPicture({ title, sub, ratio = 1, large = false }: { title:
 /** The designer's switch on their own design: hide it from other designers and visitors, or show it again. */
 export function HideToggle({ entryId, hidden, canHide }: { entryId: string; hidden: boolean; canHide: boolean }) {
   const { t } = useI18n();
-  const router = useRouter();
   const toast = useToast();
   const [busy, start] = useTransition();
   if (!hidden && !canHide) return null;
@@ -42,7 +40,6 @@ export function HideToggle({ entryId, hidden, canHide }: { entryId: string; hidd
       const res = await setEntryHidden(entryId, !hidden);
       if (!res.ok) return toast(t(res.error.key, res.error.params), "danger");
       toast(t(hidden ? "pro.hide.shown" : "pro.hide.hidden"));
-      router.refresh();
     });
   return (
     <div className="flex flex-col gap-2 rounded-[14px] bg-[#F4F0FF] p-3.5 text-[14px] text-[#3B1A80]" data-hide-toggle={hidden ? "hidden" : "visible"}>

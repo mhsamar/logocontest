@@ -138,7 +138,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     tab === "comments" && contest.canSeeBrief ? listComments(contest.id, contest.ownerId, user) : [],
     getSetting("limits.contest_comment_max_length"),
     // Also used for the strip of designs in the header.
-    !blindHidden ? listEntries(contest.id, entryContest, user, sort) : [],
+    // Only the Designs tab shows them (owner, 2026-10-27: Brief and Comments loaded every design too).
+    !blindHidden && tab === "entries" ? listEntries(contest.id, entryContest, user, sort) : [],
     entryNumber ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
     user?.role === "designer" ? hasEntryIn(contest.id, user.id) : false,
     contestDesigners(contest.id, 5),
@@ -508,9 +509,9 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                 <EntrySort current={sort} href={sortHref} t={t} />
               </div>
             )}
-            <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
+            <ul data-still className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
               {ordered.map((e) => (
-                <li key={e.id} className="lc-rv-soft">
+                <li key={e.id}>
                   <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} pro={proMark(e)} />
                 </li>
               ))}

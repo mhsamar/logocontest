@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/cx";
@@ -14,7 +13,6 @@ import { CwIcon, CwStar } from "./icons";
 export function ShortlistHeart({ entryId, on, disabled = false }: { entryId: string; on: boolean; disabled?: boolean }) {
   const { t } = useI18n();
   const toast = useToast();
-  const router = useRouter();
   const [busy, start] = useTransition();
   const [state, setState] = useState(on);
   if (disabled) return null;
@@ -36,7 +34,6 @@ export function ShortlistHeart({ entryId, on, disabled = false }: { entryId: str
             setState(!next);
             return toast(t(res.error), "danger");
           }
-          router.refresh();
         });
       }}
       data-shortlist={entryId}
@@ -50,7 +47,6 @@ export function ShortlistHeart({ entryId, on, disabled = false }: { entryId: str
 export function ShortlistButton({ entryId, number, on, disabled = false }: { entryId: string; number: string; on: boolean; disabled?: boolean }) {
   const { t } = useI18n();
   const toast = useToast();
-  const router = useRouter();
   const [busy, start] = useTransition();
   return (
     <button
@@ -62,7 +58,6 @@ export function ShortlistButton({ entryId, number, on, disabled = false }: { ent
           const res = await setShortlist(entryId, !on);
           if (!res.ok) return toast(t(res.error), "danger");
           toast(t(on ? "cw.review.unshortlisted" : "cw.review.shortlisted"));
-          router.refresh();
         })
       }
     >
@@ -76,7 +71,6 @@ export function ShortlistButton({ entryId, number, on, disabled = false }: { ent
 export function RateStars({ entryId, rating, disabled = false }: { entryId: string; rating: number | null; disabled?: boolean }) {
   const { t } = useI18n();
   const toast = useToast();
-  const router = useRouter();
   const [busy, start] = useTransition();
   const [value, setValue] = useState(rating ?? 0);
   const [hover, setHover] = useState(0);
@@ -102,7 +96,6 @@ export function RateStars({ entryId, rating, disabled = false }: { entryId: stri
                   setValue(rating ?? 0);
                   return toast(t(res.error), "danger");
                 }
-                router.refresh();
               });
             }}
             style={{ border: 0, background: "none", padding: 0, cursor: "pointer", color: "inherit" }}

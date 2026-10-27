@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LEGAL_PLACEHOLDERS } from "./placeholders";
 import { textToAgreement, textToDoc, usedPlaceholders } from "./format";
 import { isLegalDocSlug } from "./store";
+import { settingsChanged } from "@/lib/settings";
 
 export type LegalResult = { ok: true; version: string } | { ok: false; error: MessageKey; names?: string };
 
@@ -34,6 +35,7 @@ export async function publishLegal(slug: string, locale: string, body: string, r
     const key = "legal.agreement_resign_since" as const;
     const def = SETTINGS[key];
     await db.from("settings").upsert({ key, value: new Date().toISOString(), type: def.type, group: def.group, description: def.description, updated_by: admin.id });
+    settingsChanged();
   }
   await audit(admin.id, "publish_legal", "legal_doc", `${slug}:${locale}`, { version, resign: askAgain, length: text.length });
   updateTag(CONTENT_TAG);

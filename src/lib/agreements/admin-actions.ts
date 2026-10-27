@@ -10,6 +10,7 @@ import { notify } from "@/lib/notifications";
 import { getSetting } from "@/lib/settings";
 import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { settingsChanged } from "@/lib/settings";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -128,6 +129,7 @@ export async function setAgreementRequired(on: boolean): Promise<Result> {
   const before = await getSetting(key);
   const def = SETTINGS[key];
   const { error } = await createAdminClient().from("settings").upsert({ key, value: on, type: def.type, group: def.group, description: def.description, updated_by: admin.id });
+  settingsChanged();
   if (error) return { ok: false, error: "admin.errors.generic" };
   await audit(admin.id, "update_settings", "settings", "legal", { changes: { [key]: { from: before, to: on } } });
   refresh();

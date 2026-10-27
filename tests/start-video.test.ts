@@ -13,7 +13,8 @@ const db = vi.hoisted(() => ({ settings: [] as Row[] }));
 const who = vi.hoisted(() => ({ admin: null as null | Row }));
 const sent = vi.hoisted(() => ({ audits: [] as unknown[][] }));
 
-vi.mock("next/cache", () => ({ refresh: vi.fn() }));
+vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ refresh: vi.fn(), unstable_cache: (fn: unknown) => fn, updateTag: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/admin/core", () => ({ adminUser: async (perm: string) => (perm === "content.manage" ? who.admin : null), audit: async (...a: unknown[]) => void sent.audits.push(a) }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({

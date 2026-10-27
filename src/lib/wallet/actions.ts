@@ -16,6 +16,7 @@ import { bkashPayoutsReady } from "@/lib/payouts/ready";
 import { SETTINGS } from "@/lib/settings/registry";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { settingsChanged } from "@/lib/settings";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -107,6 +108,7 @@ export async function setAutoWithdrawals(on: boolean): Promise<{ ok: true } | Fa
   const { error } = await createAdminClient()
     .from("settings")
     .upsert({ key: "payouts.auto_bkash", value: on, type: "bool", group: "payouts", description: SETTINGS["payouts.auto_bkash"].description, updated_by: user.id, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  settingsChanged();
   if (error) return fail("auth.errors.generic");
   await audit(user.id, on ? "payouts.auto_on" : "payouts.auto_off", "settings", "payouts.auto_bkash");
   refresh();

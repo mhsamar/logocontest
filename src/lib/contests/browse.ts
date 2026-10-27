@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { isSupabaseConfigured } from "@/lib/env";
 import { BRIEF_FILES_BUCKET, getFileStorage } from "@/lib/storage";
@@ -348,7 +349,10 @@ export type ContestDetail = ContestRow & {
  * P-03. Returns null when the viewer may not see the contest at all (unknown
  * slug, or a draft/unpaid/cancelled contest that isn't theirs).
  */
-export async function getContestBySlug(slug: string, viewer: CurrentUser | null): Promise<ContestDetail | null> {
+/** Once per request (owner, 2026-10-27): the page and its title both ask for it. */
+export const getContestBySlug = cache(loadContestBySlug);
+
+async function loadContestBySlug(slug: string, viewer: CurrentUser | null): Promise<ContestDetail | null> {
   if (!isSupabaseConfigured() || !/^[a-z0-9-]{1,120}$/.test(slug)) return null;
   const db = createAdminClient();
   const { data, error } = await db

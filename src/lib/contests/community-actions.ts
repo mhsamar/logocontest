@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { can } from "@/lib/auth/policies";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -43,7 +44,9 @@ export async function postComment(_prev: CommentFormState, formData: FormData): 
   }
 
   await insertComment(contest.id, user!.id, body);
-  await notify([contest.ownerId, ...(await contestDesignerIds(contest.id))], "contest_comment", { brand: contest.brand }, `/contest/${contest.slug}?tab=comments`, user!.id);
+  // Everyone is told after the answer (owner, 2026-10-27: the comment waited for it).
+  const by = user!.id;
+  after(async () => notify([contest.ownerId, ...(await contestDesignerIds(contest.id))], "contest_comment", { brand: contest.brand }, `/contest/${contest.slug}?tab=comments`, by));
   refresh();
   return { status: "ok" };
 }

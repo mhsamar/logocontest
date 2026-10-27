@@ -23,6 +23,7 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { NoticeBar } from "@/components/layout/notice-bar";
 import { currentNotice } from "@/lib/content/notice";
 import { getMessages } from "@/lib/content/texts";
+import type { Messages } from "@/lib/i18n/messages/en";
 import { can } from "@/lib/auth/policies";
 import { suspendedError } from "@/lib/moderation/suspension";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -43,6 +44,8 @@ const bangla = Hind_Siliguri({
   subsets: ["bengali"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  // Fetched when Bangla text is on the page, not up front on every page (owner, 2026-10-27: 156 KB on English pages).
+  preload: false,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -68,16 +71,19 @@ export const viewport: Viewport = {
   themeColor: "#8b0000",
 };
 
-// Meta Pixel base code (owner, 2026-10-24), exactly as Meta gave it. Only on the live site: local and preview builds
-// would send test visits and fake-gateway payments to the real pixel.
+// Meta Pixel base code (owner, 2026-10-24) as Meta gave it, with one change (owner, 2026-10-27: pages were slow on
+// phones): Meta's 240 KB script is fetched once the page has loaded. fbq exists at once, so the PageView and any event
+// wait in its queue and go out when the script arrives. Only on the live site: local and preview builds would send
+// test visits and fake-gateway payments to the real pixel.
 const META_PIXEL = process.env.VERCEL_ENV === "production";
 const META_PIXEL_SCRIPT = `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
+n.queue=[];var go=function(){t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+s.parentNode.insertBefore(t,s)};
+if(b.readyState==='complete')setTimeout(go,0);else f.addEventListener('load',function(){setTimeout(go,0)})}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1804708190768737');
 fbq('track', 'PageView');`;
@@ -110,7 +116,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         )}
       </head>
       <body className="flex min-h-full flex-col">
-        <I18nProvider locale={locale} messages={messages} currency={currency}>
+        <I18nProvider locale={locale} messages={user?.role === "admin" ? messages : withoutAdminTexts(messages)} currency={currency}>
           <ToastProvider>
             <ImpersonationBar />
             {/* The floating nav on every page (owner, 2026-10-10); the guest home puts it inside its hero.
@@ -154,4 +160,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </body>
     </html>
   );
+}
+
+/**
+ * Everyone but staff gets the site's texts without the admin panel's (owner, 2026-10-27: about a third of the texts
+ * every page sends to the browser). Pages render their own texts on the server, so only browser parts need these, and
+ * the ones that use admin texts are only ever drawn for staff.
+ */
+function withoutAdminTexts(messages: Messages): Messages {
+  return { ...messages, admin: {} } as unknown as Messages;
 }

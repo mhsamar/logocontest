@@ -30,11 +30,25 @@ export function ChatThread({ entryId, messages }: { entryId: string; messages: C
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
+  // New messages: checked while the chat is in front of them (owner, 2026-10-27: every 15 s in any visible tab
+  // re-downloaded the whole page).
   useEffect(() => {
+    let missed = false;
     const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") router.refresh();
-    }, 15_000);
-    return () => window.clearInterval(id);
+      if (document.visibilityState !== "visible" || !document.hasFocus()) return void (missed = true);
+      missed = false;
+      router.refresh();
+    }, 20_000);
+    const back = () => {
+      if (!missed || document.visibilityState !== "visible") return;
+      missed = false;
+      router.refresh();
+    };
+    window.addEventListener("focus", back);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", back);
+    };
   }, [router]);
 
   const upload = async (picked: File) => {

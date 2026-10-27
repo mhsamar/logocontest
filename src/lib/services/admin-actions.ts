@@ -1,10 +1,10 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { adminUser, audit } from "@/lib/admin/core";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { allServices, servicesReady } from "./store";
+import { allServices, SERVICES_TAG, servicesReady } from "./store";
 import { parseService, type ServiceDef } from "./types";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
@@ -39,6 +39,7 @@ export async function setServiceOn(slug: string, on: boolean): Promise<Result> {
   if (error) return fail("admin.errors.generic");
   // Activity shows who changed it, when, and old → new (owner, 2026-10-13). Running contests are not touched.
   await audit(admin.id, "update_service", "contest_service", slug, { field: "is_live", from: s.on ? "on" : "off", to: on ? "on" : "off" });
+  updateTag(SERVICES_TAG);
   refresh();
   return { ok: true };
 }
@@ -67,6 +68,7 @@ export async function saveService(raw: unknown, isNew: boolean): Promise<Result>
       .map((k) => [k, { from: before[k] ?? null, to: after[k] }]),
   );
   await audit(admin.id, isNew ? "add_service" : "update_service", "contest_service", s.slug, { changes });
+  updateTag(SERVICES_TAG);
   refresh();
   return { ok: true };
 }
@@ -86,6 +88,7 @@ export async function moveService(slug: string, dir: -1 | 1): Promise<Result> {
   const rows = order.map((s, n) => ({ slug: s.slug, is_on: s.on, position: n, def: defOf(s), updated_at: new Date().toISOString(), updated_by: admin.id }));
   const { error } = await db.from("contest_services").upsert(rows);
   if (error) return fail("admin.errors.generic");
+  updateTag(SERVICES_TAG);
   refresh();
   return { ok: true };
 }

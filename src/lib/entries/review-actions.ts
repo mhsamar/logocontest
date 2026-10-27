@@ -2,6 +2,7 @@
 
 import { isFinished } from "@/lib/contests/public-statuses";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -44,7 +45,8 @@ export async function rateEntry(entryId: string, rating: number): Promise<Result
   if (!Number.isInteger(rating) || rating < 0 || rating > 5) return { ok: false, error: "auth.errors.generic" };
   const { error } = await createAdminClient().from("entries").update({ rating: rating || null }).eq("id", entryId);
   if (error) return { ok: false, error: "auth.errors.generic" };
-  if (rating) await notify([own.entry.designer_id], "entry_rated", { brand: own.contest.brand_name, number: own.entry.number, stars: rating }, `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`);
+  // After the answer (owner, 2026-10-27: the stars waited for it).
+  if (rating) after(() => notify([own.entry.designer_id], "entry_rated", { brand: own.contest.brand_name, number: own.entry.number, stars: rating }, `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`));
   refresh();
   return { ok: true };
 }
@@ -55,7 +57,7 @@ export async function setShortlist(entryId: string, on: boolean): Promise<Result
   const { error } = await createAdminClient().from("entries").update({ is_shortlisted: on }).eq("id", entryId);
   if (error) return { ok: false, error: "auth.errors.generic" };
   // entry-shortlisted.html (owner, 2026-10-15), once per design.
-  if (on) await emailShortlisted(entryId);
+  if (on) after(() => emailShortlisted(entryId));
   refresh();
   return { ok: true };
 }

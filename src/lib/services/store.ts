@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,11 +9,26 @@ import { DEFAULT_SERVICES, LOGO, type ServiceDef } from "./types";
  * Contest services as the admin set them (Admin → Services), on top of the built-in defaults. Before migration 0045
  * (or if the table can't be read) the defaults are used: only Logo is on.
  */
+/** Cache tag of the services table: Admin → Services clears it on every save. */
+export const SERVICES_TAG = "contest-services";
+
+// Shared across requests for up to 5 minutes (owner, 2026-10-27: read on every page with contest cards). An error is
+// thrown, never kept, so the next request tries again.
+const loadRows = unstable_cache(
+  async () => {
+    const { data, error } = await createAdminClient().from("contest_services").select("slug, is_on, position, def");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+  ["contest-services-v1"],
+  { tags: [SERVICES_TAG], revalidate: 300 },
+);
+
 const loadAll = cache(async (): Promise<{ services: ServiceDef[]; ready: boolean }> => {
   const defaults = new Map(DEFAULT_SERVICES.map((s) => [s.slug, s]));
   if (!isSupabaseConfigured()) return { services: DEFAULT_SERVICES, ready: false };
-  const { data, error } = await createAdminClient().from("contest_services").select("slug, is_on, position, def");
-  if (error) return { services: DEFAULT_SERVICES, ready: false };
+  const data = await loadRows().catch(() => null);
+  if (!data) return { services: DEFAULT_SERVICES, ready: false };
   const merged = new Map(defaults);
   for (const row of data ?? []) {
     const base = defaults.get(row.slug as string);

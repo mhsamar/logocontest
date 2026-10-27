@@ -10,6 +10,7 @@ import { BACKUP_HOST, backupOrigin, canonicalHost, internalProductionOrigin } fr
 import { createAdminClient } from "@/lib/supabase/admin";
 import { collectSignals } from "./probe";
 import { detailOf, FRESH_STATE, nextState, verdictOf, type Alert, type Verdict, type WatchState } from "./rules";
+import { settingsChanged } from "@/lib/settings";
 
 /**
  * The 5-minute .bd watch (owner, 2026-10-21): asks BTCL's servers about logocontest.bd, keeps the state in the
@@ -43,6 +44,7 @@ async function readState(now: Date): Promise<WatchState> {
 async function writeState(state: WatchState): Promise<void> {
   const def = SETTINGS[KEY];
   const { error } = await db().from("settings").upsert({ key: KEY, value: state, type: def.type, group: def.group, description: def.description });
+  settingsChanged();
   if (error) throw new Error(`settings write: ${error.message}`);
 }
 

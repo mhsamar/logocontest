@@ -22,7 +22,7 @@ import { activityOf, isHot, LAST_HELP_STAGE, OFFER_BODY_MAX, onPage, type Answer
  * as it is. Phone and email come masked from the server, and only for Unpaid · Manage.
  */
 
-const CARDS_MS = 5_000;
+const CARDS_MS = 10_000;
 const THREAD_MS = 3_000;
 const QUICK = ["q1", "q2", "q3", "q4"] as const;
 const SMALL_BTN = "inline-flex min-h-[34px] flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-[#E3E4E8] bg-surface px-3 text-[13px] font-bold text-ink hover:border-[#111216]";

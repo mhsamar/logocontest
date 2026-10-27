@@ -12,7 +12,7 @@ export function Avatar({ name, url, className, tone = "light" }: { name: string;
   return url ? (
     // Public storage URL; next/image would need the Supabase host configured.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="" className={cx("shrink-0 rounded-full bg-canvas object-cover", className)} />
+    <img src={url} alt="" loading="lazy" decoding="async" className={cx("shrink-0 rounded-full bg-canvas object-cover", className)} />
   ) : (
     <span
       className={cx(

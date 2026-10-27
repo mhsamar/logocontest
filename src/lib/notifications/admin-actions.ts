@@ -8,6 +8,7 @@ import { parseTierOff } from "@/lib/email/catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NOTICE_ROWS, parseChannelsOff, type TimingKey } from "./admin-catalog";
 import { parseTiming } from "./timing";
+import { settingsChanged } from "@/lib/settings";
 
 type Result = { ok: true } | { ok: false; error: MessageKey; errors?: Record<string, string> };
 
@@ -45,6 +46,7 @@ export async function saveNotifications(input: { off: unknown; tierOff?: unknown
   const { error } = await db
     .from("settings")
     .upsert(changed.map((k) => ({ key: k, value: values.get(k), type: SETTINGS[k].type, group: SETTINGS[k].group, description: SETTINGS[k].description, updated_by: admin.id, updated_at: new Date().toISOString() })));
+  settingsChanged();
   if (error) return { ok: false, error: "admin.errors.generic" };
   await audit(admin.id, "update_notifications", "settings", "notifications", { reason, changes: Object.fromEntries(changed.map((k) => [k, { from: before.get(k) ?? null, to: values.get(k) }])) });
   refresh();

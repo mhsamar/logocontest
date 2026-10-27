@@ -8,6 +8,7 @@ import { SETTINGS } from "@/lib/settings/registry";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPictureKind, PICTURE_MAX_BYTES, PICTURE_SETTING, PICTURE_TYPES, picturePathPattern, SITE_BUCKET, type PictureKind } from "./pictures";
+import { settingsChanged } from "@/lib/settings";
 
 type Fail = { ok: false; error: MessageKey };
 const fail = (error: MessageKey): Fail => ({ ok: false, error });
@@ -20,7 +21,9 @@ async function storedPath(kind: PictureKind): Promise<string> {
 async function setPath(kind: PictureKind, path: string, adminId: string) {
   const key = PICTURE_SETTING[kind];
   const def = SETTINGS[key];
-  return createAdminClient().from("settings").upsert({ key, value: path, type: def.type, group: def.group, description: def.description, updated_by: adminId });
+  const res = await createAdminClient().from("settings").upsert({ key, value: path, type: def.type, group: def.group, description: def.description, updated_by: adminId });
+  settingsChanged();
+  return res;
 }
 
 /** A-17 picture step 1: a one-time upload link for an admin, after checking the file type and size. */

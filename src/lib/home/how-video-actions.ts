@@ -6,6 +6,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NO_VIDEO, parseVideoUrl, VIDEO_SLOTS, type HowVideo, type VideoSlot } from "./how-video";
+import { settingsChanged } from "@/lib/settings";
 
 /**
  * Admin → Homepage, "How it works videos" (owner, 2026-10-11): the two video links and the auto-play switch; since
@@ -24,6 +25,7 @@ async function store(key: (typeof KEY)[VideoSlot] | HowSwitch, value: unknown, a
   const db = createAdminClient();
   const { data: before } = await db.from("settings").select("value").eq("key", key).maybeSingle();
   const { error } = await db.from("settings").upsert({ key, value, type: def.type, group: def.group, description: def.description, updated_by: adminId });
+  settingsChanged();
   return { error, before: before?.value ?? null };
 }
 

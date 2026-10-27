@@ -85,7 +85,9 @@ export function MotionFx() {
         seen.add(el);
         if (el.childNodes.length === 1 && el.firstChild?.nodeType === Node.TEXT_NODE && parseFloat(getComputedStyle(el).fontSize) >= 18) io.observe(el);
       });
+      // Not in the design grid (owner, 2026-10-27): its pictures show as soon as they arrive.
       root.querySelectorAll<HTMLImageElement>(".page-in img:not([data-lc-img])").forEach((img) => {
+        if (img.closest("[data-still]")) return img.setAttribute("data-lc-img", "in");
         if (img.complete && img.naturalWidth > 0) return img.setAttribute("data-lc-img", "in");
         img.setAttribute("data-lc-img", "wait");
         img.addEventListener("load", () => show(img), { once: true });

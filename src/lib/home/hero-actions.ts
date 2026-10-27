@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { heroImageUrl, type HeroSlideRow } from "./hero";
 import { HeroImageError, mainColor, processLogo, processPhoto, whiteLogo } from "./hero-images";
 import { BUILT_IN_SLIDES, HERO_ITEMS, HERO_ROLES, imageFromPath, isHexColor, UPLOADED_IMAGE } from "./hero-slides";
+import { settingsChanged } from "@/lib/settings";
 
 /** Admin → Home hero (owner, 2026-10-11; UI-JOURNEY A-09b). Viewing needs content.view, every change content.manage. */
 
@@ -313,6 +314,7 @@ export async function saveHeroSettings(input: { seconds: number; samplePill: boo
     ] as const
   ).map(([key, value]) => ({ key, value, type: SETTINGS[key].type, group: SETTINGS[key].group, description: SETTINGS[key].description, updated_by: admin.id }));
   const { error } = await createAdminClient().from("settings").upsert(rows);
+  settingsChanged();
   if (error) return fail("admin.errors.generic");
   await audit(admin.id, "update_hero_settings", "setting", "home.hero", { seconds: input.seconds, samplePill: input.samplePill, offerSlide: input.offerSlide });
   changed();

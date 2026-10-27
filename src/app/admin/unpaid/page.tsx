@@ -111,7 +111,8 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
     <div className="flex flex-col gap-5">
       {visit.at && <SeenNow section="unpaid" at={visit.at} />}
       {/* "Live": the data comes back every 20 seconds while the page is open (handoff §1; real data only). */}
-      <AutoRefresh seconds={20} />
+      {/* Every minute (owner, 2026-10-27: every 20 s was most of the database traffic); live cards keep their own beat. */}
+      <AutoRefresh seconds={60} />
       <AdminHead
         title={t("admin.unpaid.title")}
         lead={t("admin.unpaid.fu.lead")}

@@ -19,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   try {
     const bytes = await getFileStorage().download(t.bucket, t.path);
     const jpeg = await sharp(bytes).rotate().resize({ width: Math.min(1200, Math.max(64, t.width)), withoutEnlargement: true }).flatten({ background: "#ffffff" }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
-    return new Response(new Uint8Array(jpeg), { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=2592000, immutable" } });
+    return new Response(new Uint8Array(jpeg), { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=2592000, s-maxage=86400, immutable" } });
   } catch {
     return new Response("Not found", { status: 404 });
   }

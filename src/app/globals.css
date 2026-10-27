@@ -358,6 +358,13 @@ body {
     transition: none !important;
   }
 }
+/* Phones (owner, 2026-10-27: pages felt slow): reveals without blur, and quicker. */
+@media (max-width: 720px) {
+  .lc-mo :is(.lc-rv, .lc-big) {
+    filter: none;
+    transition-duration: 0.45s;
+  }
+}
 
 /* Bangla script needs a little more line height to stay readable. */
 html[lang="bn"] body {
@@ -578,6 +585,25 @@ select:focus-visible {
   }
   details[open]::details-content {
     block-size: auto;
+  }
+
+  /* The design grid shows at once (owner, 2026-10-27): no entrance, no waiting for pictures to fade in. */
+  [data-still],
+  [data-still] * {
+    animation: none !important;
+  }
+  /* Phones: a quicker page entrance, and pictures fade in without the blur. */
+  @media (max-width: 720px) {
+    .animate-page-in {
+      animation-duration: 260ms;
+    }
+    img[data-lc-img] {
+      transition-duration: 300ms;
+    }
+    img[data-lc-img="wait"] {
+      filter: none;
+      scale: none;
+    }
   }
 }
 

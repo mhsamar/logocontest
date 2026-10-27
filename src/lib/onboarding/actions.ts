@@ -7,6 +7,7 @@ import { parseService } from "@/lib/services/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FLOWS, parseOnboarding, type OnboardingFlow } from "./config";
 import { getOnboarding, onboardingKey } from "./store";
+import { settingsChanged } from "@/lib/settings";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 
@@ -29,6 +30,7 @@ export async function saveOnboarding(flow: OnboardingFlow, raw: unknown): Promis
   const { error } = await createAdminClient()
     .from("settings")
     .upsert({ key: onboardingKey(flow), value: cfg, type: "json", group: "onboarding", description: `Admin › Onboarding (${flow})`, updated_by: admin.id, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  settingsChanged();
   if (error) return { ok: false, error: "auth.errors.generic" };
   await audit(admin.id, "update_onboarding", "settings", onboardingKey(flow), { hidden: { from: before.hidden, to: cfg.hidden }, questions: { from: before.extra.length, to: cfg.extra.length } });
   refresh();

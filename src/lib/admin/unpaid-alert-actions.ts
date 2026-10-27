@@ -6,6 +6,7 @@ import { SETTINGS } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { alertsSchema, remindersSchema } from "./unpaid-alert-rules";
 import { adminUser, audit } from "./core";
+import { settingsChanged } from "@/lib/settings";
 
 /**
  * Admin › Unpaid contests, phase 3 (owner, 2026-10-26): the team's Instant alerts and the Automatic reminders to clients,
@@ -18,6 +19,7 @@ const fail = (error: MessageKey): Result => ({ ok: false, error });
 async function save(key: "notify.unpaid_alerts" | "notify.unpaid_reminders", value: unknown, by: string): Promise<boolean> {
   const def = SETTINGS[key];
   const { error } = await createAdminClient().from("settings").upsert({ key, value, type: def.type, group: def.group, description: def.description, updated_by: by, updated_at: new Date().toISOString() });
+  settingsChanged();
   if (error) console.error("[unpaid-alerts] save:", error.message);
   return !error;
 }

@@ -154,7 +154,8 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
   }));
 }
 
-const SELECT = "id, number, status, designer_id, rating, is_shortlisted, logo_story, check_id, file_sha256, is_hidden, held_positions, held_reason, designer:profiles!designer_id(name, username), images:entry_images!entry_id(id, position, preview_path, label)";
+// The story is only shown on an open design (owner, 2026-10-27: the grid downloaded every design's story).
+const SELECT = "id, number, status, designer_id, rating, is_shortlisted, check_id, file_sha256, is_hidden, held_positions, held_reason, designer:profiles!designer_id(name, username), images:entry_images!entry_id(id, position, preview_path, label)";
 
 /** The designs this viewer may see, best rated first with the winner on top, or in the chosen order (owner, 2026-10-11). */
 export async function listEntries(contestId: string, contest: ContestForEntries, viewer: CurrentUser | null, sort: EntrySort = "top"): Promise<EntryCard[]> {
@@ -170,7 +171,7 @@ export async function listEntries(contestId: string, contest: ContestForEntries,
 /** One design with every mockup, its story and its comments; null when this viewer may not see it. */
 export async function getEntryDetail(contestId: string, number: number, contest: ContestForEntries, viewer: CurrentUser | null): Promise<EntryDetail | null> {
   if (!isSupabaseConfigured() || !Number.isInteger(number) || number < 1) return null;
-  const { data, error } = await createAdminClient().from("entries").select(SELECT).eq("contest_id", contestId).eq("number", number).maybeSingle();
+  const { data, error } = await createAdminClient().from("entries").select(`${SELECT}, logo_story`).eq("contest_id", contestId).eq("number", number).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   const row = data as Row;
@@ -240,7 +241,10 @@ export async function leadingDesigns(contests: { id: string; isBlind: boolean; i
     .from("entries")
     .select("contest_id, status, rating, number, is_hidden, images:entry_images!entry_id(position, preview_path)")
     .in("contest_id", ids)
-    .in("status", SHOWN_STATUSES);
+    .in("status", SHOWN_STATUSES)
+    // Each design's first picture only: the cover is one picture (owner, 2026-10-27: every picture came along).
+    .order("position", { referencedTable: "images" })
+    .limit(1, { referencedTable: "images" });
   // A Pro designer's hidden design (owner, 2026-10-14) is never a public card's picture while the contest runs.
   const statusOf = new Map(contests.map((c) => [c.id, c.status]));
   const coverable = (r: { contest_id: unknown; is_hidden: unknown }) => owner || !r.is_hidden || !HIDING_STATUSES.includes(statusOf.get(r.contest_id as string) ?? "open");

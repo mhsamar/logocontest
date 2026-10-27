@@ -11,6 +11,7 @@ import { facebookConfigured } from "./facebook";
 import { postCard } from "./job";
 import { cleanHashtags, cleanText, DEFAULT_CAPTION, DEFAULT_HASHTAGS, isCardStyle, type CardStyle } from "./rules";
 import { cardById, cardsReady, contestForCard, drawCard, makeCaption, updateCard } from "./store";
+import { settingsChanged } from "@/lib/settings";
 
 /**
  * Admin › Contest cards (owner, 2026-10-19). Same admin roles as Admin › Pinterest (Auto share · manage). Every action is
@@ -119,6 +120,7 @@ export async function saveCardLine(id: string, line: string): Promise<Result> {
 async function save(key: keyof typeof SETTINGS, value: unknown, by: string) {
   const def = SETTINGS[key];
   const { error } = await createAdminClient().from("settings").upsert({ key, value, type: def.type, group: def.group, description: def.description, updated_by: by });
+  settingsChanged();
   if (error) throw new Error(error.message);
 }
 
