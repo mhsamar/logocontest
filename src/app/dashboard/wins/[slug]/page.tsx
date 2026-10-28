@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { linkOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
-import { prizeText, winCardBySlug, winCardImage, winsThisMonth } from "@/lib/rewards/win-cards";
+import { prizeText, winCardBySlug, winCardImage, winCardThumb, winsThisMonth } from "@/lib/rewards/win-cards";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -42,11 +42,11 @@ export default async function WinCardPage({ params }: PageProps<"/dashboard/wins
             {/* The two card sizes */}
             <div className="flex min-w-0 items-end gap-[18px]">
               <figure className="m-0 flex min-w-0 flex-1 flex-col gap-2">
-                <img src={square} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1080} className="aspect-square w-full rounded-[20px] bg-[#8B0000] object-cover" />
+                <img src={winCardThumb(card.slug, "square")} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1080} className="aspect-square w-full rounded-[20px] bg-[#8B0000] object-cover" />
                 <figcaption className="text-[13.5px] font-bold text-[#5F626B]">{t("winCard.page.squareSize")}</figcaption>
               </figure>
               <figure className="m-0 flex min-w-0 flex-[0_0_27%] flex-col gap-2">
-                <img src={story} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1920} className="aspect-[9/16] w-full rounded-[20px] bg-[#8B0000] object-cover" />
+                <img src={winCardThumb(card.slug, "story")} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1920} className="aspect-[9/16] w-full rounded-[20px] bg-[#8B0000] object-cover" />
                 <figcaption className="text-[13.5px] font-bold text-[#5F626B]">{t("winCard.page.storySize")}</figcaption>
               </figure>
             </div>

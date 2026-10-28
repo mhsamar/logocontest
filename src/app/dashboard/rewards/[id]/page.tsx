@@ -63,6 +63,7 @@ export default async function RewardPage({ params }: PageProps<"/dashboard/rewar
             rewardId={reward.id}
             kind={reward.kind}
             images={reward.images}
+            thumb={reward.thumb}
             cardAlt={cardAlt}
             title={t("monthlyReward.page.title", { name: first })}
             title2={t(phone ? "monthlyReward.page.wonSmartphone" : "monthlyReward.page.wonGiftBox")}
@@ -143,7 +144,7 @@ export default async function RewardPage({ params }: PageProps<"/dashboard/rewar
         </section>
         {/* The photo card stays here to download or share */}
         <section className="flex items-center gap-3.5 rounded-[24px] border border-[#E9EAEE] bg-white p-[14px]">
-          <img src={reward.images.square} alt={cardAlt} width={1080} height={1080} className={cx("size-[88px] flex-none rounded-[14px] object-cover", phone ? "bg-[#8B0000]" : "bg-[#FFDF9C]")} />
+          <img src={reward.thumb} alt={cardAlt} width={1080} height={1080} className={cx("size-[88px] flex-none rounded-[14px] object-cover", phone ? "bg-[#8B0000]" : "bg-[#FFDF9C]")} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <span className="text-[14px] font-bold text-[#5F626B]">{t("monthlyReward.done.yourCard")}</span>
             <CardShare compact images={reward.images} pageUrl={share.pageUrl} fileName={share.fileName} shareText={share.shareText} />

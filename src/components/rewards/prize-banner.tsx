@@ -24,7 +24,7 @@ export async function PrizeBanner({ rewards }: { rewards: MyReward[] }) {
               phone ? "bg-[linear-gradient(150deg,#A30F0F,#8B0000_52%,#4A0709)] text-white" : "bg-[linear-gradient(150deg,#FFF3D6,#FFDF9C)] text-[#111216]",
             )}
           >
-            <img src={r.images.square} alt="" width={1080} height={1080} className="size-[76px] flex-none rounded-[14px] object-cover shadow-[0_6px_16px_rgba(0,0,0,.22)] sm:size-[92px]" />
+            <img src={r.thumb} alt="" width={1080} height={1080} className="size-[76px] flex-none rounded-[14px] object-cover shadow-[0_6px_16px_rgba(0,0,0,.22)] sm:size-[92px]" />
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <h2 className="m-0 text-[18px] font-semibold leading-tight tracking-[-0.02em] sm:text-[21px]">

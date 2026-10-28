@@ -12,6 +12,8 @@ type Step1 = {
   rewardId: string;
   kind: "smartphone" | "gift_box";
   images: { square: string; story: string };
+  /** The small copy shown here; the full pictures are for sharing. */
+  thumb: string;
   cardAlt: string;
   title: string;
   title2: string;
@@ -77,7 +79,7 @@ export function RewardClaim(p: Step1) {
       <div ref={top} className="scroll-mt-24">
         <section className={card}>
           <StepLabel n={1}>{t("monthlyReward.page.step1")}</StepLabel>
-          <img src={p.images.square} alt={p.cardAlt} width={1080} height={1080} className={cx("aspect-square w-full rounded-[20px] object-cover", p.kind === "smartphone" ? "bg-[#8B0000]" : "bg-[#FFDF9C]")} />
+          <img src={p.thumb} alt={p.cardAlt} width={1080} height={1080} className={cx("aspect-square w-full rounded-[20px] object-cover", p.kind === "smartphone" ? "bg-[#8B0000]" : "bg-[#FFDF9C]")} />
           <h1 className="m-0 text-[26px] font-semibold leading-[1.1] tracking-[-0.035em]">
             {p.title}
             <br />

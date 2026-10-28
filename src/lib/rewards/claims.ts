@@ -7,7 +7,7 @@ import { notify } from "@/lib/notifications";
 import { monthLabel } from "@/lib/notifications/render";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { monthlyCardImage, rewardLink, rewardNumber, type RewardKind } from "./month-close";
+import { monthlyCardImage, monthlyCardThumb, rewardLink, rewardNumber, type RewardKind } from "./month-close";
 import { offersOn } from "./program";
 
 /**
@@ -27,6 +27,8 @@ export type MyReward = {
   status: ClaimStatus;
   stats: Record<string, number>;
   images: { square: string; story: string };
+  /** The small copy the pages show. */
+  thumb: string;
   claim: { name: string; mobile: string; address: string; claimedAt: Date } | null;
 };
 
@@ -42,6 +44,7 @@ function toMine(r: Record<string, unknown>): MyReward {
     status: r.status as ClaimStatus,
     stats: (r.stats ?? {}) as Record<string, number>,
     images: { square: monthlyCardImage(id, "square", r.card_square_path as string | null), story: monthlyCardImage(id, "story", r.card_story_path as string | null) },
+    thumb: monthlyCardThumb(id, "square"),
     claim: r.claimed_at
       ? { name: r.claim_name as string, mobile: r.claim_mobile as string, address: r.claim_address as string, claimedAt: new Date(r.claimed_at as string) }
       : null,

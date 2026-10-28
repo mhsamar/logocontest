@@ -16,6 +16,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CARD_SIZES, monthlyCardHtml, type CardSize } from "./card-html";
 import { monthRace } from "./race";
+import { cardJpeg, cardThumb } from "./card-picture";
 import { REWARD_CARDS_BUCKET, cardPictureUrl } from "./win-cards";
 
 /**
@@ -35,6 +36,8 @@ export type CloseResult = { month: string; isTest: boolean; status: CloseStatus 
 
 /** Where a monthly card picture can be loaded: the stored file, or the route that draws it the first time. */
 export const monthlyCardImage = (id: string, size: CardSize, path: string | null) => (path ? cardPictureUrl(path) : `/api/cards/monthly/${id}/${size}`);
+/** The small copy pages show (the full picture stays for sharing and downloads). */
+export const monthlyCardThumb = (id: string, size: CardSize) => cardThumb(`/api/cards/monthly/${id}/${size}`, size);
 
 /**
  * The site's address for links when there is no request (the scheduled jobs): logocontest.bd, or the backup address
@@ -230,7 +233,7 @@ export async function monthClose(month: string, isTest: boolean): Promise<{ stat
   };
 }
 
-/** Draws one monthly card picture in the winner's language and keeps it; returns the PNG. */
+/** Draws one monthly card picture in the winner's language and keeps it; returns the JPEG. */
 export async function renderMonthlyCard(reward: MonthlyReward, size: CardSize, origin: string): Promise<Uint8Array> {
   const lang = reward.winner.locale;
   const t = await translatorFor(lang);
@@ -246,12 +249,12 @@ export async function renderMonthlyCard(reward: MonthlyReward, size: CardSize, o
     footer: t(`monthlyReward.card.${reward.kind}.footer`),
     photoUrl: reward.winner.avatarUrl,
   });
-  const png = await renderPng(html, CARD_SIZES[size]);
-  const path = `monthly/${reward.id}-${size}.png`;
-  await getFileStorage().upload(REWARD_CARDS_BUCKET, path, png, "image/png");
+  const jpg = await cardJpeg(await renderPng(html, CARD_SIZES[size]));
+  const path = `monthly/${reward.id}-${size}.jpg`;
+  await getFileStorage().upload(REWARD_CARDS_BUCKET, path, jpg, "image/jpeg");
   await createAdminClient()
     .from("monthly_rewards")
     .update(size === "square" ? { card_square_path: path } : { card_story_path: path })
     .eq("id", reward.id);
-  return png;
+  return jpg;
 }

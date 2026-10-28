@@ -39,7 +39,9 @@ export function CardShare({
     const res = await fetch(images[size]);
     if (!res.ok) throw new Error("card");
     const blob = await res.blob();
-    return new File([blob], `${fileName}-${size}.png`, { type: "image/png" });
+    // Cards are kept as JPEG since 2026-10-27; older ones are PNG.
+    const type = blob.type === "image/png" ? "image/png" : "image/jpeg";
+    return new File([blob], `${fileName}-${size}.${type === "image/png" ? "png" : "jpg"}`, { type });
   };
 
   const save = (file: File) => {

@@ -12,6 +12,7 @@ import { getSetting } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CARD_SIZES, escapeHtml, winCardHtml, type CardSize } from "./card-html";
+import { cardJpeg, cardThumb } from "./card-picture";
 import { COUNTED_WIN_STATUSES } from "./race-rules";
 import { monthKey, monthRange } from "./rules";
 
@@ -31,6 +32,8 @@ export function cardPictureUrl(path: string): string {
 
 /** Where a card picture can be loaded: the stored file, or the route that draws it the first time. */
 export const winCardImage = (slug: string, size: CardSize, path: string | null) => (path ? cardPictureUrl(path) : `/api/cards/win/${slug}/${size}`);
+/** The small copy pages show (the full picture stays for sharing and downloads). */
+export const winCardThumb = (slug: string, size: CardSize) => cardThumb(`/api/cards/win/${slug}/${size}`, size);
 
 export type WinCard = {
   id: string;
@@ -148,7 +151,7 @@ export async function createWinCard(contestId: string, entryId: string, origin: 
   }
 }
 
-/** Draws one card picture and keeps it; returns the PNG. */
+/** Draws one card picture and keeps it; returns the JPEG. */
 export async function renderWinCard(card: WinCard, size: CardSize, origin: string): Promise<Uint8Array> {
   const t = await translatorFor(card.designer.locale);
   const db = createAdminClient();
@@ -170,11 +173,11 @@ export async function renderWinCard(card: WinCard, size: CardSize, origin: strin
     photoUrl: card.designer.avatarUrl,
     logo: { url: logoUrl, hidden: card.hiddenLogo, hiddenLabel: t("winCard.card.hidden") },
   });
-  const png = await renderPng(html, CARD_SIZES[size]);
-  const path = `win/${card.id}-${size}.png`;
-  await getFileStorage().upload(REWARD_CARDS_BUCKET, path, png, "image/png");
+  const jpg = await cardJpeg(await renderPng(html, CARD_SIZES[size]));
+  const path = `win/${card.id}-${size}.jpg`;
+  await getFileStorage().upload(REWARD_CARDS_BUCKET, path, jpg, "image/jpeg");
   await db.from("win_cards").update(size === "square" ? { square_path: path } : { story_path: path }).eq("id", card.id);
-  return png;
+  return jpg;
 }
 
 /** The prize as text, for the card page. */

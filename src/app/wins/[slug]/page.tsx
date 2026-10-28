@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { PageShell } from "@/components/ui/panel";
 import { requestOrigin } from "@/lib/site-origin";
 import { getI18n } from "@/lib/i18n/server";
-import { winCardBySlug, winCardImage } from "@/lib/rewards/win-cards";
+import { winCardBySlug, winCardImage, winCardThumb } from "@/lib/rewards/win-cards";
 
 /** The card picture as an absolute link, for Facebook and other previews. */
 async function absoluteSquare(slug: string, path: string | null) {
@@ -34,12 +34,11 @@ export default async function WinPage({ params }: PageProps<"/wins/[slug]">) {
   const { slug } = await params;
   const [{ t }, card] = await Promise.all([getI18n(), winCardBySlug(slug)]);
   if (!card) notFound();
-  const square = winCardImage(card.slug, "square", card.squarePath);
 
   return (
     <PageShell className="pt-3.5">
       <section className="mx-auto grid w-full max-w-[1100px] items-center gap-8 rounded-[28px] border border-[#E9EAEE] bg-white p-[18px] sm:p-8 min-[900px]:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
-        <img src={square} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1080} className="aspect-square w-full rounded-[22px] bg-[#8B0000] object-cover" />
+        <img src={winCardThumb(card.slug, "square")} alt={t("winCard.page.alt", { name: card.designer.name })} width={1080} height={1080} className="aspect-square w-full rounded-[22px] bg-[#8B0000] object-cover" />
         <div className="flex min-w-0 flex-col items-start gap-4">
           <span className="rounded-full bg-[#FFE27A] px-3.5 py-1.5 text-[14px] font-bold uppercase tracking-[0.06em] text-[#111216]">{t("winCard.card.badge")}</span>
           <h1 className="m-0 text-[clamp(28px,3.2vw,44px)] font-semibold leading-[1.06] tracking-[-0.04em]">

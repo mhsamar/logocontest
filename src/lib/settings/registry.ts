@@ -284,6 +284,24 @@ export const SETTINGS = {
     group: "checker", type: "int", schema: int(0, 1_000_000), default: 250,
     description: "AI model: price in US cents per 1 million output tokens.",
   },
+
+  // ---- Admin › Costs (owner, 2026-10-27): prices of the paid services the site counts -----------------------------
+  "costs.safesearch_cents_per_1000": {
+    group: "costs", type: "int", schema: int(0, 1_000_000), default: 150,
+    description: "Nude photo check (Google Cloud Vision SafeSearch, one per design picture): price in US cents per 1,000 pictures.",
+  },
+  "costs.safesearch_free_per_month": {
+    group: "costs", type: "int", schema: int(0, 10_000_000), default: 1000,
+    description: "Pictures Google checks free each month before SafeSearch is charged.",
+  },
+  "costs.email_cents_per_1000": {
+    group: "costs", type: "int", schema: int(0, 1_000_000), default: 0,
+    description: "Emails: price in US cents per 1,000 emails over the plan's monthly emails. 0 on Resend's free plan, which stops at its limit instead of charging.",
+  },
+  "costs.email_free_per_month": {
+    group: "costs", type: "int", schema: int(0, 10_000_000), default: 3000,
+    description: "Emails the email plan includes each month (Resend's free plan: 3,000).",
+  },
   "limits.logo_checks_per_contest": {
     group: "limits", type: "int", schema: int(1), default: 20,
     description: "AI logo checks per contest when the checker is free (prize at or over the free limit). Failed checks do not count.",

@@ -59,6 +59,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       // Money-back guarantee (owner, 2026-10-21): claims waiting for a decision or for the money to go back.
       { href: "/admin/refunds", icon: "refunds", label: "admin.nav.refunds", perm: "refunds.view", badge: "refunds" },
       { href: "/admin/withdrawals", icon: "withdrawals", label: "admin.nav.withdrawals", perm: "withdrawals.view", badge: "withdrawals" },
+      // What the AI, the nude-photo check and emails cost each month (owner, 2026-10-27).
+      { href: "/admin/costs", icon: "costs", label: "admin.nav.costs", perm: "costs.view" },
     ],
   },
   {

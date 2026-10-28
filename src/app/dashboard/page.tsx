@@ -9,7 +9,7 @@ import { countSaved } from "@/lib/contests/community";
 import { designerById, designerContests } from "@/lib/designers/profile";
 import { openHandovers } from "@/lib/handover/queries";
 import { myUnclaimedRewards } from "@/lib/rewards/claims";
-import { designerWinCards, winCardImage } from "@/lib/rewards/win-cards";
+import { designerWinCards, winCardThumb } from "@/lib/rewards/win-cards";
 import { getWallet } from "@/lib/wallet/queries";
 import { printedOrigin } from "@/lib/site-hosts";
 import { linkOrigin, requestOrigin } from "@/lib/site-origin";
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
       languages: langs.error || !langs.data ? null : ((langs.data.languages as string[] | null) ?? []),
       emailVerified: Boolean(user.emailVerifiedAt),
     });
-    const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardImage(c.slug, "square", c.squarePath) }));
+    const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardThumb(c.slug, "square") }));
     return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} wallet={wallet} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} />;
   }
   if (can(user, "admin.access")) redirect("/admin");

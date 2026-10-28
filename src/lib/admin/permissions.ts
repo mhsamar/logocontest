@@ -23,6 +23,8 @@ export const ADMIN_AREAS = {
   /** Money-back claims (owner, 2026-10-21): manage = approve, reject and mark refunded. */
   refunds: { manage: true },
   withdrawals: { manage: true },
+  /** Admin › Costs (owner, 2026-10-27): what the paid services cost each month; view only. */
+  costs: { manage: false },
   agreements: { manage: true },
   monthly: { manage: true },
   /** Designer Pro plan (owner, 2026-10-13): Admin › Pro plan. */
