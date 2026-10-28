@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";

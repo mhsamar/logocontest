@@ -6,7 +6,7 @@ import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRO_FEATURES, isProActive, type ProFeature } from "./rules";
-import { getProSettings } from "./settings";
+import { getProSettings, proSettingsChanged } from "./settings";
 import { avatarUrl } from "@/lib/profile/avatar";
 import { getSubscription, proIdsAmong, trialIdsAmong } from "./status";
 import { cancelPro, freeMonthEnd, grantPro, logFunnel, logProActivity, tellDesigner } from "./subscription";
@@ -135,6 +135,7 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
   if (!changed.length) return { ok: true };
   const { error } = await db().from("pro_settings").update(row).eq("id", 1);
   if (error) return fail("admin.errors.generic");
+  proSettingsChanged();
   for (const k of changed) await logProActivity(admin.id, `set_${k}`, null, old[k], row[k]);
 
   if (changed.includes("price_bdt")) {
@@ -156,6 +157,7 @@ export async function setProForSale(on: boolean): Promise<Result> {
   if (settings.isForSale === on) return { ok: true };
   const { error } = await db().from("pro_settings").update({ is_for_sale: on, updated_at: new Date().toISOString(), updated_by: admin.id }).eq("id", 1);
   if (error) return fail("admin.errors.generic");
+  proSettingsChanged();
   await logProActivity(admin.id, "set_is_for_sale", null, settings.isForSale, on);
   refresh();
   return { ok: true };
@@ -219,6 +221,7 @@ export async function setProAutoRemind(on: boolean): Promise<Result> {
   if (settings.autoRemind === on) return { ok: true };
   const { error } = await db().from("pro_settings").update({ auto_remind: on, updated_at: new Date().toISOString(), updated_by: admin.id }).eq("id", 1);
   if (error) return fail("admin.errors.generic");
+  proSettingsChanged();
   await logProActivity(admin.id, "set_auto_remind", null, settings.autoRemind, on);
   refresh();
   return { ok: true };

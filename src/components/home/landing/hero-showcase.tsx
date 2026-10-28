@@ -12,8 +12,8 @@ import type { Translate } from "@/lib/i18n/translate";
 const cq = (n: number) => `${n}cqw`;
 const shadow = (y: number, blur: number, a: number) => `0 ${cq(y)} ${cq(blur)} rgba(17,18,22,${a})`;
 
-/** Pictures an admin uploaded are already sized by the server and come from storage, so they skip the optimizer. */
-const fromStorage = (src: string) => /^https?:\/\//.test(src);
+/** Pictures an admin uploaded are already sized by the server (and come through /api/site-img), so they skip the optimizer. */
+const fromStorage = (src: string) => /^https?:\/\//.test(src) || src.startsWith("/api/site-img/");
 
 /** A logo at a width relative to the showcase; slide 1 loads first, the others lazily. */
 function Logo({ image, width, first }: { image: HeroImage; width: number; first: boolean }) {

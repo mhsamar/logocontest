@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { COMPRESS, compressImage } from "@/lib/images/compress";

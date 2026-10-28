@@ -3,7 +3,8 @@
 export const VISITOR_COOKIE = "lc_vid";
 /** Someone counts as "online now" when their page pinged within this time. */
 export const ONLINE_MS = 2 * 60 * 1000;
-export const HEARTBEAT_MS = 30 * 1000;
+/** Owner, 2026-10-28: every beat is a billed server run, so once a minute (was 30 s), inside the 2-minute window. */
+export const HEARTBEAT_MS = 60 * 1000;
 export const PAGE_VIEW_DAYS = 180;
 
 export type Device = "mobile" | "tablet" | "desktop";

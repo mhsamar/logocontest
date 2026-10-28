@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AutoRefresh } from "@/components/admin/auto-refresh";
 import { AdminHead } from "@/components/admin/page-head";
 import { SupportThreadPanel } from "@/components/admin/support-reply";

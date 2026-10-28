@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/client";
 import { showMobile, type PublicMethod } from "@/lib/payments/manual-rules";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { DesignLink } from "@/components/admin/design-viewer";
 import type { AdminEntry } from "@/lib/admin/moderation";
 

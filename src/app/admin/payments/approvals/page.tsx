@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { str } from "@/components/admin/table-bits";
 import { AdmCard, AdmEmpty, CardTitle, IdChip, KpiGrid, KpiTile, Pill, Tabs } from "@/components/admin/ui";

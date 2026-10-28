@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { CONTENT_TAG } from "@/lib/content/texts";
-import { pictureUrl } from "@/lib/content/pictures";
+import { siteImageUrl } from "@/lib/content/pictures";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Locale } from "@/lib/i18n/config";
 import type { Translate } from "@/lib/i18n/translate";
@@ -46,7 +46,7 @@ export const HERO_SLIDE_COLUMNS =
   "id, position, is_active, brand, person_name, role, item, color_main, color_dark, color_light, color_badge, photo_path, photo_w, photo_h, photo_focus, logo_path, logo_w, logo_h, logo_white_path, logo_white_w, logo_white_h, badge_logo, line1_en, line2_en, text_en, line1_bn, line2_bn, text_bn, updated_at";
 
 /** Where a stored picture is served from: the site's own /home-hero files, or the public "site" bucket. */
-export const heroImageUrl = (path: string) => (path.startsWith("/") ? path : (pictureUrl(path) ?? ""));
+export const heroImageUrl = (path: string) => (path.startsWith("/") ? path : (siteImageUrl(path) ?? ""));
 
 const image = (path: string, width: number, height: number): HeroImage => ({ src: heroImageUrl(path), width, height });
 

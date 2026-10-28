@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminHead } from "@/components/admin/page-head";
 import { AutoPin, BoardPicker, PinButtons } from "@/components/admin/pinterest-bits";

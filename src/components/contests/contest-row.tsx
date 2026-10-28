@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ContestRow as Row } from "@/lib/contests/browse";
 import { timeAgo } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";

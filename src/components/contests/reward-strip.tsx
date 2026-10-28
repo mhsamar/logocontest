@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { GiftBox } from "@/components/rewards/gift-art";
 import { cx } from "@/lib/cx";
 import type { Locale } from "@/lib/i18n/config";

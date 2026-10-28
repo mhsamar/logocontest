@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { UsersBoard } from "@/components/admin/users-board";
 import { requirePermission } from "@/lib/admin/core";
 import { SeenNow } from "@/components/admin/admin-nav";

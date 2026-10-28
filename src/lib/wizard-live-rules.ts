@@ -11,8 +11,11 @@ import { BUSINESS_TYPES, LOGO_STYLES, PACKAGES, UPGRADES, type Brief, type Order
 
 /** A visit shows on the admin page while it pinged within this time ("this minute"). */
 export const LIVE_FRESH_MS = 60_000;
-/** The wizard pings this often while the page is visible; every few seconds while a help chat is open. */
-export const LIVE_BEAT_MS = 10_000;
+/**
+ * The wizard pings this often while the page is visible (owner, 2026-10-28: 20 s, was 10 s; every ping is a billed
+ * server run, and 20 s stays inside OFFER_FRESH_MS); every few seconds while a help chat is open.
+ */
+export const LIVE_BEAT_MS = 20_000;
 export const HELP_POLL_MS = 3_000;
 /** Answer changes are sent at most this often. */
 export const LIVE_THROTTLE_MS = 4_000;

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { TextRow, type TextItem } from "@/components/admin/text-row";
 import { flattenTexts, groupOf, isTextGroup, placeholders, TEXT_GROUPS, type TextGroup, type TextTree } from "@/lib/content/rules";

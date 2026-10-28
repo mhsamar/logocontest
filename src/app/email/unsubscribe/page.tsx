@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { UnsubscribeBox } from "@/components/settings/email-prefs";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { readUnsubscribe } from "@/lib/email/prefs";

@@ -5,7 +5,7 @@ import { PageShell } from "@/components/ui/panel";
 import { SettingsBody } from "@/components/settings/settings-body";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ProSettingsExtras } from "@/components/pro/pro-settings";
 import { ProWorkspace, WsHead } from "@/components/pro/workspace";
 import { isPro } from "@/lib/pro/status";

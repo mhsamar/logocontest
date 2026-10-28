@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { AdminHead } from "@/components/admin/page-head";
 import { AuditTabs, durationText, whenText } from "@/components/admin/session-bits";

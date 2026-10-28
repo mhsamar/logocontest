@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { MyContestDesigns } from "@/components/dashboard/my-designs";
 import { ShareProfile } from "@/components/designers/share-profile";
 import { ProfileProgress } from "@/components/settings/profile-progress";

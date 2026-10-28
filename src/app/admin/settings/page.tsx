@@ -7,7 +7,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { PRICING_KEYS } from "@/lib/admin/pricing-keys";

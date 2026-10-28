@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { redirect } from "next/navigation";
 import { Icon, Slot, SmallAvatar } from "@/components/pro/parts";
 import { ProWorkspace, WsHead } from "@/components/pro/workspace";

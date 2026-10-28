@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { LiveChatButton } from "@/components/help/live-chat-button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { Arrow, IconBadge, PageTitle } from "@/components/ui/section-heading";

@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/ui/panel";
 import { requestOrigin } from "@/lib/site-origin";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/ui/logo";
@@ -212,14 +212,19 @@ export function AdminShell({
         });
     };
     loadRef.current = load;
-    const onTick = () => load();
+    // Only while the panel is on screen and in use (owner, 2026-10-28: a panel left open behind other windows counted
+    // all day); coming back to it counts at once.
+    const onTick = () => document.visibilityState === "visible" && document.hasFocus() && load();
+    const onBack = () => document.visibilityState === "visible" && load();
     load(true);
     const timer = window.setInterval(onTick, COUNTS_EVERY_MS);
-    document.addEventListener("visibilitychange", onTick);
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
     return () => {
       stop = true;
       window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onTick);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
     };
   }, []);
   useEffect(() => {

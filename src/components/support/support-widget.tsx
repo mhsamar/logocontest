@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { myUnreadCount } from "@/lib/support/actions";
@@ -15,10 +15,22 @@ export function SupportWidget({ unread: initialUnread }: { unread: number }) {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(initialUnread);
 
+  // New replies also come by push and the bell, so this only checks every 2 minutes while someone is using the tab
+  // (owner, 2026-10-28: was every 30 s in every visible tab), and once when they come back to it.
   useEffect(() => {
     if (open) return;
-    const id = window.setInterval(async () => document.visibilityState === "visible" && setUnread(await myUnreadCount()), 30_000);
-    return () => window.clearInterval(id);
+    let last = Date.now();
+    const check = async () => {
+      if (document.visibilityState !== "visible" || !document.hasFocus() || Date.now() - last < 60_000) return;
+      last = Date.now();
+      setUnread(await myUnreadCount());
+    };
+    const id = window.setInterval(check, 120_000);
+    window.addEventListener("focus", check);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", check);
+    };
   }, [open]);
 
   if (path === "/support") return null;

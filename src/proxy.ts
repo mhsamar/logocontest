@@ -97,6 +97,10 @@ async function route(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  // Not the picture routes (owner, 2026-10-27): they need no login, and the CDN keeps them.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|apple-icon|icon$|api/img/|api/avatar/|api/email/image/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // Not the picture routes (owner, 2026-10-27): they need no login, and the CDN keeps them. Nor (owner, 2026-10-28:
+  // every run is billed) the background pings, jobs, webhooks and files for search engines: each checks its own login
+  // or secret, and none needs the ?lang= or Pixel headers.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|apple-icon|icon$|api/img/|api/avatar/|api/email/image/|api/site-img/|api/track$|api/wizard/live$|api/live-designers$|api/cron/|api/cards/win/|api/cards/monthly/|api/payments/stripe/|api/popup-event$|api/pro/view$|api/pro/event$|.*opengraph-image|sitemap\\.xml$|robots\\.txt$|llms\\.txt$|ads\\.txt$|.*\\.webmanifest$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };

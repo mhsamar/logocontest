@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AddSlideLink, CopySamplesButton, HeroRowActions, HeroSettingsForm } from "@/components/admin/hero-list";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, CardTitle, Pill } from "@/components/admin/ui";

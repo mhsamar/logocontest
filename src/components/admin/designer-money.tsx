@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard, CardTitle } from "@/components/admin/ui";
 import { moneyNow, paidOutIn } from "@/lib/admin/payouts";

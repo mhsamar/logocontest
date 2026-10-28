@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { unstable_cache } from "next/cache";
+import Link from "@/components/ui/link";
 import { DesignerMoneyCard } from "@/components/admin/designer-money";
 import { BarBlock, BarRow, DayBarChart, SplitBar } from "@/components/admin/charts";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
@@ -49,6 +50,18 @@ function Highlight({ icon, label, title, hint, tone = "brand" }: { icon: AdminIc
   );
 }
 
+/**
+ * The counts are kept for 10 minutes per period (owner, 2026-10-28: every open downloaded thousands of page-view rows
+ * from Supabase), so they can be up to 10 minutes old.
+ */
+const TEN_MIN = 600_000;
+const cachedTraffic = unstable_cache(
+  (since: string, until: string | null, at: number) => traffic({ since: new Date(since), until: until ? new Date(until) : null }, new Date(at)),
+  ["admin-traffic-v1"],
+  { revalidate: TEN_MIN / 1000 },
+);
+const cachedPopup = unstable_cache((range: PopupRange, at: number) => popupStats(range, new Date(at)), ["admin-popup-v1"], { revalidate: TEN_MIN / 1000 });
+
 // A-20 Analytics (BLUEPRINT §13.2 item 3; design/admin/analytics.html, owner 2026-10-10).
 export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
   const me = await requirePermission("dashboard.view");
@@ -58,10 +71,11 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/a
   // The visitor pop-up card has its own 7 / 30 / 90-day range (?pop=), kept apart from the page's period.
   const popRange = readPopupRange(sp.pop);
   const seesMoney = hasPermission(me, "payments.view");
+  const at = Math.floor(now.getTime() / TEN_MIN) * TEN_MIN;
   const [{ t, locale }, s, pop, money] = await Promise.all([
     getI18n(),
-    traffic({ since: effective.since ?? now, until: effective.until }, now),
-    popupStats(popRange, now),
+    cachedTraffic((effective.since ?? new Date(at)).toISOString(), effective.until?.toISOString() ?? null, at),
+    cachedPopup(popRange, at),
     seesMoney ? periodMoney({ since: effective.since ?? now, until: effective.until }) : null,
   ]);
   const popHref = (r: PopupRange) => {

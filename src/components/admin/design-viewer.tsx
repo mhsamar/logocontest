@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { loadAdminDesign, type AdminDesign } from "@/lib/admin/design-view";

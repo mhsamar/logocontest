@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { UPGRADE_ICONS, UPGRADE_TINT } from "@/components/wizard/upgrade-meta";
 import { DELIVERABLES, PACKAGES, UPGRADES } from "@/lib/contests/brief";
 import { prizeWithFee } from "@/lib/contests/pricing";

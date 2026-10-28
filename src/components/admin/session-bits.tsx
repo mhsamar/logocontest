@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { SessionRow } from "@/lib/auth/sessions";
 import { cx } from "@/lib/cx";
 import type { MessageKey } from "@/lib/i18n/translate";

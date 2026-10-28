@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { cx } from "@/lib/cx";
 import type { Translate } from "@/lib/i18n/translate";
 import type { WinningDesign } from "@/lib/rewards/queries";

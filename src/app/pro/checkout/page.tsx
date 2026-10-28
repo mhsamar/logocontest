@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { CheckoutForm } from "@/components/pro/checkout-form";

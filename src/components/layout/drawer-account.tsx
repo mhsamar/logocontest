@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 
 /**
  * The account part of the phone menu (owner, 2026-10-20: "Saved contests, wallet, profile settings missing on mobile"):

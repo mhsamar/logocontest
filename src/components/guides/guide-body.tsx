@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
+import { siteImageFromUrl } from "@/lib/content/pictures";
 import { guideImageOk, parseBody, type Inline } from "@/lib/guides/rules";
 
 /**
@@ -53,7 +54,7 @@ export function GuideBody({ body, lang }: { body: string; lang?: "en" | "bn" }) 
           </p>
         ) : b.kind === "img" ? (
           <figure key={i} className="m-0 py-2">
-            <img src={b.src} alt={b.alt} loading="lazy" className="w-full rounded-[20px] border border-line bg-chip" />
+            <img src={siteImageFromUrl(b.src)} alt={b.alt} loading="lazy" className="w-full rounded-[20px] border border-line bg-chip" />
             {b.alt && <figcaption className="mt-2 text-center text-sm text-muted">{b.alt}</figcaption>}
           </figure>
         ) : b.kind === "ul" ? (

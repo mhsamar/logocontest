@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AutoRemindToggle, GrantPro, ManageMember, MasterSwitch, MemberSearch, PlanSettings, RemindButton, GiveTrial, TrialActions } from "@/components/pro/admin-pro-client";
 import { trialOverview } from "@/lib/pro/trial-admin";
 import "@/components/pro/admin-pro.css";

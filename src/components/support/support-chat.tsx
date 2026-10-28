@@ -25,10 +25,14 @@ export function SupportChat({ initial, initialThread, initialAssistant, classNam
   }, []);
   useEffect(() => {
     const first = window.setTimeout(reload, initial ? 5000 : 0);
-    const id = window.setInterval(() => document.visibilityState === "visible" && reload(), 5000);
+    // Only while the chat is in use (owner, 2026-10-28); coming back to the window checks at once.
+    const id = window.setInterval(() => document.visibilityState === "visible" && document.hasFocus() && reload(), 5000);
+    const onFocus = () => void reload();
+    window.addEventListener("focus", onFocus);
     return () => {
       window.clearTimeout(first);
       window.clearInterval(id);
+      window.removeEventListener("focus", onFocus);
     };
   }, [reload, initial]);
 

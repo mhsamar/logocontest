@@ -1,6 +1,6 @@
 import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { ContestBrief } from "@/components/contests/contest-brief";
 import { ServiceBrief } from "@/components/services/service-brief";
@@ -106,13 +106,6 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const contest = await getContestBySlug(slug, user);
   if (!contest) notFound();
-  // Pro early access (owner, 2026-10-13): a brand-new contest reaches everyone else after the window.
-  if (contest.status === "open" && user?.id !== contest.ownerId && !(await contestVisibleTo(contest.startsAt, user))) return <EarlyAccessGate startsAt={contest.startsAt!} />;
-  // A non-logo contest (owner, 2026-10-13) shows its service and the answers to its questions instead of the logo brief.
-  const svc = isLogo(contest.service) ? null : await getService(contest.service);
-  const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
-  // Its designs keep their real shape (owner, 2026-10-13).
-  const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
 
   const now = new Date();
   const action = primaryAction(contest, user, t);
@@ -131,7 +124,15 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   const entryNumber = tab === "entries" && typeof sp.entry === "string" ? Number(sp.entry) : null;
   // Order of the designs (owner, 2026-10-11): best rated first unless the visitor picks another.
   const sort: EntrySortKey = isEntrySort(sp.sort) ? sp.sort : "top";
-  const [judgingDays, commentCount, saved, comments, commentMax, entries, entry, viewerHasEntry, designers, fileDays, promise] = await Promise.all([
+  // Everything below that doesn't need the designs is read at the same time (owner, 2026-10-28: this page waited for
+  // each read in turn and was the slowest on the site). Nothing is shown before the early-access check.
+  const extraAnswers = tab === "brief" && contest.brief ? Promise.all([getOnboarding("client"), contestExtraAnswers(contest.id)]) : null;
+  const [visible, svc, [judgingDays, commentCount, saved, comments, commentMax, entries, entry, viewerHasEntry, designers, fileDays, promise], { settings: proSet }, invited, origin, testContest] = await Promise.all([
+    // Pro early access (owner, 2026-10-13): a brand-new contest reaches everyone else after the window.
+    contest.status === "open" && user?.id !== contest.ownerId ? contestVisibleTo(contest.startsAt, user) : true,
+    // A non-logo contest (owner, 2026-10-13) shows its service and the answers to its questions instead of the logo brief.
+    isLogo(contest.service) ? null : getService(contest.service),
+    Promise.all([
     getSetting("timers.judging_window_days"),
     contest.canSeeBrief ? countComments(contest.id) : 0,
     canSave ? savedContestIds(user?.id, [contest.id]) : new Set<string>(),
@@ -144,24 +145,32 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     user?.role === "designer" ? hasEntryIn(contest.id, user.id) : false,
     contestDesigners(contest.id, 5),
     getSetting("timers.designer_file_upload_days"),
-    // Money-back guarantee (owner, 2026-10-21): designers see the promise before they send a design.
-    contest.status === "open" || contest.status === "judging" ? contestPromise(contest.id) : null,
+      // Money-back guarantee (owner, 2026-10-21): designers see the promise before they send a design.
+      contest.status === "open" || contest.status === "judging" ? contestPromise(contest.id) : null,
+    ]),
+    getProSettings(),
+    invitedPairs([contest.id]),
+    linkOrigin(),
+    // A test client's contest is never shared (owner, 2026-10-22).
+    isTestAccount(contest.ownerId),
   ]);
+  if (!visible) return <EarlyAccessGate startsAt={contest.startsAt!} />;
+  const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
+  // Its designs keep their real shape (owner, 2026-10-13).
+  const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
   // Designer Pro plan (owner, 2026-10-13): Pro badge and gold border, "Invited" on invited designers' designs, Pro
   // designs higher in the default order (winners stay first), and "Message designer" for the contest's client.
-  const [{ settings: proSet }, badges, trials, invited, chattable, viewerIsPro] = await Promise.all([
-    getProSettings(),
+  const [badges, trials, chattable, viewerIsPro, reportCheck] = await Promise.all([
     badgeIdsAmong(entries.map((e) => e.designerId)),
     trialIdsAmong(entries.map((e) => e.designerId)),
-    invitedPairs([contest.id]),
     entry ? chattableEntries(contest.id, user) : Promise.resolve(new Set<string>()),
     // Pro "Hide my design" (owner, 2026-10-14): the designer's own switch on their design.
     entry?.mine && user ? isPro(user.id) : Promise.resolve(false),
+    // The AI check report of this design (owner, 2026-10-16): its designer, the client and the admin team open it here.
+    entry && user && (entry.mine || user.id === contest.ownerId || hasPermission(user, "copyright.view")) ? entryCheckId({ id: entry.id, checkId: entry.checkId }) : null,
   ]);
   const canHideDesigns = proSet.features.hidden_entries && viewerIsPro;
   // Its designer takes the open design back, whole or one picture at a time, while the contest is open (owner, 2026-10-16).
-  // The AI check report of this design (owner, 2026-10-16): its designer, the client and the admin team open it here.
-  const reportCheck = entry && user && (entry.mine || user.id === contest.ownerId || hasPermission(user, "copyright.view")) ? await entryCheckId({ id: entry.id, checkId: entry.checkId }) : null;
   const entryRemovable = entry ? canWithdraw({ status: entry.status, designerId: entry.designerId }, { status: contest.status, endsAt: contest.endsAt }, user?.id) : false;
   const proMark = (e: { designerId: string; designer: unknown }) => ({
     badge: Boolean(e.designer) && badges.has(e.designerId),
@@ -171,11 +180,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   });
   const ordered = sort === "top" && proSet.features.highlighted_entries ? [...entries].sort((a, b) => Number(b.status === "winner") - Number(a.status === "winner") || Number(proMark(b).highlight) - Number(proMark(a).highlight)) : entries;
   const fmt = (n: number) => formatNumber(n, locale);
-  const origin = await linkOrigin();
   const contestUrl = `${origin}/contest/${contest.slug}`;
   // Facebook and Pinterest (owner, 2026-10-18): only what a logged-out visitor sees may be shared.
-  // A test client's contest is never shared (owner, 2026-10-22).
-  const testContest = await isTestAccount(contest.ownerId);
   const indexable = contestIndexable({ status: contest.rawStatus, isPrivate: contest.isPrivate, isNda: contest.isNda, clientIsTest: testContest });
   const entryShareable =
     !testContest &&
@@ -480,7 +486,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
             </div>
           ) : contest.brief ? (
-            <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />
+            <ContestBrief brief={contest.brief} extra={extraAnswers ? answerLines(...(await extraAnswers), locale) : []} />
           ) : (
             <div className="mx-auto max-w-xl">
               <EmptyState

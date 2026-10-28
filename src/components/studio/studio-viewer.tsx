@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- signed, short-lived storage links */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { timeAgo } from "@/lib/dates";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard } from "@/components/admin/ui";
 import { biggestDrops, PAID, RANGES, unpaidHref, type FunnelStep, type UnpaidQuery } from "@/lib/admin/unpaid-rules";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { LegalEditor } from "@/components/admin/legal-editor";
 import { AdminHead } from "@/components/admin/page-head";
 import { noticeId } from "@/lib/content/notice-rules";

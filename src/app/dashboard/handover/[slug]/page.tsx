@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
 import { DeliverFiles } from "@/components/handover/deliver-files";
 import { HandoverChat } from "@/components/handover/handover-chat";

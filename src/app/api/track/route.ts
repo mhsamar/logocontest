@@ -51,9 +51,10 @@ export async function POST(req: NextRequest) {
       const { data } = await db.from("presence").update({ path, updated_at: now }).eq("visitor_id", visitorId).select("visitor_id");
       if (data?.length) return done;
     }
-    // Page view: who it is (checked on the server), then one row plus the online row.
-    const { data: auth } = await (await createClient()).auth.getUser();
-    const userId = auth.user?.id ?? null;
+    // Page view: who it is (checked on the server with Supabase's public key, no network call), then one row plus the
+    // online row.
+    const { data: auth } = await (await createClient()).auth.getClaims();
+    const userId = (auth?.claims?.sub as string | undefined) ?? null;
     await Promise.all([
       body.beat === true ? null : db.from("page_views").insert({ visitor_id: visitorId, user_id: userId, path, referrer: referrerHost(body.referrer, req.nextUrl.hostname), device, country }),
       db.from("presence").upsert({ visitor_id: visitorId, user_id: userId, path, device, country, updated_at: now }, { onConflict: "visitor_id", ignoreDuplicates: false }),

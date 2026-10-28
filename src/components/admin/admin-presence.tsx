@@ -47,7 +47,9 @@ export function AdminPresence({ idleMinutes }: { idleMinutes: number }) {
     };
     const bye = () => navigator.sendBeacon?.("/api/session/heartbeat", new Blob([JSON.stringify({ bye: true })], { type: "application/json" }));
     void beat();
-    const beatTimer = window.setInterval(() => void beat(), BEAT_MS);
+    // Only while the tab is on screen (owner, 2026-10-28: tabs left in the background beat all day); coming back to the
+    // front checks in at once below.
+    const beatTimer = window.setInterval(() => document.visibilityState === "visible" && void beat(), BEAT_MS);
     const tickTimer = window.setInterval(tick, 5_000);
     // A tab coming back to the front checks in at once.
     const onVisible = () => document.visibilityState === "visible" && void beat();

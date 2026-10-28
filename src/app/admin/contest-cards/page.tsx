@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { CardDetail, CardSettings, type CardView } from "@/components/admin/contest-cards-bits";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, CardTitle, IdChip, KpiGrid, KpiTile, Pill } from "@/components/admin/ui";

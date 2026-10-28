@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { PageTitle } from "@/components/ui/section-heading";

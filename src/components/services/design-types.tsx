@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";

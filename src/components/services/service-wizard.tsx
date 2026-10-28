@@ -2,7 +2,7 @@
 
 import { ShareOnFacebook } from "@/components/wizard/share-facebook";
 import { setContestShare } from "@/lib/cards/actions";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ContestRow } from "@/lib/contests/browse";
 import { Avatar } from "@/components/ui/avatar";
 import { getI18n } from "@/lib/i18n/server";

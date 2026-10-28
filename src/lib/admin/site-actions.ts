@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { homeLogosChanged } from "@/lib/home/logos";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { findContactDetails, type ContactKind } from "@/lib/moderation/contact-filter";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
@@ -117,6 +118,7 @@ export async function featureLogo(entryId: string): Promise<Result> {
   const { data: last } = await db.from("featured_logos").select("position").order("position", { ascending: false }).limit(1).maybeSingle();
   const { error } = await db.from("featured_logos").insert({ entry_id: entryId, position: ((last?.position as number | undefined) ?? -1) + 1, created_by: admin.id });
   if (error) return fail("admin.errors.generic");
+  homeLogosChanged();
   await audit(admin.id, "feature_logo", "entry", entryId);
   refresh();
   return { ok: true };
@@ -127,6 +129,7 @@ export async function unfeatureLogo(entryId: string): Promise<Result> {
   if (!admin || !UUID.test(entryId)) return fail("auth.errors.generic");
   const { error } = await createAdminClient().from("featured_logos").delete().eq("entry_id", entryId);
   if (error) return fail("admin.errors.generic");
+  homeLogosChanged();
   await audit(admin.id, "unfeature_logo", "entry", entryId);
   refresh();
   return { ok: true };
@@ -143,6 +146,7 @@ export async function moveFeaturedLogo(entryId: string, direction: "up" | "down"
   if (i < 0 || j < 0 || j >= list.length) return { ok: true };
   [list[i], list[j]] = [list[j], list[i]];
   await Promise.all(list.map((id, position) => db.from("featured_logos").update({ position }).eq("entry_id", id)));
+  homeLogosChanged();
   refresh();
   return { ok: true };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { SendCheckModal, type SendCheckSetup } from "@/components/logo-check/send-check";
 import { Alert } from "@/components/ui/alert";

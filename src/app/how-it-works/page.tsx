@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AccountArt, BriefArt, DesignsArt, FilesArt, UploadArt, WinArt } from "@/components/how/how-art";
 import { HowVideoPlayer } from "@/components/how/how-video";
 import { getContact } from "@/lib/content/contact";
 import { visibleList } from "@/lib/content/lists";
-import { pictureUrl } from "@/lib/content/pictures";
+import { siteImageUrl } from "@/lib/content/pictures";
 import { cx } from "@/lib/cx";
 import { faqParams } from "@/lib/home/faq-params";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
@@ -93,7 +93,7 @@ export default async function HowItWorksPage({ searchParams }: PageProps<"/how-i
   const cta = designers ? { href: "/designers/signup", label: t("howPage.becomeDesigner") } : { href: "/start", label: t("howPage.band.startContest") };
   const whyKeys = designers ? ["d1", "d2", "d3", "d4"] : ["c1", "c2", "c3", "c4"];
   const video = designers ? s["how.video_designer"] : s["how.video_client"];
-  const cover = pictureUrl(designers ? s["how.cover_designer"] : s["how.cover_client"]);
+  const cover = siteImageUrl(designers ? s["how.cover_designer"] : s["how.cover_client"]);
 
   return (
     <div className="flex w-full flex-1 flex-col gap-5 px-3.5 pb-3.5 max-[720px]:gap-3 max-[720px]:px-2 max-[720px]:pb-2">

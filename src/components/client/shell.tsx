@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { Suspense, type ReactNode } from "react";
 import { LogoutForm } from "@/components/push/logout-form";
 import type { CurrentUser } from "@/lib/auth/policies";

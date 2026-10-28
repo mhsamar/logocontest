@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { GiftBox } from "@/components/rewards/gift-art";
 import type { Translate } from "@/lib/i18n/translate";
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { redirect } from "next/navigation";
 import { CwIcon } from "@/components/client/icons";
 import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, StatusPill } from "@/components/client/parts";

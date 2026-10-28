@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { SettingsGroup, type SettingItem } from "@/components/admin/settings-form";
 import { TiersEditor } from "@/components/admin/tiers-editor";

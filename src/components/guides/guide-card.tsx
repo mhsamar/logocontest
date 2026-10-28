@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-import { pictureUrl } from "@/lib/content/pictures";
+import Link from "@/components/ui/link";
+import { siteImageUrl } from "@/lib/content/pictures";
 import { formatDate } from "@/lib/dates";
 import { guideText } from "@/lib/guides/rules";
 import type { GuideCard as Card } from "@/lib/guides/queries";
@@ -9,7 +9,7 @@ import type { Translate } from "@/lib/i18n/translate";
 /** One guide in a list: cover (or the brand colour with a book), group, title, summary and date. */
 export function GuideCard({ g, locale, t }: { g: Card; locale: "en" | "bn"; t: Translate }) {
   const x = guideText(g, locale);
-  const cover = pictureUrl(g.cover_path);
+  const cover = siteImageUrl(g.cover_path);
   return (
     <li className="lc-card lc-sh group flex flex-col overflow-hidden">
       <Link href={`/guides/${g.slug}`} className="flex h-full flex-col">

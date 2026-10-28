@@ -36,9 +36,30 @@ export const PICTURE_TYPES: Record<PictureKind, Record<string, string>> = {
 /** The stored path of a freshly uploaded picture must look exactly like this. */
 export const picturePathPattern = (kind: PictureKind) => new RegExp(`^${kind}/[0-9a-f-]{36}\\.(${[...new Set(Object.values(PICTURE_TYPES[kind]))].join("|")})$`);
 
-/** Public URL of a stored picture, or null when none is set. */
+/** Public URL of a stored picture, or null when none is set. For other sites (share cards, structured data). */
 export function pictureUrl(path: string | null | undefined): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!path || !base) return null;
   return `${base.replace(/\/$/, "")}/storage/v1/object/public/${SITE_BUCKET}/${path}`;
+}
+
+/**
+ * Site pictures the site serves itself (owner, 2026-10-28: the home slides alone cost Supabase about 1 GB a month).
+ * /api/site-img fetches the file once and the CDN keeps it for a year: every uploaded name holds a fresh UUID, so a
+ * name never shows a different picture. SVG logos stay on Supabase, never on the site's own address.
+ */
+export const SITE_IMAGE_PATH =
+  /^(?:(?:logo|icon|hero|share|how_client|how_designer)\/[0-9a-f-]{36}\.(?:png|jpg|webp)|hero-slides\/[0-9a-f-]{36}-\d{1,4}x\d{1,4}\.(?:jpg|png)|guides\/[0-9a-f-]{36}\.(?:png|jpg|webp))$/;
+
+/** Where a page shows a site picture: through /api/site-img, or its public Storage URL for anything else. */
+export function siteImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return SITE_IMAGE_PATH.test(path) ? `/api/site-img/${path}` : pictureUrl(path);
+}
+
+/** A picture written into a guide's text (its public Storage URL), shown through the site instead. */
+export function siteImageFromUrl(url: string): string {
+  const base = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "")}/storage/v1/object/public/${SITE_BUCKET}/`;
+  const path = url.startsWith(base) ? url.slice(base.length) : "";
+  return SITE_IMAGE_PATH.test(path) ? `/api/site-img/${path}` : url;
 }

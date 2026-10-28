@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AddGuideLink } from "@/components/admin/guide-list";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, CardTitle, Pill } from "@/components/admin/ui";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ContestRow, DesignerFacts } from "@/lib/contests/browse";
 import { ENDING_SOON_DAYS } from "@/lib/contests/browse-query";
 import { cx } from "@/lib/cx";

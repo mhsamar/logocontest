@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { Alert } from "@/components/ui/alert";
 import { Checkbox, PasswordField, PhoneField, TextField } from "@/components/ui/field";
 import { useI18n } from "@/lib/i18n/client";

@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidateTag, unstable_cache, updateTag } from "next/cache";
 import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,15 +39,43 @@ export function rowToSettings(r: Record<string, unknown>): ProSettings {
   };
 }
 
+export const PRO_SETTINGS_TAG = "pro-settings";
+
+/**
+ * The settings row, kept across requests for 5 minutes (owner, 2026-10-28: it was read on almost every page) and
+ * cleared by every Admin › Pro plan save. A failed read or a missing row is never kept. The raw row is kept (dates
+ * as text), and turned into settings below.
+ */
+const loadRow = unstable_cache(
+  async () => {
+    const { data, error } = await createAdminClient().from("pro_settings").select("*").eq("id", 1).maybeSingle();
+    if (error || !data) throw new Error(error?.message ?? "pro_settings: no row");
+    return data as Record<string, unknown>;
+  },
+  ["pro-settings-v1"],
+  { tags: [PRO_SETTINGS_TAG], revalidate: 300 },
+);
+
+/** Every write to pro_settings calls this, so the next request reads the new values. */
+export function proSettingsChanged() {
+  try {
+    updateTag(PRO_SETTINGS_TAG);
+  } catch {
+    revalidateTag(PRO_SETTINGS_TAG, "max");
+  }
+}
+
 /**
  * The Pro plan settings (Admin › Pro plan). `ready` is false until migration 0046 has run: then there is no Pro plan
  * at all and Basic designers keep working exactly as before (no new limits).
  */
 export const getProSettings = cache(async (): Promise<{ settings: ProSettings; ready: boolean }> => {
   if (!isSupabaseConfigured()) return { settings: DEFAULT_PRO_SETTINGS, ready: false };
-  const { data, error } = await createAdminClient().from("pro_settings").select("*").eq("id", 1).maybeSingle();
-  if (error || !data) return { settings: DEFAULT_PRO_SETTINGS, ready: false };
-  return { settings: rowToSettings(data as Record<string, unknown>), ready: true };
+  try {
+    return { settings: rowToSettings(await loadRow()), ready: true };
+  } catch {
+    return { settings: DEFAULT_PRO_SETTINGS, ready: false };
+  }
 });
 
 /** Pro features on (the plan exists and this feature's switch is on). */

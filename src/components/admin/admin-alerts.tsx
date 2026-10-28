@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -12,7 +12,8 @@ import { markRead } from "@/lib/notifications/actions";
 import type { ShownNotification } from "@/lib/notifications/render";
 import { AdminIcon } from "./icons";
 
-const EVERY_MS = 15_000;
+/** Owner, 2026-10-28: every 30 s (was 15 s) while the panel is in use; each check is a billed server run. */
+const EVERY_MS = 30_000;
 /** At most this many pop-ups at once (one on a phone, so the page stays usable); the rest are in the bell. */
 const SHOWN = 3;
 const PHONE = "(max-width: 640px)";
@@ -89,6 +90,7 @@ export function AdminAlerts() {
     // A window left open behind others checks once a minute (owner, 2026-10-27: database traffic).
     let lastAt = Date.now();
     const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       if (!document.hasFocus() && Date.now() - lastAt < 60_000) return;
       lastAt = Date.now();
       void load();

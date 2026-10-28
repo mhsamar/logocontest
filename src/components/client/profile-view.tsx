@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ClientProfileData } from "@/lib/client/workspace";
 import { formatDate } from "@/lib/dates";
 import type { Locale } from "@/lib/i18n/config";

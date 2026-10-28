@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- avatars and signed, short-lived storage links */
 import { currentUsernameFor } from "@/lib/profile/usernames";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import "@/components/studio/studio.css";
 import "@/components/designers/profile.css";

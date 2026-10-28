@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ListEditor } from "@/components/admin/list-editor";
 import { AdminHead } from "@/components/admin/page-head";
 import { isListKey, LIST_KEYS, type ListKey } from "@/lib/content/list-defs";

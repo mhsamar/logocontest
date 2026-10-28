@@ -15,7 +15,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { cx } from "@/lib/cx";
 import { brandPictures } from "@/lib/content/brand";
 import { getContact } from "@/lib/content/contact";
-import { liveContests } from "@/lib/contests/browse";
+import { guestLiveContests, liveContests } from "@/lib/contests/browse";
 import { faqParams } from "@/lib/home/faq-params";
 import { showsLanding } from "@/lib/home/landing";
 import { homeLogos } from "@/lib/home/logos";
@@ -49,7 +49,8 @@ export default async function HomePage() {
   const { t, locale, price } = await getI18n();
   const [{ params }, contests, logos, social, prizes, offers, contact, pictures] = await Promise.all([
     faqParams(t, locale, price),
-    earlyCutoff(user ?? null).then((cut) => liveContests(3, cut)),
+    // Visitors share a list kept for a minute; admins see it live (owner, 2026-10-28).
+    earlyCutoff(user ?? null).then((cut) => (user ? liveContests(3, cut) : guestLiveContests(3, cut))),
     homeLogos(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
     getSettings(["home.hero_offer_slide"]),

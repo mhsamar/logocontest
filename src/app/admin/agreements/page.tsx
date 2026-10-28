@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AgreementPhotos } from "@/components/admin/agreement-photos";
 import { AgreementReview, AskPhotoButton } from "@/components/admin/agreement-review";
 import { AgreementSwitch } from "@/components/admin/agreement-switch";

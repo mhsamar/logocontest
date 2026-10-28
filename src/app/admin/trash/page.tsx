@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, AdmEmpty, isNewSince, NewPill, Pill } from "@/components/admin/ui";

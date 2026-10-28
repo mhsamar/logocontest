@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { APPROVE_ALL_REASON } from "@/lib/entries/rules";
 import { DesignLink } from "@/components/admin/design-viewer";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { EntryThumb } from "@/components/admin/entry-thumb";
 import { AdminIcon } from "@/components/admin/icons";

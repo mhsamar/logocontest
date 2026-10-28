@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdmCard, CardTitle } from "@/components/admin/ui";
 import { cx } from "@/lib/cx";
 import type { Translate } from "@/lib/i18n/translate";

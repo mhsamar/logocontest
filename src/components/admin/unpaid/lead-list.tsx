@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard, IdChip, isNewSince, NewPill } from "@/components/admin/ui";
 import type { Lead } from "@/lib/admin/unpaid-board";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { MethodPicker, PromoField, type AppliedPromo } from "@/components/payments/pay-bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/field";

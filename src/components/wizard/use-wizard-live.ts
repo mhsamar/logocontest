@@ -115,13 +115,14 @@ export function useWizardLive(input: { on: boolean; service: string; stage: numb
   }, [answersKey, input.on, post]);
   useEffect(() => () => void (pending.current !== null && window.clearTimeout(pending.current)), []);
 
-  // Still here: every 10 seconds while the page is visible, every 3 while a help chat is open on the screen.
+  // Still here: every 20 seconds while the page is visible, every 3 while a help chat is open on the screen. Timed from
+  // the last thing sent (checked every few seconds, which costs nothing), so the gap never passes OFFER_FRESH_MS.
   const chatting = Boolean(offer && offer.status !== "declined" && !closed);
   useEffect(() => {
     const every = chatting ? HELP_POLL_MS : LIVE_BEAT_MS;
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible" && Date.now() - lastSent.current >= every - 300) void post();
-    }, every);
+    }, Math.min(every, 5_000));
     return () => window.clearInterval(id);
   }, [chatting, post]);
 

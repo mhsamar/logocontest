@@ -1,6 +1,8 @@
 /**
  * Storage backup (BLUEPRINT §18.4): downloads every file in every Supabase storage bucket
- * into backups/files-<date>/<bucket>/<path>. Files already downloaded are skipped.
+ * into backups/files/<bucket>/<path>. Files already downloaded are skipped, so after the first run only new files
+ * are fetched (owner, 2026-10-28: a dated folder downloaded everything again each time, all of it Supabase egress).
+ * Uploaded names never get new contents, except design previews rebuilt by scripts/rebuild-previews.ts.
  *
  *   npm run backup:files
  *
@@ -19,8 +21,7 @@ if (!url || !key) {
   process.exit(1);
 }
 const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-const stamp = new Date().toISOString().slice(0, 10);
-const root = path.join("backups", `files-${stamp}`);
+const root = path.join("backups", "files");
 
 /** Every file path under a folder (folders come back without an id). */
 async function listAll(bucket, prefix = "") {

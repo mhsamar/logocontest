@@ -2,9 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { HEARTBEAT_MS } from "@/lib/analytics/rules";
+import { HEARTBEAT_MS, ONLINE_MS } from "@/lib/analytics/rules";
 
 let last = { path: "", at: 0 };
+let lastBeat = 0;
 
 const send = (body: object) => {
   try {
@@ -27,7 +28,13 @@ export function VisitTracker() {
   }, [path]);
 
   useEffect(() => {
-    const beat = () => document.visibilityState === "visible" && send({ path: location.pathname, beat: true });
+    // A tab on screen but not in use (another window in front) beats only often enough to stay "online".
+    const beat = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!document.hasFocus() && Date.now() - lastBeat < ONLINE_MS - 10_000) return;
+      lastBeat = Date.now();
+      send({ path: location.pathname, beat: true });
+    };
     const id = window.setInterval(beat, HEARTBEAT_MS);
     document.addEventListener("visibilitychange", beat);
     return () => {

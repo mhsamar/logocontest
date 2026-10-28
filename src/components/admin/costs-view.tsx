@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { AdmCard, CardTitle, KpiGrid, KpiTile, Pill, TableCard } from "@/components/admin/ui";
 import { designCheckUsd, supportReplyUsd, type CostLine, type CostLineKey } from "@/lib/admin/cost-rules";

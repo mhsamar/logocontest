@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 
 /** "← Back" as a white pill with a tinted arrow, above an inner page's first panel (site design, owner 2026-10-10). */
 export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {

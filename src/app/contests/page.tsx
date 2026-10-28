@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { BrowseFilters } from "@/components/contests/browse-filters";
 import { ContestCard, FeaturedContestCard } from "@/components/contests/browse-cards";
 import { OfferCards, RacePanel } from "@/components/contests/reward-strip";

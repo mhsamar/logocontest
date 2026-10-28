@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ReactNode } from "react";
 
 /** Tells the funnel (Admin › Pro plan) about a Pro step. Fire and forget; never blocks the click. */

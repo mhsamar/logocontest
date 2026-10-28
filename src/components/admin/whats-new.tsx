@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { AdminCounts } from "@/lib/admin/badges";
 import type { AdminNavItem } from "@/lib/admin/nav";
 import { useI18n } from "@/lib/i18n/client";

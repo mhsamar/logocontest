@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { CopyValue } from "@/components/admin/copy-value";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdminHead } from "@/components/admin/page-head";

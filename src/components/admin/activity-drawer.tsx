@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { loadRecentActivity, type RecentActivity } from "@/lib/admin/recent-activity";
 import { timeAgo } from "@/lib/dates";

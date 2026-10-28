@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ButtonLink } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";

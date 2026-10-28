@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import { monthLabel } from "@/lib/notifications/render";

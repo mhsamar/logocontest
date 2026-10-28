@@ -1,7 +1,7 @@
 "use client";
 
 import { contestHref } from "@/lib/client/rules";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";

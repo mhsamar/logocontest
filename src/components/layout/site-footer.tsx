@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { Suspense } from "react";
 import { getContact } from "@/lib/content/contact";
 import { getList, visibleList } from "@/lib/content/lists";

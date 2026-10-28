@@ -1,7 +1,7 @@
 "use client";
 
 import { contestHref } from "@/lib/client/rules";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { ContestCheckCount, MyCheck } from "@/lib/logo-check/queries";

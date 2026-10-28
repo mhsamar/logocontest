@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ClientProfileView, profileTab } from "@/components/client/profile-view";
 import "@/components/client/client.css";

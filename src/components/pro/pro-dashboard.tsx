@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { MyContestDesigns } from "@/components/dashboard/my-designs";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { formatDate } from "@/lib/dates";

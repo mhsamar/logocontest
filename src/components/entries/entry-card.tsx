@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { LockedPicture } from "@/components/entries/hidden-bits";
 import { ThumbIcon } from "@/components/entries/vote-buttons";
 import { WinnerBadge, WinnerTrophy } from "@/components/ui/trophy";

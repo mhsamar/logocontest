@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { RemoveInvite } from "@/components/pro/admin-pro-client";
 import "@/components/pro/admin-pro.css";
 import { requirePermission } from "@/lib/admin/core";

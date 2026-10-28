@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminHead } from "@/components/admin/page-head";
 import { AuditTabs } from "@/components/admin/session-bits";
 import { FILTER_INPUT, FilterBar, pageNum, Pager, qs, str } from "@/components/admin/table-bits";

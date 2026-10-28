@@ -4,7 +4,7 @@ import { homeHero } from "@/lib/home/hero";
 import { liveDesigners } from "@/lib/home/live-designers";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ShowcaseArt, SlideText } from "./hero-showcase";
 import { HeroSlider } from "./hero-slider";
 import { LiveDesignersTag } from "./live-designers";

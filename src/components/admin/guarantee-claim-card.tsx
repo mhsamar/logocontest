@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { GuaranteeDecide, GuaranteePay } from "@/components/admin/guarantee-decide";
 import { AdmCard, formatId, IdChip, Pill } from "@/components/admin/ui";
 import { formatUsdCents } from "@/lib/currency/rules";

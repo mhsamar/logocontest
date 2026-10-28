@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { Suspense } from "react";
 import { LogoutForm } from "@/components/push/logout-form";
 import { AvatarMenu } from "@/components/layout/avatar-menu";

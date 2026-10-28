@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -284,6 +285,18 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
   return ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
 }
 
+/**
+ * The home page's open contests for visitors who aren't signed in (owner, 2026-10-28: the same list was rebuilt on
+ * every view): kept for a minute. Dates come back as text from the cache and are turned back into dates.
+ */
+const cachedLive = unstable_cache((limit: number, cutoff: string | null) => liveContests(limit, cutoff ? new Date(cutoff) : null), ["home-live-v1"], { revalidate: 60 });
+export async function guestLiveContests(limit: number, hideNewerThan: Date | null): Promise<ContestRow[]> {
+  // The early-access cutoff moves every moment; to the minute, so a minute's visitors share one list.
+  const cutoff = hideNewerThan ? new Date(Math.floor(hideNewerThan.getTime() / 60_000) * 60_000).toISOString() : null;
+  const date = (v: Date | string | null) => (v ? new Date(v) : null);
+  return (await cachedLive(limit, cutoff)).map((r) => ({ ...r, startsAt: date(r.startsAt), endsAt: date(r.endsAt), judgingEndsAt: date(r.judgingEndsAt) }));
+}
+
 /** Home page section 2: open contests, Promoted first, then the newest. */
 export async function liveContests(limit: number, hideNewerThan: Date | null = null): Promise<ContestRow[]> {
   if (!isSupabaseConfigured()) return [];
@@ -375,18 +388,19 @@ async function loadContestBySlug(slug: string, viewer: CurrentUser | null): Prom
 
   const ndaAccepted = Boolean(data.is_nda) && Boolean(viewer) && (await hasAcceptedNda(data.id, viewer!.id));
   const canSeeBrief = (!data.is_private || Boolean(viewer)) && (!data.is_nda || isOwner || isAdmin || ndaAccepted);
-  const [[row], designers, info] = await Promise.all([toRows([data as DbRow]), countDesigners(data.id), contestServiceInfo([data.id])]);
+  // The brief's files are read together with the rest (owner, 2026-10-28: one wait less on the contest page).
+  const [[row], designers, info, fileRead] = await Promise.all([
+    toRows([data as DbRow]),
+    countDesigners(data.id),
+    contestServiceInfo([data.id]),
+    canSeeBrief ? db.from("contest_files").select("path, original_name, mime_type").eq("contest_id", data.id).order("created_at") : null,
+  ]);
   const svc = info.get(data.id)!;
   const client = (Array.isArray(data.client) ? data.client[0] : data.client) as { name: string; username: string | null } | null;
 
   let files: ContestFileView[] = [];
   if (canSeeBrief) {
-    const { data: fileRows } = await db
-      .from("contest_files")
-      .select("path, original_name, mime_type")
-      .eq("contest_id", data.id)
-      .order("created_at");
-    const rows = fileRows ?? [];
+    const rows = fileRead?.data ?? [];
     const urls = await getFileStorage()
       .createReadUrls(BRIEF_FILES_BUCKET, rows.map((f) => f.path as string), 3600)
       .catch(() => new Map<string, string>());

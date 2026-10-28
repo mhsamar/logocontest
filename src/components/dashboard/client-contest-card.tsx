@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine, UpgradePills } from "@/components/contests/contest-bits";
 import { AddonsButton } from "@/components/manage/addons-button";
 import { ButtonLink } from "@/components/ui/button";

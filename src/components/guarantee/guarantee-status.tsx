@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { ClaimGuarantee } from "@/components/guarantee/claim-guarantee";
 import { formatDate } from "@/lib/dates";
 import type { ContestGuarantee } from "@/lib/guarantee/queries";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { redirect } from "next/navigation";
 import { homeForRole } from "@/lib/auth/home";
 import { AuthCard } from "@/components/auth/auth-card";

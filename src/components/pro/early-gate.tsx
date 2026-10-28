@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { getI18n } from "@/lib/i18n/server";
 import { headStartLeft, opensToAllAt } from "@/lib/pro/rules";

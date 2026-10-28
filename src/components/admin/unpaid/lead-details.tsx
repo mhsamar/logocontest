@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdmCard, IdChip } from "@/components/admin/ui";

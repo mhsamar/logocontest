@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { DesignLink } from "@/components/admin/design-viewer";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { Pill, type PillTone } from "@/components/admin/ui";

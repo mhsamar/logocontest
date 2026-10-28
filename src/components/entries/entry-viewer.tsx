@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { LockedPicture } from "@/components/entries/hidden-bits";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";

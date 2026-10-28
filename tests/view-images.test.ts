@@ -11,6 +11,7 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const st = vi.hoisted(() => ({ signed: [] as string[][], downloads: [] as string[], file: null as Uint8Array | null }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ unstable_cache: <T,>(fn: T) => fn }));
 vi.mock("@/lib/env", () => ({ requireEnv: () => "test-secret", isSupabaseConfigured: () => true }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({

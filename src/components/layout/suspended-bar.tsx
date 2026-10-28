@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 
 /**
  * Shown on every page while the account is suspended (owner, 2026-10-12): until when, what is on hold, and the rules.

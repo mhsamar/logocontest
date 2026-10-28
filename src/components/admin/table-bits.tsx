@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { Pill } from "./ui";
 
 /** Small shared pieces for admin lists (server components). */

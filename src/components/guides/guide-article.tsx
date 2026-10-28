@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { GuideBody } from "@/components/guides/guide-body";
 import { GuideCard } from "@/components/guides/guide-card";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
 import { Arrow } from "@/components/ui/section-heading";
-import { pictureUrl } from "@/lib/content/pictures";
+import { pictureUrl, siteImageUrl } from "@/lib/content/pictures";
 import { formatDate } from "@/lib/dates";
 import type { GuideCard as Card, GuideRow } from "@/lib/guides/queries";
 import { guideText, readingMinutes } from "@/lib/guides/rules";
@@ -81,7 +81,7 @@ export function GuideArticle({ g, all, t, locale }: { g: GuideRow; all: Card[]; 
 
       <Panel tone="grey">
         <article className="lc-card mx-auto w-full max-w-[52rem] overflow-hidden">
-          {cover && <img src={cover} alt="" className="aspect-[16/9] w-full object-cover" />}
+          {cover && <img src={siteImageUrl(g.cover_path) ?? cover} alt="" className="aspect-[16/9] w-full object-cover" />}
           <div className="p-6 sm:p-10">
             {locale === "bn" && x.lang === "en" && <p className="m-0 mb-6 rounded-[14px] bg-chip px-4 py-3 text-sm text-muted">{t("guides.englishOnly")}</p>}
             <GuideBody body={x.body.text} lang={x.body.lang} />

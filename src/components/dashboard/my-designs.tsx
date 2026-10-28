@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { EntryViewer } from "@/components/entries/entry-viewer";

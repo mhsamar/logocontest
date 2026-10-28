@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ReactNode } from "react";
 import { PageShell } from "@/components/ui/panel";
 import { durationText, Icon, ProBadge, type ProIconName } from "@/components/pro/parts";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DesignLink } from "@/components/admin/design-viewer";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";

@@ -53,10 +53,24 @@ export function HeroSlider({
   const [typing, setTyping] = useState(false);
   const reduced = useSyncExternalStore(subscribeMotion, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => false);
   const hidden = useSyncExternalStore(subscribeVisibility, () => document.hidden, () => false);
-  const paused = reduced || hidden || hover || typing || count < 2;
   const activeRef = useRef(0);
+  // Slides after the first are drawn once the page has loaded (owner, 2026-10-28: phones downloaded every slide's
+  // photos and logos, about 300 KB, before the page was ready). Autoplay waits for them, so no slide is ever empty.
+  const [later, setLater] = useState(false);
+  const paused = reduced || hidden || hover || typing || count < 2 || !later;
+  useEffect(() => {
+    let id = 0;
+    const show = () => void (id = window.setTimeout(() => setLater(true), 800));
+    if (document.readyState === "complete") show();
+    else window.addEventListener("load", show, { once: true });
+    return () => {
+      window.removeEventListener("load", show);
+      window.clearTimeout(id);
+    };
+  }, []);
 
   const go = (next: number) => {
+    setLater(true);
     const prev = activeRef.current;
     if (next === prev) return;
     activeRef.current = next;
@@ -100,7 +114,7 @@ export function HeroSlider({
               aria-label={labels[i]}
               aria-hidden={i === active ? undefined : true}
             >
-              {node}
+              {i === 0 || i === active || later ? node : null}
             </div>
           ))}
         </div>

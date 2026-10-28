@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
 import { RewardClaim, StepLabel } from "@/components/rewards/reward-claim";
 import { CardShare } from "@/components/rewards/win-card-share";

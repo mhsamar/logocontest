@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
 import { BrandTile, ContestNumber, PackagePill, PRIZE_TEXT, StatusLine } from "@/components/contests/contest-bits";
 import { EntryComments } from "@/components/entries/entry-comments";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { ProfileFacts, RemindButtons } from "@/components/admin/remind-buttons";

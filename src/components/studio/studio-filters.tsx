@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import type { BusinessType } from "@/lib/contests/brief";
 import { useI18n } from "@/lib/i18n/client";

@@ -1,5 +1,5 @@
 import { NavScroll } from "@/components/ui/nav-scroll";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import type { ReactNode } from "react";
 import { PageShell } from "@/components/ui/panel";
 import type { CurrentUser } from "@/lib/auth/policies";

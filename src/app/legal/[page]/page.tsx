@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { LEGAL_NAV } from "@/components/layout/nav-items";
 import { PageShell, Panel } from "@/components/ui/panel";

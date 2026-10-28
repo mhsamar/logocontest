@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/ui/link";
 import { contestTitle } from "@/components/contests/contest-bits";
 import type { ContestRow } from "@/lib/contests/browse";
 import type { PackageKey } from "@/lib/contests/brief";
