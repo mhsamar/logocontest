@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { getSettings } from "@/lib/settings";
-import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALE_COOKIE, pickLocale } from "@/lib/i18n/config";
 import { LOCALE_HEADER } from "@/lib/i18n/lang-path";
 import { BDT, CURRENCY_COOKIE, currencyFor, type Currency } from "./rules";
 
@@ -13,10 +13,10 @@ import { BDT, CURRENCY_COOKIE, currencyFor, type Currency } from "./rules";
  */
 export const getCurrency = cache(async (): Promise<Currency> => {
   const [jar, h] = await Promise.all([cookies(), headers()]);
-  // The page's ?lang= first (owner, 2026-10-21), as getLocale does: a Bangla address always shows taka.
-  const lang = h.get(LOCALE_HEADER) ?? jar.get(LOCALE_COOKIE)?.value;
-  const locale = isLocale(lang) ? lang : DEFAULT_LOCALE;
-  const code = currencyFor({ locale, chosen: jar.get(CURRENCY_COOKIE)?.value, country: h.get("x-vercel-ip-country") });
+  // The page's language as getLocale picks it (owner, 2026-10-21 and 2026-10-29): a Bangla page always shows taka.
+  const country = h.get("x-vercel-ip-country");
+  const locale = pickLocale({ url: h.get(LOCALE_HEADER), cookie: jar.get(LOCALE_COOKIE)?.value, country });
+  const code = currencyFor({ locale, chosen: jar.get(CURRENCY_COOKIE)?.value, country });
   if (code === "BDT") return BDT;
   const s = await getSettings(["payments.usd_rate", "payments.usd_markup_percent"]);
   return { code, rate: s["payments.usd_rate"], markup: s["payments.usd_markup_percent"] };

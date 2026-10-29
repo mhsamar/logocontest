@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { pickLocale } from "@/lib/i18n/config";
 import { langOf, localizedPath, seoAlternates, switchHref } from "@/lib/i18n/url";
 
 /** Each language has its own address (owner, 2026-10-21): English plain, Bangla with ?lang=bn. */
@@ -33,5 +34,18 @@ describe("language addresses", () => {
       languages: { en: "https://logocontest.bd/winners", bn: "https://logocontest.bd/winners?lang=bn", "x-default": "https://logocontest.bd/winners" },
     });
     expect(seoAlternates("/winners", "en").canonical).toBe("https://logocontest.bd/winners");
+  });
+
+  it("Bangla is the default from Bangladesh (owner, 2026-10-29); ?lang= and the visitor's own choice still win", () => {
+    expect(pickLocale({ country: "BD" })).toBe("bn");
+    expect(pickLocale({ country: "bd" })).toBe("bn");
+    expect(pickLocale({ country: "US" })).toBe("en");
+    expect(pickLocale({})).toBe("en");
+    // Switched to English once: stays English in Bangladesh.
+    expect(pickLocale({ cookie: "en", country: "BD" })).toBe("en");
+    expect(pickLocale({ cookie: "bn", country: "US" })).toBe("bn");
+    expect(pickLocale({ url: "en", cookie: "bn", country: "BD" })).toBe("en");
+    expect(pickLocale({ url: "bn", country: "US" })).toBe("bn");
+    expect(pickLocale({ url: "fr", cookie: "xx", country: "BD" })).toBe("bn");
   });
 });
