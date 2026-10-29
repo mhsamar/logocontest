@@ -53,7 +53,7 @@ export type WinningDesign = {
  * Winning designs anyone may see: completed public contests, never private or NDA, blind only when the client
  * made the winner public. Optional filters: the month the contest finished (Bangladesh time) and business type.
  */
-export async function winningDesigns(q: { month?: string | null; type?: string | null; limit?: number; entryIds?: string[] }): Promise<WinningDesign[]> {
+export async function winningDesigns(q: { month?: string | null; type?: string | null; limit?: number; entryIds?: string[]; strict?: boolean }): Promise<WinningDesign[]> {
   if (!isSupabaseConfigured()) return [];
   let query = createAdminClient()
     .from("entries")
@@ -73,7 +73,9 @@ export async function winningDesigns(q: { month?: string | null; type?: string |
   }
   if (q.type && (BUSINESS_TYPES as readonly string[]).includes(q.type)) query = query.eq("contest.business_type", q.type);
   if (q.entryIds) query = query.in("id", q.entryIds.length ? q.entryIds : ["00000000-0000-0000-0000-000000000000"]);
-  const { data } = await query;
+  const { data, error } = await query;
+  // The home page's cached list (owner, 2026-10-29) must not keep an empty answer from a failed read.
+  if (error && q.strict) throw new Error(error.message);
   type Row = {
     id: string;
     number: number;

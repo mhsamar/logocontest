@@ -39,21 +39,45 @@ const Arrow = () => (
 
 const BADGE = "inline-flex items-center whitespace-nowrap rounded-full px-[9px] py-0.5 text-[12.5px] font-bold";
 
+/** The paid add-on badges, in display order. */
+const ADDON_BADGE = {
+  featured: "bg-[#FFF1CF] text-[#8A5A00]",
+  urgent: "gap-1.5 bg-[#FDE3E1] text-[#A3121B]",
+  highlighted: "bg-[#FFF4D1] text-[#6B4E00]",
+  privateNda: "bg-[#111216] text-white",
+} as const;
+type AddonBadgeKey = keyof typeof ADDON_BADGE;
+
+function AddonBadge({ k, t }: { k: AddonBadgeKey; t: Translate }) {
+  return (
+    <span className={cx(BADGE, ADDON_BADGE[k])}>
+      {k === "urgent" && <Dot />}
+      {t(`browse.x.badge.${k}`)}
+    </span>
+  );
+}
+
 export function AddonBadges({ c, t, now, featured = true }: { c: ContestRow; t: Translate; now: Date; featured?: boolean }) {
   const soon = c.status === "open" && c.endsAt && c.endsAt.getTime() - now.getTime() <= ENDING_SOON_DAYS * DAY && c.endsAt > now;
   return (
     <>
-      {featured && c.isPromoted && <span className={cx(BADGE, "bg-[#FFF1CF] text-[#8A5A00]")}>{t("browse.x.badge.featured")}</span>}
-      {c.isUrgent && (
-        <span className={cx(BADGE, "gap-1.5 bg-[#FDE3E1] text-[#A3121B]")}>
-          <Dot />
-          {t("browse.x.badge.urgent")}
-        </span>
-      )}
-      {c.isHighlighted && <span className={cx(BADGE, "bg-[#FFF4D1] text-[#6B4E00]")}>{t("browse.x.badge.highlighted")}</span>}
-      {(c.isPrivate || c.isNda) && <span className={cx(BADGE, "bg-[#111216] text-white")}>{t("browse.x.badge.privateNda")}</span>}
+      {featured && c.isPromoted && <AddonBadge k="featured" t={t} />}
+      {c.isUrgent && <AddonBadge k="urgent" t={t} />}
+      {c.isHighlighted && <AddonBadge k="highlighted" t={t} />}
+      {(c.isPrivate || c.isNda) && <AddonBadge k="privateNda" t={t} />}
       {soon && <span className={cx(BADGE, "bg-[#FFEDD5] text-[#9A3412]")}>{t("browse.x.badge.endingSoon")}</span>}
     </>
+  );
+}
+
+/** All four add-ons as they look on a card, for the guests' gold "Want your contest up here?" bar (owner, 2026-10-29). */
+export function AddonBadgeRow({ t, className }: { t: Translate; className?: string }) {
+  return (
+    <div className={cx("flex flex-wrap gap-1.5", className)}>
+      {(Object.keys(ADDON_BADGE) as AddonBadgeKey[]).map((k) => (
+        <AddonBadge key={k} k={k} t={t} />
+      ))}
+    </div>
   );
 }
 
@@ -151,7 +175,7 @@ export function ContestCard({ c, t, locale, now, price, designer, facts, saved }
         </span>
       )}
       <div className="flex items-start gap-3">
-        <BrandTile name={hidden ? "" : c.brandName} isPrivate={hidden} cover={hidden ? null : c.cover} className="size-[60px] !rounded-2xl text-[0.7rem]" />
+        <BrandTile name={hidden ? "" : c.brandName} isPrivate={hidden} cover={hidden ? null : c.cover} pastel={c.id} className="size-[60px] !rounded-2xl text-[0.7rem]" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="lc-d m-0 min-w-0 text-[19px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
@@ -171,7 +195,7 @@ export function ContestCard({ c, t, locale, now, price, designer, facts, saved }
           <span className={cx(BADGE, "bg-[#E3F3EA] text-[#14633C]")}>{facts.mine === 1 ? t("browse.x.badge.youSentOne") : t("browse.x.badge.youSent", { n: fmt(facts.mine) })}</span>
         )}
         <AddonBadges c={c} t={t} now={now} />
-        <PackagePill pkg={c.package} t={t} />
+        <PackagePill pkg={c.package} t={t} className={BADGE} />
       </div>
       {/* Onboarding v2 may leave the description empty (owner, 2026-10-29): no empty lines then. */}
       {hidden || c.description ? <p className="m-0 line-clamp-2 min-h-[44px] text-[14.5px] leading-normal text-muted">{hidden ? t(designer ? "browse.x.privateLineDesigner" : "browse.x.privateLine") : c.description}</p> : null}
@@ -222,7 +246,7 @@ export function FeaturedContestCard({ c, t, locale, now, price, designer }: Ctx 
   return (
     <article className="relative flex w-full min-w-0 flex-col gap-3 rounded-[24px] border border-[#E9EAEE] bg-white p-2.5 pb-4 shadow-[0_10px_26px_rgba(17,18,22,.06)]">
       <div className="relative h-[150px] overflow-hidden rounded-2xl">
-        <BrandTile name={hidden ? "" : c.brandName} isPrivate={hidden} cover={hidden ? null : c.cover} flat className="size-full text-[1.6rem]" />
+        <BrandTile name={hidden ? "" : c.brandName} isPrivate={hidden} cover={hidden ? null : c.cover} pastel={c.id} flat className="size-full text-[1.6rem]" />
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#111216]">
           <Star className="size-3" />
           {t("browse.x.badge.featured")}
@@ -236,7 +260,7 @@ export function FeaturedContestCard({ c, t, locale, now, price, designer }: Ctx 
       </div>
       <div className="flex flex-col gap-2.5 px-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <PackagePill pkg={c.package} t={t} />
+          <PackagePill pkg={c.package} t={t} className={BADGE} />
           <ContestNumber n={c.number} t={t} locale={locale} />
         </div>
         <div className="flex items-center justify-between gap-2.5">

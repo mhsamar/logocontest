@@ -1,0 +1,106 @@
+/*
+ * "Contests live right now", the home carousel (owner, 2026-10-29; Design/logocontest-site/index.html: .ctw .ctt .ctc
+ * .ctd .dot). Scoped to .lc-landing, every class starts with lcc-. contest-carousel.tsx moves the row by setting
+ * --lcc-ci (the active card); .lcc-snap moves it with no animation for the jump from a copy back to its real card.
+ */
+.lc-landing .lcc { --lcc-pad: 24px; --lcc-cw: 360px; --lcc-gap: 12px; padding: 48px var(--lcc-pad); border-radius: 32px; background: var(--lc-panel-alt); }
+.lc-landing .lcc-in { display: flex; flex-direction: column; gap: 24px; max-width: 1160px; margin: 0 auto; }
+
+/* Heading: the "Live now" pill, title, subtitle and "Browse all contests". */
+.lc-landing .lcc-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 32px; }
+.lc-landing .lcc-intro { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lc-landing .lcc-live { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: #e8f4ee; color: #14633c; font-size: 13.5px; font-weight: 700; }
+.lc-landing .lcc-pulse { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #1f7a4d; animation: lcc-pulse 1.6s ease-in-out infinite; }
+@keyframes lcc-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(31 122 77 / 0.45); }
+  50% { box-shadow: 0 0 0 6px rgb(31 122 77 / 0); }
+}
+.lc-landing .lcc-title { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
+.lc-landing .lcc-accent { color: var(--lc-red); }
+.lc-landing .lcc-sub { margin: 0; font-size: 16.5px; color: var(--lc-muted); }
+.lc-landing .lcc-browse { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 14px; background: linear-gradient(135deg, var(--lc-red-hi), var(--lc-red) 55%, #6a0a0e); color: #fff; font-weight: 700; text-decoration: none; }
+.lc-landing .lcc-browse svg { flex: none; color: #f5cf6a; }
+
+/* The row. The wrapper reaches the section's edges and clips sideways only, so a lifted card and its shadow still
+   show, the page never scrolls sideways and a focused card can't scroll the row. */
+.lc-landing .lcc-wrap { overflow: hidden; overflow: clip visible; margin: 0 calc(var(--lcc-pad) * -1); padding: 10px var(--lcc-pad) 16px; touch-action: pan-y; }
+.lc-landing .lcc-track { display: flex; gap: var(--lcc-gap); transform: translateX(calc(var(--lcc-ci, 0) * (var(--lcc-cw) + var(--lcc-gap)) * -1)); transition: transform 0.75s cubic-bezier(0.22, 0.9, 0.24, 1); }
+/* The jump: the active card's border and lift move to the real card at once too, so nothing flickers. */
+.lc-landing .lcc-track.lcc-snap,
+.lc-landing .lcc-track.lcc-snap .lcc-card,
+.lc-landing .lcc-track.lcc-snap .lcc-name { transition: none; }
+
+/* A card. */
+.lc-landing .lcc-card { flex: none; display: flex; align-items: stretch; gap: 14px; width: var(--lcc-cw); padding: 12px; border: 1px solid var(--lc-line); border-radius: 22px; background: var(--lc-panel); color: inherit; text-decoration: none; transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.45s, border-color 0.45s; }
+.lc-landing .lcc-card:hover { opacity: 1; }
+@media (hover: hover) {
+  .lc-landing .lcc-card:hover { transform: translateY(-7px) rotate(-0.6deg); box-shadow: 0 24px 46px rgb(17 18 22 / 0.15); }
+}
+.lc-landing .lcc-card.lcc-act { border-color: var(--lc-red); box-shadow: 0 0 0 3px rgb(139 0 0 / 0.12), 0 18px 40px rgb(139 0 0 / 0.16); transform: translateY(-4px); }
+.lc-landing .lcc-card.lcc-act .lcc-name { color: var(--lc-red); }
+.lc-landing .lcc-card:focus-visible { outline: 2px solid var(--lc-red); outline-offset: 2px; }
+
+/* The letter tile; its pastel comes from tilePastel() (contest-bits.tsx), so no colour is set here. */
+.lc-landing .lcc-tile { flex: none; display: flex; align-items: center; justify-content: center; width: 112px; overflow: hidden; border-radius: 16px; }
+.lc-landing .lcc-lock { background: var(--lc-grad-dark); color: #fff; }
+.lc-landing .lcc-lock-ic { width: 30px; height: 30px; }
+.lc-landing .lcc-ini { font-size: 32px; line-height: 1; font-weight: 600; letter-spacing: -0.04em; }
+.lc-landing .lcc-ini-one { font-size: 44px; }
+
+.lc-landing .lcc-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; min-width: 0; padding: 4px 4px 2px 0; }
+.lc-landing .lcc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.lc-landing .lcc-who { display: flex; flex-direction: column; min-width: 0; }
+.lc-landing .lcc-name { margin: 0; overflow: hidden; font-size: 19px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; text-overflow: ellipsis; transition: color 0.45s; }
+.lc-landing .lcc-cat { font-size: 14px; color: var(--lc-muted); }
+.lc-landing .lcc-pk { flex: none; padding: 3px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 700; }
+.lc-landing .lcc-pk-grey { background: #f0f1f4; color: #3a3c45; }
+.lc-landing .lcc-pk-dark { background: var(--lc-ink); color: #fff; }
+.lc-landing .lcc-pk-gold { background: #fff4d1; color: #6b4e00; }
+.lc-landing .lcc-pk-red { background: var(--lc-tint); color: var(--lc-red); }
+.lc-landing .lcc-badges { display: flex; flex-wrap: wrap; gap: 5px; font-size: 12px; font-weight: 700; }
+.lc-landing .lcc-urgent,
+.lc-landing .lcc-hl { padding: 2px 8px; border-radius: 999px; }
+.lc-landing .lcc-urgent { background: var(--lc-red); color: #fff; }
+.lc-landing .lcc-hl { background: var(--lc-gold); color: var(--lc-gold-ink); }
+/* Prize on the left, designs and days on the right; on a narrow card (or a long price) the right part goes under. */
+.lc-landing .lcc-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; padding-top: 10px; border-top: 1px solid var(--lc-line-soft); }
+.lc-landing .lcc-prize { font-size: 26px; line-height: 1; font-weight: 600; letter-spacing: -0.03em; color: var(--lc-red); white-space: nowrap; }
+.lc-landing .lcc-meta { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.lc-landing .lcc-count { color: var(--lc-muted); }
+.lc-landing .lcc-left { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: #ffedd5; color: #9a3412; }
+.lc-landing .lcc-left.lcc-soon { background: #fde3e1; color: #a3121b; }
+
+/* Dots and the two arrows under the row. */
+.lc-landing .lcc-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.lc-landing .lcc-controls.lcc-still { display: none; }
+.lc-landing .lcc-pips { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
+.lc-landing .lcc-pip { flex: none; width: 9px; height: 9px; border-radius: 99px; background: #c9ccd3; transition: width 0.4s, background-color 0.4s; }
+.lc-landing .lcc-pip.lcc-on { width: 28px; background: var(--lc-red); }
+.lc-landing .lcc-nav { flex: none; display: flex; gap: 8px; }
+.lc-landing .lcc-arrow { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; padding: 0; border: 1px solid #d6d8de; border-radius: 50%; background: #fff; color: var(--lc-ink); cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+@media (hover: hover) {
+  .lc-landing .lcc-arrow:hover { border-color: #c9ccd3; background: var(--lc-chip); }
+}
+.lc-landing .lcc-arrow:focus-visible { outline: 2px solid var(--lc-red); outline-offset: 2px; }
+
+/* No live contests yet. */
+.lc-landing .lcc-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 576px; margin: 0 auto; padding: 40px 24px; border: 1px solid var(--lc-line); border-radius: 28px; background: var(--lc-panel); text-align: center; }
+.lc-landing .lcc-empty-title { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
+.lc-landing .lcc-empty-body { margin: 0 0 8px; color: var(--lc-muted); }
+
+/* Phones (design: 720px): one card across with the next one peeking, a smaller tile and prize. */
+@media (max-width: 720px) {
+  /* One card fits on a phone, so more than one contest always moves: keep the row's place until it is measured. */
+  .lc-landing .lcc-controls.lcc-still { display: flex; visibility: hidden; }
+  .lc-landing .lcc { --lcc-pad: 16px; --lcc-cw: calc(100vw - 64px); border-radius: 24px; }
+  .lc-landing .lcc-tile { width: 84px; }
+  .lc-landing .lcc-prize { font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-landing .lcc-track,
+  .lc-landing .lcc-card,
+  .lc-landing .lcc-name,
+  .lc-landing .lcc-pip { transition: none; }
+  .lc-landing .lcc-pulse { animation: none; }
+}

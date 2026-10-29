@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { homeDesignersChanged } from "@/lib/home/designer-wall";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { suspendUser, tellUser } from "@/lib/moderation/suspension";
 import { isPersonName } from "@/lib/profile/name-rules";
@@ -31,6 +32,7 @@ export async function giveStrike(userId: string, f: Fields): Promise<Result> {
   if (!p) return fail("admin.errors.generic");
   await audit(admin.id, p.status === "banned" ? "ban_user" : "suspend_user", "user", userId, { reason, suspensions: p.strikes, until: p.suspendedUntil });
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -45,6 +47,7 @@ export async function removeStrike(strikeId: string, f: Fields): Promise<Result>
   const p = data as { id: string; strikes: number };
   await audit(admin.id, "remove_strike", "user", p.id, { strike: strikeId, reason, suspensions: p.strikes });
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -63,6 +66,7 @@ export async function setUserStatus(userId: string, status: string, f: Fields): 
   await audit(admin.id, status === "banned" ? "ban_user" : "reactivate_user", "user", userId, { reason });
   await tellUser(userId, status === "banned" ? "banned" : "reactivated", reason, null, admin.id);
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -77,6 +81,7 @@ export async function setTestAccount(userId: string, on: boolean): Promise<Resul
   if (error || !data) return fail("admin.errors.generic");
   await audit(admin.id, on ? "mark_test_account" : "unmark_test_account", "user", userId, {});
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -101,5 +106,6 @@ export async function correctUserName(userId: string, f: Fields): Promise<Result
   await db.auth.admin.updateUserById(userId, { user_metadata: { name } }).catch(() => undefined);
   await audit(admin.id, "correct_name", "user", userId, { reason, from: before.name, to: name });
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }

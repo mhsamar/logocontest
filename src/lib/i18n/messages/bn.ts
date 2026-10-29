@@ -5,6 +5,10 @@ import payBn from "./pay-bn";
 import proBn from "./pro-bn";
 import guaranteeBn from "./guarantee-bn";
 import onboardingBn from "./onboarding-bn";
+import homeCarouselBn from "./home-carousel-bn";
+import homeWallBn from "./home-wall-bn";
+import homePricingBn from "./home-pricing-bn";
+import homeWinnersBn from "./home-winners-bn";
 import shareBn from "./share-bn";
 
 const bn: Messages = {
@@ -15,6 +19,7 @@ const bn: Messages = {
   share: shareBn,
   guarantee: guaranteeBn,
   wizardV2: onboardingBn,
+  home2: { carousel: homeCarouselBn, wall: homeWallBn, pricing: homePricingBn, winners: homeWinnersBn },
   meta: {
     title: "বাংলাদেশে লোগো ডিজাইন কনটেস্ট | logocontest.bd",
     description: "এক নির্দিষ্ট পুরস্কারে অনেক বাংলাদেশি ডিজাইনারের লোগো আইডিয়া পান। বিকাশে টাকায় পেমেন্ট; বিজয়ী সব ফাইল আর পূর্ণ কপিরাইট দেন।",
@@ -292,10 +297,12 @@ const bn: Messages = {
       chooseType: "কনটেস্টের ধরন বেছে নিন",
       goodToKnow: "জেনে রাখুন:",
       pay: "বিকাশে পেমেন্ট",
+      payCard: "বিকাশ বা কার্ড",
+      payCardOnly: "কার্ডে পেমেন্ট",
       held: "টাকা নিরাপদে থাকে",
       call: "কল করুন {phone}",
       slides: {
-        jubilix: { line1: "অনেক ডিজাইনার।", line2: "একটি সেরা লোগো।", text: "আপনার ব্যবসার নাম বলুন। বাংলাদেশের সেরা ডিজাইনাররা লোগোর আইডিয়া পাঠাবেন, আর আপনি পছন্দেরটি বেছে নেবেন।" },
+        jubilix: { line1: "অনেক ডিজাইনার।", line2: "একটি সেরা লোগো।", text: "একটি কনটেস্ট শুরু করুন। বাংলাদেশের সেরা ডিজাইনাররা আইডিয়া পাঠাবেন, আর আপনি পছন্দেরটি বেছে নেবেন।" },
         fly: { line1: "একটি কনটেস্ট।", line2: "অনেক লোগো আইডিয়া।", text: "কয়েক মিনিটে কনটেস্ট শুরু করুন। ডিজাইনাররা আপনাকে আইডিয়া পাঠাবেন, তাই আপনার হাতে সত্যিই অনেক বিকল্প থাকবে।" },
         beep: { line1: "যেটি ভালো লাগে,", line2: "সেটিই বেছে নিন।", text: "সব ডিজাইন পাশাপাশি দেখুন, পরিবর্তন চান, আর আপনার বিজয়ী বেছে নিন।" },
         favliy: { line1: "নিরাপদে পেমেন্ট।", line2: "সব ফাইল হাতে।", text: "চূড়ান্ত লোগো ফাইল অনুমোদন না করা পর্যন্ত আপনার টাকা নিরাপদে থাকে।" },

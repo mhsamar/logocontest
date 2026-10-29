@@ -1,6 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { getContact } from "@/lib/content/contact";
 import { homeHero } from "@/lib/home/hero";
+import { homePayMethods } from "@/lib/home/pay-methods";
+import { payKinds, payWording } from "@/lib/home/pricing-cards";
 import { liveDesigners } from "@/lib/home/live-designers";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber } from "@/lib/money";
@@ -15,8 +17,10 @@ import { LiveDesignersTag } from "./live-designers";
  * button (owner, 2026-10-13: in place of the business-name form; it opens the category picker) and the "Good to know" chips. The button and chips never change or move.
  */
 export async function LandingHero({ nav, picture }: { nav: React.ReactNode; picture: string | null }) {
-  const { t, locale } = await getI18n();
-  const [contact, hero, live] = await Promise.all([getContact(locale), homeHero(locale, t), liveDesigners()]);
+  const { t, locale, currency } = await getI18n();
+  const [contact, hero, live, methods] = await Promise.all([getContact(locale), homeHero(locale, t), liveDesigners(), homePayMethods(currency.code).catch(() => [])]);
+  // "bKash or card" only while a card method is on (owner, 2026-10-29); by card alone for a visitor paying in dollars.
+  const pay = payWording(payKinds(methods));
 
   return (
     <header className="lc-hero relative isolate z-10 flex flex-col items-center overflow-hidden rounded-[32px] bg-white px-6 pb-16 pt-[128px] sm:px-10">
@@ -59,7 +63,8 @@ export async function LandingHero({ nav, picture }: { nav: React.ReactNode; pict
               </div>
               <div className="lc-hero-row mt-[22px] flex flex-wrap items-center gap-2 text-[15.5px]">
                 <strong className="mr-1">{t("home.hero.goodToKnow")}</strong>
-                <span className="rounded-lg bg-[var(--lc-chip)] px-3.5 py-1.5 font-semibold">{t("home.hero.pay")}</span>
+                {/* No chip while no bKash or card method is open in this visitor's currency (review, 2026-10-29). */}
+                {pay && <span className="rounded-lg bg-[var(--lc-chip)] px-3.5 py-1.5 font-semibold">{t(pay === "bkashCard" ? "home.hero.payCard" : pay === "card" ? "home.hero.payCardOnly" : "home.hero.pay")}</span>}
                 <span className="rounded-lg bg-[var(--lc-chip)] px-3.5 py-1.5 font-semibold">{t("home.hero.held")}</span>
                 <a href={contact.phoneHref} className="rounded-lg bg-[var(--lc-chip)] px-3.5 py-1.5 font-semibold">
                   {t("home.hero.call", { phone: contact.phone })}

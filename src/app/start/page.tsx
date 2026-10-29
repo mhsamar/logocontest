@@ -52,12 +52,13 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
     return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);
   }
 
+  // Frame and heading as in Design/logocontest-site/start-contest.html (owner, 2026-10-29; dt-page in design-types.css).
   const picker = (
-    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-1 py-4">
-      <div className="flex flex-col gap-2">
-        <span className="self-start rounded-full bg-tint px-3 py-1 text-[13px] font-bold text-primary">{t("services.picker.kicker")}</span>
-        <h1 className="m-0 text-[clamp(28px,3.4vw,42px)] font-semibold leading-[1.06] tracking-[-0.04em] text-ink">{t("services.picker.title")}</h1>
-        <p className="m-0 max-w-[620px] text-[17px] text-muted">{t("services.picker.lead")}</p>
+    <div className="dt-page">
+      <div className="dt-head">
+        <span className="dt-sck">{t("services.picker.kicker")}</span>
+        <h1>{t("services.picker.title")}</h1>
+        <p>{t("services.picker.lead")}</p>
       </div>
       <DesignTypes variant="start" />
       <DesignTypesHow />

@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { endAllSessions } from "@/lib/auth/sessions";
+import { homeDesignersChanged } from "@/lib/home/designer-wall";
 import { one } from "./core";
 
 /**
@@ -154,6 +155,7 @@ export async function trashUser(userId: string, by: string, reason: string): Pro
   // They can't log in or stay logged in (a 100-year ban on the login itself; Restore lifts it).
   await db().auth.admin.updateUserById(userId, { ban_duration: "876000h" }).catch((e) => console.error("[trash] ban:", e));
   await endAllSessions(userId, "deleted");
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -169,6 +171,7 @@ export async function restoreUser(userId: string): Promise<Done> {
     .eq("status", "deleted");
   if (error) throw new Error(error.message);
   await db().auth.admin.updateUserById(userId, { ban_duration: "none" }).catch((e) => console.error("[trash] unban:", e));
+  homeDesignersChanged();
   return { ok: true };
 }
 

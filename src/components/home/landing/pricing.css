@@ -1,0 +1,69 @@
+/*
+ * Home "Simple pricing" (owner, 2026-10-29; Design/logocontest-site/index.html, #pricing): the design's inline styles as
+ * lc-hp- classes, scoped to .lc-landing. Nothing here moves, so there is nothing to stop for reduced motion. On phones
+ * the four cards scroll sideways inside the section (snap), and the section clips, so the page never scrolls sideways.
+ */
+.lc-landing .lc-hp {
+  overflow-x: clip;
+  border-radius: 32px;
+  background: var(--lc-panel-alt);
+  border: 1px solid var(--lc-line);
+  padding: 44px 24px;
+}
+.lc-landing .lc-hp-in { display: flex; flex-direction: column; gap: 22px; max-width: 1160px; margin: 0 auto; }
+.lc-landing .lc-hp-head { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.lc-landing .lc-hp-pill { padding: 6px 14px; border-radius: 999px; background: var(--lc-tint); color: var(--lc-red); font-size: 14px; font-weight: 700; }
+.lc-landing .lc-hp-title { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
+.lc-landing .lc-hp-lead { margin: 0; max-width: 620px; font-size: 16.5px; color: var(--lc-muted); }
+
+/* The four cards: white, red (Standard, "Most popular") and black (Custom) */
+.lc-landing .lc-hp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; align-items: stretch; }
+.lc-landing .lc-hp-grid > * { min-width: 0; }
+.lc-landing .lc-hp-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 20px 20px 18px; border-radius: 24px; background: var(--lc-panel); color: var(--lc-ink); border: 1px solid var(--lc-line); }
+.lc-landing .lc-hp-card.lc-hp-red { background: var(--lc-red); color: #fff; border-color: var(--lc-red); }
+.lc-landing .lc-hp-card.lc-hp-dark { background: var(--lc-ink); color: #fff; border-color: var(--lc-ink); }
+.lc-landing .lc-hp-badge { position: absolute; top: 18px; right: 18px; padding: 4px 11px; border-radius: 99px; background: var(--lc-gold); color: #3a2a00; font-size: 12.5px; font-weight: 700; }
+.lc-landing .lc-hp-top { display: flex; flex-direction: column; gap: 4px; }
+.lc-landing .lc-hp-name { font-size: 15px; font-weight: 700; opacity: 0.8; }
+.lc-landing .lc-hp-prize { font-size: 36px; line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
+.lc-landing .lc-hp-sub { font-size: 14px; opacity: 0.8; }
+.lc-landing .lc-hp-list { flex: 1; display: flex; flex-direction: column; gap: 7px; margin: 0; padding: 12px 0 0; list-style: none; border-top: 1px solid var(--lc-line-soft); }
+.lc-landing .lc-hp-red .lc-hp-list { border-top-color: rgb(255 255 255 / 0.22); }
+.lc-landing .lc-hp-dark .lc-hp-list { border-top-color: rgb(255 255 255 / 0.18); }
+.lc-landing .lc-hp-list > li { display: flex; gap: 9px; font-size: 14.5px; line-height: 1.3; }
+.lc-landing .lc-hp-tick { flex: none; margin-top: 1px; color: #1f7a4d; }
+.lc-landing :is(.lc-hp-red, .lc-hp-dark) .lc-hp-tick { color: var(--lc-gold); }
+.lc-landing .lc-hp-btn { display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 14px; border-radius: 14px; background: var(--lc-ink); color: #fff; font-weight: 700; text-align: center; }
+.lc-landing .lc-hp-red .lc-hp-btn { background: #fff; color: var(--lc-red); }
+.lc-landing .lc-hp-dark .lc-hp-btn { background: #fff; color: var(--lc-ink); }
+
+/* Where does your money go? */
+.lc-landing .lc-hp-safe { display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--lc-panel); border: 1px solid var(--lc-line); }
+.lc-landing .lc-hp-safe-txt { display: flex; flex-direction: column; gap: 6px; max-width: 640px; }
+.lc-landing .lc-hp-held { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: #e8f4ee; color: #14633c; font-size: 13.5px; font-weight: 700; }
+.lc-landing .lc-hp-h3 { margin: 0; font-size: clamp(24px, 2.6vw, 32px); line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; }
+.lc-landing .lc-hp-safe-p { margin: 0; font-size: 16px; color: var(--lc-muted); }
+.lc-landing .lc-hp-steps { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.lc-landing .lc-hp-step { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 5px; padding: 14px; border-radius: 16px; background: var(--lc-panel-alt); border: 1px solid var(--lc-line-soft); }
+.lc-landing .lc-hp-num { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 10px; background: var(--lc-red); color: var(--lc-gold); font-size: 16px; font-weight: 600; }
+.lc-landing .lc-hp-step > strong { font-size: 16.5px; line-height: 1.3; }
+.lc-landing .lc-hp-step-p { font-size: 14.5px; line-height: 1.45; color: var(--lc-muted); }
+.lc-landing .lc-hp-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.lc-landing .lc-hp-ex { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 7px; padding: 14px 18px; border-radius: 16px; border: 1px dashed #d6d8de; }
+.lc-landing :is(.lc-hp-ex, .lc-hp-why) > strong { font-size: 15px; }
+.lc-landing .lc-hp-ex-row { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.lc-landing .lc-hp-ex-total { padding-top: 8px; border-top: 1px solid var(--lc-line-soft); font-size: 16px; }
+.lc-landing .lc-hp-ex-total > span { font-weight: 700; }
+.lc-landing .lc-hp-ex-total > strong { font-size: 20px; color: var(--lc-red); }
+.lc-landing .lc-hp-why { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-radius: 16px; background: #fff8ea; }
+.lc-landing .lc-hp-why > ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lc-landing .lc-hp-why > ul > li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.4; }
+.lc-landing .lc-hp-why .lc-hp-tick { margin-top: 2px; }
+.lc-landing .lc-hp-notes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin: 0; font-size: 14.5px; color: var(--lc-muted); text-align: center; }
+
+/* Phones: the cards side by side in a snapping row (landing.css sets the section's 16px side padding there) */
+@media (max-width: 720px) {
+  .lc-landing .lc-hp-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 4px 16px 14px; scrollbar-width: none; }
+  .lc-landing .lc-hp-grid::-webkit-scrollbar { display: none; }
+  .lc-landing .lc-hp-grid > * { flex: 0 0 84%; scroll-snap-align: center; }
+}

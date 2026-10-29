@@ -786,3 +786,38 @@ A logo contest in 4 steps, with the brief after paying (client-onboarding-v2-spe
 - **Admin › Unpaid contests:** a new-wizard lead has a **নতুন উইজার্ড** chip and its own step instead of "Step n/10": "১ · অ্যাকাউন্ট খুলেছে" (signed up on step 1, no contest yet), "২ · লোগোর নাম দিয়েছে", "৩ · প্রাইজ দেখেছে", "৩ · {package} বেছেছে", "৪ · পেমেন্টের ধাপে" (the 10-part bar maps them to 1, 2, 7 and 9). Every contest lead shows its business type and package; a new-wizard draft shows "এখনো বাছেনি" instead of an amount until a package is picked (or the payment step is opened), and is left out of the money filters and sorts last by money. "শেষ কাজ {when}" (the client's own last activity, not the team's calls) on the row and in the details, with a **শেষ কাজ** filter (24 hours / 3 days / 7 days) and a **নতুন উইজার্ডের ধাপ** filter. A step-1 sign-up is listed only when the number has one client account without contests and the new-wizard visit is that person's (same email). "Where they get stuck" counts the old wizard only.
 - **Alerts and reminders:** a new-wizard draft gets the team's instant alerts and the client's reminder emails only after the client saw the prizes; its amount is left out until a package is picked. A bKash payment the new wizard closed (the client changed the order or used a promo code) is not a "payment failed". Step-1 sign-ups get no "new lead" alert (they are on the Unpaid page).
 - **Admin › Dashboard:** the drop-off chart counts the old wizard only; a **নতুন উইজার্ড (৪ ধাপ)** card shows, for the same period, Opened step 1 → Made an account → Gave the logo name → Saw the prizes → Picked a package → Sent the payment → Approved, each with "% of the step before" (a visit counts once per contest; resumes of older contests are left out).
+
+### Onboarding v2, Phase D (owner, 2026-10-29)
+
+- While `ONBOARDING_V2` is on, a new logo contest starts in the 4-step wizard: `/start/logo`, and old `/start?step=` / `?name=` links, go to `/start-v2`. A draft made in the old wizard still opens there (`/start?draft=`). Without the flag the old wizard comes back as before.
+
+## Bangla for visitors from Bangladesh (owner, 2026-10-29)
+
+- A visitor from Bangladesh sees the site in Bangla unless they chose a language. The address's `?lang=` comes first, then the visitor's own choice (the language switch keeps it), then Bangla for Bangladesh, otherwise English. Search engines crawl from abroad, so the plain address stays English for them.
+
+## New home page (owner, 2026-10-29; `Design/logocontest-site/index.html`)
+
+For visitors and admins. Signed-in clients and designers still get their own home. The sections, top to bottom:
+- **Hero:** as before. Slide 1 now reads "Start a contest. Bangladesh's best designers send you ideas, and you pick the one you love." The payment chip says "bKash or card" only while a card method is open in Admin › Payments.
+- **Contests live right now:** a carousel of up to 12 open contests, ordered like the browse page's Open tab.
+  - Each card has a letter tile in the contest's colour, the name, the category, the package, the Urgent/Highlighted badges, the prize, the designs count and the days left.
+  - Private/NDA contests show as "Private contest" with a lock and link to the browse page.
+  - It moves every 3.2 s. It pauses on hover or keyboard focus, and stops for good once the visitor uses the arrows or swipes.
+  - When every contest fits in the row, nothing moves and there are no arrows.
+  - Visitors share one list for a minute.
+- **"What if I don't like any of the designs?":** a maroon band with three ticks. "Invite Pro designers" shows only while a real client could invite a real Pro designer. "See all questions" jumps to the Q&A.
+- **Designers joining every day:** two moving rows of the newest 30 active designers: photo or initials, name, and when they joined (the site keeps no city). "Just joined" marks the 3 newest from the last 30 days. Each card links to the designer's profile. Kept 10 minutes. The section hides below 8 designers.
+- **Simple pricing:** four cards, Economy, Standard (Most popular), Premium and Custom, with prizes from Admin › Pricing.
+  - Each card shows the fee at that prize's own rate, the total, and the free AI Logo Checker checks (N per ৳1,000).
+  - Then the "Invite Pro designers" line when invites are open, and the gift box line on Premium when the client gift box is on.
+  - The Start buttons go to `/start/logo`; Custom calls the support phone.
+  - Below: "Where does your money go?" (4 steps), a worked Standard example and "Why do you pay first?".
+  - The notes give the Blind price (free from the add-ons threshold), the files deadline from Admin, and the refund rule (it follows the money-back guarantee switch).
+- **Meet the designers who won:** a moving row of up to 12 winning logos. Admin-featured logos come first, then the newest, one per designer. Each shows the designer's photo or initials, "Won {brand} logo" and the prize. A blind contest's winner shows without a name. The section hides below 4 winners.
+- **What do you need designed?**, **AI copyright checker** and **Q&A:** as before. The logo card's "Prize from" now comes from Admin › Pricing.
+- **Removed with the new design:** the monthly prizes section (its switch is gone from Admin › Home hero), "Why us" with the comparison, and the two "ways in" cards.
+
+Small design fixes on the other pages, with no text changed:
+- **/start:** the maroon "Start a contest" pill and a bigger heading.
+- **/contests:** the guest gold bar shows the four add-on badges; "Feature my contest" goes to `/start/logo`; the offer cards sit side by side from 521px; the dropdowns have the design's arrow; the cards have a round package pill and a colour per contest.
+- **/how-it-works:** the drawn video cover has three tilted sample logos with "Winner".

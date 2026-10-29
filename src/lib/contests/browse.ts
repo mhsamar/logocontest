@@ -1,5 +1,4 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { CurrentUser } from "@/lib/auth/policies";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -284,18 +283,6 @@ export async function contestsByIds(ids: string[]): Promise<ContestRow[]> {
   if (error) throw new Error(error.message);
   const byId = new Map((await toRows((data ?? []) as DbRow[])).map((r) => [r.id, r]));
   return ids.map((id) => byId.get(id)).filter((r): r is ContestRow => Boolean(r));
-}
-
-/**
- * The home page's open contests for visitors who aren't signed in (owner, 2026-10-28: the same list was rebuilt on
- * every view): kept for a minute. Dates come back as text from the cache and are turned back into dates.
- */
-const cachedLive = unstable_cache((limit: number, cutoff: string | null) => liveContests(limit, cutoff ? new Date(cutoff) : null), ["home-live-v1"], { revalidate: 60 });
-export async function guestLiveContests(limit: number, hideNewerThan: Date | null): Promise<ContestRow[]> {
-  // The early-access cutoff moves every moment; to the minute, so a minute's visitors share one list.
-  const cutoff = hideNewerThan ? new Date(Math.floor(hideNewerThan.getTime() / 60_000) * 60_000).toISOString() : null;
-  const date = (v: Date | string | null) => (v ? new Date(v) : null);
-  return (await cachedLive(limit, cutoff)).map((r) => ({ ...r, startsAt: date(r.startsAt), endsAt: date(r.endsAt), judgingEndsAt: date(r.judgingEndsAt) }));
 }
 
 /** Home page section 2: open contests, Promoted first, then the newest. */

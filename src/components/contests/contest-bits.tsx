@@ -18,9 +18,22 @@ export function LockIcon({ className = "size-4" }: { className?: string }) {
   );
 }
 
+/** The letter tile's default colours. */
+const TILE_PLAIN = "bg-[#F4EFE4] text-[#7A1E12]";
+/** Pastel letter tiles of Design/logocontest-site/browse-contests.html (owner, 2026-10-29): sand, blue, green, rose. */
+export const TILE_PASTELS = [TILE_PLAIN, "bg-[#D9E6F7] text-[#24406B]", "bg-[#DDF1E3] text-[#1D5B37]", "bg-[#FBECEB] text-[#8B0000]"] as const;
+
+/** One pastel per contest, picked from its id, so a contest keeps its colour on every visit and page. */
+export function tilePastel(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return TILE_PASTELS[h % TILE_PASTELS.length];
+}
+
 /**
  * The contest's picture (owner, 2026-10-08): its leading design (the winner gets a
  * small trophy), else the brand's first letter, or a lock for private contests.
+ * `pastel` (the contest id; browse cards only, owner 2026-10-29): the letter tile takes one of the design's pastels.
  */
 export function BrandTile({
   name,
@@ -28,12 +41,14 @@ export function BrandTile({
   cover,
   flat,
   className,
+  pastel,
 }: {
   name: string;
   isPrivate: boolean;
   cover?: ContestCover | null;
   flat?: boolean;
   className?: string;
+  pastel?: string;
 }) {
   const letter = name.trim().charAt(0).toUpperCase() || "•";
   if (cover && !isPrivate) {
@@ -52,7 +67,7 @@ export function BrandTile({
         "flex shrink-0 items-center justify-center overflow-hidden",
         // flat: fills a panel edge to edge (list rows), so no corners or ring of its own.
         !flat && "rounded-[18px]",
-        isPrivate ? "bg-[image:var(--gradient-red-dark)] text-white" : "bg-[#F4EFE4] text-[#7A1E12]",
+        isPrivate ? "bg-[image:var(--gradient-red-dark)] text-white" : pastel ? tilePastel(pastel) : TILE_PLAIN,
         className,
       )}
       aria-hidden
@@ -79,10 +94,13 @@ const PACKAGE_PILL: Record<PackageKey, string> = {
   custom: "bg-tint text-primary",
 };
 
-/** Package chip (site design, owner 2026-10-10): Starter grey, Growth and Pro dark, Premium, Elite and Custom red tint. */
-export function PackagePill({ pkg, t }: { pkg: PackageKey; t: Translate }) {
+/**
+ * Package chip (site design, owner 2026-10-10): Starter grey, Growth and Pro dark, Premium, Elite and Custom red tint.
+ * `className` replaces the chip's shape and size (the browse cards' round 12.5px pill, owner 2026-10-29); the colours stay.
+ */
+export function PackagePill({ pkg, t, className }: { pkg: PackageKey; t: Translate; className?: string }) {
   return (
-    <span className={cx("rounded-lg px-2.5 py-1 text-[13px] font-bold", PACKAGE_PILL[pkg])}>
+    <span className={cx(className ?? "rounded-lg px-2.5 py-1 text-[13px]", "font-bold", PACKAGE_PILL[pkg])}>
       {t(`wizard.packages.${pkg}.name`)}
     </span>
   );

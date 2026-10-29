@@ -2,9 +2,21 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react";
+import { cx } from "@/lib/cx";
 import { embedUrl, PLAYER_ORIGIN, type HowVideo } from "@/lib/home/how-video";
+import { useI18n } from "@/lib/i18n/client";
 
 type Texts = { kicker: string; title: string; body: string; sound: string; play: string; player: string };
+
+/**
+ * The three tilted logos on the drawn cover (owner, 2026-10-29; Design/logocontest-site/how-it-works.html): the site's
+ * own samples (public/examples/browse), never the design file's stock logos; the front one carries the Winner tag.
+ */
+const TILES = [
+  { n: 1, at: "left-[3cqw] top-[14cqw] z-[1] -rotate-9", winner: false },
+  { n: 10, at: "left-[20cqw] top-[9cqw] z-[2] rotate-7", winner: false },
+  { n: 2, at: "left-[11cqw] top-[24cqw] z-[3] -rotate-3", winner: true },
+];
 
 /** Asks the video player (YouTube or Vimeo) to do something, without loading either site's script. */
 export function playerCommand(frame: HTMLIFrameElement | null, video: HowVideo, action: "play" | "pause" | "unmute" | "mute") {
@@ -111,6 +123,7 @@ export function HowVideoPlayer({ video, cover, autoplay, texts }: { video: HowVi
 }
 
 function Poster({ cover, texts, onPlay }: { cover: string | null; texts: Texts; onPlay: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="absolute inset-0 [container-type:inline-size]">
       {cover ? (
@@ -129,12 +142,28 @@ function Poster({ cover, texts, onPlay }: { cover: string | null; texts: Texts; 
             aria-hidden
             className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.045)_1px,transparent_1px)] bg-[size:5cqw_5cqw]"
           />
+          {/* The admin's cover picture stands alone; the drawn cover gets the design's sample logos. */}
+          <div aria-hidden className="absolute inset-y-0 right-0 w-[44cqw]">
+            {TILES.map((tile) => (
+              <span
+                key={tile.n}
+                className={cx("absolute size-[21cqw] overflow-hidden rounded-[2.2cqw] border-[length:.5cqw] border-white bg-[#111216] shadow-[0_2.5cqw_5cqw_rgba(0,0,0,.45)]", tile.at)}
+              >
+                <img src={`/examples/browse/logo-${tile.n}.jpg`} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
+                {tile.winner && (
+                  <span className="absolute left-[1cqw] top-[1cqw] rounded-full bg-[#FFE27A] px-[1.2cqw] py-[.3cqw] text-[max(9px,1.5cqw)] font-bold leading-[1.3] text-[#111216]">
+                    {t("home.how.art.winner")}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
         </>
       )}
-      <div className="absolute left-[5cqw] top-1/2 flex w-[62cqw] -translate-y-1/2 flex-col items-start gap-[1.6cqw]">
+      <div className={cx("absolute left-[5cqw] top-1/2 flex -translate-y-1/2 flex-col items-start gap-[1.6cqw]", cover ? "w-[62cqw]" : "z-[4] w-[50cqw]")}>
         <span className="rounded-full bg-white/[0.14] px-[1.5cqw] py-[.5cqw] text-[max(11px,1.5cqw)] font-bold uppercase tracking-[.08em] text-[#FFE27A]">{texts.kicker}</span>
         <strong className="lc-d text-[max(20px,5.4cqw)] font-semibold leading-[1.04] tracking-[-0.04em]">{texts.title}</strong>
-        <span className="max-w-[46cqw] text-[max(12px,1.9cqw)] leading-[1.4] text-[#F1D5D3] max-[480px]:hidden">{texts.body}</span>
+        <span className={cx("text-[max(12px,1.9cqw)] leading-[1.4] text-[#F1D5D3] max-[480px]:hidden", cover ? "max-w-[46cqw]" : "max-w-[40cqw]")}>{texts.body}</span>
         <button
           type="button"
           onClick={onPlay}

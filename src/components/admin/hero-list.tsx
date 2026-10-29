@@ -91,13 +91,14 @@ export function HeroSettingsForm({ seconds, samplePill, offerSlide }: { seconds:
   const { busy, run } = useQuick();
   const [s, setS] = useState(String(seconds));
   const [pill, setPill] = useState(samplePill);
-  const [offer, setOffer] = useState(offerSlide);
   return (
     <form
       className="mt-4 flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        run(() => saveHeroSettings({ seconds: Number(s), samplePill: pill, offerSlide: offer }), t("admin.saved"));
+        // The monthly prizes section left the home page with the new design (owner, 2026-10-29), so its switch is gone
+        // from here; its saved value is kept as it was.
+        run(() => saveHeroSettings({ seconds: Number(s), samplePill: pill, offerSlide }), t("admin.saved"));
       }}
     >
       <div className="flex max-w-xs flex-col gap-1.5">
@@ -110,10 +111,6 @@ export function HeroSettingsForm({ seconds, samplePill, offerSlide }: { seconds:
       <div>
         <AdmCheckbox label={t("admin.hero.settings.pill")} checked={pill} disabled={readOnly} onChange={(e) => setPill(e.target.checked)} />
         <p className="m-0 mt-1 text-[13px] text-muted">{t("admin.hero.settings.pillHint")}</p>
-      </div>
-      <div>
-        <AdmCheckbox label={t("admin.hero.settings.offer")} checked={offer} disabled={readOnly} onChange={(e) => setOffer(e.target.checked)} />
-        <p className="m-0 mt-1 text-[13px] text-muted">{t("admin.hero.settings.offerHint")}</p>
       </div>
       {!readOnly && (
         <div>

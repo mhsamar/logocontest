@@ -5,6 +5,10 @@ import payEn from "./pay-en";
 import proEn from "./pro-en";
 import guaranteeEn from "./guarantee-en";
 import onboardingEn from "./onboarding-en";
+import homeCarouselEn from "./home-carousel-en";
+import homeWallEn from "./home-wall-en";
+import homePricingEn from "./home-pricing-en";
+import homeWinnersEn from "./home-winners-en";
 
 const en = {
   pro: proEn,
@@ -14,6 +18,8 @@ const en = {
   share: shareEn,
   guarantee: guaranteeEn,
   wizardV2: onboardingEn,
+  // The new home page's own sections (owner, 2026-10-29).
+  home2: { carousel: homeCarouselEn, wall: homeWallEn, pricing: homePricingEn, winners: homeWinnersEn },
   meta: {
     title: "Logo Design Contests in Bangladesh | logocontest.bd",
     description: "Get logo ideas from many Bangladeshi designers for one fixed prize. Pay in taka by bKash; the winner hands over every file and the full copyright.",
@@ -295,10 +301,12 @@ const en = {
       chooseType: "Select your contest type",
       goodToKnow: "Good to know:",
       pay: "Pay with bKash",
+      payCard: "bKash or card",
+      payCardOnly: "Pay by card",
       held: "Money held safe",
       call: "Call {phone}",
       slides: {
-        jubilix: { line1: "Many designers.", line2: "One perfect logo.", text: "Tell us your business name. Bangladesh's best designers send you logo ideas, and you pick the one you love." },
+        jubilix: { line1: "Many designers.", line2: "One perfect logo.", text: "Start a contest. Bangladesh's best designers send you ideas, and you pick the one you love." },
         fly: { line1: "One contest.", line2: "Many logo ideas.", text: "Start a contest in a few minutes. Designers send their ideas to you, so you have real choices." },
         beep: { line1: "Pick the one", line2: "you love.", text: "See every design side by side, ask for changes, and choose your winner." },
         favliy: { line1: "Pay safely.", line2: "Get every file.", text: "Your money is held safe until you approve the final logo files." },

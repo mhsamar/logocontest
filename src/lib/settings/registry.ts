@@ -880,7 +880,8 @@ export const SETTINGS = {
   },
   "home.hero_offer_slide": {
     group: "home", type: "bool", schema: z.boolean(), default: true,
-    description: "Show the monthly prizes section (the two gift boxes) under the live contests on the home page.",
+    // Not used since the new home page (owner, 2026-10-29), which has no monthly prizes section; kept so saved values stay valid.
+    description: "Show the monthly prizes section (the two gift boxes) under the live contests on the home page. Not used by the current home page.",
   },
   // Admin → Home hero (owner, 2026-10-11; migration 0034)
   "home.hero_slide_seconds": {

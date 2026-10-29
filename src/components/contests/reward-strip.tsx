@@ -28,8 +28,9 @@ export async function OfferCards({ t }: { t: Translate }) {
     on.giftBox && { key: "offerGift" as const, phone: false },
   ].filter((c): c is { key: "offerPhone" | "offerGift"; phone: boolean } => Boolean(c));
   if (!cards.length) return null;
+  // Side by side from 521px, as in Design/logocontest-site/browse-contests.html (owner, 2026-10-29).
   return (
-    <div className={cx("grid gap-3", cards.length > 1 && "min-[641px]:grid-cols-2")}>
+    <div className={cx("grid gap-3", cards.length > 1 && "min-[521px]:grid-cols-2")}>
       {cards.map((c) => (
         <Link
           key={c.key}

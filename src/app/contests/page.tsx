@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/link";
 import { BrowseFilters } from "@/components/contests/browse-filters";
-import { ContestCard, FeaturedContestCard } from "@/components/contests/browse-cards";
+import { AddonBadgeRow, ContestCard, FeaturedContestCard } from "@/components/contests/browse-cards";
 import { OfferCards, RacePanel } from "@/components/contests/reward-strip";
 import { visibleBusinessTypes } from "@/lib/content/lists";
 import { can } from "@/lib/auth/policies";
@@ -123,10 +123,13 @@ export default async function BrowsePage({ searchParams }: PageProps<"/contests"
             <div className="flex min-w-0 flex-[1_1_280px] flex-col gap-1">
               <strong className="lc-d text-xl leading-[1.15] tracking-[-0.025em] text-ink">{designer ? t("browse.x.firstTitle") : t("browse.x.wantTitle")}</strong>
               <span className="text-[15px] text-[#4A3700]">{designer ? t("browse.x.firstBody") : t("browse.x.wantBody")}</span>
+              {/* Guests see the four add-ons as they look on a card (owner, 2026-10-29; Design/logocontest-site). */}
+              {!designer && <AddonBadgeRow t={t} className="mt-0.5" />}
             </div>
             <div className="flex flex-wrap items-center gap-2.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-stretch">
+              {/* Opens a logo contest straight away (owner, 2026-10-29). */}
               {!designer && (
-                <Link href="/start" className={cx(BTN, "min-h-[52px] border border-[#E2B13C] bg-white px-6 text-ink")}>
+                <Link href="/start/logo" className={cx(BTN, "min-h-[52px] border border-[#E2B13C] bg-white px-6 text-ink")}>
                   {t("browse.x.featureMine")}
                 </Link>
               )}

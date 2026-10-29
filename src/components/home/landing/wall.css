@@ -1,0 +1,264 @@
+/*
+ * New home page, two sections (owner, 2026-10-29; Design/logocontest-site/index.html): the "What if I don't like any
+ * of the designs?" band (.lc-ab, design .cq) and the newest designers wall (.lc-dw, design #live-designers, .dcard,
+ * .mq). Everything is scoped to .lc-landing; keyframes carry the same prefixes.
+ */
+
+/* ---- Question band ---- */
+.lc-landing .lc-ab {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 26px 40px 26px 34px;
+  color: #fff;
+  background: linear-gradient(115deg, #5c0a0c, #8b0000 45%, #b3201b 70%, #6a0a0e);
+  background-size: 220% 100%;
+  animation: lc-ab-drift 9s ease-in-out infinite alternate;
+}
+@keyframes lc-ab-drift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+.lc-landing .lc-ab-glow {
+  position: absolute;
+  z-index: -1;
+  top: -60%;
+  left: -10%;
+  width: 40%;
+  height: 220%;
+  background: radial-gradient(closest-side, rgb(255 226 122 / 0.28), rgb(255 226 122 / 0));
+  pointer-events: none;
+  animation: lc-ab-sweep 7s ease-in-out infinite;
+}
+@keyframes lc-ab-sweep { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(220%); } }
+.lc-landing .lc-ab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 32px; }
+.lc-landing .lc-ab-icon {
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 26px;
+  background: #ffe27a;
+  color: #8b0000;
+  box-shadow: 0 0 0 8px rgb(255 226 122 / 0.16), 0 14px 30px rgb(0 0 0 / 0.28);
+  transform-origin: 50% 80%;
+  animation: lc-ab-wobble 3.2s ease-in-out infinite;
+}
+@keyframes lc-ab-wobble {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  20% { transform: rotate(-8deg) translateY(-3px); }
+  40% { transform: rotate(6deg) translateY(-5px); }
+  60% { transform: rotate(-3deg) translateY(-2px); }
+}
+.lc-landing .lc-ab-txt { flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lc-landing .lc-ab-q { margin: 0; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; letter-spacing: -0.03em; font-weight: 600; }
+.lc-landing .lc-ab-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ffe27a;
+  color: #5c0a0c;
+  font: 700 12px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lc-landing .lc-ab-body { margin: 0; font-size: 19px; line-height: 1.45; font-weight: 500; color: #fff3f2; }
+.lc-landing .lc-ab-ticks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; padding: 0; list-style: none; }
+.lc-landing .lc-ab-tick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lc-landing .lc-ab-cta {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 10px 0 22px;
+  border-radius: 16px;
+  background: #fff;
+  color: #8b0000;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.22);
+  transition: transform 0.3s;
+}
+.lc-landing .lc-ab-cta:hover { opacity: 1; transform: translateY(-2px); }
+.lc-landing .lc-ab-cta:focus-visible { outline: 3px solid #ffe27a; outline-offset: 3px; }
+/* A gold shine that crosses the button every few seconds */
+.lc-landing .lc-ab-cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgb(255 226 122 / 0.55), transparent);
+  transform: translateX(-170%) skewX(-20deg);
+  pointer-events: none;
+  animation: lc-ab-shine 3.2s ease-in-out infinite;
+}
+/* Moved with transform, not left, so the page isn't laid out again on every frame (review, 2026-10-29). */
+@keyframes lc-ab-shine { 0%, 55% { transform: translateX(-170%) skewX(-20deg); } 85%, 100% { transform: translateX(450%) skewX(-20deg); } }
+.lc-landing .lc-ab-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #8b0000;
+  color: #ffe27a;
+  transition: transform 0.3s;
+}
+.lc-landing .lc-ab-cta:hover .lc-ab-go { transform: translateX(4px); }
+
+/* ---- Newest designers wall ---- */
+.lc-landing .lc-dw { border-radius: 32px; background: #fff; padding: 40px 0; }
+.lc-landing .lc-dw-head {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 40px;
+}
+.lc-landing .lc-dw-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 640px; min-width: 0; }
+.lc-landing .lc-dw-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e8f4ee;
+  color: #14633c;
+  font-size: 14px;
+  font-weight: 700;
+}
+.lc-landing .lc-dw-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #1f7a4d; animation: lc-dw-pulse 1.6s ease-in-out infinite; }
+@keyframes lc-dw-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(31 122 77 / 0.45); } 50% { box-shadow: 0 0 0 6px rgb(31 122 77 / 0); } }
+.lc-landing .lc-dw-title { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; }
+.lc-landing .lc-dw-accent { color: #8b0000; }
+.lc-landing .lc-dw-lead { margin: 0; font-size: 16.5px; color: #5f626b; }
+.lc-landing .lc-dw-join {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: 16px;
+  background: #111216;
+  color: #fff;
+  font-weight: 700;
+}
+.lc-landing .lc-dw-rows { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+/* One row: clipped sideways only (never a page scroll), faded at both ends; the padding lets the card shadows show. */
+.lc-landing .lc-dw-mq {
+  overflow-x: hidden; /* older Safari, without clip */
+  overflow-x: clip;
+  padding: 2px 0 18px;
+  margin: -2px 0 -18px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.lc-landing .lc-dw-tr { display: flex; width: max-content; animation: lc-dw-left 80s linear infinite; }
+.lc-landing .lc-dw-rev { animation-name: lc-dw-right; animation-duration: 90s; }
+.lc-landing .lc-dw-mq:hover .lc-dw-tr { animation-play-state: paused; }
+/* Keyboard focus inside a row (not a click, which would make the row jump under the mouse): it stops at its start, unfaded,
+   and scrolls, so the browser can bring each card it reaches into view. */
+.lc-landing .lc-dw-mq:has(:focus-visible) { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: none; mask-image: none; }
+.lc-landing .lc-dw-mq:has(:focus-visible) .lc-dw-tr { animation: none; }
+@keyframes lc-dw-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes lc-dw-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+/* The gap sits after every card (not between), so each list is exactly as wide as the next and half the track loops. */
+.lc-landing .lc-dw-list { flex: none; display: flex; gap: 16px; margin: 0; padding: 0 16px 0 0; list-style: none; }
+.lc-landing .lc-dw-item { flex: none; }
+.lc-landing .lc-dw-card {
+  display: block;
+  width: 180px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #e7e8ec;
+  overflow: hidden;
+  color: inherit;
+  box-shadow: 0 1px 2px rgb(17 18 22 / 0.04), 0 16px 40px rgb(17 18 22 / 0.08);
+  transition: border-color 0.25s;
+}
+.lc-landing .lc-dw-card:hover { opacity: 1; border-color: #d3d5db; }
+.lc-landing .lc-dw-card:focus-visible { outline: 2px solid #8b0000; outline-offset: -2px; }
+.lc-landing .lc-dw-ph {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  background: var(--lc-dw-bg);
+}
+/* Initials tints in the design's order */
+.lc-landing .lc-dw-t0 { --lc-dw-bg: #f3e6e4; --lc-dw-ink: #8b0000; }
+.lc-landing .lc-dw-t1 { --lc-dw-bg: #e6eef6; --lc-dw-ink: #1f3a5f; }
+.lc-landing .lc-dw-t2 { --lc-dw-bg: #e8f1ea; --lc-dw-ink: #1f5c3a; }
+.lc-landing .lc-dw-t3 { --lc-dw-bg: #f6efdc; --lc-dw-ink: #6b4e00; }
+.lc-landing .lc-dw-t4 { --lc-dw-bg: #ece8f4; --lc-dw-ink: #43306b; }
+.lc-landing .lc-dw-t5 { --lc-dw-bg: #e9ecef; --lc-dw-ink: #2b2f36; }
+.lc-landing .lc-dw-ini { font-family: var(--font-heading); font-size: 50px; font-weight: 600; letter-spacing: -0.04em; color: var(--lc-dw-ink); }
+.lc-landing .lc-dw-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lc-landing .lc-dw-new {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: #fff;
+  color: #14633c;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lc-landing .lc-dw-new::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #1f7a4d; }
+.lc-landing .lc-dw-body { display: flex; flex-direction: column; padding: 10px 12px 12px; }
+.lc-landing .lc-dw-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-landing .lc-dw-when { font-size: 14px; color: #5f626b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 720px) {
+  /* Beats landing.css's 720px section padding (.lc-landing section:not(…)), as the design's #dont-like rule does. */
+  .lc-landing #dont-like.lc-ab { padding: 22px 20px !important; }
+  .lc-landing .lc-ab-cta { width: 100%; justify-content: space-between; }
+  .lc-landing .lc-dw-card { width: 156px; }
+  .lc-landing .lc-dw-ph { height: 130px; }
+}
+
+/* Motion off: nothing moves; each row scrolls sideways by hand instead, and its copies are left out. */
+@media (prefers-reduced-motion: reduce) {
+  .lc-landing .lc-ab,
+  .lc-landing .lc-ab-glow,
+  .lc-landing .lc-ab-icon,
+  .lc-landing .lc-ab-cta::after,
+  .lc-landing .lc-dw-dot,
+  .lc-landing .lc-dw-tr { animation: none; }
+  .lc-landing .lc-ab-cta,
+  .lc-landing .lc-ab-go,
+  .lc-landing .lc-dw-card { transition: none; }
+  .lc-landing .lc-ab-cta:hover,
+  .lc-landing .lc-ab-cta:hover .lc-ab-go { transform: none; }
+  .lc-landing .lc-dw-mq { overflow-x: auto; scrollbar-width: thin; margin-bottom: 0; padding-bottom: 12px; -webkit-mask-image: none; mask-image: none; }
+  .lc-landing .lc-dw-dup { display: none; }
+}

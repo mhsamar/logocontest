@@ -22,6 +22,7 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { checkPayout, type PayoutInput } from "@/lib/designers/signup";
 import { EXPERIENCE_MAX, OTHER_MAX, SKILLS_MAX, isLanguageKey, isSkillKey, isSkillLevel, isToolKey } from "@/lib/designers/portfolio-options";
 import { AVATAR_TYPES, AVATARS_BUCKET } from "./avatar";
+import { homeDesignersChanged } from "@/lib/home/designer-wall";
 
 /** D-12 / C-20 profile settings (UI-JOURNEY, owner 2026-10-08). */
 
@@ -53,6 +54,7 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
   const { error } = await createAdminClient().from("profiles").update(update).eq("id", user.id);
   if (error) return fail("auth.errors.generic");
   refresh();
+  homeDesignersChanged();
   return { status: "ok" };
 }
 
@@ -152,6 +154,7 @@ export async function saveAvatar(path: string): Promise<{ ok: true } | { ok: fal
   if (error) return generic;
   if (old?.avatar_path && old.avatar_path !== path) await storage.remove(AVATARS_BUCKET, [old.avatar_path]).catch(() => {});
   refresh();
+  homeDesignersChanged();
   return { ok: true };
 }
 
@@ -163,6 +166,7 @@ export async function removeAvatar(): Promise<boolean> {
   await db.from("profiles").update({ avatar_path: null }).eq("id", user.id);
   if (old?.avatar_path) await getFileStorage().remove(AVATARS_BUCKET, [old.avatar_path]).catch(() => {});
   refresh();
+  homeDesignersChanged();
   return true;
 }
 

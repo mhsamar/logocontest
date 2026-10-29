@@ -108,8 +108,9 @@ describe("fewer waits", () => {
   });
 
   it("visitors on the home page share a list kept for a minute, with real dates", async () => {
-    expect(read("src/app/page.tsx")).toContain("(user ? liveContests(3, cut) : guestLiveContests(3, cut))");
-    expect(read("src/lib/contests/browse.ts")).toContain("startsAt: date(r.startsAt), endsAt: date(r.endsAt), judgingEndsAt: date(r.judgingEndsAt)");
+    // The new home carousel (owner, 2026-10-29): a light list, shared by visitors for a minute; dates stay text.
+    expect(read("src/app/page.tsx")).toContain("carouselContests(user ?? null)");
+    expect(read("src/lib/home/carousel.ts")).toContain('["home-carousel-v2"], { revalidate: 60 }');
   });
 
   it("the contest page reads at the same time, and checks early access before showing anything", () => {

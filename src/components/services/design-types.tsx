@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, Translate } from "@/lib/i18n/translate";
+import { siteFacts } from "@/lib/seo/facts";
 import { allServices } from "@/lib/services/store";
 import { LOGO, sizeText, type Lang, type ServiceDef } from "@/lib/services/types";
 import "./design-types.css";
@@ -65,6 +66,12 @@ const GROUP: Record<string, string> = {
   tshirt: "print",
 };
 const FILES: Record<string, string> = { business_card: "pdf", flyer: "pdf", tshirt: "pngSvg" };
+
+/**
+ * "Prize from" on a card (owner, 2026-10-29): the logo card shows the lowest logo prize in Admin › Pricing (`logoMin`,
+ * siteFacts().minPrize), so it matches the pricing page; every other service keeps its own minimum from Admin › Services.
+ */
+export const cardMinPrize = (s: Pick<ServiceDef, "slug" | "minPrize">, logoMin: number) => (s.slug === LOGO && logoMin > 0 ? logoMin : s.minPrize);
 
 /** The drawn sample for a service (a plain maroon tile with its name for services added later in the admin). */
 function Mock({ slug, name }: { slug: string; name: string }): ReactNode {
@@ -174,11 +181,11 @@ function Mock({ slug, name }: { slug: string; name: string }): ReactNode {
 }
 
 /** One card. The logo card is the big featured one (logo wall, steps, Good for, wide button). */
-function Card({ s, t, l, price, home }: { s: ServiceDef; t: Translate; l: (x: Lang) => string; price: (bdt: number) => string; home: boolean }) {
+function Card({ s, t, l, price, home, logoMin }: { s: ServiceDef; t: Translate; l: (x: Lang) => string; price: (bdt: number) => string; home: boolean; logoMin: number }) {
   const name = l(s.name);
   const feat = s.slug === LOGO;
   const on = s.on;
-  const prize = <span className="dt-chip dt-prize">{t("services.picker.from", { amount: price(s.minPrize) })}</span>;
+  const prize = <span className="dt-chip dt-prize">{t("services.picker.from", { amount: price(cardMinPrize(s, logoMin)) })}</span>;
   const tag = (
     <span className="dt-tag">
       <i aria-hidden />
@@ -313,7 +320,7 @@ function Card({ s, t, l, price, home }: { s: ServiceDef; t: Translate; l: (x: La
 export async function DesignTypes({ variant }: { variant: "home" | "start" }) {
   const { t, locale, price } = await getI18n();
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
-  const services = await allServices();
+  const [services, facts] = await Promise.all([allServices(), siteFacts()]);
   const logoDef = services.find((s) => s.slug === LOGO);
   const rest = services.filter((s) => s.slug !== LOGO);
   const home = variant === "home";
@@ -324,7 +331,7 @@ export async function DesignTypes({ variant }: { variant: "home" | "start" }) {
   return (
     <div className={cx("dt-grid", home && "dt-home")}>
       {cards.map((s) => (
-        <Card key={s.slug} s={s} t={t} l={l} price={price} home={home} />
+        <Card key={s.slug} s={s} t={t} l={l} price={price} home={home} logoMin={facts.minPrize} />
       ))}
       {!home && (
         <Link href="/support" className="dt-card dt-other">
