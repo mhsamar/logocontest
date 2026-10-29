@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import Link from "@/components/ui/link";
@@ -13,7 +13,7 @@ import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { v2AcceptBrief, v2SaveBriefSection } from "@/lib/onboarding/brief-actions";
-import { BRIEF_SECTIONS, briefReadyPercent, SECTION_FIELDS, SECTION_STEPS, type BriefCompletion, type BriefSection } from "@/lib/onboarding/brief-defaults";
+import { BRIEF_SECTIONS, briefReadyPercent, HUB_FIELDS, SECTION_STEPS, type BriefCompletion, type BriefSection } from "@/lib/onboarding/brief-defaults";
 import { checkExtraAnswers, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
 import type { Lang } from "@/lib/services/types";
 import type { ServerFile } from "@/components/wizard/state";
@@ -57,6 +57,8 @@ export function BriefHub(props: {
   const [edited, setEdited] = useState<BriefSection[]>(props.completion.edited);
   const [open, setOpen] = useState<BriefSection | null>(null);
   const [photosOpen, setPhotosOpen] = useState(false);
+  // Pictures picked or removed in the photo card and not saved yet.
+  const [photosDirty, setPhotosDirty] = useState(false);
   const [draft, setDraft] = useState<Brief>(props.brief);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
@@ -66,14 +68,47 @@ export function BriefHub(props: {
   const lang = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en || x.bn);
   const digit = (n: number) => (locale === "bn" ? String(n).replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[Number(d)]) : String(n));
 
-  // The "none yet" ticks aren't stored: empty links or competitors are shown as ticked (as the defaults set them).
-  const withTicks = (b: Brief): Brief => ({ ...b, noLinks: briefLinks(b).length === 0, noCompetitors: !b.competitors.trim() });
-  const close = () => {
+  // The "none yet" ticks aren't stored, and start unticked so the link rows and the competitors box are both in view
+  // (owner, 2026-10-30: with competitors hidden behind a tick, other businesses' sites went in as the client's own).
+  // Empty rows and boxes are dropped when saved.
+  const withTicks = (b: Brief): Brief => ({ ...b, noLinks: false, noCompetitors: false });
+  const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  // Something typed in the open card that isn't saved yet (owner, 2026-10-30: it used to vanish without a word).
+  const cardDirty =
+    open !== null &&
+    (HUB_FIELDS[open].some((f) => !same(draft[f], brief[f])) || props.onboarding.extra.some((q) => SECTION_STEPS[open].includes(q.step) && !same(draft.extra?.[q.key], brief.extra?.[q.key])));
+  const dirty = cardDirty || photosDirty;
+  const unsaved = t("wizardV2.hub.unsaved");
+  // Leaving the page with unsaved typing or pictures asks first: closing or reloading the tab, and any link (the client
+  // menu, the top bar, Invite, "Later"), as those change the page without a reload.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onLink = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target === "_blank" || a.origin !== window.location.origin || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (window.confirm(unsaved)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", onLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", onLink, true);
+    };
+  }, [dirty, unsaved]);
+  const shut = () => {
     setOpen(null);
     setServerErrors({});
     setExtraErrors({});
     setError(null);
   };
+  // Cancel: asks first when something typed in this card isn't saved. After a save the card just closes.
+  const close = () => (!cardDirty || window.confirm(unsaved)) && shut();
   const edit = (s: BriefSection) => {
     setDraft(withTicks(brief));
     setOpen(s);
@@ -91,25 +126,35 @@ export function BriefHub(props: {
     const asked = props.onboarding.extra.filter((q) => SECTION_STEPS[s].includes(q.step));
     const extraCheck = asked.length ? checkExtraAnswers(props.onboarding, draft.extra, SECTION_STEPS[s]).errors : {};
     if (Object.keys(errors).length || Object.keys(extraCheck).length) {
-      // Show every problem on this card at once.
+      // Show every problem on this card at once, say so by the Save button and go to the first one (owner, 2026-10-30:
+      // a small red line under one field looked like nothing happened).
       setTouched(new Set([...Object.keys(errors), ...Object.keys(extraCheck).map((k) => `extra.${k}`)]));
       setExtraErrors(extraCheck);
+      setError(t("wizardV2.hub.fixAbove"));
+      requestAnimationFrame(() => {
+        const bad = document.querySelector<HTMLElement>(`[data-section="${s}"] [aria-invalid="true"]`);
+        // Fields without aria-invalid (link rows, the owner's own questions): their red message instead.
+        const target = bad ?? document.querySelector<HTMLElement>(`[data-section="${s}"] [role="alert"]`);
+        target?.scrollIntoView({ block: "center", behavior: "smooth" });
+        bad?.focus({ preventScroll: true });
+      });
       return;
     }
     setError(null);
     start(async () => {
-      const part = Object.fromEntries(SECTION_FIELDS[s].map((f) => [f, draft[f]])) as Partial<Brief>;
+      const part = Object.fromEntries(HUB_FIELDS[s].map((f) => [f, draft[f]])) as Partial<Brief>;
       const res = await actions.save({ contestId: props.contestId, section: s, brief: s === "links" ? { ...part, noLinks: draft.noLinks, noCompetitors: draft.noCompetitors } : part, extra: draft.extra });
       if (!res.ok) {
         setServerErrors(res.errors ?? {});
         setExtraErrors(res.extraErrors ?? {});
         if (res.errors || res.extraErrors) setTouched(new Set([...Object.keys(res.errors ?? {}), ...Object.keys(res.extraErrors ?? {}).map((k) => `extra.${k}`)]));
-        return setError(t(res.error));
+        // The wizard's "go back and check" makes no sense here: point at this card instead.
+        return setError(t(res.error === "wizard.errors.incomplete" ? "wizardV2.hub.fixAbove" : res.error));
       }
       // What the server kept (empty rows dropped, "none yet" honoured), so the card's summary matches it.
       setBrief(cleanBrief(draft));
       setEdited(res.edited);
-      close();
+      shut();
       toast(t("wizardV2.hub.saved"), "success");
     });
   };
@@ -118,7 +163,8 @@ export function BriefHub(props: {
     start(async () => {
       const res = await actions.accept({ contestId: props.contestId });
       if (!res.ok) return setError(t(res.error));
-      router.push(`/client/contests/${props.slug}`);
+      // To the brief, where "Edit brief" brings the client back here (owner, 2026-10-30).
+      router.push(`/client/contests/${props.slug}?tab=brief`);
     });
 
   // The cards' summaries, in words.
@@ -211,11 +257,12 @@ export function BriefHub(props: {
             error={touched.has(`extra.${q.key}`) && extraErrors[q.key] ? t(`services.wizard.errors.${extraErrors[q.key]}` as MessageKey) : undefined}
           />
         ))}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button type="button" size="lg" className="sm:flex-1" loading={busy} onClick={() => save(s)}>
             {t("wizardV2.hub.save")}
           </Button>
-          <Button type="button" variant="ghost" onClick={close}>
+          <Button type="button" variant="ghost" onClick={close} disabled={busy}>
             {t("wizardV2.hub.cancel")}
           </Button>
         </div>
@@ -247,7 +294,8 @@ export function BriefHub(props: {
                       {digit(i + 1)} · {t(`wizardV2.hub.cards.${s}`)}
                       <span className={cx("rounded-full px-2 py-0.5 text-[11.5px] font-bold", mine ? "bg-success/10 text-success" : "bg-chip text-muted")}>{mine ? t("wizardV2.hub.yoursTag") : t("wizardV2.hub.defaultTag")}</span>
                     </h2>
-                    {open !== s && (
+                    {/* One card at a time: Save or Cancel first, so nothing typed is lost (owner, 2026-10-30). */}
+                    {open === null && (
                       <button type="button" onClick={() => edit(s)} className="min-h-11 shrink-0 px-1 text-sm font-bold text-primary underline">
                         {t("wizardV2.hub.change")}
                       </button>
@@ -257,7 +305,7 @@ export function BriefHub(props: {
                 </section>
               );
             })}
-            {props.photos && <HubPhotos contestId={props.contestId} number={digit(5)} files={props.photos.files} limits={props.photos.limits} onOpen={setPhotosOpen} actions={props.photoActions} />}
+            {props.photos && <HubPhotos contestId={props.contestId} number={digit(5)} files={props.photos.files} limits={props.photos.limits} onOpen={setPhotosOpen} onDirty={setPhotosDirty} actions={props.photoActions} />}
             {props.invites && (
               <section className="flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line">
                 <div>
@@ -280,7 +328,7 @@ export function BriefHub(props: {
             </div>
           </div>
 
-          {error && (
+          {error && open === null && (
             <div className="mt-5">
               <Alert tone="danger">{error}</Alert>
             </div>

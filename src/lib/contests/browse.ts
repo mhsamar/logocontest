@@ -345,6 +345,8 @@ export type ContestDetail = ContestRow & {
     files: ContestFileView[];
     /** Onboarding v2 (owner, 2026-10-29): the parts the client hasn't changed, tagged "default" for designers. */
     defaults: BriefSection[];
+    /** Made in onboarding v2, whose client isn't asked for the feel sliders. */
+    v2: boolean;
   } | null;
 };
 
@@ -478,6 +480,7 @@ async function loadContestBySlug(slug: string, viewer: CurrentUser | null): Prom
           requirementsNote: data.requirements_note,
           files,
           defaults: defaultSections(parseCompletion(data.brief_completion)),
+          v2: parseCompletion(data.brief_completion) !== null,
         }
       : null,
   };

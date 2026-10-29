@@ -827,3 +827,17 @@ Small design fixes on the other pages, with no text changed:
 - **Clients:** every logo contest gets the same number of checks, whatever the prize: **10** (Settings › Limits, `limits.logo_checks_per_contest`). Before, 15 per full ৳1,000. It applies to contests already running: one that has used 10 or more can't start another; earlier reports stay. Failed checks and designers' own checks before sending don't count. A contest that bought the old add-on keeps at least the checks it paid for.
 - **Designers:** Basic **2** a month, Pro **20** a month (before: 100) and the 3-day free Pro Trial **5** (before: 10), all in Admin › Pro plan. For Pro it applies from this month, so a Pro designer who already used 20 or more waits until the 1st.
 - Texts on the home page (AI checker chips, pricing cards), the Logo Checker page, the client's checker box and Admin › Copyright checker follow these numbers.
+
+## Brief page after paying: fixes (owner, 2026-10-30)
+
+- **One card at a time:** while a card is open the others' **Change** is hidden, so Save or Cancel comes first. Cancel asks before dropping typing that isn't saved, and so does leaving the page by any link (client menu, top bar, Invite, "Later") or by closing or reloading the tab. Unsaved pictures in the photo card count too.
+- **A save that stops** says so by the Save button ("Not saved yet: fix the box marked in red above…") and goes to the field. The description has no minimum on this page (up to 300 letters; before, a short Bangla one was refused at 20).
+- **Card 1** sends and saves only the slogan, description and customers. The logo name, logo text, short name and type it hides always stay as saved.
+- **Links card:** the link rows and the Competitors box both start in view, and the help line says the links are the client's own, other businesses go under Competitors.
+- **Edit brief:** the client workspace shows **Edit brief** in the header, the Brief tab and the Overview card whenever the brief can still change. A v2 contest goes to its brief page while unpaid, waiting for approval or live; an older contest goes to Edit details while live. A live v2 contest also has **Logo name and other details** (Edit details). After **Finish** the client lands on the Brief tab.
+- **What is shown:**
+  - The client's Brief tab shows the description ("What the business does").
+  - The client's links sit under "The client's own website and pages", each with its kind.
+  - The public summary adds "+N more" after 4 requirements.
+  - A v2 contest shows no feel sliders (they are never asked; Edit details hides them for v2 too).
+  - Designers see "(no short name given: ask in the comments)" on a short logo with no short name.

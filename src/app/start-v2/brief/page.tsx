@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { contestRepository } from "@/lib/contests/services";
 import { visibleList } from "@/lib/content/lists";
 import { getI18n } from "@/lib/i18n/server";
+import { briefOpen } from "@/lib/onboarding/brief-defaults";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { awaitingApproval } from "@/lib/payments/manual";
@@ -30,7 +31,7 @@ export default async function BriefHubPage({ searchParams }: PageProps<"/start-v
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start-v2/brief?c=${id}`)}`);
   const contest = user.role === "client" ? await contestRepository().findContest(id) : null;
   if (!contest || contest.clientId !== user.id || !contest.briefCompletion) notFound();
-  if (!["draft", "pending_payment", "open"].includes(contest.status)) redirect(`/client/contests/${contest.slug}`);
+  if (!briefOpen(contest.status)) redirect(`/client/contests/${contest.slug}`);
 
   const [types, colours, onboarding, waiting, invites, s, { data: files }] = await Promise.all([
     visibleList("business_types", "en"),

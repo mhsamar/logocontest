@@ -931,6 +931,11 @@ const en = {
       usedOn: "Where the logo will be used",
       shortName: "Short name / app name",
       audience: "Target audience",
+      // Owner, 2026-10-30: the description on the client's own brief, the links as theirs, a short logo with no name.
+      description: "What the business does",
+      ownLinks: "The client's own website and pages",
+      moreRequirements: "+{n} more",
+      noShortName: " (no short name given: ask in the comments)",
       needs: "What the client needs",
       requirements: "Requirements",
       note: "Other requirements",
@@ -5776,7 +5781,9 @@ const en = {
       heading: "Links and competitors",
       helper: "Designers learn a lot from where you are online and who you compete with.",
       linksTitle: "Website and social links",
-      linksSub: "Add your website or pages, so designers can see your business.",
+      linksSub: "Only your own website or pages, so designers can see your business.",
+      // Shown only while the competitors question is on the page (owner, 2026-10-30).
+      linksSubOthers: "Other businesses go under Competitors below.",
       kind: "Link type",
       kinds: {
         website: "Website",
@@ -6160,6 +6167,8 @@ const en = {
       tooLong: "This is too long.",
       businessType: "Choose a business type.",
       description: "Use 20 to 300 characters.",
+      // Onboarding v2's brief has no minimum (owner, 2026-10-30).
+      descriptionMax: "Use up to 300 characters.",
       url: "Enter a valid link, like facebook.com/yourpage.",
       styles: "Pick at least one style.",
       colors: "Pick at least one colour, or let designers choose.",

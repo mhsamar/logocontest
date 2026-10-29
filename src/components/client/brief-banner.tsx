@@ -8,7 +8,7 @@ import type { BusinessType } from "@/lib/contests/brief";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/money";
 import { v2AcceptBrief } from "@/lib/onboarding/brief-actions";
-import type { BriefCompletion } from "@/lib/onboarding/brief-defaults";
+import { briefOpen, type BriefCompletion } from "@/lib/onboarding/brief-defaults";
 
 /**
  * Onboarding v2's brief banner (owner, 2026-10-29; client-onboarding-v2-spec.md §3 "After পরে করবো"): a client who left
@@ -18,8 +18,6 @@ import type { BriefCompletion } from "@/lib/onboarding/brief-defaults";
  * or changes any part of it.
  */
 
-/** While the brief can still change (as the hub): unpaid, waiting for approval, or live. */
-const BRIEF_OPEN = ["draft", "pending_payment", "open"];
 /** Designs in before the banner turns green (spec §3.4). */
 export const GREEN_AT = 3;
 
@@ -37,7 +35,7 @@ export type BannerInput = {
  * runs on the defaults; green from 3 designs while some are still unrated ("rate them" has nothing to ask after that).
  */
 export function briefBanner(c: BannerInput): "brief" | "entries" | null {
-  if (!c.completion || c.completion.acceptedAt || c.completion.edited.length > 0 || !BRIEF_OPEN.includes(c.status)) return null;
+  if (!c.completion || c.completion.acceptedAt || c.completion.edited.length > 0 || !briefOpen(c.status)) return null;
   // After paying only (spec §3): an unpaid draft has its own "pay to go live" card, and never a brief nag.
   if (c.status !== "open" && !c.waiting) return null;
   if (c.entries >= GREEN_AT) return c.unrated > 0 ? "entries" : null;

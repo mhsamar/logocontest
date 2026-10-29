@@ -54,7 +54,8 @@ export default async function EditContestPage({ params }: PageProps<"/dashboard/
               contestId={contest.id}
               initial={record.brief}
               backHref={back}
-              hidden={onboarding.hidden}
+              // No feel sliders for an onboarding v2 contest: they are never shown to designers (owner, 2026-10-30).
+              hidden={record.briefCompletion ? [...onboarding.hidden, "sliders"] : onboarding.hidden}
               files={(files?.data ?? []).map((f) => ({ id: f.id as string, name: f.original_name as string, type: f.mime_type as string, isCurrentLogo: f.type === "current_logo" }))}
               fileLimits={{ maxFiles: limits.maxFiles, maxMb: limits.maxMb }}
               currentLogo={contest.service === "logo"}

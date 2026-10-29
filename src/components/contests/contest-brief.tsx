@@ -46,8 +46,11 @@ export async function ContestBrief({
   brief,
   extra = [],
   defaults = [],
+  withDescription = false,
 }: {
   brief: NonNullable<ContestDetail["brief"]>;
+  /** The description too (the client's own page, whose header doesn't have it; owner, 2026-10-30). */
+  withDescription?: boolean;
   /** Answers to the owner's own questions. */
   extra?: { label: string; answer: string }[];
   /** Onboarding v2 (owner, 2026-10-29): the parts the client hasn't changed, tagged for designers (not on the client's own page). */
@@ -65,27 +68,39 @@ export async function ContestBrief({
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {/* The description itself is in the page header. */}
-      {(facts.length > 0 || brief.links.length > 0 || brief.targetAudience || brief.competitors) && (
+      {/* The description is in the public page's header; the client's own page shows it here. */}
+      {((withDescription && brief.description.trim()) || facts.length > 0 || brief.links.length > 0 || brief.targetAudience || brief.competitors) && (
         <Block title={t("contest.brief.about")} className="lg:col-span-2" tag={tagFor("business", "links")}>
           <dl className="grid gap-3 sm:grid-cols-3">
+            {withDescription && brief.description.trim() && (
+              <div className="sm:col-span-3">
+                <dt className="text-xs text-muted">{t("contest.brief.description")}</dt>
+                <dd className="mt-0.5 whitespace-pre-line font-medium">{brief.description}</dd>
+              </div>
+            )}
             {facts.map((f) => (
               <div key={f.label}>
                 <dt className="text-xs text-muted">{f.label}</dt>
                 <dd className="mt-0.5 font-medium">{f.value}</dd>
               </div>
             ))}
-            {/* Website and social links (owner, 2026-10-15): each with its kind. */}
-            {brief.links.map((l, i) => (
-              <div key={`${l.url}-${i}`} className="min-w-0">
-                <dt className="text-xs text-muted">{t(`wizard.links.kinds.${l.kind}`)}</dt>
-                <dd className="mt-0.5 truncate font-medium">
-                  <a href={l.url} target="_blank" rel="nofollow noopener noreferrer" className="text-primary underline">
-                    {l.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                  </a>
+            {/* Website and social links (owner, 2026-10-15), each with its kind, under one title that says they are the
+                client's own (owner, 2026-10-30: four "Website" rows read like four websites of theirs). */}
+            {brief.links.length > 0 && (
+              <div className="min-w-0 sm:col-span-3">
+                <dt className="text-xs text-muted">{t("contest.brief.ownLinks")}</dt>
+                <dd className="m-0 mt-1 flex flex-wrap gap-2">
+                  {brief.links.map((l, i) => (
+                    <span key={`${l.url}-${i}`} className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-sm">
+                      <span className="shrink-0 text-muted">{t(`wizard.links.kinds.${l.kind}`)}</span>
+                      <a href={l.url} target="_blank" rel="nofollow noopener noreferrer" className="truncate font-medium text-primary underline">
+                        {l.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                      </a>
+                    </span>
+                  ))}
                 </dd>
               </div>
-            ))}
+            )}
             {brief.targetAudience && (
               <div className="sm:col-span-3">
                 <dt className="text-xs text-muted">{t("contest.brief.audience")}</dt>
@@ -116,6 +131,8 @@ export async function ContestBrief({
         </Block>
       )}
 
+      {/* Not for an onboarding v2 contest: its client is never asked (owner, 2026-10-29), so these would be defaults. */}
+      {!brief.v2 && (
       <Block title={t("contest.brief.feel")} tag={tagFor("look")}>
         <ul className="space-y-4">
           {STYLE_SLIDERS.map((key) => {
@@ -136,6 +153,7 @@ export async function ContestBrief({
           })}
         </ul>
       </Block>
+      )}
 
       <Block title={t("contest.brief.colors")} tag={tagFor("look")}>
         {brief.colors.length > 0 && (
@@ -173,7 +191,9 @@ export async function ContestBrief({
             items={[
               t("wizard.c05.always.main"),
               t("wizard.c05.always.files"),
-              ...brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`) + " — " + t(`wizard.deliverables.${d}.line`)),
+              // A short logo with no short name given (onboarding v2 doesn't ask for it): designers ask in the comments
+              // (only on their page; the client's own page is withDescription).
+              ...brief.deliverables.map((d) => t(`wizard.deliverables.${d}.title`) + " — " + t(`wizard.deliverables.${d}.line`) + (d === "short_logo" && !brief.shortName && !withDescription ? t("contest.brief.noShortName") : "")),
             ]}
           />
         </Block>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -29,6 +29,8 @@ export function HubPhotos(props: {
   limits: { maxFiles: number; maxMb: number };
   /** The card is open (unsaved pictures may be in it): the hub keeps "finish" off meanwhile. */
   onOpen: (open: boolean) => void;
+  /** Pictures picked or removed and not saved yet: the hub asks before the client leaves the page. */
+  onDirty?: (dirty: boolean) => void;
   actions?: Partial<PhotoActions>;
 }) {
   const { t } = useI18n();
@@ -47,6 +49,9 @@ export function HubPhotos(props: {
   const blobs = useRef(new Map<string, Blob>());
   const holder = useMemo<FileHolder>(() => ({ put: (id, f) => blobs.current.set(id, f), remove: (id) => blobs.current.delete(id) }), []);
   const status = (id: string, s: Upload["status"]) => setUploads((u) => u.map((x) => (x.id === id ? { ...x, status: s } : x)));
+  const { onDirty } = props;
+  const unsaved = localFiles.length > 0 || removed.length > 0;
+  useEffect(() => onDirty?.(unsaved), [onDirty, unsaved]);
 
   const show = (on: boolean) => {
     setOpen(on);
@@ -123,7 +128,8 @@ export function HubPhotos(props: {
 
   const shown = serverFiles.filter((f) => !removed.includes(f.id));
   return (
-    <section className={cx("rounded-2xl bg-surface p-4 ring-1", open ? "shadow-card ring-primary/40" : "ring-line")} data-section="photos">
+    // id: the client's "add photos" link lands here (owner, 2026-10-30).
+    <section id="photos" className={cx("scroll-mt-24 rounded-2xl bg-surface p-4 ring-1", open ? "shadow-card ring-primary/40" : "ring-line")} data-section="photos">
       <div className="flex items-start justify-between gap-3">
         <h2 className="m-0 text-[16px] font-semibold text-ink">
           {props.number} · {t("wizardV2.hub.cards.photos")}

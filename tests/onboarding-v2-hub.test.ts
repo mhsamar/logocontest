@@ -28,9 +28,10 @@ describe("the brief's parts", () => {
     expect(briefReadyPercent({ ...base, styles: [], usedOn: [], requirements: [], targetAudience: "" })).toBeLessThan(60);
   });
 
-  it("each card is checked on its own by the v2 rule: an empty description is fine, a short one isn't", () => {
+  it("each card is checked on its own by the v2 rule: any description up to 300 letters (owner, 2026-10-30: no minimum)", () => {
     expect(validateBriefStepV2(3, base)).toEqual({});
-    expect(validateBriefStepV2(3, { ...base, businessDescription: "short" })).toHaveProperty("businessDescription");
+    expect(validateBriefStepV2(3, { ...base, businessDescription: "ট্রাভেল এজেন্সি" })).toEqual({});
+    expect(validateBriefStepV2(3, { ...base, businessDescription: "x".repeat(301) })).toHaveProperty("businessDescription");
     expect(validateBriefStepV2(5, { ...base, styles: [], colors: [], letDesignersChoose: false })).toEqual({});
   });
 });
@@ -39,8 +40,8 @@ describe("saving a part after paying", () => {
   const a = read("src/lib/onboarding/brief-actions.ts");
   it("writes only the brief's own columns, while unpaid, waiting for approval or live, for the contest's own client", () => {
     expect(a).toContain(".update({ ...briefColumns(brief), ...(extraAnswers ? { extra_answers: extraAnswers } : {}) })");
-    expect(a).toContain('.in("status", [...OPEN_FOR_BRIEF])');
-    expect(a).toContain('const OPEN_FOR_BRIEF = ["draft", "pending_payment", "open"] as const;');
+    expect(a).toContain('.in("status", [...BRIEF_OPEN_STATUSES])');
+    expect(read("src/lib/onboarding/brief-defaults.ts")).toContain('export const BRIEF_OPEN_STATUSES = ["draft", "pending_payment", "open"] as const;');
     expect(a).toContain("if (!contest || contest.clientId !== user.id || !contest.briefCompletion)");
     // Never the status, the order or the amounts (a bKash payment may be waiting).
     const cols = read("src/lib/contests/supabase-repository.ts").split("export function briefColumns")[1].split("export function briefDetailColumns")[0];
@@ -58,8 +59,9 @@ describe("saving a part after paying", () => {
     const hub = read("src/components/wizard-v2/brief-hub.tsx");
     expect(hub).toContain("setBrief(cleanBrief(draft));");
     // "None yet" is shown ticked for empty links or competitors, and Cancel forgets the last save's errors.
-    expect(hub).toContain("noLinks: briefLinks(b).length === 0, noCompetitors: !b.competitors.trim()");
-    expect(hub).toContain('<Button type="button" variant="ghost" onClick={close}>');
+    // The link rows and the competitors box both start in view (owner, 2026-10-30); empty ones are dropped on save.
+    expect(hub).toContain("noLinks: false, noCompetitors: false");
+    expect(hub).toContain('<Button type="button" variant="ghost" onClick={close} disabled={busy}>');
   });
 
   it("reference pictures can be added after paying: same uploads and limits, only while the brief can change", () => {

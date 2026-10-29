@@ -36,7 +36,7 @@ import { contestActivity, contestPayments, entryTimes, invitedCount, judgedEntri
 import { addonPrices } from "@/lib/contests/addon-payments";
 import { getContestBySlug } from "@/lib/contests/browse";
 import { contestRepository } from "@/lib/contests/services";
-import { briefReadyPercent } from "@/lib/onboarding/brief-defaults";
+import { briefEditHref, briefReadyPercent } from "@/lib/onboarding/brief-defaults";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
 import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { isFinished } from "@/lib/contests/public-statuses";
@@ -161,13 +161,19 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const left = leftParts(contest.endsAt, now);
-  const canEdit = contest.status === "open";
+  // Onboarding v2's brief mark, read while the brief can still change (owner, 2026-10-29).
+  const completion = record?.briefCompletion ?? null;
+  // "Edit brief" (owner, 2026-10-30: after Finish there was no way back): a v2 contest opens its brief page while unpaid,
+  // waiting for approval or live; an older contest opens Edit details while live.
+  const editHref = briefEditHref({ id: contest.id, slug: contest.slug, status: contest.rawStatus, v2: completion !== null, hubOn: onboardingV2On() });
+  const canEdit = editHref !== null;
+  // Reference photos: on the v2 brief page's own photo card, or in Edit details.
+  const photosHref = completion !== null && editHref?.startsWith("/start-v2/") ? `${editHref}#photos` : `/dashboard/contests/${contest.slug}/edit#photos`;
   const canExtend = contest.status === "open";
   // The main button follows what the contest needs now: pay, review, pick a winner or get the files.
   // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
   const sent = waiting.has(contest.id);
   // Onboarding v2 (owner, 2026-10-29; spec §3): "Checking" in the progress while its bKash payment waits.
-  const completion = record?.briefCompletion ?? null;
   const checking = sent && completion !== null;
   const stages = contestStages(contest.rawStatus, { waiting: checking });
   const sentPay = checking ? payments.find((p) => p.id === waiting.get(contest.id)) : undefined;
@@ -276,7 +282,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               <StatusPill status={contest.rawStatus} waiting={sent} t={t} />
             </div>
             <p>
-              {t(`wizard.businessTypes.${contest.businessType}`)}
+              {contest.businessType === "other" && contest.brief?.businessTypeOther ? contest.brief.businessTypeOther : t(`wizard.businessTypes.${contest.businessType}`)}
               {contest.number ? ` · LC-${String(contest.number).padStart(4, "0")}` : ""}
               {contest.startsAt ? ` · ${t("cw.my.started", { date: day(contest.startsAt) })}` : ""}
               {contest.endsAt ? ` · ${t("cw.detail.endsOn", { date: day(contest.endsAt) })}` : ""}
@@ -313,7 +319,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           <NavScroll selector=".dtbar .dtt" />
           <span className="dtact">
             {canEdit && (
-              <Link href={`/dashboard/contests/${contest.slug}/edit`} className="dout sm">
+              <Link href={editHref!} className="dout sm">
                 {t("cw.detail.editBrief")}
               </Link>
             )}
@@ -436,11 +442,19 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                 <section className="dcard">
                   <div className="dch">
                     <h2>{t("cw.detail.briefSummary")}</h2>
-                    <Link href={contestHref(contest.slug, "brief")} className="dlink sm">
-                      {t("cw.home.open")}
-                    </Link>
+                    <span className="flex items-center gap-3">
+                      {canEdit && (
+                        <Link href={editHref!} className="dlink sm">
+                          {t("cw.detail.editBrief")}
+                        </Link>
+                      )}
+                      <Link href={contestHref(contest.slug, "brief")} className="dlink sm">
+                        {t("cw.home.open")}
+                      </Link>
+                    </span>
                   </div>
-                  <p className="dbs">{contest.brief?.description || "—"}</p>
+                  {/* No description yet (onboarding v2 asks for it after paying): the slogan or customers instead. */}
+                  <p className="dbs">{contest.brief?.description?.trim() || contest.brief?.slogan || contest.brief?.targetAudience || "—"}</p>
                   {contest.brief && (contest.brief.styles.length > 0 || contest.brief.colors.length > 0) && (
                     <div className="efl">
                       {contest.brief.styles.map((x) => (
@@ -517,17 +531,26 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
             <section className="dcard">
               <div className="dch">
                 <h2>{t("cw.detail.tabs.brief")}</h2>
-                {canEdit && (
-                  <Link href={`/dashboard/contests/${contest.slug}/edit`} className="dout sm">
-                    {t("cw.detail.editBrief")}
-                  </Link>
-                )}
+                <span className="flex flex-wrap items-center gap-2">
+                  {/* A live v2 contest: its brief page doesn't have the logo name, logo text, short name or type; those are
+                      in Edit details (owner, 2026-10-30). */}
+                  {completion !== null && contest.rawStatus === "open" && editHref?.startsWith("/start-v2/") && (
+                    <Link href={`/dashboard/contests/${contest.slug}/edit`} className="dlink sm">
+                      {t("cw.detail.moreDetails")}
+                    </Link>
+                  )}
+                  {canEdit && (
+                    <Link href={editHref!} className="dout sm">
+                      {t("cw.detail.editBrief")}
+                    </Link>
+                  )}
+                </span>
               </div>
               {/* No reference photos yet, and the contest is live: they can still be added (owner, 2026-10-22). */}
               {canEdit && contest.brief && contest.brief.files.length === 0 && (svc || !(await getOnboarding("client")).hidden.includes("files")) && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-[#F4F5F7] px-4 py-3">
                   <span className="dmut">{t("manage.edit.photos.none")}</span>
-                  <Link href={`/dashboard/contests/${contest.slug}/edit#photos`} className="dout sm">
+                  <Link href={photosHref} className="dout sm">
                     {t("manage.edit.photos.add")}
                   </Link>
                 </div>
@@ -536,7 +559,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
               {contest.brief && svc ? (
                 <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief.files} hidden={contest.hiddenPrivate} />
               ) : contest.brief ? (
-                <ContestBrief brief={contest.brief} extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />
+                <ContestBrief brief={contest.brief} withDescription extra={answerLines(await getOnboarding("client"), await contestExtraAnswers(contest.id), locale)} />
               ) : (
                 <Empty title={t("cw.detail.noBrief")} />
               )}

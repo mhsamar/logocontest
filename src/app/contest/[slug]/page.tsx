@@ -353,6 +353,14 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                             {t(`wizard.requirements.${r}`)}
                           </li>
                         ))}
+                        {/* The rest are in the full brief (owner, 2026-10-30: only 4 showed, with no sign of more). */}
+                        {contest.brief.requirements.length > 4 && (
+                          <li>
+                            <Link href={`/contest/${contest.slug}?tab=brief#tabs`} className="font-semibold text-primary hover:underline">
+                              {t("contest.brief.moreRequirements", { n: fmt(contest.brief.requirements.length - 4) })}
+                            </Link>
+                          </li>
+                        )}
                       </ul>
                     </div>
                   )}

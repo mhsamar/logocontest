@@ -115,6 +115,21 @@ export function parseCompletion(raw: unknown): BriefCompletion | null {
   return { v: 2, edited, acceptedAt: typeof r.acceptedAt === "string" ? r.acceptedAt : null };
 }
 
+/** While a contest's brief can still change (the hub, its actions and the client's "Edit brief"): unpaid, waiting for
+ * approval, or live. */
+export const BRIEF_OPEN_STATUSES = ["draft", "pending_payment", "open"] as const;
+export const briefOpen = (status: string) => (BRIEF_OPEN_STATUSES as readonly string[]).includes(status);
+
+/**
+ * Where the client's "Edit brief" goes (owner, 2026-10-30: after "Finish" there was no way back): an onboarding v2
+ * contest to its brief page (the hub) while unpaid, waiting for approval or live; an older contest to Edit details
+ * while live. Null when the brief can't change now.
+ */
+export function briefEditHref(c: { id: string; slug: string; status: string; v2: boolean; hubOn: boolean }): string | null {
+  if (c.v2 && c.hubOn && briefOpen(c.status)) return `/start-v2/brief?c=${c.id}`;
+  return c.status === "open" ? `/dashboard/contests/${c.slug}/edit` : null;
+}
+
 /** The brief steps (2–6) and fields each section covers: the hub's cards, Edit details and designers' tags. */
 export const SECTION_STEPS: Record<BriefSection, number[]> = { business: [2, 3], links: [4], look: [5], needs: [6] };
 export const SECTION_FIELDS: Record<BriefSection, (keyof Brief)[]> = {
@@ -124,6 +139,13 @@ export const SECTION_FIELDS: Record<BriefSection, (keyof Brief)[]> = {
   look: ["styles", "sliders", "colors", "letDesignersChoose"],
   needs: ["usedOn", "deliverables", "requirements", "requirementsNote"],
 };
+
+/**
+ * What each of the hub's cards may change (owner, 2026-10-30): card 1 is the slogan, description and customers only,
+ * so the logo name, logo text, short name and business type it hides always stay as saved and can never stop a save
+ * the client can't see.
+ */
+export const HUB_FIELDS: Record<BriefSection, (keyof Brief)[]> = { ...SECTION_FIELDS, business: ["slogan", "businessDescription", "targetAudience"] };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const trimmed = (v: unknown) => (typeof v === "string" ? v.trim() : v);

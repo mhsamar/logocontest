@@ -247,7 +247,7 @@ export function LinksStep(p: BriefStepProps) {
   return (
     <div className="space-y-9">
       {!h("links") && (
-        <Part title={t("wizard.links.linksTitle")} sub={t("wizard.links.linksSub")}>
+        <Part title={t("wizard.links.linksTitle")} sub={h("competitors") ? t("wizard.links.linksSub") : `${t("wizard.links.linksSub")} ${t("wizard.links.linksSubOthers")}`}>
           {!p.brief.noLinks && (
             <ul className="m-0 list-none space-y-2.5 p-0">
               {rows.map((row, i) => (

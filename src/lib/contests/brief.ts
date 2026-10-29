@@ -242,7 +242,7 @@ const V2_OPTIONAL: ReadonlySet<string> = new Set(["targetAudience", "styles", "c
 /**
  * Onboarding v2 (owner, 2026-10-28): the contest is saved with only the logo name and business type, and the rest of
  * the brief is asked after payment, filled in from the business type. Nothing else is required, but what is given
- * keeps its limits (a description is empty or 20–300 letters).
+ * keeps its limits (a description up to 300 letters, no minimum since 2026-10-30).
  */
 export function validateBriefV2(b: Brief): FieldErrors {
   return Object.assign({}, ...BRIEF_STEPS.map((s) => validateBriefStepV2(s, b)));
@@ -251,7 +251,9 @@ export function validateBriefV2(b: Brief): FieldErrors {
 /** One of the brief steps (2–6) by onboarding v2's rule (the brief after paying saves one part at a time). */
 export function validateBriefStepV2(step: number, b: Brief): FieldErrors {
   const e = validateBriefStep(step, b, V2_OPTIONAL);
-  if (!len(b.businessDescription)) delete e.businessDescription;
+  // Any description up to 300 letters (owner, 2026-10-30: a short Bangla one, "ট্রাভেল এজেন্সি", was refused at 20).
+  if (len(b.businessDescription) <= LIMITS.description.max) delete e.businessDescription;
+  else e.businessDescription = "wizard.errors.descriptionMax";
   if (b.businessType === "other" && !len(b.businessTypeOther ?? "")) delete e.businessTypeOther;
   return e;
 }

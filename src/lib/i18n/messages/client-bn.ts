@@ -170,6 +170,7 @@ const clientBn: Messages["cw"] = {
     tabsLabel: "কনটেস্টের অংশ",
     tabs: { overview: "সারসংক্ষেপ", designs: "ডিজাইন", brief: "ব্রিফ", designers: "ডিজাইনার", payment: "পেমেন্ট ও ফাইল", activity: "কার্যক্রম" },
     editBrief: "ব্রিফ বদলান",
+    moreDetails: "লোগোর নাম ও অন্যান্য তথ্য",
     extend: "সময় বাড়ান",
     progress: "অগ্রগতি",
     steps: { brief: "ব্রিফ লেখা", paid: "পেমেন্ট", live: "কনটেস্ট চালু", judging: "ডিজাইন জমা", winner: "বিজয়ী বাছা", files: "ফাইনাল ফাইল" },

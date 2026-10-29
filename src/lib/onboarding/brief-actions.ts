@@ -19,13 +19,12 @@ import { contestDesignerIds, notify } from "@/lib/notifications";
 import { checkExtraAnswers } from "@/lib/onboarding/config";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BRIEF_SECTIONS, SECTION_FIELDS, SECTION_STEPS, sectionsChanged, type BriefCompletion, type BriefSection } from "./brief-defaults";
+import { BRIEF_OPEN_STATUSES, BRIEF_SECTIONS, briefOpen, HUB_FIELDS, SECTION_STEPS, sectionsChanged, type BriefCompletion, type BriefSection } from "./brief-defaults";
 import { acceptBrief, markEdited } from "./brief-store";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: MessageKey; errors?: FieldErrors; extraErrors?: Record<string, string> };
 
 /** While its brief can change: unpaid, waiting for approval, or live (not once judging starts). */
-const OPEN_FOR_BRIEF = ["draft", "pending_payment", "open"] as const;
 
 /** The client's own onboarding v2 contest whose brief can still change. */
 async function ownBrief(contestId: unknown): Promise<{ ok: true; contest: ContestRecord; userId: string } | { ok: false; error: MessageKey }> {
@@ -35,7 +34,7 @@ async function ownBrief(contestId: unknown): Promise<{ ok: true; contest: Contes
   if (!user || user.role !== "client" || user.status === "banned") return { ok: false, error: "wizard.errors.signInAgain" };
   const contest = await contestRepository().findContest(contestId);
   if (!contest || contest.clientId !== user.id || !contest.briefCompletion) return { ok: false, error: "wizard.errors.notSaved" };
-  if (!(OPEN_FOR_BRIEF as readonly string[]).includes(contest.status)) return { ok: false, error: "wizardV2.hub.notEditable" };
+  if (!briefOpen(contest.status)) return { ok: false, error: "wizardV2.hub.notEditable" };
   return { ok: true, contest, userId: user.id };
 }
 
@@ -58,7 +57,8 @@ export async function v2SaveBriefSection(input: { contestId: string; section: Br
   if (!section || !input.brief || typeof input.brief !== "object") return { ok: false, error: "wizard.errors.incomplete" };
 
   const merged: Brief = { ...contest.brief };
-  for (const f of SECTION_FIELDS[section]) {
+  // Only what the card shows (owner, 2026-10-30): card 1's hidden logo name, logo text and type stay as saved.
+  for (const f of HUB_FIELDS[section]) {
     if (!(f in input.brief)) continue;
     const given = input.brief[f];
     if (!sameKind(contest.brief[f], given)) return { ok: false, error: "wizard.errors.incomplete" };
@@ -86,7 +86,7 @@ export async function v2SaveBriefSection(input: { contestId: string; section: Br
     .from("contests")
     .update({ ...briefColumns(brief), ...(extraAnswers ? { extra_answers: extraAnswers } : {}) })
     .eq("id", contest.id)
-    .in("status", [...OPEN_FOR_BRIEF])
+    .in("status", [...BRIEF_OPEN_STATUSES])
     .select("id, status");
   if (error) return { ok: false, error: "auth.errors.generic" };
   if (!data?.length) return { ok: false, error: "wizardV2.hub.notEditable" };

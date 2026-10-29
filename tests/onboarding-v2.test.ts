@@ -59,7 +59,9 @@ describe("only the logo name and business type are required", () => {
   it("a v2 brief needs no description, audience, styles or colours; what is given keeps its limits", () => {
     expect(validateBriefV2(basics)).toEqual({});
     expect(Object.keys(validateBrief(basics))).toContain("businessDescription");
-    expect(validateBriefV2({ ...basics, businessDescription: "too short" })).toHaveProperty("businessDescription");
+    // Any description up to 300 letters (owner, 2026-10-30), a short Bangla one too.
+    expect(validateBriefV2({ ...basics, businessDescription: "ভ্রমণ সংস্থা" })).toEqual({});
+    expect(validateBriefV2({ ...basics, businessDescription: "x".repeat(301) })).toHaveProperty("businessDescription");
     expect(validateBriefV2({ ...basics, brandName: "R" })).toHaveProperty("brandName");
     expect(validateBriefV2({ ...basics, businessType: "" })).toHaveProperty("businessType");
     expect(validateBriefV2({ ...basics, businessType: "other" })).toEqual({});

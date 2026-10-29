@@ -172,6 +172,7 @@ const clientEn = {
     tabsLabel: "Contest sections",
     tabs: { overview: "Overview", designs: "Designs", brief: "Brief", designers: "Designers", payment: "Payment & files", activity: "Activity" },
     editBrief: "Edit brief",
+    moreDetails: "Logo name and other details",
     extend: "Extend time",
     progress: "Progress",
     steps: { brief: "Brief written", paid: "Payment", live: "Contest live", judging: "Designs in", winner: "Winner picked", files: "Final files" },

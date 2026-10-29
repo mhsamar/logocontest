@@ -137,6 +137,9 @@ const onboardingEn = {
     inviteLine: "Invite Pro designers to your contest",
     invite: "Invite",
     notEditable: "This contest's brief can't be changed any more.",
+    // Owner, 2026-10-30: a card's typing was lost, or a save stopped, without a word.
+    unsaved: "What you typed in this card isn't saved yet. Leave without saving?",
+    fixAbove: "Not saved yet: fix the box marked in red above, then press Save again.",
   },
   banner: {
     title: "Brief {n}% ready, running on defaults",
