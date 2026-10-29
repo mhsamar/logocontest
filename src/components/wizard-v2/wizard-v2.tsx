@@ -9,10 +9,10 @@ import { wizardVisitId } from "@/components/wizard/visit-id";
 import { emptyBrief, type BusinessType, type Order } from "@/lib/contests/brief";
 import { defaultOrder, type PricingConfig } from "@/lib/contests/pricing";
 import { useI18n } from "@/lib/i18n/client";
-import { v2Account, v2OpenPayment, v2SaveBasics, v2SaveOrder, v2ViewPricing } from "@/lib/onboarding/v2-actions";
+import { v2Account, v2OpenPayment, v2SaveBasics, v2SaveOrder, v2SavePush, v2ViewPricing } from "@/lib/onboarding/v2-actions";
 import { V2, V2_STAGE, V2_TOTAL, v2CanGo } from "@/lib/onboarding/v2-steps";
 import { subscribeToPush } from "@/lib/push/client";
-import { recordWizardStep, saveWizardLead } from "@/lib/wizard-tracking";
+import { recordWizardStep } from "@/lib/wizard-tracking";
 import { logoLiveAnswers } from "@/lib/wizard-live-rules";
 import { AccountV2 } from "./step-account";
 import { BasicsV2 } from "./step-basics";
@@ -22,26 +22,27 @@ import { PrizeV2 } from "./step-prize";
 
 /** The server side the wizard talks to; a local preview passes stand-ins so nothing is saved. */
 export type V2Actions = {
-  account: typeof v2Account;
+  /** Step 1; the visit id for the team's lead is added here. */
+  account: (input: Omit<Parameters<typeof v2Account>[0], "visitId" | "push">) => ReturnType<typeof v2Account>;
+  savePush: typeof v2SavePush;
   basics: typeof v2SaveBasics;
   viewPricing: typeof v2ViewPricing;
   saveOrder: typeof v2SaveOrder;
   openPayment: typeof v2OpenPayment;
   push: () => Promise<unknown>;
   track: (step: number, contestId: string | null) => void;
-  lead: (input: { mobile: string; country: string; name: string; email: string; whatsapp: boolean }) => void;
 };
 
 const SERVER: V2Actions = {
-  account: v2Account,
+  // The account step also saves the new client's number for the team (owner, 2026-10-14), after its reply.
+  account: (input) => v2Account({ ...input, visitId: wizardVisitId("v2") }),
+  savePush: v2SavePush,
   basics: v2SaveBasics,
   viewPricing: v2ViewPricing,
   saveOrder: v2SaveOrder,
   openPayment: v2OpenPayment,
   push: subscribeToPush,
   track: (step, contestId) => void recordWizardStep(wizardVisitId("v2"), step, contestId, "v2"),
-  // A new client's number for the team even if signing up stops here (owner, 2026-10-14), like the old wizard.
-  lead: (i) => void saveWizardLead({ visitId: wizardVisitId("v2"), service: "logo", ...i }),
 };
 
 const AGREED_KEY = "lc-v2-agreed";

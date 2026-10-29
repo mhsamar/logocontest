@@ -341,7 +341,9 @@ describe("blocks and the rest of the site", () => {
     expect(actions).toContain('if (!input.contestId && (await contactBlocked({ mobile: user.mobile, email: user.email }))) return err("wizard.errors.blocked");');
     // The account itself (shared by the wizards and onboarding v2 since 2026-10-28): checked before it is made.
     const account = read("src/lib/contests/client-account.ts");
-    expect(account).toContain('if (await contactBlocked({ mobile, email })) return fail("wizard.errors.blocked");');
+    // Checked with the others at once (owner, 2026-10-29), still before the account is made.
+    expect(account).toContain("contactBlocked({ mobile, email })");
+    expect(account).toContain('if (answer(blockedR)) return fail("wizard.errors.blocked");');
     expect(account.indexOf("contactBlocked({ mobile, email })")).toBeLessThan(account.indexOf("auth.admin.createUser"));
     expect(actions).toContain("const account = await createClientAccount(input,");
     expect(read("src/lib/onboarding/v2-actions.ts")).toContain('if (await contactBlocked({ mobile: user.mobile, email: user.email })) return err("wizard.errors.blocked");');

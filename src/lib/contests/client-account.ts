@@ -9,7 +9,7 @@ import { clientIp } from "@/lib/auth/services";
 import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { translatorFor } from "@/lib/content/texts";
 import { emailWelcome } from "@/lib/email/events";
-import { getI18n } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { noticeOn } from "@/lib/notifications/switches";
 import { toE164 } from "@/lib/phone";
@@ -36,10 +36,17 @@ export type NewClient = {
 
 const fail = (key: MessageKey, params?: MessageParams) => ({ ok: false as const, error: { key, params } as AccountError });
 
-/** Which of the two already has an account: the mobile number first, then the email. */
+/** A check's answer, or its error thrown now: checks run at once are still read (and fail) in their old order. */
+const answer = <T,>(r: PromiseSettledResult<T>): T => {
+  if (r.status === "rejected") throw r.reason;
+  return r.value;
+};
+
+/** Which of the two already has an account: the mobile number first, then the email (both looked up at once). */
 export async function accountTaken(mobile: string, email: string): Promise<"mobile" | "email" | null> {
-  if (await findProfileByPhone(mobile)) return "mobile";
-  if (await findProfileByEmail(email)) return "email";
+  const [phone, mail] = await Promise.allSettled([findProfileByPhone(mobile), findProfileByEmail(email)]);
+  if (answer(phone)) return "mobile";
+  if (answer(mail)) return "email";
   return null;
 }
 
@@ -52,18 +59,21 @@ export async function createClientAccount(input: NewClient, fallbackName: string
   const mobile = toE164(input.mobile, input.country);
   const email = normalizeEmail(input.email);
   if (!mobile || !email) return fail("wizard.errors.incomplete");
-  const rejected = await emailRejection(email);
+  // Every check before the account is made, run at once (owner, 2026-10-29: step 1 felt slow) and read in the order they
+  // always were, so the same error comes first: a real email, the password, a blocked contact (a blocked person gets no
+  // account either), then a number or email that already has an account.
+  const [[rejectedR, tooShortR, blockedR, takenR], locale] = await Promise.all([
+    Promise.allSettled([emailRejection(email), passwordError(input.password), contactBlocked({ mobile, email }), accountTaken(mobile, email)]),
+    getLocale(),
+  ]);
+  const rejected = answer(rejectedR);
   if (rejected) return fail(rejected.key, rejected.params);
-
-  const tooShort = await passwordError(input.password);
+  const tooShort = answer(tooShortR);
   if (tooShort?.error) return { ok: false, error: tooShort.error };
-  // Before the account is made, so a blocked person gets no account either.
-  if (await contactBlocked({ mobile, email })) return fail("wizard.errors.blocked");
-
-  const taken = await accountTaken(mobile, email);
+  if (answer(blockedR)) return fail("wizard.errors.blocked");
+  const taken = answer(takenR);
   if (taken) return fail(taken === "mobile" ? "auth.errors.phoneTaken" : "wizard.errors.emailTaken");
 
-  const { locale } = await getI18n();
   // The client's own name (owner, 2026-10-15: before, a new client's account was named after the brand).
   const typed = (input.name ?? "").trim().replace(/\s+/g, " ");
   if (input.name !== undefined && (!isPersonName(typed) || typed.length < 2 || typed.length > 60)) return fail("designerSignup.errors.nameLetters");
@@ -81,26 +91,37 @@ export async function createClientAccount(input: NewClient, fallbackName: string
     return /already|exists|registered/i.test(created.error?.message ?? "") ? fail("wizard.errors.emailTaken") : fail("auth.errors.generic");
   }
 
-  // A fixed username: first name + client number, e.g. anika010 (owner, 2026-10-17). Each contest keeps its own brand
-  // name, so the profile has no business name.
-  await admin.from("profiles").update({ whatsapp: input.whatsapp === true }).eq("id", created.data.user.id);
-  await assignUsername(created.data.user.id, personName, "client").catch((e) => console.error("[signup] username:", e instanceof Error ? e.message : e));
-  // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
-  await saveSignupSource(created.data.user.id, await takeSignupSource());
-
-  const ip = await clientIp();
-  const signInError = await signIn(email, email, input.password, ip);
+  const userId = created.data.user.id;
+  const [ip, source] = await Promise.all([clientIp(), takeSignupSource()]);
+  // The profile's other details are saved while the new client is signed in, all before the reply (owner, 2026-10-29:
+  // step 1 felt slow). A fixed username: first name + client number, e.g. anika010 (owner, 2026-10-17); each contest
+  // keeps its own brand name, so the profile has no business name. The sign-up source counts sign-ups that started
+  // from the visitor pop-up (owner, 2026-10-13).
+  // Every write finishes before the answer, also when the sign-in fails.
+  const [whatsappR, usernameR, sourceR, signInR] = await Promise.allSettled([
+    admin.from("profiles").update({ whatsapp: input.whatsapp === true }).eq("id", userId),
+    assignUsername(created.data.user.id, personName, "client").catch((e) => console.error("[signup] username:", e instanceof Error ? e.message : e)),
+    saveSignupSource(userId, source),
+    signIn(email, email, input.password, ip),
+  ]);
+  // Read in the old order: a failed write first (it came before the sign-in), then the sign-in.
+  for (const r of [whatsappR, usernameR, sourceR] as PromiseSettledResult<unknown>[]) answer(r);
+  const signInError = answer(signInR);
   if (signInError?.error) return { ok: false, error: signInError.error };
 
-  // Owner, 2026-10-07: welcome push in the browser + the 6-digit email code. Neither blocks sign-up.
-  const userId = created.data.user.id;
-  await sendVerificationEmail({ userId, email, name: personName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
-  // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
-  after(() => emailWelcome(userId));
-  // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
-  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent"), { takeOver: false })) && (await noticeOn("welcome", "push"))) {
-    const t = await translatorFor(locale);
-    await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
-  }
+  // This browser's notifications (the next page shows them as on); sign-up never takes them from another account.
+  const pushSaved = input.push ? await savePushSubscription(userId, input.push, (await headers()).get("user-agent"), { takeOver: false }) : false;
+  // Owner, 2026-10-07: the 6-digit email code and the welcome push; 2026-10-15: welcome.html. All after the reply (owner,
+  // 2026-10-29: step 1 waited about a second for the email), one after another in the order they always went. The code
+  // is made when its email goes; nothing before /verify-email needs it.
+  after(async () => {
+    await sendVerificationEmail({ userId, email, name: personName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
+    // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
+    if (pushSaved && (await noticeOn("welcome", "push"))) {
+      const t = await translatorFor(locale);
+      await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
+    }
+    await emailWelcome(userId);
+  });
   return { ok: true, userId };
 }

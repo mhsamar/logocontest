@@ -12,7 +12,8 @@ export class WebPushSender implements PushSender {
       await webpush.sendNotification(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
         JSON.stringify(message),
-        { TTL: 24 * 3600 },
+        // A push service that doesn't answer gives up after 10 s instead of holding the request (review, 2026-10-29).
+        { TTL: 24 * 3600, timeout: 10_000 },
       );
       return "sent";
     } catch (e) {

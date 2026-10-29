@@ -7,6 +7,8 @@
  * (step 4). Prices are always worked out here from Admin › Pricing. Only the contest's owner changes it, only while it
  * is unpaid, and never once a bKash payment for it is waiting for approval.
  */
+import { headers } from "next/headers";
+import { after } from "next/server";
 import { z } from "zod";
 import { contactBlocked } from "@/lib/auth/contact-blocks";
 import { normalizeEmail } from "@/lib/auth/identity";
@@ -20,17 +22,21 @@ import { getPricingConfig } from "@/lib/contests/pricing-config";
 import { contestRepository, contestService } from "@/lib/contests/services";
 import type { ContestRecord } from "@/lib/contests/service";
 import { isSupabaseConfigured } from "@/lib/env";
-import { getI18n } from "@/lib/i18n/server";
+import { translatorFor } from "@/lib/content/texts";
+import { getI18n, getLocale } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { isManual } from "@/lib/payments/manual-rules";
 import { isOpen, methodRows } from "@/lib/payments/methods";
+import { noticeOn } from "@/lib/notifications/switches";
+import { notifyUser, pushIsMine, savePushSubscription, viewingAs } from "@/lib/push";
 import { applyContestPromo, lookupPromo, releasePromo, reservePromo, type Reserved } from "@/lib/promos/promos";
 import { getService } from "@/lib/services/store";
 import { LOGO } from "@/lib/services/types";
 import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { saveWizardLead } from "@/lib/wizard-tracking";
 import { applyDefaults, defaultsFor, newCompletion } from "./brief-defaults";
 
 export type V2Result<T = object> = ({ ok: true } & T) | { ok: false; error: { key: MessageKey; params?: MessageParams; field?: string } };
@@ -105,15 +111,26 @@ const sameOrder = (a: Order, b: Order) =>
  * Step 1: a new client's account, signed in. An email that already has an account signs in with its password instead
  * (spec §2), and only a client account carries on.
  */
-export async function v2Account(input: { name: string; mobile: string; country?: string; whatsapp?: boolean; email: string; password: string; agreed: boolean; push?: unknown }): Promise<V2Result<{ created: boolean }>> {
+export async function v2Account(input: { name: string; mobile: string; country?: string; whatsapp?: boolean; email: string; password: string; agreed: boolean; visitId?: string; push?: unknown }): Promise<V2Result<{ created: boolean }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
+  // The new client's number for the team even if signing up stops here (owner, 2026-10-14), also when it is refused.
+  // Saved alongside the account instead of as its own request in front of it (owner, 2026-10-29: Next on step 1 was
+  // slow); the reply doesn't wait for it, and the function stays alive until it is written.
+  if (typeof input.visitId === "string") {
+    const lead = { visitId: input.visitId, service: "logo", mobile: String(input.mobile ?? ""), country: input.country, name: input.name, email: input.email, whatsapp: input.whatsapp };
+    after(saveWizardLead(lead).catch((e) => console.error("[wizard-lead]", e instanceof Error ? e.message : e)));
+  }
   if (input.agreed !== true) return err("wizardV2.errors.agree");
-  if (await logoOff()) return err("services.types.offError");
   const email = normalizeEmail(String(input.email ?? ""));
-  if (!email) return err("wizard.errors.email");
+  // Who has this email is looked up while the Logo switch is checked (one wait instead of two); read in the same order.
+  const lookup = email ? findProfileByEmail(email).then((found) => ({ ok: true as const, found }), (e: unknown) => ({ ok: false as const, e })) : null;
+  if (await logoOff()) return err("services.types.offError");
+  if (!email || !lookup) return err("wizard.errors.email");
   const password = String(input.password ?? "");
 
-  const existing = await findProfileByEmail(email);
+  const looked = await lookup;
+  if (!looked.ok) throw looked.e;
+  const existing = looked.found;
   if (existing) {
     const failed = await signIn(email, email, password, await clientIp());
     if (failed?.error) return { ok: false, error: failed.error };
@@ -131,6 +148,35 @@ export async function v2Account(input: { name: string; mobile: string; country?:
   if (!account.ok) return { ok: false, error: account.error };
   return { ok: true, created: true };
 }
+
+/**
+ * Step 1's notifications (owner, 2026-10-29): "Allow notifications?" no longer holds up the account, so the browser's
+ * subscription comes here once the account is made. Only a new client's own browser (never taken from another account,
+ * never while an admin looks through it), and the welcome push once, after the reply.
+ */
+export async function v2SavePush(input: { push: unknown }): Promise<void> {
+  const user = await currentClient();
+  const endpoint = (input.push as { endpoint?: unknown } | null)?.endpoint;
+  if (!user || typeof endpoint !== "string" || (await viewingAs(user.id))) return;
+  // Right after sign-up only, and only the account's first browser: one welcome push per account, never again later.
+  const db = createAdminClient();
+  const [{ data: me }, { count, error }] = await Promise.all([
+    db.from("profiles").select("created_at").eq("id", user.id).maybeSingle(),
+    db.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
+  if (!me || error || (count ?? 0) > 0 || Date.now() - new Date(me.created_at as string).getTime() > NEW_ACCOUNT_MS) return;
+  if (!(await savePushSubscription(user.id, input.push, (await headers()).get("user-agent"), { takeOver: false })) || !(await pushIsMine(user.id, endpoint))) return;
+  // The welcome push can be turned off in Admin › Notifications (the browser stays saved for later notices).
+  if (!(await noticeOn("welcome", "push"))) return;
+  const locale = await getLocale();
+  after(async () => {
+    const t = await translatorFor(locale);
+    await notifyUser(user.id, { title: t("push.welcome.title"), body: t("push.welcome.body", { email: user.email ?? "" }), url: "/verify-email" }, endpoint);
+  });
+}
+
+/** How long after sign-up step 1 may still save the browser's notifications. */
+const NEW_ACCOUNT_MS = 15 * 60_000;
 
 const capitalize = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/link";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox, TextField } from "@/components/ui/field";
 import { AccountStep, PasswordStep } from "@/components/wizard/steps-account";
@@ -44,6 +44,19 @@ export function Agreement({ agreed, onAgreed }: { agreed: boolean; onAgreed: (on
  * Step 1, About you: name, mobile (WhatsApp on by default), email and password, and the agreement that replaces the
  * old content-rules pop-up. An email that already has an account signs in with its password instead.
  */
+/**
+ * How long step 1 waits for the browser's notifications once the account is made, before going on to step 2 (the page
+ * load would close the question): while the visitor is reading "Allow notifications?", up to PROMPT_WAIT_MS (an answer
+ * goes on at once); when the browser already had their answer, only for the subscription, up to PUSH_WAIT_MS. Saving it
+ * waits up to SAVE_WAIT_MS more.
+ */
+const PROMPT_WAIT_MS = 10_000;
+const PUSH_WAIT_MS = 1500;
+const SAVE_WAIT_MS = 3000;
+const within = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+/** Whether pressing Next shows the browser's "Allow notifications?" (no answer from this person yet). */
+const asksForNotifications = () => typeof Notification !== "undefined" && Notification.permission === "default";
+
 export function AccountV2({
   actions,
   passwordMin,
@@ -72,6 +85,8 @@ export function AccountV2({
   const [fieldError, setFieldError] = useState<{ field: "name" | "mobile" | "email" | "password"; message: string } | null>(null);
   const [tried, setTried] = useState(false);
   const [busy, start] = useTransition();
+  // The browser's answer to "Allow notifications?", asked once (a second Next while it is open reuses it).
+  const pushRef = useRef<Promise<unknown> | null>(null);
 
   const person = name.trim().replace(/\s+/g, " ");
   const nameOk = isPersonName(person) && person.length >= 2 && person.length <= 60;
@@ -85,12 +100,16 @@ export function AccountV2({
     setTried(true);
     if (!ready) return;
     onError(null);
+    // Asks for notification permission while we still have the click (BLUEPRINT §12: welcome push), and makes the
+    // account meanwhile instead of after the answer (owner, 2026-10-29: Next on step 1 was slow). The team's lead for
+    // this number is saved by the account step itself.
+    const asked = asksForNotifications();
+    const push = (pushRef.current ??= actions.push());
     start(async () => {
-      actions.lead({ mobile, country, name: person, email, whatsapp });
-      // Asks for notification permission while we still have the click (BLUEPRINT §12: welcome push).
-      const push = await actions.push();
-      const res = await actions.account({ name: person, mobile, country, whatsapp, email, password, agreed, push });
+      const res = await actions.account({ name: person, mobile, country, whatsapp, email, password, agreed });
       if (!res.ok) {
+        // A question closed without an answer is asked again on the next try.
+        void push.then((sub) => !sub && asksForNotifications() && pushRef.current === push && (pushRef.current = null));
         const message = t(res.error.key, res.error.params);
         const field = PHONE_ERRORS.includes(res.error.key) ? "mobile" : EMAIL_ERRORS.includes(res.error.key) ? "email" : PASSWORD_ERRORS.includes(res.error.key) ? "password" : res.error.key === "designerSignup.errors.nameLetters" ? "name" : null;
         if (field) setFieldError({ field, message });
@@ -99,6 +118,10 @@ export function AccountV2({
       }
       // Meta Pixel: the client's account now exists (only a new one; a sign-in sends nothing).
       if (res.created) trackPixel(`register:v2:${pixelStartId()}`, "CompleteRegistration");
+      // The browser's answer before step 2's page load, which would close an open question (a sign-in waits too, as it
+      // always did; only a new account's browser is saved, with its welcome push).
+      const sub = await within(push, asked ? PROMPT_WAIT_MS : PUSH_WAIT_MS);
+      if (res.created && sub) await within(actions.savePush({ push: sub }).catch(() => undefined), SAVE_WAIT_MS);
       setPassword("");
       onDone();
     });
