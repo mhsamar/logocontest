@@ -9,7 +9,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { cleanBrief, validateBrief, type Brief, type FieldErrors } from "@/lib/contests/brief";
+import { cleanBrief, validateBrief, validateBriefV2, type Brief, type FieldErrors } from "@/lib/contests/brief";
 import { prepareLiveBriefUpload, recordLiveBriefUpload, removeLiveBriefFile, saveContestBrief, tellLivePhotos } from "@/lib/contests/edit-actions";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
@@ -38,6 +38,7 @@ export function EditBriefForm({
   fileLimits,
   currentLogo,
   photosOnly = false,
+  v2 = false,
 }: {
   contestId: string;
   initial: Brief;
@@ -50,6 +51,8 @@ export function EditBriefForm({
   currentLogo: boolean;
   /** A non-logo contest: its brief has its own questions, so only the photos change here. */
   photosOnly?: boolean;
+  /** An onboarding v2 contest: checked by v2's rule, as the save does (owner, 2026-10-29: the description may be empty). */
+  v2?: boolean;
 }) {
   const { t } = useI18n();
   const toast = useToast();
@@ -138,7 +141,7 @@ export function EditBriefForm({
     let leaving = false;
     try {
       // The text is checked before any photo moves, so a wrong field never leaves half a change.
-      const found = photosOnly ? {} : validateBrief(cleanBrief(brief), hiddenSet);
+      const found = photosOnly ? {} : v2 ? validateBriefV2(cleanBrief(brief)) : validateBrief(cleanBrief(brief), hiddenSet);
       if (Object.keys(found).length > 0) {
         setErrors(found);
         setTouched(new Set(Object.keys(found)));

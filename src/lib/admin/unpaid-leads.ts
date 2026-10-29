@@ -1,7 +1,8 @@
 import "server-only";
 import { isRealEmail } from "@/lib/admin/reminder-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { LEAD_KEY } from "./unpaid-rules";
+import { stepOneAccount } from "./leads";
+import { LEAD_KEY, v2AmountKnown } from "./unpaid-rules";
 
 /**
  * Admin › Unpaid contests (owner, 2026-10-25): who a lead key points at, and the lead's row. Shared by the follow-up
@@ -10,13 +11,29 @@ import { LEAD_KEY } from "./unpaid-rules";
 
 type Row = Record<string, unknown>;
 
+const CONTEST = "id, brand_name, total_amount, client_id, status";
+
+/**
+ * What the draft is waiting for. A new-wizard draft (onboarding v2, owner 2026-10-29) carries the default package's
+ * total until the client picks one or goes on to pay it: no amount yet, as on the list (also in the lead's own copy).
+ */
+function amountOf(c: Row): number | null {
+  const total = (c.total_amount as number | null) ?? null;
+  if (c.brief_completion === null || c.brief_completion === undefined) return total;
+  const known = v2AmountKnown({ status: c.status as string, lastStep: (c.last_step as number | null | undefined) ?? null, pricingViewedAt: (c.pricing_viewed_at as string | null | undefined) ?? null, packageSelectedAt: (c.package_selected_at as string | null | undefined) ?? null });
+  return known ? total : null;
+}
+
 /** Who a key points at: an unpaid draft (c:<contest id>) or a guest (g:<visit id> or g:<lead id>). */
 export async function resolve(key: string): Promise<{ kind: "contest" | "guest"; contestId: string | null; mobile: string | null; email: string | null; brand: string; amount: number | null; clientId: string | null; leadId?: string } | null> {
   if (!LEAD_KEY.test(key)) return null;
   const db = createAdminClient();
   const id = key.slice(2);
   if (key.startsWith("c:")) {
-    const { data: c } = await db.from("contests").select("id, brand_name, total_amount, client_id, status").eq("id", id).maybeSingle();
+    const read = (cols: string) => db.from("contests").select(cols).eq("id", id).maybeSingle();
+    // With the new wizard's own steps (migration 0079); before it, every contest is the old wizard's.
+    const first = await read(`${CONTEST}, last_step, pricing_viewed_at, package_selected_at, brief_completion`);
+    const c = (first.error ? (await read(CONTEST)).data : first.data) as Row | null;
     if (!c) return null;
     // Only an unpaid draft, or a contest this page already follows (won back, closed): never any other client's details.
     if (c.status !== "draft" && c.status !== "pending_payment") {
@@ -24,7 +41,7 @@ export async function resolve(key: string): Promise<{ kind: "contest" | "guest";
       if (!followed) return null;
     }
     const { data: p } = c.client_id ? await db.from("profiles").select("mobile, email").eq("id", c.client_id).maybeSingle() : { data: null };
-    return { kind: "contest", contestId: c.id as string, mobile: (p?.mobile as string | null) ?? null, email: isRealEmail(p?.email as string | null) ? (p!.email as string) : null, brand: (c.brand_name as string) ?? "", amount: (c.total_amount as number | null) ?? null, clientId: (c.client_id as string | null) ?? null };
+    return { kind: "contest", contestId: c.id as string, mobile: (p?.mobile as string | null) ?? null, email: isRealEmail(p?.email as string | null) ? (p!.email as string) : null, brand: (c.brand_name as string) ?? "", amount: amountOf(c), clientId: (c.client_id as string | null) ?? null };
   }
   if (key.startsWith("l:")) {
     // A lead whose draft or visits are gone: from its own copy.
@@ -35,6 +52,10 @@ export async function resolve(key: string): Promise<{ kind: "contest" | "guest";
   }
   const { data: g } = await db.from("wizard_leads").select("mobile, brand_name").eq("visit_id", id).maybeSingle();
   if (g) {
+    // An account made on the new wizard's first step (owner, 2026-10-29): the email it signed up with, never one typed
+    // with its number (that may be someone else's).
+    const account = await stepOneAccount(g.mobile as string);
+    if (account) return { kind: "guest", contestId: null, mobile: g.mobile as string, email: isRealEmail(account.email) ? account.email : null, brand: (g.brand_name as string) ?? "", amount: null, clientId: null };
     // The email typed on the first step (migration 0075); before it, none.
     const { data: withEmail } = await db.from("wizard_leads").select("email").eq("mobile", g.mobile).not("email", "is", null).order("updated_at", { ascending: false }).limit(1);
     return { kind: "guest", contestId: null, mobile: g.mobile as string, email: (withEmail?.[0]?.email as string | undefined) ?? null, brand: (g.brand_name as string) ?? "", amount: null, clientId: null };

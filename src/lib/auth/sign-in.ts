@@ -45,12 +45,14 @@ export async function findProfileByPhone(phone: string) {
   return data;
 }
 
+/**
+ * The account with exactly this email, in any letter case. % _ and \ are escaped so they never act as wildcards (an
+ * address like a_b@x.com must not find a.b@x.com, nor reveal other accounts); an address with * (PostgREST's own
+ * wildcard) is matched exactly (owner, 2026-10-29).
+ */
 export async function findProfileByEmail(email: string) {
-  const { data, error } = await createAdminClient()
-    .from("profiles")
-    .select("id, email, role, status")
-    .ilike("email", email)
-    .maybeSingle<ProfileStatus>();
+  const query = createAdminClient().from("profiles").select("id, email, role, status");
+  const { data, error } = await (email.includes("*") ? query.eq("email", email) : query.ilike("email", email.replace(/[\\%_]/g, (c) => `\\${c}`))).maybeSingle<ProfileStatus>();
   if (error) throw new Error(error.message);
   return data;
 }

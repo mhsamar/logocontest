@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { briefLinks, emptyBrief, noUpgrades, type Brief, type BriefLink, type Order } from "./brief";
+import { parseCompletion } from "@/lib/onboarding/brief-defaults";
 import {
   AmountMismatchError,
   type ContestRecord,
@@ -57,6 +58,8 @@ type ContestRow = {
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;
+  /** Onboarding v2's mark (migration 0079); missing before it ran. */
+  brief_completion?: unknown;
 };
 
 type PaymentRow = {
@@ -129,6 +132,7 @@ export function toContestRecord(r: ContestRow): ContestRecord {
     startsAt: date(r.starts_at),
     endsAt: date(r.ends_at),
     createdAt: new Date(r.created_at),
+    briefCompletion: parseCompletion(r.brief_completion),
   };
 }
 
@@ -148,6 +152,26 @@ function toPaymentRecord(r: PaymentRow): PaymentRecord {
 }
 
 /** The brief details added on 2026-10-08 (migration 0016); shared with the brief editor. */
+/** Every column of the brief itself and nothing else (Edit details, onboarding v2's brief after paying). */
+export function briefColumns(brief: Brief) {
+  return {
+    brand_name: brief.brandName,
+    logo_text: brief.logoText || null,
+    slogan: brief.slogan || null,
+    business_type: brief.businessType,
+    business_description: brief.businessDescription,
+    website_url: brief.websiteUrl || null,
+    styles: brief.styles,
+    style_sliders: brief.sliders,
+    colors: brief.colors,
+    let_designers_choose_colors: brief.letDesignersChoose,
+    used_on: brief.usedOn,
+    likes_text: brief.likes,
+    dislikes_text: brief.dislikes || null,
+    ...briefDetailColumns(brief),
+  };
+}
+
 export function briefDetailColumns(brief: Brief) {
   return {
     short_name: brief.shortName || null,
@@ -216,7 +240,8 @@ export class SupabaseContestRepository implements ContestRepository {
     const row = check(
       await this.db
         .from("contests")
-        .insert({ client_id: clientId, slug, status: "draft", ...columns(data) })
+        // An onboarding v2 draft is made after its logo name (step 2), with its mark (owner, 2026-10-28).
+        .insert({ client_id: clientId, slug, status: "draft", ...columns(data), ...(data.briefCompletion ? { brief_completion: data.briefCompletion, last_step: 2 } : {}) })
         .select("*")
         .single<ContestRow>(),
     );

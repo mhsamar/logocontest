@@ -13,9 +13,16 @@ const UUID = /^[0-9a-f-]{36}$/i;
  * Wizard drop-off (BLUEPRINT §13, owner 2026-10-09): the furthest step an anonymous visit reached.
  * Step 12 = went on to payment. No personal data. Never throws.
  */
-export async function recordWizardStep(visitId: string, step: number, contestId: string | null): Promise<void> {
+export async function recordWizardStep(visitId: string, step: number, contestId: string | null, flow: "v1" | "v2" = "v1"): Promise<void> {
   if (!isSupabaseConfigured() || !UUID.test(visitId) || !Number.isInteger(step) || step < 1 || step > 12) return;
-  const { error } = await createAdminClient().rpc("record_wizard_step", { p_visit_id: visitId, p_step: step, p_contest_id: contestId && UUID.test(contestId) ? contestId : null });
+  const contest = contestId && UUID.test(contestId) ? contestId : null;
+  // Onboarding v2's steps (owner, 2026-10-28) are its own 1–5, kept apart from the old wizard's (migration 0079).
+  if (flow === "v2") {
+    const { error } = await createAdminClient().rpc("record_wizard_step", { p_visit_id: visitId, p_step: step, p_contest_id: contest, p_flow: "v2" });
+    if (error) console.error("[wizard-tracking] v2:", error.message);
+    return;
+  }
+  const { error } = await createAdminClient().rpc("record_wizard_step", { p_visit_id: visitId, p_step: step, p_contest_id: contest });
   if (error) console.error("[wizard-tracking]", error.message);
   // How far a new client with a saved mobile number got (owner, 2026-10-14). No row for this visit: nothing changes.
   await createAdminClient().from("wizard_leads").update({ furthest_step: step, updated_at: new Date().toISOString() }).eq("visit_id", visitId).lt("furthest_step", step);

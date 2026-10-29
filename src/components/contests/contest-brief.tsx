@@ -3,11 +3,22 @@ import type { ContestDetail } from "@/lib/contests/browse";
 import { STYLE_SLIDERS } from "@/lib/contests/brief";
 import { cx } from "@/lib/cx";
 import { getI18n } from "@/lib/i18n/server";
+import type { BriefSection } from "@/lib/onboarding/brief-defaults";
 
-function Block({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+type Tag = { label: string; hint: string } | null;
+
+function Block({ title, children, className, tag }: { title: string; children: React.ReactNode; className?: string; /** "Brief: default" (onboarding v2). */ tag?: Tag }) {
   return (
     <section className={cx("rounded-lg bg-surface p-5 ring-1 ring-line", className)}>
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-muted">{title}</h3>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted">{title}</h3>
+        {tag && (
+          <span title={tag.hint} className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">
+            {tag.label}
+            <span className="sr-only">, {tag.hint}</span>
+          </span>
+        )}
+      </div>
       <div className="mt-3 text-ink">{children}</div>
     </section>
   );
@@ -31,8 +42,21 @@ function Ticks({ items }: { items: string[] }) {
 }
 
 /** P-03 Brief tab. Only rendered for viewers allowed to read the brief. */
-export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<ContestDetail["brief"]>; /** Answers to the owner's own questions. */ extra?: { label: string; answer: string }[] }) {
+export async function ContestBrief({
+  brief,
+  extra = [],
+  defaults = [],
+}: {
+  brief: NonNullable<ContestDetail["brief"]>;
+  /** Answers to the owner's own questions. */
+  extra?: { label: string; answer: string }[];
+  /** Onboarding v2 (owner, 2026-10-29): the parts the client hasn't changed, tagged for designers (not on the client's own page). */
+  defaults?: readonly BriefSection[];
+}) {
   const { t } = await getI18n();
+  const tag = { label: t("wizardV2.tag.label"), hint: t("wizardV2.tag.hint") };
+  // The About block holds both the business and its links and competitors.
+  const tagFor = (...parts: BriefSection[]): Tag => (parts.some((p) => defaults.includes(p)) ? tag : null);
   const facts = [
     brief.shortName && { label: t("contest.brief.shortName"), value: brief.shortName },
     brief.logoText && { label: t("contest.brief.logoText"), value: brief.logoText },
@@ -43,7 +67,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
     <div className="grid gap-4 lg:grid-cols-2">
       {/* The description itself is in the page header. */}
       {(facts.length > 0 || brief.links.length > 0 || brief.targetAudience || brief.competitors) && (
-        <Block title={t("contest.brief.about")} className="lg:col-span-2">
+        <Block title={t("contest.brief.about")} className="lg:col-span-2" tag={tagFor("business", "links")}>
           <dl className="grid gap-3 sm:grid-cols-3">
             {facts.map((f) => (
               <div key={f.label}>
@@ -79,7 +103,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
       )}
 
       {brief.styles.length > 0 && (
-        <Block title={t("contest.brief.styles")}>
+        <Block title={t("contest.brief.styles")} tag={tagFor("look")}>
           <ul className="grid grid-cols-2 gap-3">
             {brief.styles.map((s) => (
               <li key={s} className="rounded-md bg-canvas p-3 text-center">
@@ -92,7 +116,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
         </Block>
       )}
 
-      <Block title={t("contest.brief.feel")}>
+      <Block title={t("contest.brief.feel")} tag={tagFor("look")}>
         <ul className="space-y-4">
           {STYLE_SLIDERS.map((key) => {
             const value = brief.sliders[key] ?? 3;
@@ -113,7 +137,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
         </ul>
       </Block>
 
-      <Block title={t("contest.brief.colors")}>
+      <Block title={t("contest.brief.colors")} tag={tagFor("look")}>
         {brief.colors.length > 0 && (
           <ul className="flex flex-wrap gap-3">
             {brief.colors.map((hex) => (
@@ -130,7 +154,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
       </Block>
 
       {brief.usedOn.length > 0 && (
-        <Block title={t("contest.brief.usedOn")}>
+        <Block title={t("contest.brief.usedOn")} tag={tagFor("needs")}>
           <ul className="flex flex-wrap gap-2">
             {brief.usedOn.map((u) => (
               <li key={u} className="rounded-full bg-cream/60 px-3 py-1 text-sm font-medium text-primary-dark">
@@ -144,7 +168,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
       {/* What the client needs and their requirements, always side by side (owner, 2026-10-08: the old
           "likes" / "can't do" texts are no longer shown, older contests included) */}
       <div className="grid gap-4 lg:col-span-2 lg:grid-cols-2">
-        <Block title={t("contest.brief.needs")}>
+        <Block title={t("contest.brief.needs")} tag={tagFor("needs")}>
           <Ticks
             items={[
               t("wizard.c05.always.main"),
@@ -154,7 +178,7 @@ export async function ContestBrief({ brief, extra = [] }: { brief: NonNullable<C
           />
         </Block>
 
-        <Block title={t("contest.brief.requirements")}>
+        <Block title={t("contest.brief.requirements")} tag={tagFor("needs")}>
           <Ticks items={[t("wizard.c06.always.original"), t("wizard.c06.always.noAi"), ...brief.requirements.map((r) => t(`wizard.requirements.${r}`))]} />
           {brief.requirementsNote && (
             <div className="mt-4">

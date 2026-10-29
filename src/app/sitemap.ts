@@ -77,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [contests, entries] = await Promise.all([
     db
       .from("contests")
-      .select("slug, updated_at, status, business_description, client:profiles!client_id!inner(is_test)")
+      .select("slug, updated_at, status, business_description, brand_name, slogan, target_audience, client:profiles!client_id!inner(is_test)")
       .in("status", PUBLIC_CONTEST_STATUSES)
       .eq("is_private", false)
       .eq("is_nda", false)
@@ -120,14 +120,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: (c.status === "open" ? "daily" : "monthly") as "daily" | "monthly",
     priority: c.status === "open" ? 0.8 : 0.5,
   });
-  // A contest whose brief is in English is listed in English only, like its page (owner, 2026-10-21).
-  const contestRows = (contests.data ?? []) as { slug: string; updated_at: string; status: string; business_description: string | null }[];
+  // A contest whose brief is in English is listed in English only, like its page (owner, 2026-10-21). With no
+  // description (onboarding v2), its name, slogan and customers tell the language, as on the page (browse.ts, 2026-10-29).
+  const contestRows = (contests.data ?? []) as { slug: string; updated_at: string; status: string; business_description: string | null; brand_name: string; slogan: string | null; target_audience: string | null }[];
+  const bangla = (c: (typeof contestRows)[number]) => hasBangla(c.business_description?.trim() || [c.brand_name, c.slogan, c.target_audience].filter(Boolean).join(" "));
   return [
     ...englishOnly,
-    ...contestRows.filter((c) => !hasBangla(c.business_description)).map(contestEntry),
+    ...contestRows.filter((c) => !bangla(c)).map(contestEntry),
     ...bothLanguages([
       ...pages,
-      ...contestRows.filter((c) => hasBangla(c.business_description)).map(contestEntry),
+      ...contestRows.filter(bangla).map(contestEntry),
       ...(designers.data ?? []).map((d) => ({ url: `${base}/d/${d.username}`, lastModified: new Date(latest.get(d.id as string)!), changeFrequency: "weekly" as const, priority: 0.5 })),
     ]),
   ];

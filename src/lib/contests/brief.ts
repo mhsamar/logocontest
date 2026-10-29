@@ -236,6 +236,26 @@ export function validateBrief(b: Brief, hidden: ReadonlySet<string> = NONE): Fie
   return Object.assign({}, ...BRIEF_STEPS.map((s) => validateBriefStep(s, b, hidden)));
 }
 
+/** Onboarding v2's questions that may be left empty, like an answer the owner hid. */
+const V2_OPTIONAL: ReadonlySet<string> = new Set(["targetAudience", "styles", "colors"]);
+
+/**
+ * Onboarding v2 (owner, 2026-10-28): the contest is saved with only the logo name and business type, and the rest of
+ * the brief is asked after payment, filled in from the business type. Nothing else is required, but what is given
+ * keeps its limits (a description is empty or 20–300 letters).
+ */
+export function validateBriefV2(b: Brief): FieldErrors {
+  return Object.assign({}, ...BRIEF_STEPS.map((s) => validateBriefStepV2(s, b)));
+}
+
+/** One of the brief steps (2–6) by onboarding v2's rule (the brief after paying saves one part at a time). */
+export function validateBriefStepV2(step: number, b: Brief): FieldErrors {
+  const e = validateBriefStep(step, b, V2_OPTIONAL);
+  if (!len(b.businessDescription)) delete e.businessDescription;
+  if (b.businessType === "other" && !len(b.businessTypeOther ?? "")) delete e.businessTypeOther;
+  return e;
+}
+
 /** Trims text and drops fields the client didn't mean to send. */
 export function cleanBrief(b: Brief): Brief {
   const links = b.noLinks ? [] : briefLinks(b).flatMap((l) => {

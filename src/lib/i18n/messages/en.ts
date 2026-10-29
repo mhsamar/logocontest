@@ -4,6 +4,7 @@ import checkEn from "./check-en";
 import payEn from "./pay-en";
 import proEn from "./pro-en";
 import guaranteeEn from "./guarantee-en";
+import onboardingEn from "./onboarding-en";
 
 const en = {
   pro: proEn,
@@ -12,6 +13,7 @@ const en = {
   cw: clientEn,
   share: shareEn,
   guarantee: guaranteeEn,
+  wizardV2: onboardingEn,
   meta: {
     title: "Logo Design Contests in Bangladesh | logocontest.bd",
     description: "Get logo ideas from many Bangladeshi designers for one fixed prize. Pay in taka by bKash; the winner hands over every file and the full copyright.",
@@ -4437,6 +4439,14 @@ const en = {
         payments: {
           label: "Payment updates",
           when: "Payment received, approved or rejected.",
+        },
+        onboarding_received: {
+          label: "Payment received (email to the client)",
+          when: "New 4-step wizard: the client sent their bKash payment. Says it is being checked and usually goes live within the set minutes.",
+        },
+        onboarding_live: {
+          label: "Contest live (email to the client)",
+          when: "New 4-step wizard: the payment was approved and the contest is live. Links to the brief if the client never changed it. Once per contest.",
         },
         entry_new: {
           label: "New designs",

@@ -40,7 +40,7 @@ export function CopyButton({ value, label, done }: { value: string; label: strin
  * The pay page's form (owner, 2026-10-14): the bKash transaction ID, the sender number and a screenshot if they
  * like. The screenshot goes straight to private storage with a one-time link; then the ID is sent for approval.
  */
-export function PayForm({ kind, paymentId }: { kind: string; paymentId: string }) {
+export function PayForm({ kind, paymentId, onDone, submitLabel }: { kind: string; paymentId: string; /** Instead of reloading the page (onboarding v2's own success screen). */ onDone?: () => void; submitLabel?: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const [txn, setTxn] = useState("");
@@ -81,6 +81,7 @@ export function PayForm({ kind, paymentId }: { kind: string; paymentId: string }
       }
       const res = await submitPaymentProof({ kind, paymentId, txnId: id, sender: sender.trim() || undefined, screenshotPath: path });
       if (!res.ok) return setError(t(res.error));
+      if (onDone) return onDone();
       router.refresh();
     });
   };
@@ -143,7 +144,7 @@ export function PayForm({ kind, paymentId }: { kind: string; paymentId: string }
       </div>
       {error && <Alert tone="danger">{error}</Alert>}
       <Button type="submit" size="lg" block loading={busy}>
-        {t("pay.page.submit")}
+        {submitLabel ?? t("pay.page.submit")}
       </Button>
     </form>
   );

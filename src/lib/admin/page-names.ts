@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const clean = (path: string) => path.split(/[?#]/)[0] || "/";
 
 /** Sending a design or going through Start a contest: the visits that matter most right now. */
-export const isImportant = (path: string) => /^\/contest\/[^/]+\/submit/.test(clean(path)) || clean(path) === "/start" || clean(path).startsWith("/start/");
+export const isImportant = (path: string) => /^\/contest\/[^/]+\/submit/.test(clean(path)) || /^\/start(-v2)?(\/|$)/.test(clean(path));
 
 /** The contest a page belongs to, and whether it is its submit page. */
 export function contestOfPath(path: string): { slug: string; submit: boolean } | null {
@@ -40,7 +40,7 @@ export function pageName(path: string, brands: Map<string, string>, t: Translate
     return brand ? `${what} · ${brand}` : what;
   }
   if (EXACT[p]) return t(EXACT[p]);
-  if (p === "/start" || p.startsWith("/start/")) return t("admin.live.pages.start");
+  if (/^\/start(-v2)?(\/|$)/.test(p)) return t("admin.live.pages.start");
   if (p === "/dashboard" || p.startsWith("/dashboard/")) return t("admin.live.pages.dashboard");
   if (p.startsWith("/legal/")) return t("admin.live.pages.legal");
   if (p.startsWith("/d/")) return t("admin.live.pages.designer");
@@ -59,7 +59,7 @@ export function pageGroup(path: string): PageGroup {
   if (p === "/login" || p === "/dashboard" || p.startsWith("/dashboard/") || p === "/forgot-password" || p === "/reset-password" || p === "/verify-email") return "account";
   if (p === "/how-it-works" || p === "/help" || p.startsWith("/legal/")) return "info";
   if (p === "/designers/signup") return "signup";
-  if (p === "/start" || p.startsWith("/start/")) return "start";
+  if (/^\/start(-v2)?(\/|$)/.test(p)) return "start";
   return "other";
 }
 

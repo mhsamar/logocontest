@@ -137,7 +137,7 @@ async function payMethods() {
 }
 
 /** Designer Pro plan (owner, 2026-10-13): the invite step is offered while invitations are on and someone is Pro. */
-async function invitesAvailable(): Promise<boolean> {
+export async function invitesAvailable(): Promise<boolean> {
   const { settings, ready } = await getProSettings();
   return ready && settings.features.invitations && settings.invitesPerContest > 0 && (await allProIds()).length > 0;
 }

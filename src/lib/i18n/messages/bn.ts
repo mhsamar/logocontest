@@ -4,6 +4,7 @@ import checkBn from "./check-bn";
 import payBn from "./pay-bn";
 import proBn from "./pro-bn";
 import guaranteeBn from "./guarantee-bn";
+import onboardingBn from "./onboarding-bn";
 import shareBn from "./share-bn";
 
 const bn: Messages = {
@@ -13,6 +14,7 @@ const bn: Messages = {
   cw: clientBn,
   share: shareBn,
   guarantee: guaranteeBn,
+  wizardV2: onboardingBn,
   meta: {
     title: "বাংলাদেশে লোগো ডিজাইন কনটেস্ট | logocontest.bd",
     description: "এক নির্দিষ্ট পুরস্কারে অনেক বাংলাদেশি ডিজাইনারের লোগো আইডিয়া পান। বিকাশে টাকায় পেমেন্ট; বিজয়ী সব ফাইল আর পূর্ণ কপিরাইট দেন।",
@@ -4414,6 +4416,14 @@ const bn: Messages = {
         payments: {
           label: "পেমেন্টের আপডেট",
           when: "পেমেন্ট পাওয়া, অনুমোদন বা বাতিল হলে।",
+        },
+        onboarding_received: {
+          label: "পেমেন্ট পেয়েছি (ক্লায়েন্টকে ইমেইল)",
+          when: "নতুন ৪ ধাপের উইজার্ড: ক্লায়েন্ট বিকাশ পেমেন্ট পাঠিয়েছেন। জানায় যে যাচাই চলছে আর সাধারণত নির্দিষ্ট মিনিটের মধ্যে লাইভ হবে।",
+        },
+        onboarding_live: {
+          label: "কনটেস্ট লাইভ (ক্লায়েন্টকে ইমেইল)",
+          when: "নতুন ৪ ধাপের উইজার্ড: পেমেন্ট অনুমোদন হয়েছে, কনটেস্ট লাইভ। ক্লায়েন্ট ব্রিফ কখনো না বদলালে ব্রিফের লিংকও থাকে। প্রতি কনটেস্টে একবার।",
         },
         entry_new: {
           label: "নতুন ডিজাইন",

@@ -20,7 +20,7 @@ const SETTLE_MS = 1500;
  * "went to payment" (Pay pressed). Brings back the one help message the team may send, and its chat (every 3 seconds
  * while it is open). Never awaited by the wizard, and never breaks it.
  */
-export function useWizardLive(input: { on: boolean; service: string; stage: number; pos: number; of: number; contestId: string | null; answers: LiveAnswers }) {
+export function useWizardLive(input: { on: boolean; service: string; stage: number; pos: number; of: number; contestId: string | null; answers: LiveAnswers; flow?: "v1" | "v2" }) {
   const { locale } = useI18n();
   const [offer, setOffer] = useState<HelpOffer | null>(null);
   const [closed, setClosed] = useState(false);
@@ -78,7 +78,7 @@ export function useWizardLive(input: { on: boolean; service: string; stage: numb
 
   // Once: this tab's visit (a reload keeps it), and goodbye on leaving the page or the wizard.
   useEffect(() => {
-    visit.current = wizardVisitId();
+    visit.current = wizardVisitId(latest.current.flow);
     openedAt.current = Date.now();
     const bye = () => beacon({ bye: true });
     const hide = () => (document.visibilityState === "hidden" ? beacon({ away: true }) : void post());

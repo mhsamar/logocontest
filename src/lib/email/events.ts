@@ -4,6 +4,8 @@ import { translatorFor } from "@/lib/content/texts";
 import { requireEnv, isSupabaseConfigured } from "@/lib/env";
 import { SHOWN_STATUSES } from "@/lib/entries/rules";
 import { certNumber, type Verdict } from "@/lib/logo-check/rules";
+import { parseCompletion } from "@/lib/onboarding/brief-defaults";
+import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { getService } from "@/lib/services/store";
 import { getSettings } from "@/lib/settings";
 import { isOwnUrl, ownOrigins } from "@/lib/site-hosts";
@@ -11,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
 import { chatEmailDue, digestDue, spanText, taka } from "./catalog";
 import { imageToken } from "./links";
+import { V2_NOTICE, v2Mail, type V2MailContest } from "./onboarding-v2";
 import { previewOf } from "./render";
 import { emailOrigin, lastSent, sendEmail, type SendStatus } from "./send";
 import { isTestAccount, testIdsAmong } from "@/lib/seo/test-accounts";
@@ -287,6 +290,38 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
   );
 }
 
+/** A /start-v2 contest and its client's language; null for a contest of the old wizard (or before migration 0079). */
+async function v2Contest(contestId: string): Promise<(V2MailContest & { clientId: string; locale: "en" | "bn" }) | null> {
+  const { data: c } = await db().from("contests").select("id, slug, client_id, brand_name, brief_completion").eq("id", contestId).maybeSingle();
+  const completion = parseCompletion(c?.brief_completion);
+  if (!c || !completion) return null;
+  const { data: p } = await db().from("profiles").select("locale").eq("id", c.client_id).maybeSingle();
+  return { id: c.id as string, slug: c.slug as string, brand: (c.brand_name as string | null) ?? "", completion, clientId: c.client_id as string, locale: p?.locale === "bn" ? "bn" : "en" };
+}
+
+/** Onboarding v2 (owner, 2026-10-29; spec §2 step 4): the client sent their bKash payment; it is being checked. */
+export async function emailV2PaymentReceived(contestId: string): Promise<SendStatus | null> {
+  return safe("v2-payment-received", async () => {
+    const c = await v2Contest(contestId);
+    if (!c) return "skipped";
+    const [t, origin, s] = await Promise.all([translatorFor(c.locale), emailOrigin(), getSettings(["onboarding.approval_minutes"])]);
+    const mail = v2Mail("received", { t, locale: c.locale, origin, contest: c, minutes: s["onboarding.approval_minutes"] });
+    return emailText({ userId: c.clientId, locale: c.locale, subject: mail.subject, body: mail.body, buttonKey: "wizardV2.email.open", buttonUrl: mail.buttonUrl, notice: V2_NOTICE.received, ref: mail.ref });
+  });
+}
+
+/** Onboarding v2 (owner, 2026-10-29; spec §3 item 3): the payment was approved and the contest is live. Once per contest. */
+export async function emailV2ContestLive(contestId: string): Promise<SendStatus | null> {
+  return safe("v2-contest-live", async () => {
+    const c = await v2Contest(contestId);
+    if (!c) return "skipped";
+    const [t, origin] = await Promise.all([translatorFor(c.locale), emailOrigin()]);
+    const mail = v2Mail("live", { t, locale: c.locale, origin, contest: c, briefLink: onboardingV2On() });
+    if (await lastSent(c.clientId, "notification", mail.ref)) return "skipped";
+    return emailText({ userId: c.clientId, locale: c.locale, subject: mail.subject, body: mail.body, buttonKey: "wizardV2.email.open", buttonUrl: mail.buttonUrl, notice: V2_NOTICE.live, ref: mail.ref });
+  });
+}
+
 // ---- Everyone ---------------------------------------------------------------------------------------------------------
 
 /**
@@ -446,6 +481,8 @@ export async function emailText(input: {
   subject: string;
   body: string;
   buttonKey?: string;
+  /** The button's link when the text has none (else the first link to this site in the text). */
+  buttonUrl?: string;
   security?: boolean;
   ref?: string;
   notice?: string;
@@ -460,6 +497,7 @@ export async function emailText(input: {
     title: input.subject,
     body: input.body,
     buttonText: t((input.buttonKey ?? "email.button.open") as never),
+    buttonUrl: input.buttonUrl,
     security: input.security,
     ref: input.ref,
     notice: input.notice,

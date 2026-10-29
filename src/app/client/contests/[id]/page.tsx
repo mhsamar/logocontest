@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
+import { BriefBanner } from "@/components/client/brief-banner";
 import { CwIcon } from "@/components/client/icons";
 import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, Stars, StatusPill } from "@/components/client/parts";
 import { ShortlistHeart } from "@/components/client/review-buttons";
@@ -30,11 +31,14 @@ import { hasPermission } from "@/lib/admin/permissions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { latestClaim } from "@/lib/claims/queries";
 import { canOpenClaim, claimWindowEnds } from "@/lib/claims/rules";
-import { contestHref, contestStages, contestTab, CONTEST_TABS, designFilter, DESIGN_FILTERS, leftParts, mainAction, STAGES, type ContestTab } from "@/lib/client/rules";
+import { contestHref, contestStages, contestTab, CONTEST_TABS, designFilter, DESIGN_FILTERS, leftParts, mainAction, stagesFor, type ContestTab } from "@/lib/client/rules";
 import { contestActivity, contestPayments, entryTimes, invitedCount, judgedEntries, payHref } from "@/lib/client/workspace";
 import { addonPrices } from "@/lib/contests/addon-payments";
 import { getContestBySlug } from "@/lib/contests/browse";
+import { contestRepository } from "@/lib/contests/services";
+import { briefReadyPercent } from "@/lib/onboarding/brief-defaults";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
+import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { isFinished } from "@/lib/contests/public-statuses";
 import { formatDate } from "@/lib/dates";
 import { getEntryDetail } from "@/lib/entries/queries";
@@ -96,10 +100,10 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const unpaid = contest.rawStatus === "draft" || contest.rawStatus === "pending_payment";
   const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: true, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
 
-  const [entries, prices, s, entry, handover, checks, payments, invited, times, ranges, waiting, guarantee] = await Promise.all([
+  const [entries, prices, s, entry, handover, checks, payments, invited, times, ranges, waiting, guarantee, record] = await Promise.all([
     unpaid ? Promise.resolve([]) : judgedEntries({ id: contest.id, ownerId: contest.ownerId, isBlind: contest.isBlind, status: contest.status, winnerIsPublic: contest.winnerIsPublic }, user),
     addonPrices(),
-    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days", "timers.judging_window_days"]),
+    getSettings(["timers.designer_file_upload_days", "limits.contest_comment_max_length", "limits.max_revision_requests", "limits.approval_feedback_max_words", "timers.copy_claim_days", "timers.judging_window_days", "onboarding.approval_minutes"]),
     entryNumber && !unpaid ? getEntryDetail(contest.id, entryNumber, entryContest, user) : null,
     getHandoverByContest(contest.id),
     checkerOn ? contestChecks({ id: contest.id, prize: contest.prize, logoScan: contest.logoScan, status: contest.rawStatus }) : null,
@@ -110,6 +114,9 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
     unpaid ? awaitingApproval([contest.id]) : Promise.resolve(new Map<string, string>()),
     // Money-back guarantee (owner, 2026-10-21; C-25).
     unpaid ? Promise.resolve(null) : contestGuarantee(contest.id),
+    // Onboarding v2's brief and mark while the brief can still change (owner, 2026-10-29). The whole row, so a database
+    // before migration 0079 simply has no mark (an old contest).
+    unpaid || contest.rawStatus === "open" ? contestRepository().findContest(contest.id).catch(() => null) : Promise.resolve(null),
   ]);
   const claimStatus = guarantee?.state.kind === "claimed" ? guarantee.state.status : null;
   // While the team checks a money-back claim, picking a winner is paused; once approved, the money goes back.
@@ -153,13 +160,17 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const won = typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
   const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
-  const stages = contestStages(contest.rawStatus);
   const left = leftParts(contest.endsAt, now);
   const canEdit = contest.status === "open";
   const canExtend = contest.status === "open";
   // The main button follows what the contest needs now: pay, review, pick a winner or get the files.
   // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
   const sent = waiting.has(contest.id);
+  // Onboarding v2 (owner, 2026-10-29; spec §3): "Checking" in the progress while its bKash payment waits.
+  const completion = record?.briefCompletion ?? null;
+  const checking = sent && completion !== null;
+  const stages = contestStages(contest.rawStatus, { waiting: checking });
+  const sentPay = checking ? payments.find((p) => p.id === waiting.get(contest.id)) : undefined;
   const headAction = claimPending && mainAction(contest.rawStatus) === "pick" ? "details" : mainAction(contest.rawStatus, sent);
   const headHref =
     headAction === "pay" || headAction === "waiting"
@@ -239,6 +250,20 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
         {contestPay && !unpaid && freshPurchase(contestPay.paidAt) && <PurchasePixel paymentId={contestPay.id} value={contestPay.amount} />}
         {sp.payment === "paid" && <p className="calert ok">{t("manage.payment.paid")}</p>}
         {sp.payment === "failed" && <p className="calert bad">{t("manage.payment.failed")}</p>}
+        {/* Onboarding v2's brief banner (owner, 2026-10-29; spec §3): at the top, never a pop-up. */}
+        {record && completion && onboardingV2On() && (
+          <BriefBanner
+            contestId={contest.id}
+            slug={contest.slug}
+            status={contest.rawStatus}
+            completion={completion}
+            percent={briefReadyPercent(record.brief)}
+            businessType={record.brief.businessType}
+            entries={counts.all}
+            unrated={counts.unrated}
+            waiting={sent}
+          />
+        )}
 
         {/* Header */}
         <div className="dth2">
@@ -317,44 +342,54 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                     <h2>{t("cw.detail.progress")}</h2>
                   </div>
                   <ol className="dtl">
-                    {STAGES.map((st, i) => {
+                    {stagesFor(contest.rawStatus, { waiting: checking }).map((st, i) => {
                       const line =
                         st === "brief"
                           ? when(createdAt)
                           : st === "paid"
                             ? contestPay?.paidAt
                               ? `${taka(contestPay.amount)} · ${when(contestPay.paidAt)}`
-                              : t("cw.detail.notYet")
-                            : st === "live"
-                              ? contest.startsAt
-                                ? when(contest.startsAt)
+                              : checking
+                                ? `${sentPay ? `${taka(sentPay.amount)} · ` : ""}${t("cw.home.paySent")}`
                                 : t("cw.detail.notYet")
-                              : st === "judging"
-                                ? contest.endsAt
-                                  ? t("cw.detail.endsOn", { date: day(contest.endsAt) })
+                            : st === "checking"
+                              ? t("cw.status.awaiting")
+                              : st === "live"
+                                ? contest.startsAt
+                                  ? when(contest.startsAt)
                                   : t("cw.detail.notYet")
-                                : moneyBack
-                                  ? st === "winner"
-                                    ? t("guarantee.prizeState")
-                                    : "—"
-                                  : st === "winner"
-                                    ? handover
-                                      ? when(handover.pickedAt)
-                                      : t("cw.detail.pickWithin", { n: num(s["timers.judging_window_days"]) })
-                                    : handover?.approvedAt
-                                      ? when(handover.approvedAt)
-                                      : t("cw.detail.afterPick");
+                                : st === "judging"
+                                  ? contest.endsAt
+                                    ? t("cw.detail.endsOn", { date: day(contest.endsAt) })
+                                    : t("cw.detail.notYet")
+                                  : moneyBack
+                                    ? st === "winner"
+                                      ? t("guarantee.prizeState")
+                                      : "—"
+                                    : st === "winner"
+                                      ? handover
+                                        ? when(handover.pickedAt)
+                                        : t("cw.detail.pickWithin", { n: num(s["timers.judging_window_days"]) })
+                                      : handover?.approvedAt
+                                        ? when(handover.approvedAt)
+                                        : t("cw.detail.afterPick");
                       return (
                         <li key={st} className={stages[i]}>
                           <i />
                           <div>
-                            <b>{t(`cw.detail.steps.${st}`)}</b>
+                            <b>{st === "checking" ? t("wizardV2.timeline.checking") : t(`cw.detail.steps.${st}`)}</b>
                             <em>{line}</em>
                           </div>
                         </li>
                       );
                     })}
                   </ol>
+                  {checking && (
+                    <div className="mt-4 rounded-[14px] bg-[#F4F5F7] px-4 py-3" data-checking>
+                      <b className="block text-[14.5px]">{t("wizardV2.banner.checking", { minutes: num(s["onboarding.approval_minutes"]) })}</b>
+                      <span className="dmut">{t("wizardV2.banner.tellLive")}</span>
+                    </div>
+                  )}
                 </section>
                 <section className="dcard">
                   <div className="dch">

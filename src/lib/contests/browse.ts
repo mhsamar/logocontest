@@ -17,6 +17,7 @@ import { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 import { contestServiceInfo } from "@/lib/services/contest-service";
 import { allServices, getService } from "@/lib/services/store";
 import { privateKeys, visibleAnswers, type Answers } from "@/lib/services/types";
+import { BRIEF_SECTIONS, parseCompletion, type BriefCompletion, type BriefSection } from "@/lib/onboarding/brief-defaults";
 
 export { PUBLIC_STATUSES, type PublicStatus } from "./public-statuses";
 
@@ -355,8 +356,30 @@ export type ContestDetail = ContestRow & {
     requirements: Requirement[];
     requirementsNote: string | null;
     files: ContestFileView[];
+    /** Onboarding v2 (owner, 2026-10-29): the parts the client hasn't changed, tagged "default" for designers. */
+    defaults: BriefSection[];
   } | null;
 };
+
+/**
+ * The brief parts still as filled in from the business type (onboarding v2): none for a contest made by the old
+ * wizard, or once the client kept the brief as it is ("keep it like this" makes it theirs).
+ */
+export function defaultSections(completion: BriefCompletion | null): BriefSection[] {
+  if (!completion || completion.acceptedAt) return [];
+  return BRIEF_SECTIONS.filter((s) => !completion.edited.includes(s));
+}
+
+/**
+ * The text a contest's language is judged by (Bangla or English, for search engines): its description, else its
+ * name, slogan and customers, as an onboarding v2 contest may have no description (owner, 2026-10-29).
+ */
+export function briefLanguageText(b: { description: string | null; brandName: string; slogan: string | null; targetAudience: string | null }): string {
+  return b.description?.trim() || [b.brandName, b.slogan, b.targetAudience].filter(Boolean).join(" ");
+}
+
+// A column a migration adds, read before that migration has run.
+const MISSING_COLUMN = /PGRST204|42703/;
 
 /**
  * P-03. Returns null when the viewer may not see the contest at all (unknown
@@ -368,14 +391,18 @@ export const getContestBySlug = cache(loadContestBySlug);
 async function loadContestBySlug(slug: string, viewer: CurrentUser | null): Promise<ContestDetail | null> {
   if (!isSupabaseConfigured() || !/^[a-z0-9-]{1,120}$/.test(slug)) return null;
   const db = createAdminClient();
-  const { data, error } = await db
-    .from("contests")
-    .select(
-      `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, links, business_type_other, competitors, styles, style_sliders, colors,
-       let_designers_choose_colors, used_on, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)`,
-    )
-    .eq("slug", slug)
-    .maybeSingle();
+  const columns = `${ROW_COLUMNS}, client_id, business_description, logo_text, slogan, website_url, links, business_type_other, competitors, styles, style_sliders, colors,
+       let_designers_choose_colors, used_on, short_name, target_audience, deliverables, requirements, requirements_note, winner_is_public, logo_scan, extensions_count, client:profiles!client_id(name, username)` as const;
+  // Onboarding v2's mark (migration 0079) is read with the rest; until that migration has run, the contest is read
+  // without it (and so has no defaults).
+  const read = (mark: boolean) =>
+    db
+      .from("contests")
+      .select((mark ? `${columns}, brief_completion` : columns) as `${typeof columns}, brief_completion`)
+      .eq("slug", slug)
+      .maybeSingle();
+  let { data, error } = await read(true);
+  if (error && MISSING_COLUMN.test(error.code ?? "")) ({ data, error } = await read(false));
   if (error) throw new Error(error.message);
   if (!data) return null;
   // In the Trash (owner, 2026-10-14): only staff can still open it.
@@ -463,6 +490,7 @@ async function loadContestBySlug(slug: string, viewer: CurrentUser | null): Prom
           requirements: (data.requirements ?? []) as Requirement[],
           requirementsNote: data.requirements_note,
           files,
+          defaults: defaultSections(parseCompletion(data.brief_completion)),
         }
       : null,
   };

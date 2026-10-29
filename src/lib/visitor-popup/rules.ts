@@ -30,6 +30,7 @@ const BLOCKED = [
   "/login",
   "/designers/signup",
   "/start",
+  "/start-v2",
   "/forgot-password",
   "/reset-password",
   "/verify-email",

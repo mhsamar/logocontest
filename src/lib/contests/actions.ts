@@ -1,32 +1,23 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { sendVerificationEmail } from "@/lib/auth/email-service";
 import { contactBlocked } from "@/lib/auth/contact-blocks";
 import { emailRejection } from "@/lib/auth/email-check";
 import { normalizeEmail } from "@/lib/auth/identity";
 import { getCurrentUser } from "@/lib/auth/session";
-import { clientIp } from "@/lib/auth/services";
-import { findProfileByEmail, findProfileByPhone, passwordError, signIn } from "@/lib/auth/sign-in";
 import { toE164 } from "@/lib/phone";
-import { isPersonName, personNameFrom } from "@/lib/profile/name-rules";
-import { assignUsername } from "@/lib/profile/usernames";
-import { notifyUser, savePushSubscription } from "@/lib/push";
 import { isSupabaseConfigured } from "@/lib/env";
-import { translatorFor } from "@/lib/content/texts";
-import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { getService } from "@/lib/services/store";
 import { createBriefUpload, deleteBriefFile, saveBriefUpload } from "./brief-files";
+import { accountTaken, createClientAccount } from "./client-account";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { gatewayMethod, isManual } from "@/lib/payments/manual-rules";
 import { openMethod } from "@/lib/payments/methods";
 import { openStripeCheckout } from "@/lib/payments/stripe-api";
 import { applyContestPromo, lookupPromo, releasePromo, reservePromo, type Reserved } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { saveSignupSource, takeSignupSource } from "@/lib/visitor-popup/source";
 import {
   BUSINESS_TYPES,
   DELIVERABLES,
@@ -42,9 +33,6 @@ import {
 import { addonsFreeFor, feePercentFor, serviceFee as feeFor } from "./pricing";
 import { getPricingConfig } from "./pricing-config";
 import { contestRepository, contestService } from "./services";
-import { emailWelcome } from "@/lib/email/events";
-import { after } from "next/server";
-import { noticeOn } from "@/lib/notifications/switches";
 
 export type WizardResult<T = object> =
   | ({ ok: true } & T)
@@ -166,12 +154,6 @@ async function rememberContentRules(contestId: string, clientId: string): Promis
   if (error) console.error("[wizard] content rules:", error.message);
 }
 
-async function accountTaken(mobile: string, email: string): Promise<"mobile" | "email" | null> {
-  if (await findProfileByPhone(mobile)) return "mobile";
-  if (await findProfileByEmail(email)) return "email";
-  return null;
-}
-
 /** C-09: checks the mobile number and email before asking for a password (no OTP). */
 export async function checkAccountDetails(input: { mobile: string; email: string; country?: string }): Promise<WizardResult<{ mobile: string; email: string }>> {
   if (!isSupabaseConfigured()) return err("auth.errors.notConfigured");
@@ -219,66 +201,12 @@ export async function createAccountAndDraft(input: {
   const off = await serviceOff(service?.slug);
   if (off) return off;
 
-  const mobile = toE164(input.mobile, input.country);
-  const email = normalizeEmail(input.email);
-  if (!mobile || !email) return err("wizard.errors.incomplete");
-  const rejected = await emailRejection(email);
-  if (rejected) return err(rejected.key, rejected.params);
+  const account = await createClientAccount(input, data.brief.brandName.trim().slice(0, 80) || "Client");
+  if (!account.ok) return { ok: false, error: account.error };
 
-  const tooShort = await passwordError(input.password);
-  if (tooShort?.error) return { ok: false, error: tooShort.error };
-  // Before the account is made, so a blocked person gets no account either.
-  if (await contactBlocked({ mobile, email })) return err("wizard.errors.blocked");
-
-  const taken = await accountTaken(mobile, email);
-  if (taken) return err(taken === "mobile" ? "auth.errors.phoneTaken" : "wizard.errors.emailTaken");
-
-  const { locale } = await getI18n();
-  const brandName = data.brief.brandName.trim().slice(0, 80) || "Client";
-  // The client's own name (owner, 2026-10-15: before, a new client's account was named after the brand).
-  const typed = (input.name ?? "").trim().replace(/\s+/g, " ");
-  if (input.name !== undefined && (!isPersonName(typed) || typed.length < 2 || typed.length > 60)) return err("designerSignup.errors.nameLetters");
-  const fallback = personNameFrom(brandName).length >= 2 ? personNameFrom(brandName) : "Client";
-  const personName = input.name !== undefined ? typed : fallback;
-  const admin = createAdminClient();
-  // The trigger creates the profile as a "client" with this name.
-  const created = await admin.auth.admin.createUser({
-    email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: { mobile, name: personName, email, locale },
-  });
-  if (created.error || !created.data.user) {
-    return /already|exists|registered/i.test(created.error?.message ?? "")
-      ? err("wizard.errors.emailTaken")
-      : err("auth.errors.generic");
-  }
-
-  // A fixed username: first name + client number, e.g. anika010 (owner, 2026-10-17). Each contest keeps its own brand
-  // name, so the profile has no business name.
-  await admin.from("profiles").update({ whatsapp: input.whatsapp === true }).eq("id", created.data.user.id);
-  await assignUsername(created.data.user.id, personName, "client").catch((e) => console.error("[signup] username:", e instanceof Error ? e.message : e));
-  // Owner, 2026-10-13: count sign-ups that started from the visitor pop-up.
-  await saveSignupSource(created.data.user.id, await takeSignupSource());
-
-  const ip = await clientIp();
-  const signInError = await signIn(email, email, input.password, ip);
-  if (signInError?.error) return { ok: false, error: signInError.error };
-
-  // Owner, 2026-10-07: welcome push in the browser + the 6-digit email code. Neither blocks sign-up.
-  const userId = created.data.user.id;
-  await sendVerificationEmail({ userId, email, name: personName, locale, ip }).catch((e) => console.error("[auth] code email failed:", e));
-  // welcome.html (owner, 2026-10-15), after the reply so sign-up stays quick.
-  after(() => emailWelcome(userId));
-  // The welcome push can be turned off in Admin › Notifications (the browser is still saved for later notices).
-  if (input.push && (await savePushSubscription(userId, input.push, (await headers()).get("user-agent"), { takeOver: false })) && (await noticeOn("welcome", "push"))) {
-    const t = await translatorFor(locale);
-    await notifyUser(userId, { title: t("push.welcome.title"), body: t("push.welcome.body", { email }), url: "/verify-email" });
-  }
-
-  const saved = await contestService().saveDraft(created.data.user.id, data.brief, data.order, null, service);
+  const saved = await contestService().saveDraft(account.userId, data.brief, data.order, null, service);
   if (!saved.ok) return err(SAVE_ERRORS[saved.error]);
-  if (input.acceptedContentRules) await rememberContentRules(saved.contest.id, created.data.user.id);
+  if (input.acceptedContentRules) await rememberContentRules(saved.contest.id, account.userId);
   return { ok: true, contestId: saved.contest.id };
 }
 

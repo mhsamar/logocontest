@@ -63,7 +63,7 @@ describe("usernames (owner, 2026-10-15)", () => {
     expect(signup).toContain("designerSignup.username.auto");
     const designer = readFileSync("src/lib/designers/actions.ts", "utf8");
     expect(designer).toContain('assignUsername(userId, name, "designer")');
-    expect(readFileSync("src/lib/contests/actions.ts", "utf8")).toContain('assignUsername(created.data.user.id, personName, "client")');
+    expect(readFileSync("src/lib/contests/client-account.ts", "utf8")).toContain('assignUsername(created.data.user.id, personName, "client")');
   });
 
   it("migration 0063 keeps old usernames for old links", () => {

@@ -59,6 +59,7 @@ export default async function EditContestPage({ params }: PageProps<"/dashboard/
               fileLimits={{ maxFiles: limits.maxFiles, maxMb: limits.maxMb }}
               currentLogo={contest.service === "logo"}
               photosOnly={contest.service !== "logo"}
+              v2={Boolean(record.briefCompletion)}
             />
           ) : (
             <EmptyState title={t("manage.edit.closed")} />

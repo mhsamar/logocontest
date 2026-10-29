@@ -46,6 +46,42 @@ export function biggestDrops(funnel: FunnelStep[], n = 2): Drop[] {
     .slice(0, n);
 }
 
+// ---- Onboarding v2 --------------------------------------------------------------------------------------------------
+
+/**
+ * Where a client of the new 4-step wizard is (owner, 2026-10-29; client-onboarding-v2-spec.md §4): 1 account made, 2 logo
+ * name saved (the draft exists from here), 3 saw the prizes or picked a package, 4 opened the payment, then the bKash ID
+ * sent (wizardV2.admin.unpaid.steps.*). Read from the contest itself: its wizard visits count the new wizard's own 1–5.
+ */
+export const V2_STEPS = ["s1", "s2", "s3viewed", "s3picked", "s4", "sent"] as const;
+export type V2Step = (typeof V2_STEPS)[number];
+/** The steps a lead on the list can be at: a sent bKash ID counts as paid for following up, as with the old wizard. */
+export const V2_LIST_STEPS = ["s1", "s2", "s3viewed", "s3picked", "s4"] as const satisfies readonly V2Step[];
+/** On the shared 1..10 bar: the prizes are the old wizard's Prize (7), the payment step "Went to payment" (9). */
+export const V2_STEP_STAGE: Record<V2Step, number> = { s1: 1, s2: 2, s3viewed: DRAFT_STAGE, s3picked: DRAFT_STAGE, s4: AT_PAYMENT, sent: AT_PAYMENT };
+
+/** A new-wizard contest's own record of its steps (migration 0079). */
+export type V2State = { status: string; lastStep: number | null; pricingViewedAt: string | null; packageSelectedAt: string | null; proofSent?: boolean };
+
+/** Its step: the payment once opened (also when it waits for payment), else a picked package, else the prizes seen. */
+export function v2StepOf(c: V2State): V2Step {
+  if (c.proofSent) return "sent";
+  const last = Number(c.lastStep) || 0;
+  if (last >= 4 || c.status === "pending_payment") return "s4";
+  if (c.packageSelectedAt) return "s3picked";
+  if (c.pricingViewedAt || last >= 3) return "s3viewed";
+  return "s2";
+}
+
+/**
+ * Its total means something once the client picked a package, or went on to pay the one shown: before that it is only
+ * the default package's (Growth), so the team doesn't see it as money waiting.
+ */
+export const v2AmountKnown = (c: V2State) => Boolean(c.packageSelectedAt) || V2_STEP_STAGE[v2StepOf(c)] >= AT_PAYMENT;
+
+/** A new-wizard visit (its own 1–5) on the shared bar, when its contest isn't known: 1 account, 2 logo name, 3 prizes, 4–5 payment. */
+export const v2VisitStage = (n: number) => V2_STEP_STAGE[n >= 4 ? "s4" : n === 3 ? "s3viewed" : n === 2 ? "s2" : "s1"];
+
 // ---- Leads ----------------------------------------------------------------------------------------------------------
 
 export const LEAD_STATUSES = ["new", "in_touch", "promised", "needs_help", "not_reachable", "closed"] as const;
@@ -151,7 +187,15 @@ export type LeadState = {
   stage: number;
   ownerId: string | null;
   createdAt: Date;
+  /** The latest of what the client did and what the team logged: the "activity" sort. */
   lastActivityAt: Date;
+  /**
+   * When the client last did something themselves (saves, visits, being seen), never the team's contacts: "Last active"
+   * and its filter. Null when nothing of theirs is left (a lead kept from its own copy); left out, the activity above.
+   */
+  clientActivityAt?: Date | null;
+  /** The new wizard's step (onboarding v2); none for the old wizard. */
+  v2Step?: V2Step | null;
 };
 
 export const TABS = ["all", "new", "today", "overdue", "promised", "unreachable", "won", "closed"] as const;
@@ -162,6 +206,10 @@ export const AMOUNTS = ["lt5k", "5to10k", "gt10k"] as const;
 export type Amount = (typeof AMOUNTS)[number];
 export const STARTED = ["today", "7", "30", "older"] as const;
 export type Started = (typeof STARTED)[number];
+/** "Last active" (owner, 2026-10-29; spec §4): did something in the last 24 hours, 3 days or 7 days. */
+export const ACTIVE = ["24h", "3d", "7d"] as const;
+export type Active = (typeof ACTIVE)[number];
+const ACTIVE_HOURS: Record<Active, number> = { "24h": 24, "3d": 72, "7d": 168 };
 export const RANGES = ["today", "7", "30", "90"] as const;
 export type Range = (typeof RANGES)[number];
 /** Days back for each range (0 = today). */
@@ -202,8 +250,8 @@ export function shownStatus(l: LeadState, now: Date): ShownStatus {
 }
 
 /** `only`: the leads a phone or email search found (their keys, never the number itself). */
-export type UnpaidQuery = { tab: Tab; q: string; sort: Sort; step: number | null; owner: string | null; amount: Amount | null; started: Started | null; range: Range; sel: string | null; only: string[] | null };
-export const DEFAULT_QUERY: UnpaidQuery = { tab: "all", q: "", sort: "money", step: null, owner: null, amount: null, started: null, range: "30", sel: null, only: null };
+export type UnpaidQuery = { tab: Tab; q: string; sort: Sort; step: number | null; owner: string | null; amount: Amount | null; started: Started | null; active: Active | null; v2step: V2Step | null; range: Range; sel: string | null; only: string[] | null };
+export const DEFAULT_QUERY: UnpaidQuery = { tab: "all", q: "", sort: "money", step: null, owner: null, amount: null, started: null, active: null, v2step: null, range: "30", sel: null, only: null };
 
 const one = (v: unknown) => (Array.isArray(v) ? v[0] : v);
 const pick = <T extends string>(list: readonly T[], v: unknown, fallback: T) => (isIn(list, one(v)) ? (one(v) as T) : fallback);
@@ -232,6 +280,8 @@ export function parseUnpaidQuery(sp: Record<string, string | string[] | undefine
     owner: owner === "me" || owner === "none" || UUID.test(owner) ? owner : null,
     amount: pickOrNull(AMOUNTS, sp.amount),
     started: pickOrNull(STARTED, sp.started),
+    active: pickOrNull(ACTIVE, sp.active),
+    v2step: pickOrNull(V2_LIST_STEPS, sp.v2step),
     range: pick(RANGES, sp.range, "30"),
     sel: LEAD_KEY.test(sel) ? sel : null,
     only: only.length ? only : null,
@@ -273,6 +323,13 @@ export function matchesFilters(l: LeadState, q: UnpaidQuery, now: Date, me: stri
     if (q.started === "30" && t < dhakaMidnight(now, -29).getTime()) return false;
     if (q.started === "older" && t >= dhakaMidnight(now, -29).getTime()) return false;
   }
+  if (q.active) {
+    // The client's own activity: a call the team logged doesn't make them "active" (not known: not active).
+    const at = l.clientActivityAt === undefined ? l.lastActivityAt : l.clientActivityAt;
+    if (!at || now.getTime() - at.getTime() > ACTIVE_HOURS[q.active] * 3_600_000) return false;
+  }
+  // Only the new wizard's leads have its steps.
+  if (q.v2step && l.v2Step !== q.v2step) return false;
   return true;
 }
 

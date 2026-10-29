@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEFAULT_CAPTION, DEFAULT_HASHTAGS } from "@/lib/cards/rules";
 import { howVideoSchema, NO_VIDEO } from "@/lib/home/how-video";
 import { alertsSchema, DEFAULT_ALERTS, DEFAULT_REMINDERS, remindersSchema } from "@/lib/admin/unpaid-alert-rules";
+import { BRIEF_DEFAULTS_SCHEMA, SEED } from "@/lib/onboarding/brief-defaults";
 
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
 const intList = z.array(z.number().int().positive()).min(1);
@@ -964,6 +965,16 @@ export const SETTINGS = {
   "notice.tone": {
     group: "notice", type: "string", schema: z.enum(["info", "warning", "offer"]), default: "info",
     description: "Notice colour: info (dark), warning (amber) or offer (red).",
+  },
+
+  // ---- Onboarding v2 (owner, 2026-10-28; /start-v2) -----------------------------------------------------------------
+  "onboarding.brief_defaults": {
+    group: "onboarding", type: "json", schema: BRIEF_DEFAULTS_SCHEMA, default: SEED,
+    description: "The brief a new contest starts with, per business type (styles, feel, where it is used, extras, requirements). A type without its own entry uses \"other\".",
+  },
+  "onboarding.approval_minutes": {
+    group: "onboarding", type: "int", schema: int(1, 1440), default: 30,
+    description: "\"Usually within … minutes\": how soon a bKash payment is checked, shown on the payment step and after paying.",
   },
 } as const satisfies Record<string, SettingDefinition>;
 

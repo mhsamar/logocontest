@@ -29,13 +29,15 @@ export default async function InviteProPage({ searchParams }: PageProps<"/start/
   const draftId = typeof sp.draft === "string" && UUID.test(sp.draft) ? sp.draft : null;
   if (!draftId) redirect("/start");
   const [{ t, locale, price }, user, { settings, ready }] = await Promise.all([getI18n(), getCurrentUser(), getProSettings()]);
-  if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start/invite?draft=${draftId}`)}`);
+  // Opened from onboarding v2's brief after paying (owner, 2026-10-29): it goes back there, and has no pay step.
+  const fromHub = sp.from === "hub";
+  if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start/invite?draft=${draftId}${fromHub ? "&from=hub" : ""}`)}`);
   const data = await inviteCandidates(draftId);
   // Only the client who owns this draft.
   if (!data || user.role !== "client" || data.contest.clientId !== user.id) redirect("/start");
   const { contest } = data;
   const isLogo = contest.service === "logo";
-  const next = `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;
+  const next = fromHub ? `/start-v2/brief?c=${draftId}` : `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;
   if (!ready || !settings.features.invitations || !["draft", "pending_payment", "open"].includes(contest.status)) redirect(next);
   const [names, { data: notified }] = await Promise.all([serviceNames(locale), createAdminClient().from("contest_invites").select("designer_id").eq("contest_id", draftId).not("notified_at", "is", null)]);
   const sent = (notified ?? []).map((r) => r.designer_id as string);
@@ -47,28 +49,30 @@ export default async function InviteProPage({ searchParams }: PageProps<"/start/
   return (
     <PageShell>
       <div className="pr" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <ol className="iv-steps">
-          <li className="done">
-            <i>
-              <Icon name="check" size={14} strokeWidth={3} />
-            </i>
-            {t("pro.invite.steps.brief")}
-          </li>
-          <li className="done">
-            <i>
-              <Icon name="check" size={14} strokeWidth={3} />
-            </i>
-            {t("pro.invite.steps.prize")}
-          </li>
-          <li className="on" aria-current="step">
-            <i>3</i>
-            {t("pro.invite.steps.invite")}
-          </li>
-          <li>
-            <i>4</i>
-            {t("pro.invite.steps.pay")}
-          </li>
-        </ol>
+        {!fromHub && (
+          <ol className="iv-steps">
+            <li className="done">
+              <i>
+                <Icon name="check" size={14} strokeWidth={3} />
+              </i>
+              {t("pro.invite.steps.brief")}
+            </li>
+            <li className="done">
+              <i>
+                <Icon name="check" size={14} strokeWidth={3} />
+              </i>
+              {t("pro.invite.steps.prize")}
+            </li>
+            <li className="on" aria-current="step">
+              <i>3</i>
+              {t("pro.invite.steps.invite")}
+            </li>
+            <li>
+              <i>4</i>
+              {t("pro.invite.steps.pay")}
+            </li>
+          </ol>
+        )}
         <div className="pr-head">
           <div>
             <div className="t">

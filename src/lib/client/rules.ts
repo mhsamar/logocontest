@@ -54,6 +54,7 @@ const MENU_PATHS: [string, ClientMenuKey][] = [
   ["/client/settings", "settings"],
   ["/client/help", "help"],
   ["/start", "start"],
+  ["/start-v2", "start"],
   ["/pay", "payments"],
   ["/dashboard/contests", "contests"],
   ["/verify-email", "settings"],
@@ -151,6 +152,8 @@ export const OLD_CLIENT_PATH = /^\/(?:dashboard(?:\/(?:contests(?:\/[a-z0-9-]{1,
  */
 const CLIENT_AREA = [
   /^\/start(\/|$)/,
+  // Onboarding v2 (owner, 2026-10-28).
+  /^\/start-v2(\/|$)/,
   /^\/pay(\/|$)/,
   /^\/notifications\/?$/,
   /^\/verify-email\/?$/,
@@ -184,8 +187,23 @@ export const mySort = (v: unknown): MySort => (MY_SORTS as readonly unknown[]).i
 export const STAGES = ["brief", "paid", "live", "judging", "winner", "files"] as const;
 export type StageState = "done" | "on" | "";
 
+/**
+ * Onboarding v2 (owner, 2026-10-29; client-onboarding-v2-spec.md §3): while a sent bKash payment waits for an admin,
+ * "Checking" sits between Paid and Live. The pages pass `waiting` only for a v2 contest, so the old ones keep their six.
+ */
+export const CHECKING_STAGES = ["brief", "paid", "checking", "live", "judging", "winner", "files"] as const;
+export type Stage = (typeof CHECKING_STAGES)[number];
+export type StageInput = { waiting?: boolean };
+
+const checking = (status: string, o: StageInput) => Boolean(o.waiting) && (status === "draft" || status === "pending_payment");
+
+/** The steps a contest shows, in the order of `contestStages`. */
+export const stagesFor = (status: string, o: StageInput = {}): readonly Stage[] => (checking(status, o) ? CHECKING_STAGES : STAGES);
+
 /** The state of each step for a contest status. */
-export function contestStages(status: string): StageState[] {
+export function contestStages(status: string, o: StageInput = {}): StageState[] {
+  // Paid and being checked: the brief and the payment are done, the check is on.
+  if (checking(status, o)) return CHECKING_STAGES.map((_, i) => (i < 2 ? "done" : i === 2 ? "on" : ""));
   const at: Record<string, number> = { draft: 0, pending_payment: 0, open: 2, judging: 3, winner_selected: 5, handover: 5, completed: 6, no_result: 4, cancelled: -1 };
   const n = at[status] ?? 0;
   return STAGES.map((_, i) => (i < n ? "done" : i === n ? "on" : ""));
@@ -246,9 +264,9 @@ export function leftParts(end: Date | null, now: Date): { n: number; unit: "d" |
   return h >= 24 ? { n: Math.floor(h / 24), unit: "d" } : { n: Math.max(1, Math.floor(h)), unit: "h" };
 }
 
-/** How far a contest is along its 6 steps, as a share for the thin progress bar. */
-export function progressShare(status: string): number {
-  const states = contestStages(status);
+/** How far a contest is along its 6 steps (7 while a v2 payment is checked), as a share for the thin progress bar. */
+export function progressShare(status: string, o: StageInput = {}): number {
+  const states = contestStages(status, o);
   const done = states.filter((s) => s === "done").length;
   return Math.round(((done + (states.includes("on") ? 0.5 : 0)) / states.length) * 100);
 }

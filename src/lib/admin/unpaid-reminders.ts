@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { linkOrigin } from "@/lib/site-origin";
 import { resumeLink } from "@/lib/contests/resume";
 import { clientHour, reminderDue, remindersStopped, REPLY_RESULTS } from "./unpaid-alert-rules";
+import { beforePrizes, PAST_PRIZES, v2Columns, withV2 } from "./unpaid-alerts";
 
 /**
  * Admin › Unpaid contests, phase 3 (owner, 2026-10-26; Design/unpaid-contests §9): automatic reminders to a client who
@@ -45,14 +46,18 @@ export async function runUnpaidReminders(now = new Date()): Promise<number> {
   let budget = Math.min(PER_RUN, (limit > 0 ? Math.floor(limit * 0.3) : 100) - (today ?? 0));
   if (budget <= 0) return 0;
 
-  const { data: contests, error } = await db
-    .from("contests")
-    .select("id, brand_name, status, client_id, created_at, updated_at")
-    .in("status", ["draft", "pending_payment"])
-    .gte("created_at", new Date(now.getTime() - (lastHours + 24) * H).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error || !contests?.length) return 0;
+  // Onboarding v2 saves a draft at the logo name: no reminder before the client saw the prizes (owner, 2026-10-29). Left
+  // out before the limit, so many new v2 drafts can't push an older due draft out of the 200.
+  const { data: rows, error } = await withV2((v2) => {
+    const read = db
+      .from("contests")
+      .select(v2Columns("id, brand_name, status, client_id, created_at, updated_at", v2))
+      .in("status", ["draft", "pending_payment"])
+      .gte("created_at", new Date(now.getTime() - (lastHours + 24) * H).toISOString());
+    return (v2 ? read.or(PAST_PRIZES) : read).order("created_at", { ascending: false }).limit(200);
+  });
+  const contests = (rows ?? []).filter((c) => !beforePrizes(c));
+  if (error || !contests.length) return 0;
   const ids = contests.map((c) => c.id as string);
   const [sent, live] = await Promise.all([
     db.from("lifecycle_events").select("contest_id, kind").in("contest_id", ids).like("kind", "remind_%"),

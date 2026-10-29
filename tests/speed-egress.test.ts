@@ -121,7 +121,7 @@ describe("wiring", () => {
     expect(read("src/lib/services/store.ts")).toContain("{ tags: [SERVICES_TAG], revalidate: 300 }");
     expect(read("src/lib/services/admin-actions.ts").match(/updateTag\(SERVICES_TAG\);/g)?.length).toBe(3);
     // Every file that writes the settings table clears the cache.
-    const writers = ["src/lib/admin/site-actions.ts", "src/lib/admin/unpaid-alert-actions.ts", "src/lib/agreements/admin-actions.ts", "src/lib/cards/actions.ts", "src/lib/content/picture-actions.ts", "src/lib/home/hero-actions.ts", "src/lib/home/how-video-actions.ts", "src/lib/legal/admin-actions-legal.ts", "src/lib/notifications/admin-actions.ts", "src/lib/onboarding/actions.ts", "src/lib/pinterest/actions.ts", "src/lib/rewards/month-actions.ts", "src/lib/wallet/actions.ts", "src/lib/domain/watch.ts"];
+    const writers = ["src/lib/admin/site-actions.ts", "src/lib/admin/unpaid-alert-actions.ts", "src/lib/agreements/admin-actions.ts", "src/lib/cards/actions.ts", "src/lib/content/picture-actions.ts", "src/lib/home/hero-actions.ts", "src/lib/home/how-video-actions.ts", "src/lib/legal/admin-actions-legal.ts", "src/lib/notifications/admin-actions.ts", "src/lib/onboarding/actions.ts", "src/lib/onboarding/defaults-actions.ts", "src/lib/pinterest/actions.ts", "src/lib/rewards/month-actions.ts", "src/lib/wallet/actions.ts", "src/lib/domain/watch.ts"];
     for (const f of writers) expect(read(f), f).toContain("settingsChanged();");
     const all = execSync(`grep -rlE 'from\\("settings"\\)[^;]*\\.(upsert|update|insert|delete)|\\.from\\("settings"\\)\\s*$' src || true`, { encoding: "utf8" }).split("\n").filter(Boolean);
     for (const f of all) if (f !== "src/lib/settings/index.ts") expect(writers, `${f} writes settings`).toContain(f);

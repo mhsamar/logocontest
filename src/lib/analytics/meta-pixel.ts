@@ -3,13 +3,16 @@
  * calls send the conversion events once per action, only after it really happened. Call them from effects or from the
  * success branch of an action, never while rendering. Nothing here throws, and nothing personal is sent.
  */
-export type PixelEvent = "InitiateCheckout" | "CompleteRegistration" | "Purchase" | "Lead";
+// ViewContent and AddPaymentInfo: onboarding v2's prize step and bKash ID sent (owner, 2026-10-28).
+export type PixelEvent = "InitiateCheckout" | "CompleteRegistration" | "Purchase" | "Lead" | "ViewContent" | "AddPaymentInfo";
 export type PixelParams = { value?: number; currency?: "BDT" };
 
 type Fbq = (cmd: "track", event: PixelEvent, params?: PixelParams, options?: { eventID?: string }) => void;
 declare global {
   interface Window {
     fbq?: Fbq;
+    /** For Google Analytics 4 later (owner, 2026-10-28): the same events, pushed whether or not the pixel loaded. */
+    dataLayer?: Record<string, unknown>[];
   }
 }
 
@@ -82,7 +85,9 @@ export function markPixel(key: string): void {
  * as the event ID, so it must never hold personal data.
  */
 export function trackPixel(key: string, event: PixelEvent, params?: PixelParams): void {
-  if (typeof window === "undefined" || typeof window.fbq !== "function" || sent.has(key)) return;
+  if (typeof window === "undefined") return;
+  pushDataLayer(key, event, params);
+  if (typeof window.fbq !== "function" || sent.has(key)) return;
   sent.add(key);
   try {
     if (localStorage.getItem(PREFIX + key)) return;
@@ -92,6 +97,26 @@ export function trackPixel(key: string, event: PixelEvent, params?: PixelParams)
   }
   try {
     window.fbq("track", event, params ?? {}, { eventID: key });
+  } catch {
+    // Tracking never gets in the way of the site.
+  }
+}
+
+const pushed = new Set<string>();
+const DL_PREFIX = "lc-dl:";
+
+/** The event for window.dataLayer, once per key in this browser like the pixel; nothing personal. */
+function pushDataLayer(key: string, event: PixelEvent, params?: PixelParams): void {
+  if (pushed.has(key)) return;
+  pushed.add(key);
+  try {
+    if (localStorage.getItem(DL_PREFIX + key)) return;
+    localStorage.setItem(DL_PREFIX + key, String(Date.now()));
+  } catch {
+    // Private mode: the page-load guard is enough.
+  }
+  try {
+    (window.dataLayer ??= []).push({ event, event_id: key, ...(params ?? {}) });
   } catch {
     // Tracking never gets in the way of the site.
   }

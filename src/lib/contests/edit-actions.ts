@@ -7,11 +7,13 @@ import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { contestDesignerIds, notify } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cleanBrief, validateBrief, type Brief, type FieldErrors } from "./brief";
+import { cleanBrief, validateBrief, validateBriefV2, type Brief, type FieldErrors } from "./brief";
 import { createBriefUpload, deleteBriefFile, dropBriefUpload, saveBriefUpload, type BriefFileResult } from "./brief-files";
+import { sectionsChanged } from "@/lib/onboarding/brief-defaults";
+import { markEdited } from "@/lib/onboarding/brief-store";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { contestRepository } from "./services";
-import { briefDetailColumns } from "./supabase-repository";
+import { briefColumns } from "./supabase-repository";
 
 /** The contest's client, or staff with Contests › Manage (A-02 Edit brief, BLUEPRINT §13.3); null for anyone else. */
 async function liveEditor(contestId: string) {
@@ -37,28 +39,14 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
   if (contest.status !== "open") return { ok: false, error: "manage.edit.closed" };
 
   const brief = cleanBrief(input);
-  // Questions the owner hid (Admin › Onboarding) can stay empty.
-  const errors = validateBrief(brief, new Set((await getOnboarding("client")).hidden));
+  // An onboarding v2 contest keeps v2's rule (owner, 2026-10-29: its description may be empty, so it stays editable);
+  // otherwise questions the owner hid (Admin › Onboarding) can stay empty.
+  const errors = contest.briefCompletion ? validateBriefV2(brief) : validateBrief(brief, new Set((await getOnboarding("client")).hidden));
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
   const { data, error } = await createAdminClient()
     .from("contests")
-    .update({
-      brand_name: brief.brandName,
-      logo_text: brief.logoText || null,
-      slogan: brief.slogan || null,
-      business_type: brief.businessType,
-      business_description: brief.businessDescription,
-      website_url: brief.websiteUrl || null,
-      styles: brief.styles,
-      style_sliders: brief.sliders,
-      colors: brief.colors,
-      let_designers_choose_colors: brief.letDesignersChoose,
-      used_on: brief.usedOn,
-      likes_text: brief.likes,
-      dislikes_text: brief.dislikes || null,
-      ...briefDetailColumns(brief),
-    })
+    .update(briefColumns(brief))
     .eq("id", contest.id)
     .eq("status", "open")
     .select("id");
@@ -66,6 +54,9 @@ export async function saveContestBrief(contestId: string, input: Brief): Promise
   // Closed in the meantime: nothing changed, so nobody is told.
   if (!data?.length) return { ok: false, error: "manage.edit.closed" };
 
+  // The parts that really changed are no longer defaults for designers (both sides cleaned, so a save that changes
+  // nothing marks nothing).
+  if (contest.briefCompletion) await markEdited(contest.id, sectionsChanged(cleanBrief(contest.brief), brief));
   if (isAdmin) await audit(user.id, "edit_brief", "contest", contest.id, { brand: brief.brandName });
   await notify(await contestDesignerIds(contest.id), "brief_updated", { brand: brief.brandName }, `/contest/${contest.slug}?tab=brief`, user.id);
   refresh();

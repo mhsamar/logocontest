@@ -141,7 +141,7 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       {/* Clicking a person shows it at once (row marked, details faded) while their details load (owner, 2026-10-25). */}
       <LeadSelection>
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
-        <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} />
+        <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} v2={board.leads.some((l) => l.v2)} />
         <DetailsWhileLoading>
         <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} />
         </DetailsWhileLoading>

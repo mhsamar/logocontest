@@ -1,9 +1,10 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/env";
+import { isManual } from "@/lib/payments/manual-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminIdsWith } from "./recipients";
-import { wizardLeads, wizardLeadsByMobile } from "./leads";
+import { stepOneAccount, wizardLeads, wizardLeadsByMobile, type WizardLead } from "./leads";
 import { isRealEmail } from "./reminder-rules";
 import { unpaidNotes, type UnpaidOutcome } from "./unpaid-notes";
 import {
@@ -11,9 +12,12 @@ import {
   AT_PAYMENT,
   PAID,
   RANGE_DAYS,
+  V2_STEP_STAGE,
   dhakaMidnight,
   funnelCounts,
   stageOf,
+  v2AmountKnown,
+  v2StepOf,
   type CloseReason,
   type FakeReason,
   type FunnelStep,
@@ -21,6 +25,7 @@ import {
   type LeadState,
   type LeadStatus,
   type Range,
+  type V2State,
 } from "./unpaid-rules";
 import { cleanRemindBy, type RemindWay } from "./unpaid-alert-rules";
 
@@ -72,6 +77,15 @@ export type Lead = LeadState & {
   visitIds: string[];
   /** Guests only: false before migration 0075 (name and email couldn't be saved). */
   detailsSaved: boolean;
+  /** The contest's business type and package as saved (old and new wizard; spec §4); none for a guest. */
+  businessType: string | null;
+  package: string | null;
+  /** Started on the new 4-step wizard (onboarding v2, owner 2026-10-29): a draft it saved, or an account made on its step 1. */
+  v2: boolean;
+  /** A new-wizard draft whose client hasn't picked a package yet: its total is only the default's, so `amount` is null. */
+  noPackage: boolean;
+  /** When the client last did something themselves ("Last active"; the team's contacts don't count); null if unknown. */
+  clientActivityAt: Date | null;
 };
 
 export type Contact = { mobile: string | null; email: string | null; whatsapp: boolean | null };
@@ -90,15 +104,63 @@ export type Board = {
 
 const date = (v: unknown) => (v ? new Date(v as string) : null);
 
-/** A query over many ids, a slice at a time, so the request address never gets too long. Errors are logged, not thrown. */
-async function inChunks(ids: string[], q: (part: string[]) => PromiseLike<{ data: unknown[] | null; error: { message?: string } | null }>, size = 150): Promise<Row[]> {
+type Read = (part: string[]) => PromiseLike<{ data: unknown[] | null; error: { code?: string; message?: string } | null }>;
+
+/**
+ * A query over many ids, a slice at a time, so the request address never gets too long. Errors are logged, not thrown.
+ * `older`: the same read without the columns a later migration adds, used until that migration has run.
+ */
+async function inChunks(ids: string[], q: Read, older?: Read, size = 150): Promise<Row[]> {
   const out: Row[] = [];
   for (let i = 0; i < ids.length; i += size) {
-    const { data, error } = await q(ids.slice(i, i + size));
+    let { data, error } = await q(ids.slice(i, i + size));
+    if (error && older && missing(error)) ({ data, error } = await older(ids.slice(i, i + size)));
     if (error) console.error("[unpaid-board]", error.message);
     out.push(...((data ?? []) as Row[]));
   }
   return out;
+}
+
+const CONTEST = "id, slug, brand_name, status, total_amount, prize_amount, upgrades_amount, client_id, created_at, updated_at, contest_number, starts_at, business_type, package";
+// Onboarding v2's own record of how far the client got (migration 0079); a contest with brief_completion is the new wizard's.
+const CONTEST_V2 = `${CONTEST}, last_step, pricing_viewed_at, package_selected_at, brief_completion`;
+const VISIT = "contest_id, furthest_step, created_at";
+const PERSON = "id, name, mobile, email, whatsapp, is_test, last_seen_at, created_at";
+
+/** A new-wizard contest's steps from its row (read with CONTEST_V2). */
+const v2State = (c: Row, proofSent = false): V2State => ({
+  status: c.status as string,
+  lastStep: (c.last_step as number | null | undefined) ?? null,
+  pricingViewedAt: (c.pricing_viewed_at as string | null | undefined) ?? null,
+  packageSelectedAt: (c.package_selected_at as string | null | undefined) ?? null,
+  proofSent,
+});
+const isV2 = (c: Row) => c.brief_completion !== null && c.brief_completion !== undefined;
+
+/**
+ * Of the accounts holding these numbers, the ones made on the new wizard's first step that never made a contest: the
+ * number's only account, a client's, with no contest at all (also none paid, cancelled or in the Trash). By number.
+ * Anyone else (staff, a client with a contest, a number shared by two accounts), or if the contests can't be read: none.
+ */
+async function stepOneHolders(db: ReturnType<typeof createAdminClient>, holders: Row[]): Promise<Map<string, Row>> {
+  const byNumber = new Map<string, Row[]>();
+  for (const p of holders) byNumber.set(p.mobile as string, [...(byNumber.get(p.mobile as string) ?? []), p]);
+  const lone = [...byNumber.values()].filter((list) => list.length === 1 && list[0].role === "client").map((list) => list[0]);
+  const ids = lone.map((p) => p.id as string);
+  const withContest = new Set<string>();
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await db.from("contests").select("client_id").in("client_id", ids.slice(i, i + 150));
+    if (error) {
+      console.error("[unpaid-board]", error.message);
+      return new Map();
+    }
+    for (const c of data ?? []) withContest.add(c.client_id as string);
+  }
+  // Only an account the new wizard made (a v2 visit typed with this account's email: leads.ts's own rule). An old
+  // guest number whose account lost its draft (trash, purge) stays left out, as before (owner, 2026-10-29).
+  const candidates = lone.filter((p) => !withContest.has(p.id as string));
+  const proven = await Promise.all(candidates.map(async (p) => ((await stepOneAccount(p.mobile as string))?.id === p.id ? p : null)));
+  return new Map(proven.filter((p): p is Row => p !== null).map((p) => [p.mobile as string, p]));
 }
 
 /** Everyone on the page, with what the team logged. `include`: a guest visit an alert links to, found even if older. */
@@ -107,14 +169,14 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
   if (!isSupabaseConfigured()) return empty;
   const db = createAdminClient();
 
+  const readOpen = (cols: string) => db.from("contests").select(cols).in("status", ["draft", "pending_payment"]).order("updated_at", { ascending: false }).limit(300);
   const [leadRows, open, guests, ownerIds] = await Promise.all([
     db.from("unpaid_leads").select("*").order("updated_at", { ascending: false }).limit(1000),
-    db
-      .from("contests")
-      .select("id, slug, brand_name, status, total_amount, prize_amount, upgrades_amount, client_id, created_at, updated_at, contest_number, starts_at")
-      .in("status", ["draft", "pending_payment"])
-      .order("updated_at", { ascending: false })
-      .limit(300),
+    // Before migration 0079 without the new wizard's columns: every contest is the old wizard's.
+    (async () => {
+      const first = await readOpen(CONTEST_V2);
+      return first.error && missing(first.error) ? await readOpen(CONTEST) : first;
+    })(),
     wizardLeads(200, include),
     adminIdsWith("unpaid.manage"),
   ]);
@@ -125,20 +187,30 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
   const byMobile = new Map(rows.filter((r) => r.guest_mobile).map((r) => [r.guest_mobile as string, r]));
 
   // Contests the team followed up that are no longer unpaid: paid since (won back), or closed and gone from the list.
-  const openContests = (open.data ?? []) as Row[];
+  const openContests = (open.data ?? []) as unknown as Row[];
   const openIds = new Set(openContests.map((c) => c.id as string));
   const otherIds = [...byContest.keys()].filter((id) => !openIds.has(id));
-  const others = await inChunks(otherIds, (part) => db.from("contests").select("id, slug, brand_name, status, total_amount, prize_amount, upgrades_amount, client_id, created_at, updated_at, contest_number, starts_at").in("id", part));
+  const others = await inChunks(
+    otherIds,
+    (part) => db.from("contests").select(CONTEST_V2).in("id", part),
+    (part) => db.from("contests").select(CONTEST).in("id", part),
+  );
   const contests = [...openContests, ...others];
   const contestIds = contests.map((c) => c.id as string);
-  const clientIds = [...new Set(contests.map((c) => c.client_id as string).filter(Boolean))];
+  // A client who made their account on the new wizard's first step and has no contest yet (owner, 2026-10-29).
+  const clientIds = [...new Set([...contests.map((c) => c.client_id as string), ...guests.map((g) => g.account)].filter((id): id is string => Boolean(id)))];
   const peopleIds = [...new Set([...clientIds, ...ownerIds, ...rows.flatMap((r) => [r.owner_id, r.closed_by].filter(Boolean) as string[])])];
 
   const [people, sessions, visits, payments, proofs, done] = await Promise.all([
-    inChunks(peopleIds, (part) => db.from("profiles").select("id, name, mobile, email, whatsapp, is_test, last_seen_at, created_at").in("id", part)),
+    inChunks(peopleIds, (part) => db.from("profiles").select(PERSON).in("id", part)),
     inChunks(clientIds, (part) => db.from("user_sessions").select("user_id, device, city, last_seen_at").in("user_id", part).order("last_seen_at", { ascending: false }).limit(1000)),
-    inChunks(contestIds, (part) => db.from("wizard_visits").select("contest_id, furthest_step, created_at").in("contest_id", part).limit(5000)),
-    inChunks(contestIds, (part) => db.from("payments").select("contest_id, status, created_at").eq("purpose", "contest").in("contest_id", part).order("created_at", { ascending: false }).limit(2000)),
+    // Which wizard each visit was (migration 0079): only the old wizard's steps go through stageOf. Before it, all old.
+    inChunks(
+      contestIds,
+      (part) => db.from("wizard_visits").select(`${VISIT}, flow`).in("contest_id", part).limit(5000),
+      (part) => db.from("wizard_visits").select(VISIT).in("contest_id", part).limit(5000),
+    ),
+    inChunks(contestIds, (part) => db.from("payments").select("contest_id, status, gateway, created_at").eq("purpose", "contest").in("contest_id", part).order("created_at", { ascending: false }).limit(2000)),
     inChunks(contestIds, (part) => db.from("manual_payments").select("contest_id, status, note, created_at").eq("kind", "contest").in("contest_id", part).order("created_at", { ascending: false }).limit(2000)),
     ready ? db.from("lead_activities").select("lead_id, kind, completes_at, created_at").not("completes_at", "is", null).gte("created_at", dhakaMidnight(now).toISOString()).limit(500) : { data: [] as Row[] },
   ]);
@@ -196,16 +268,27 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
     if (asGuest) adopted.add(asGuest.id as string);
     const p = person.get(c.client_id as string);
     const sess = session.get(c.client_id as string);
-    const vs = visitsOf.get(id) ?? [];
-    const stage = live ? PAID : Math.max(c.status === "pending_payment" ? AT_PAYMENT : DRAFT_STAGE, ...vs.map((v) => stageOf(v.furthest_step as number, v.created_at as string)));
+    const seen = visitsOf.get(id) ?? [];
+    const vs = seen.filter((v) => (v.flow ?? "v1") === "v1");
+    // Onboarding v2 (owner, 2026-10-29; spec §4): a new-wizard draft exists from the logo name on, so its step comes
+    // from the contest itself (last_step, the prizes seen, a package picked), never from "a draft is past Prize".
+    const v2 = isV2(c);
+    const v2Step = v2 && !live ? v2StepOf(v2State(c)) : null;
+    const noPackage = v2Step !== null && !v2AmountKnown(v2State(c));
+    const stage = live ? PAID : v2Step ? V2_STEP_STAGE[v2Step] : Math.max(c.status === "pending_payment" ? AT_PAYMENT : DRAFT_STAGE, ...vs.map((v) => stageOf(v.furthest_step as number, v.created_at as string)));
     const latestPay = (paysOf.get(id) ?? [])[0];
     const latestProof = proofList[0];
     const proofFailed = latestProof?.status === "rejected" && (!latestPay || new Date(latestProof.created_at as string) >= new Date(latestPay.created_at as string));
-    const paymentFailed: PaymentFailure | null = unpaid ? (proofFailed ? { kind: "bkash", note: (latestProof.note as string | null) ?? null } : latestPay?.status === "failed" ? { kind: "card" } : null) : null;
+    // A manual bKash payment the new wizard closed (the client went back and changed the order, onboarding v2) is marked
+    // failed too, but no money failed: only a gateway's failure is a failed card payment.
+    const cardFailed = latestPay?.status === "failed" && !isManual(latestPay.gateway);
+    const paymentFailed: PaymentFailure | null = unpaid ? (proofFailed ? { kind: "bkash", note: (latestProof.note as string | null) ?? null } : cardFailed ? { kind: "card" } : null) : null;
     const email = isRealEmail(p?.email as string | null) ? (p!.email as string) : null;
     const key = `c:${id}`;
     contacts.set(key, { mobile: (p?.mobile as string | null) ?? null, email, whatsapp: (p?.whatsapp as boolean | null) ?? null });
-    const lastActivity = Math.max(new Date(c.updated_at as string).getTime(), s.lastContact?.at.getTime() ?? 0, ...vs.map((v) => new Date(v.created_at as string).getTime()));
+    // updated_at moves on every save, also each of the new wizard's (logo name, prizes seen, package, payment step).
+    const clientActivity = Math.max(new Date(c.updated_at as string).getTime(), ...seen.map((v) => new Date(v.created_at as string).getTime()));
+    const lastActivity = Math.max(clientActivity, s.lastContact?.at.getTime() ?? 0);
     leads.push({
       ...s,
       key,
@@ -218,14 +301,17 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
       clientId: (c.client_id as string | null) ?? null,
       isTest: p?.is_test === true,
       signedUpAt: date(p?.created_at),
-      amount: Number(c.total_amount ?? r?.amount_snapshot ?? 0) || null,
-      prize: (c.prize_amount as number | null) ?? null,
-      addons: (c.upgrades_amount as number | null) ?? null,
+      // Not the default package's total before the client picked one: left out of the money, its filter and sort.
+      amount: noPackage ? null : Number(c.total_amount ?? r?.amount_snapshot ?? 0) || null,
+      prize: noPackage ? null : ((c.prize_amount as number | null) ?? null),
+      addons: noPackage ? null : ((c.upgrades_amount as number | null) ?? null),
       stage,
+      v2Step,
       createdAt: new Date(c.created_at as string),
       lastActivityAt: new Date(lastActivity),
+      clientActivityAt: new Date(clientActivity),
       paymentFailed,
-      visits: vs.length,
+      visits: seen.length,
       lastSeen: date(p?.last_seen_at),
       device: (sess?.device as string | null) ?? null,
       city: (sess?.city as string | null) ?? null,
@@ -234,68 +320,100 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
       hasContact: { mobile: Boolean(p?.mobile), email: Boolean(email), whatsapp: p?.whatsapp === true },
       visitIds: [],
       detailsSaved: true,
+      businessType: (c.business_type as string | null | undefined) ?? null,
+      package: (c.package as string | null | undefined) ?? null,
+      v2,
+      noPackage,
     });
   }
 
-  // Guests: a mobile number from the first step, no account yet (a number that signed up became a draft above).
-  const seenGuests = new Set<string>();
-  for (const g of guests) {
-    seenGuests.add(g.mobile);
-    const r = byMobile.get(g.mobile);
-    const s = state(r);
-    const key = `g:${g.visitId}`;
-    contacts.set(key, { mobile: g.mobile, email: g.email, whatsapp: g.whatsapp });
-    leads.push({
+  // A step-1 account's email is the one it signed up with, never one typed with its number (maybe someone else's).
+  const guestEmail = (g: WizardLead): string | null => {
+    if (!g.account) return g.email;
+    const email = person.get(g.account)?.email as string | null | undefined;
+    return isRealEmail(email) ? email : null;
+  };
+
+  // Guests: a mobile number from the first step, no account yet (a number that signed up became a draft above). Or,
+  // on the new wizard (owner, 2026-10-29), an account made on its first step with no contest yet: step 1, and the
+  // account says who they are.
+  const guestLead = (g: WizardLead, s: ReturnType<typeof state>, snapshot?: unknown): Lead => {
+    const a = g.account ? person.get(g.account) : undefined;
+    const sess = g.account ? session.get(g.account) : undefined;
+    // A step-1 account is also active when seen signed in anywhere on the site.
+    const clientActivity = Math.max(g.updatedAt.getTime(), a?.last_seen_at ? new Date(a.last_seen_at as string).getTime() : 0);
+    return {
       ...s,
-      key,
+      key: `g:${g.visitId}`,
       kind: "guest",
       contestId: null,
       slug: null,
       number: null,
-      brand: (g.brand ?? (r?.brand_snapshot as string) ?? "").trim(),
-      clientName: g.name,
-      clientId: null,
-      isTest: false,
-      signedUpAt: null,
+      brand: (g.brand ?? (snapshot as string | undefined) ?? "").trim(),
+      clientName: (a?.name as string | undefined) ?? g.name,
+      clientId: g.account,
+      isTest: a?.is_test === true,
+      signedUpAt: date(a?.created_at),
       amount: null,
       prize: null,
       addons: null,
-      stage: g.stage,
+      stage: g.account ? V2_STEP_STAGE.s1 : g.stage,
+      v2Step: g.account ? "s1" : null,
       createdAt: g.createdAt,
       lastActivityAt: new Date(Math.max(g.updatedAt.getTime(), s.lastContact?.at.getTime() ?? 0)),
+      clientActivityAt: new Date(clientActivity),
       paymentFailed: null,
       visits: g.visits,
-      lastSeen: g.updatedAt,
-      device: null,
-      city: null,
+      lastSeen: date(a?.last_seen_at) ?? g.updatedAt,
+      device: (sess?.device as string | null | undefined) ?? null,
+      city: (sess?.city as string | null | undefined) ?? null,
       wonBackAt: null,
       wonBack: null,
-      hasContact: { mobile: true, email: Boolean(g.email), whatsapp: g.whatsapp === true },
+      hasContact: { mobile: true, email: Boolean(guestEmail(g)), whatsapp: g.whatsapp === true },
       visitIds: g.visitIds,
       detailsSaved: g.detailsSaved,
-    });
+      businessType: null,
+      package: null,
+      v2: Boolean(g.account),
+      noPackage: false,
+    };
+  };
+  const seenGuests = new Set<string>();
+  for (const g of guests) {
+    seenGuests.add(g.mobile);
+    const r = byMobile.get(g.mobile);
+    const lead = guestLead(g, state(r), r?.brand_snapshot);
+    contacts.set(lead.key, { mobile: g.mobile, email: guestEmail(g), whatsapp: g.whatsapp });
+    leads.push(lead);
   }
   // Guests the team is following up who dropped out of the newest visits: loaded by their number.
   const missingGuests = rows.filter((r) => r.guest_mobile && !seenGuests.has(r.guest_mobile as string) && r.status !== "closed" && !adopted.has(r.id as string)).map((r) => r.guest_mobile as string);
-  for (const g of await wizardLeadsByMobile(missingGuests)) {
+  const dropped = await wizardLeadsByMobile(missingGuests);
+  // Their step-1 accounts (new wizard) weren't read with the others: who they are and the email they signed up with.
+  const later = [...new Set(dropped.map((g) => g.account).filter((a): a is string => a !== null && !person.has(a)))];
+  for (const p of await inChunks(later, (part) => db.from("profiles").select(PERSON).in("id", part))) person.set(p.id as string, p);
+  for (const g of dropped) {
     seenGuests.add(g.mobile);
-    const s = state(byMobile.get(g.mobile));
-    const key = `g:${g.visitId}`;
-    contacts.set(key, { mobile: g.mobile, email: g.email, whatsapp: g.whatsapp });
-    leads.push({ ...s, key, kind: "guest", contestId: null, slug: null, number: null, brand: (g.brand ?? "").trim(), clientName: g.name, clientId: null, isTest: false, signedUpAt: null, amount: null, prize: null, addons: null, stage: g.stage, createdAt: g.createdAt, lastActivityAt: new Date(Math.max(g.updatedAt.getTime(), s.lastContact?.at.getTime() ?? 0)), paymentFailed: null, visits: g.visits, lastSeen: g.updatedAt, device: null, city: null, wonBackAt: null, wonBack: null, hasContact: { mobile: true, email: Boolean(g.email), whatsapp: g.whatsapp === true }, visitIds: g.visitIds, detailsSaved: g.detailsSaved });
+    const lead = guestLead(g, state(byMobile.get(g.mobile)));
+    contacts.set(lead.key, { mobile: g.mobile, email: guestEmail(g), whatsapp: g.whatsapp });
+    leads.push(lead);
   }
   // Leads whose visits or draft are gone (after 90 days, or the Trash was emptied) stay from their own copy: closed ones
   // for the record (a fake close can still be reopened, lifting its block), open ones so nobody is dropped. Keyed by
-  // the lead's own id (l:). A guest number that signed up since is left to its draft.
+  // the lead's own id (l:). A guest number that signed up since is left to its draft; an account made on the new
+  // wizard's first step with no contest at all (owner, 2026-10-29) has none, so its lead stays (closed as fake too).
   const orphans = rows.filter((r) => !adopted.has(r.id as string) && ((r.guest_mobile && !seenGuests.has(r.guest_mobile as string)) || (r.kind === "contest" && !r.contest_id)));
   const orphanMobiles = orphans.map((r) => r.guest_mobile as string | null).filter((m): m is string => Boolean(m));
-  const withAccount = new Set((await inChunks(orphanMobiles, (part) => db.from("profiles").select("mobile").in("mobile", part))).map((p) => p.mobile as string));
+  const holders = await inChunks(orphanMobiles, (part) => db.from("profiles").select("id, mobile, role, name, is_test, last_seen_at, created_at").in("mobile", part));
+  const withAccount = new Set(holders.map((p) => p.mobile as string));
+  const stepOne = await stepOneHolders(db, holders);
   for (const r of orphans) {
     const mobile = (r.guest_mobile as string | null) ?? null;
-    if (mobile && withAccount.has(mobile)) continue;
+    const holder = mobile ? stepOne.get(mobile) : undefined;
+    if (mobile && withAccount.has(mobile) && !holder) continue;
     const s = state(r);
     const key = `l:${r.id as string}`;
-    const client = r.client_id ? person.get(r.client_id as string) : undefined;
+    const client = holder ?? (r.client_id ? person.get(r.client_id as string) : undefined);
     contacts.set(key, { mobile: mobile ?? ((client?.mobile as string | null) ?? null), email: null, whatsapp: null });
     leads.push({
       ...s,
@@ -306,18 +424,21 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
       number: null,
       brand: ((r.brand_snapshot as string) ?? "").trim(),
       clientName: (client?.name as string | undefined) ?? null,
-      clientId: (r.client_id as string | null) ?? null,
-      isTest: false,
-      signedUpAt: null,
+      clientId: (r.client_id as string | null) ?? ((holder?.id as string | undefined) ?? null),
+      isTest: holder?.is_test === true,
+      signedUpAt: date(holder?.created_at),
       amount: (r.amount_snapshot as number | null) ?? null,
       prize: null,
       addons: null,
       stage: 1,
+      v2Step: null,
       createdAt: new Date(r.created_at as string),
       lastActivityAt: new Date(r.updated_at as string),
+      // Their visits and draft are gone: only a step-1 account's last sign-in says when they were last here.
+      clientActivityAt: date(holder?.last_seen_at),
       paymentFailed: null,
       visits: 0,
-      lastSeen: null,
+      lastSeen: date(holder?.last_seen_at),
       device: null,
       city: null,
       wonBackAt: null,
@@ -325,6 +446,10 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
       hasContact: { mobile: Boolean(mobile ?? client?.mobile), email: false, whatsapp: false },
       visitIds: [],
       detailsSaved: false,
+      businessType: null,
+      package: null,
+      v2: false,
+      noPackage: false,
     });
   }
 
@@ -339,12 +464,18 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
 
 // ---- Where they get stuck ---------------------------------------------------------------------------------------------
 
-/** Wizard visits in the range, by the stage they reached (old numbering mapped), and whether their contest was paid. */
+/**
+ * The old wizard's visits in the range, by the stage they reached (old numbering mapped), and whether their contest was
+ * paid. The new wizard's visits (owner, 2026-10-29) count their own 1–5 and have their own funnel card, as on the
+ * dashboard, so they are left out here. Before migration 0079 there is no flow: every visit is the old wizard's.
+ */
 export async function stuckFunnel(range: Range, now = new Date()): Promise<FunnelStep[]> {
   if (!isSupabaseConfigured()) return funnelCounts([]);
   const db = createAdminClient();
-  const { data } = await db.from("wizard_visits").select("furthest_step, contest_id, created_at").gte("created_at", dhakaMidnight(now, -RANGE_DAYS[range]).toISOString()).limit(20000);
-  const rows = (data ?? []) as Row[];
+  const read = () => db.from("wizard_visits").select("furthest_step, contest_id, created_at").gte("created_at", dhakaMidnight(now, -RANGE_DAYS[range]).toISOString());
+  const first = await read().eq("flow", "v1").limit(20000);
+  const { data } = first.error && missing(first.error) ? await read().limit(20000) : first;
+  const rows = (data ?? []) as unknown as Row[];
   const ids = [...new Set(rows.map((r) => r.contest_id as string | null).filter((x): x is string => Boolean(x)))];
   const paid = new Set<string>();
   for (const c of await inChunks(ids, (part) => db.from("contests").select("id").in("id", part).in("status", LIVE_OR_LATER))) paid.add(c.id as string);
@@ -425,7 +556,7 @@ export async function leadHistory(lead: Lead, contact: Contact | undefined): Pro
   if (lead.contestId) {
     const [notes, pays, proofs, reminders] = await Promise.all([
       unpaidNotes([lead.contestId]),
-      db.from("payments").select("status, created_at").eq("purpose", "contest").eq("contest_id", lead.contestId).order("created_at", { ascending: false }).limit(10),
+      db.from("payments").select("status, gateway, created_at").eq("purpose", "contest").eq("contest_id", lead.contestId).order("created_at", { ascending: false }).limit(10),
       db.from("manual_payments").select("status, note, created_at, reviewed_at").eq("kind", "contest").eq("contest_id", lead.contestId).order("created_at", { ascending: false }).limit(10),
       // The automatic reminders that really went (phase 3, owner 2026-10-26).
       db.from("email_log").select("ref, created_at").eq("template", "contest-reminder").eq("status", "sent").in("ref", [`remind:${lead.contestId}:first`, `remind:${lead.contestId}:last`]),
@@ -433,7 +564,9 @@ export async function leadHistory(lead: Lead, contact: Contact | undefined): Pro
     for (const r of reminders.data ?? []) items.push({ at: new Date(r.created_at as string), by: null, kind: "email", event: String(r.ref).endsWith(":last") ? "remind_last" : "remind_first", tone: "amber" });
     for (const n of notes?.get(lead.contestId) ?? []) items.push({ at: n.at, by: n.by, kind: "note", event: "old_note", result: OLD_OUTCOME[n.outcome], note: n.note, tone: "neutral" });
     for (const p of pays.data ?? []) {
-      items.push({ at: new Date(p.created_at as string), by: null, kind: "system", event: p.status === "failed" ? "payment_failed" : p.status === "paid" ? "paid" : "payment_started", tone: p.status === "failed" ? "bad" : p.status === "paid" ? "good" : "neutral" });
+      // A manual bKash payment the new wizard closed when the order changed is a payment started, not one that failed.
+      const failed = p.status === "failed" && !isManual(p.gateway);
+      items.push({ at: new Date(p.created_at as string), by: null, kind: "system", event: failed ? "payment_failed" : p.status === "paid" ? "paid" : "payment_started", tone: failed ? "bad" : p.status === "paid" ? "good" : "neutral" });
     }
     for (const p of proofs.data ?? []) {
       items.push({ at: new Date(p.created_at as string), by: null, kind: "system", event: "proof_sent", tone: "info" });

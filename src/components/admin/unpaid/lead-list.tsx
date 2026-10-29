@@ -2,7 +2,8 @@ import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard, IdChip, isNewSince, NewPill } from "@/components/admin/ui";
 import type { Lead } from "@/lib/admin/unpaid-board";
-import { AMOUNTS, PAID, SORTS, STAGES, STARTED, TABS, unpaidHref, type ShownStatus, type Tab, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
+import { ACTIVE, AMOUNTS, PAID, SORTS, STAGES, STARTED, TABS, unpaidHref, V2_LIST_STEPS, type ShownStatus, type Tab, type UnpaidQuery, type V2Step } from "@/lib/admin/unpaid-rules";
+import { BUSINESS_TYPES, PACKAGES } from "@/lib/contests/brief";
 import { cx } from "@/lib/cx";
 import type { MessageKey, Translate } from "@/lib/i18n/translate";
 import { Dropdown, LeadLink, LeadSearch, QuickReach } from "./actions";
@@ -49,6 +50,41 @@ export function StageBar({ lead }: { lead: Lead }) {
 
 export const deviceIcon = (d: string | null) => (d === "desktop" ? "computer" : d ? "device" : null);
 
+// ---- Onboarding v2 (owner, 2026-10-29; client-onboarding-v2-spec.md §4) ------------------------------------------------
+
+const known = <T extends string>(list: readonly T[], v: string | null): v is T => v !== null && (list as readonly string[]).includes(v);
+export const businessName = (type: string | null, t: Translate) => (known(BUSINESS_TYPES, type) ? t(`wizard.businessTypes.${type}`) : type);
+export const packageName = (pkg: string | null, t: Translate) => (known(PACKAGES, pkg) ? t(`wizard.packages.${pkg}.name`) : pkg);
+
+/** The new wizard's step in words; "Picked {package}" names the contest's package (a filter names none). */
+export function v2StepName(step: V2Step, t: Translate, pkg: string | null = null) {
+  return t(`wizardV2.admin.unpaid.steps.${step}`, step === "s3picked" ? { package: packageName(pkg, t) || t("wizardV2.admin.unpaid.package").toLowerCase() } : undefined);
+}
+
+/** "New wizard": a lead that started on /start-v2. */
+export function V2Chip({ t }: { t: Translate }) {
+  return <span className="inline-flex items-center whitespace-nowrap rounded-[6px] bg-[#E6EEF8] px-1.5 text-[11px] font-bold text-[#24406B]">{t("wizardV2.admin.unpaid.v2")}</span>;
+}
+
+/** A contest's business type and package (old and new wizard). The package only once chosen: before, the amount says so. */
+export function ContestFacts({ lead, t, className }: { lead: Lead; t: Translate; className?: string }) {
+  const facts = [
+    lead.businessType ? ([t("wizardV2.admin.unpaid.businessType"), businessName(lead.businessType, t)] as const) : null,
+    lead.package && !lead.noPackage ? ([t("wizardV2.admin.unpaid.package"), packageName(lead.package, t)] as const) : null,
+  ].filter((f) => f !== null);
+  if (lead.kind !== "contest" || !facts.length) return null;
+  return (
+    <span className={cx("flex flex-wrap items-center gap-1.5", className)}>
+      {facts.map(([label, value]) => (
+        <span key={label} className="inline-flex min-w-0 items-center gap-1 rounded-[7px] bg-[#F4F5F7] px-1.5 py-0.5 text-[11.5px] font-semibold text-[#3A3C45]">
+          <span className="text-[#8A8C96]">{label}</span>
+          <span className="truncate">{value}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 const Option = ({ href, on, children }: { href: string; on: boolean; children: React.ReactNode }) => (
   <li>
     <Link prefetch={false} href={href} scroll={false} aria-current={on ? "true" : undefined} className={cx("flex min-h-9 items-center rounded-[8px] px-2.5 text-[13.5px] font-semibold hover:bg-[#F4F5F7]", on && "text-primary")}>
@@ -69,6 +105,7 @@ export function LeadList({
   selectedKey,
   status,
   totalOpen,
+  v2 = false,
 }: {
   rows: Lead[];
   counts: Record<Tab, number>;
@@ -81,9 +118,11 @@ export function LeadList({
   selectedKey: string | null;
   status: (l: Lead) => ShownStatus;
   totalOpen: number;
+  /** Someone started on the new wizard: its step filter is shown. */
+  v2?: boolean;
 }) {
   const { t, num, taka, when, day, stepName } = fmt;
-  const filtered = Boolean(q.q || q.step || q.owner || q.amount || q.started || q.only);
+  const filtered = Boolean(q.q || q.step || q.owner || q.amount || q.started || q.active || q.v2step || q.only);
   const ownerName = q.owner === "me" ? t("admin.unpaid.fu.list.filters.me") : q.owner === "none" ? t("admin.unpaid.fu.list.filters.none") : owners.find((o) => o.id === q.owner)?.name;
   return (
     <AdmCard as="section" className="flex min-w-0 scroll-mt-24 flex-col gap-3 p-5" id="ulist" data-unpaid-list>
@@ -155,9 +194,32 @@ export function LeadList({
             </Option>
           ))}
         </Dropdown>
+        {/* Onboarding v2 (owner, 2026-10-29; spec §4): when they last did something, and the new wizard's steps. */}
+        <Dropdown label={q.active ? `${t("wizardV2.admin.unpaid.age")}: ${t(`wizardV2.admin.unpaid.age${q.active}`)}` : t("wizardV2.admin.unpaid.age")} active={Boolean(q.active)}>
+          <Option href={unpaidHref(q, { active: null })} on={!q.active}>
+            {t("wizardV2.admin.unpaid.ageAny")}
+          </Option>
+          {ACTIVE.map((a) => (
+            <Option key={a} href={unpaidHref(q, { active: a })} on={q.active === a}>
+              {t(`wizardV2.admin.unpaid.age${a}`)}
+            </Option>
+          ))}
+        </Dropdown>
+        {(v2 || q.v2step) && (
+          <Dropdown label={q.v2step ? `${t("wizardV2.admin.unpaid.stepFilter")}: ${v2StepName(q.v2step, t)}` : t("wizardV2.admin.unpaid.stepFilter")} active={Boolean(q.v2step)}>
+            <Option href={unpaidHref(q, { v2step: null })} on={!q.v2step}>
+              {t("wizardV2.admin.unpaid.anyStep")}
+            </Option>
+            {V2_LIST_STEPS.map((s) => (
+              <Option key={s} href={unpaidHref(q, { v2step: s })} on={q.v2step === s}>
+                {v2StepName(s, t)}
+              </Option>
+            ))}
+          </Dropdown>
+        )}
         {q.only && <span className="inline-flex min-h-8 items-center rounded-[9px] bg-[#111216] px-2.5 text-[12.5px] font-bold text-white">{t("admin.unpaid.fu.list.foundByContact")}</span>}
         {filtered && (
-          <Link prefetch={false} href={unpaidHref({ ...q, q: "", step: null, owner: null, amount: null, started: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
+          <Link prefetch={false} href={unpaidHref({ ...q, q: "", step: null, owner: null, amount: null, started: null, active: null, v2step: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
             {t("admin.unpaid.fu.list.filters.clear")}
           </Link>
         )}
@@ -184,25 +246,37 @@ export function LeadList({
                       {l.number && <IdChip prefix="LC" n={l.number} />}
                       {isNewSince(l.createdAt, since) && <NewPill label={t("admin.whatsNew.tag")} />}
                       {l.isTest && <span className="rounded-[6px] bg-adm-sample-bg px-1.5 text-[11px] font-bold text-adm-sample">{t("admin.unpaid.fu.list.test")}</span>}
+                      {l.v2 && <V2Chip t={t} />}
                     </span>
                     <em className="flex flex-wrap items-center gap-x-1 text-[13px] not-italic text-muted">
-                      {l.kind === "guest" ? `${l.clientName || t("admin.unpaid.fu.list.guest")} · ${t("admin.unpaid.fu.list.guestTag")}` : l.clientName || "—"}
+                      {/* A new-wizard step-1 sign-up has an account (and no contest yet). */}
+                      {l.kind === "guest" && !l.clientId ? `${l.clientName || t("admin.unpaid.fu.list.guest")} · ${t("admin.unpaid.fu.list.guestTag")}` : l.clientName || "—"}
                       <span>· {t("admin.unpaid.fu.list.started", { when: when(l.createdAt) })}</span>
                       {dev && <AdminIcon name={dev} size={12} />}
                     </em>
+                    <ContestFacts lead={l} t={t} className="mt-1" />
                   </span>
                   {l.amount ? (
                     <span className="flex shrink-0 flex-col items-end">
                       <b className="text-[15px] tabular-nums text-primary">{taka(l.amount)}</b>
                       <em className="text-[11px] not-italic text-muted">{t("admin.unpaid.fu.list.toPay")}</em>
                     </span>
+                  ) : l.noPackage ? (
+                    <span className="flex shrink-0 flex-col items-end">
+                      <b className="text-[13px] text-muted">{t("wizardV2.admin.unpaid.noPackage")}</b>
+                      <em className="text-[11px] not-italic text-muted">{t("wizardV2.admin.unpaid.package")}</em>
+                    </span>
                   ) : null}
                 </div>
                 <div className="flex flex-col gap-1">
                   <StageBar lead={l} />
-                  <span className="text-[12.5px] text-muted">
-                    {t("admin.unpaid.fu.list.step", { n: num(Math.min(l.stage, STAGES)), all: num(STAGES), step: stepName(Math.min(l.stage, STAGES)) })}
-                    {l.paymentFailed && <b className="text-[#B3261E]"> · {t("admin.unpaid.fu.list.failed")}</b>}
+                  <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-[12.5px] text-muted">
+                    <span>
+                      {l.v2Step ? v2StepName(l.v2Step, t, l.package) : t("admin.unpaid.fu.list.step", { n: num(Math.min(l.stage, STAGES)), all: num(STAGES), step: stepName(Math.min(l.stage, STAGES)) })}
+                      {l.paymentFailed && <b className="text-[#B3261E]"> · {t("admin.unpaid.fu.list.failed")}</b>}
+                    </span>
+                    {/* The client's own activity: the team's calls and notes don't count. */}
+                    {l.clientActivityAt && <span>{t("wizardV2.admin.unpaid.lastActive", { when: when(l.clientActivityAt) })}</span>}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/link";
 import { redirect } from "next/navigation";
+import { BriefBanner } from "@/components/client/brief-banner";
 import { CwIcon } from "@/components/client/icons";
 import { BasicChip, CheckChip, Empty, Picture, ProChip, ProOnPicture, StatusPill } from "@/components/client/parts";
 import { ShortlistHeart } from "@/components/client/review-buttons";
 import { ClientAvatar } from "@/components/client/avatar-menu";
 import { getCurrentUser } from "@/lib/auth/session";
 import { agoParts, contestHref, leftParts, mainAction, progressShare } from "@/lib/client/rules";
-import { clientHome, clientShell, payHref } from "@/lib/client/workspace";
+import { clientContests, clientHome, clientShell, payHref } from "@/lib/client/workspace";
+import type { ContestRecord } from "@/lib/contests/service";
+import { toContestRecord } from "@/lib/contests/supabase-repository";
 import { formatDate } from "@/lib/dates";
+import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
+import { briefReadyPercent } from "@/lib/onboarding/brief-defaults";
+import { onboardingV2On } from "@/lib/onboarding/v2-steps";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -26,7 +33,9 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
   if (!user) redirect("/login?as=client&next=%2Fclient");
   if (user.role !== "client") redirect("/dashboard");
   const sp = await searchParams;
-  const [{ t, locale }, h, shell] = await Promise.all([getI18n(), clientHome(user), clientShell(user)]);
+  // Onboarding v2 (owner, 2026-10-29; spec §3): the brief banner, and "Checking" on a card whose payment waits.
+  const [{ t, locale }, h, shell, v2] = await Promise.all([getI18n(), clientHome(user), clientShell(user), clientContests(user.id).then((r) => v2Contests(r.contests))]);
+  const banners = onboardingV2On() ? h.contests.flatMap((c) => (v2.has(c.id) ? [{ c, r: v2.get(c.id)! }] : [])) : [];
   const num = (n: number) => formatNumber(n, locale);
   const taka = (n: number) => formatTaka(n, locale);
   const now = new Date();
@@ -96,6 +105,23 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
         </div>
       </section>
 
+      {/* Onboarding v2's brief banner (owner, 2026-10-29; spec §3): above the live contests, never a pop-up. */}
+      {banners.map(({ c, r }) => (
+        <BriefBanner
+          key={c.id}
+          contestId={c.id}
+          slug={c.slug}
+          brand={c.brandName}
+          status={c.status}
+          completion={r.briefCompletion ?? null}
+          percent={briefReadyPercent(r.brief)}
+          businessType={r.brief.businessType}
+          entries={c.entries}
+          unrated={c.unrated}
+          waiting={h.payLinks.has(c.id)}
+        />
+      ))}
+
       <div className="cg2">
         {/* Live contests */}
         <section className="dcard" data-live-contests>
@@ -147,7 +173,7 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
                         )}
                       </div>
                       <i className="clp">
-                        <s style={{ width: `${progressShare(c.status)}%` }} />
+                        <s style={{ width: `${progressShare(c.status, { waiting: waiting && v2.has(c.id) })}%` }} />
                       </i>
                       <Link href={href} className="dbtn sm wide">
                         {t(`cw.action.${act}`)}
@@ -313,4 +339,16 @@ export default async function ClientDashboardPage({ searchParams }: PageProps<"/
       </div>
     </>
   );
+}
+
+/**
+ * The client's onboarding v2 contests whose brief can still change (unpaid, waiting or live), with their brief and mark
+ * (owner, 2026-10-29). The whole row, so a database before migration 0079 simply has none.
+ */
+async function v2Contests(contests: { id: string; status: string }[]): Promise<Map<string, ContestRecord>> {
+  const ids = contests.filter((c) => c.status === "draft" || c.status === "pending_payment" || c.status === "open").map((c) => c.id);
+  if (!ids.length || !isSupabaseConfigured()) return new Map();
+  const { data } = await createAdminClient().from("contests").select("*").in("id", ids);
+  const records = (data ?? []).map((r) => toContestRecord(r as Parameters<typeof toContestRecord>[0])).filter((c) => c.briefCompletion);
+  return new Map(records.map((c) => [c.id, c]));
 }

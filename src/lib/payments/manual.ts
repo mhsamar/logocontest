@@ -5,6 +5,7 @@ import { audit, one } from "@/lib/admin/core";
 import { settleAddonPayment } from "@/lib/contests/addon-payments";
 import { announceForPayment } from "@/lib/contests/announce";
 import { contestRepository } from "@/lib/contests/services";
+import { emailV2ContestLive, emailV2PaymentReceived } from "@/lib/email/events";
 import { formatTaka } from "@/lib/money";
 import { alertAdmins } from "@/lib/notifications/admin-alerts";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
@@ -104,7 +105,9 @@ export async function payTarget(kind: ManualKind, paymentId: string): Promise<Pa
     userId: p.client_id as string,
     amount: p.amount as number,
     method: p.gateway,
-    state: p.status === "paid" ? "paid" : p.status === "initiated" ? "open" : "closed",
+    // A contest's own payment is only open while the contest is unpaid: not once it was deleted (auto-trash of unpaid
+    // drafts) or cancelled, so no proof is taken that could never be approved (owner, 2026-10-29).
+    state: p.status === "paid" ? "paid" : p.status === "initiated" && (kind !== "contest" || c?.status === "draft" || c?.status === "pending_payment") ? "open" : "closed",
     contest: c ? { id: c.id, slug: c.slug, brand: c.brand_name, status: c.status } : null,
     item: { addon: (p.addon as string | null) ?? null, days: (p.extension_days as number | null) ?? null },
     proof: await latestProof(kind, paymentId),
@@ -182,6 +185,10 @@ export async function submitProof(
       params: (t, locale) => ({ name: payer.name, amount: formatTaka(target.amount, locale), txn, what: t(`admin.alerts.payment.what.${target.kind}`, { brand }) }),
     }),
   );
+  // Onboarding v2 (owner, 2026-10-29): a /start-v2 contest's client also gets "we got your payment" by email. After the
+  // reply, and it never throws; an old contest gets nothing.
+  const v2Id = target.kind === "contest" ? target.contest?.id : null;
+  if (v2Id) after(() => emailV2PaymentReceived(v2Id));
   return { ok: true, proof: toProof(row as Record<string, unknown>) };
 }
 
@@ -214,6 +221,9 @@ export async function approveProof(id: string, adminId: string): Promise<{ ok: t
       await markContestPromoUsed(p.payment_id);
       await announceForPayment(p.payment_id);
       await notifyWithPush([p.user_id], "payment_approved_contest", { brand: contest.brief.brandName }, contestHref(contest.slug));
+      // Onboarding v2 (owner, 2026-10-29): a /start-v2 contest's client also gets "your contest is live" by email (with
+      // the brief's link if they never touched it). After the reply, and it never throws; an old contest gets nothing.
+      after(() => emailV2ContestLive(contest.id));
     } else if (p.kind === "addon") {
       const { data: pay } = await db().from("payments").select("amount").eq("id", p.payment_id).maybeSingle();
       const settled = await settleAddonPayment({ paymentId: p.payment_id, status: "paid", amount: (pay?.amount as number) ?? p.amount, txnId: p.txn_id, raw });

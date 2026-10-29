@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import type { PaymentGateway, PaymentMethod } from "@/lib/payments/gateway";
 import { cleanAnswers, isLogo, LIMITS as SERVICE_LIMITS, type Answers, type ServiceDef } from "@/lib/services/types";
-import { cleanBrief, emptyBrief, validateBrief, type Brief, type Order } from "./brief";
+import { cleanBrief, emptyBrief, validateBrief, validateBriefV2, type Brief, type Order } from "./brief";
 import { checkExtraAnswers, EMPTY_ONBOARDING, type OnboardingConfig } from "@/lib/onboarding/config";
+import type { BriefCompletion } from "@/lib/onboarding/brief-defaults";
 import { calculatePrice, validateOrder, type PricingConfig } from "./pricing";
 
 export type ContestStatus =
@@ -32,6 +33,8 @@ export type ContestRecord = {
   startsAt: Date | null;
   endsAt: Date | null;
   createdAt: Date;
+  /** Made by onboarding v2 (owner, 2026-10-28): its brief is asked after payment. Null or missing for the old wizard. */
+  briefCompletion?: BriefCompletion | null;
 };
 
 export type PaymentRecord = {
@@ -47,7 +50,18 @@ export type PaymentRecord = {
   paidAt: Date | null;
 };
 
-export type DraftData = { brief: Brief; order: Order; amounts: Amounts; service?: string; serviceBrief?: Answers; finalTypes?: string[]; /** Answers to the owner's own questions (Admin › Onboarding). */ extraAnswers?: Answers };
+export type DraftData = {
+  brief: Brief;
+  order: Order;
+  amounts: Amounts;
+  service?: string;
+  serviceBrief?: Answers;
+  finalTypes?: string[];
+  /** Answers to the owner's own questions (Admin › Onboarding). */
+  extraAnswers?: Answers;
+  /** Onboarding v2's mark, written when the draft is made (owner, 2026-10-28). */
+  briefCompletion?: BriefCompletion;
+};
 
 /** A non-logo contest's service and the client's answers to its questions. */
 export type ServiceInput = { slug: string; answers: unknown };
@@ -100,13 +114,15 @@ export class ContestService {
     },
   ) {}
 
-  private async prepare(brief: Brief, order: Order, svc?: ServiceInput | null): Promise<DraftData | "invalid_brief" | "invalid_order"> {
+  /** `v2`: an onboarding v2 contest (owner, 2026-10-28), whose brief and the owner's own questions come after payment. */
+  private async prepare(brief: Brief, order: Order, svc?: ServiceInput | null, v2 = false): Promise<DraftData | "invalid_brief" | "invalid_order"> {
     if (svc && !isLogo(svc.slug)) return this.prepareService(brief, order, svc);
     const clean = cleanBrief(brief);
     const onboarding = (await this.deps.onboarding?.()) ?? EMPTY_ONBOARDING;
-    if (Object.keys(validateBrief(clean, new Set(onboarding.hidden))).length > 0) return "invalid_brief";
+    const briefErrors = v2 ? validateBriefV2(clean) : validateBrief(clean, new Set(onboarding.hidden));
+    if (Object.keys(briefErrors).length > 0) return "invalid_brief";
     const extra = checkExtraAnswers(onboarding, brief.extra);
-    if (Object.keys(extra.errors).length > 0) return "invalid_brief";
+    if (!v2 && Object.keys(extra.errors).length > 0) return "invalid_brief";
     const cfg = await this.deps.pricing();
     if (validateOrder(order, cfg)) return "invalid_order";
     // Prices are always recomputed here from settings; nothing the browser sends is trusted.
@@ -162,13 +178,15 @@ export class ContestService {
     order: Order,
     contestId?: string | null,
     svc?: ServiceInput | null,
+    /** Onboarding v2 (owner, 2026-10-28): the lighter brief check, and its mark on a new draft. */
+    v2?: { completion?: BriefCompletion },
   ): Promise<{ ok: true; contest: ContestRecord } | Fail<"invalid_brief" | "invalid_order" | "not_found" | "not_editable">> {
-    const data = await this.prepare(brief, order, svc);
+    const data = await this.prepare(brief, order, svc, Boolean(v2));
     if (typeof data === "string") return { ok: false, error: data };
 
     if (!contestId) {
       const slug = (this.deps.slug ?? makeSlug)(data.brief.brandName);
-      return { ok: true, contest: await this.deps.repo.insertDraft(clientId, slug, data) };
+      return { ok: true, contest: await this.deps.repo.insertDraft(clientId, slug, v2?.completion ? { ...data, briefCompletion: v2.completion } : data) };
     }
 
     const existing = await this.deps.repo.findContest(contestId);
@@ -194,8 +212,8 @@ export class ContestService {
     if (!contest || contest.clientId !== input.clientId) return { ok: false, error: "not_found" };
     if (!EDITABLE.includes(contest.status)) return { ok: false, error: "not_editable" };
 
-    // Re-price with the current settings before charging.
-    const data = await this.prepare(contest.brief, contest.order, isLogo(contest.service) ? null : { slug: contest.service, answers: contest.serviceBrief });
+    // Re-price with the current settings before charging. An onboarding v2 contest is paid before its brief is asked.
+    const data = await this.prepare(contest.brief, contest.order, isLogo(contest.service) ? null : { slug: contest.service, answers: contest.serviceBrief }, Boolean(contest.briefCompletion));
     if (typeof data === "string") return { ok: false, error: data };
     const fresh = await this.deps.repo.updateDraft(contest.id, data);
 

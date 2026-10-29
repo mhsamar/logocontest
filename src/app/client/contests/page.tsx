@@ -5,13 +5,16 @@ import { CwIcon } from "@/components/client/icons";
 import { Empty, Picture, StatusPill } from "@/components/client/parts";
 import { SortSelect } from "@/components/client/sort-select";
 import { getCurrentUser } from "@/lib/auth/session";
-import { actionRank, contestHref, contestStages, leftParts, mainAction, MY_SORTS, MY_TABS, mySort, myTab, myTabOf, STAGES } from "@/lib/client/rules";
+import { actionRank, contestHref, contestStages, leftParts, mainAction, MY_SORTS, MY_TABS, mySort, myTab, myTabOf, stagesFor } from "@/lib/client/rules";
 import { clientContests, payHref } from "@/lib/client/workspace";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { claimStatuses } from "@/lib/guarantee/queries";
+import { parseCompletion } from "@/lib/onboarding/brief-defaults";
 import { awaitingApproval } from "@/lib/payments/manual";
+import { getSetting } from "@/lib/settings";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -31,6 +34,9 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
   const [{ t, locale }, { contests }] = await Promise.all([getI18n(), clientContests(user.id)]);
   const unpaid = contests.filter((c) => c.status === "draft" || c.status === "pending_payment");
   const waiting = unpaid.length ? await awaitingApproval(unpaid.map((c) => c.id)) : new Map<string, string>();
+  // Onboarding v2 (owner, 2026-10-29; spec §3): a v2 contest whose payment waits shows "Checking" in its steps.
+  const checked = await v2Among([...waiting.keys()]);
+  const minutes = checked.size ? await getSetting("onboarding.approval_minutes") : 0;
   // Money-back claims being checked (owner, 2026-10-21): picking is paused on those contests.
   const claims = await claimStatuses(contests.filter((c) => c.status === "judging").map((c) => c.id));
   const num = (n: number) => formatNumber(n, locale);
@@ -147,7 +153,8 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
           // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.
           const sent = waiting.has(c.id);
           const act = paused && mainAction(c.status) === "pick" ? "details" : mainAction(c.status, sent);
-          const stages = contestStages(c.status);
+          const checking = sent && checked.has(c.id);
+          const stages = contestStages(c.status, { waiting: checking });
           const actHref = act === "pay" || act === "waiting" ? payHref(c.id, waiting) : act === "review" ? contestHref(c.slug, "designs") : act === "pick" ? contestHref(c.slug, "designs", { sort: "top" }) : act === "files" ? contestHref(c.slug, "payment") : contestHref(c.slug);
           const kind = myTabOf(c.status);
           const line =
@@ -197,13 +204,18 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
                   <span className="mw">{line}</span>
                 </div>
                 <ol className="mst" aria-label={t("cw.my.progress")}>
-                  {STAGES.map((s, i) => (
+                  {stagesFor(c.status, { waiting: checking }).map((s, i) => (
                     <li key={s} className={stages[i]}>
                       <i />
-                      <span>{t(`cw.stages.${s}`)}</span>
+                      <span>{s === "checking" ? t("wizardV2.timeline.checking") : t(`cw.stages.${s}`)}</span>
                     </li>
                   ))}
                 </ol>
+                {checking && (
+                  <p className="m-0 text-[13px]" style={{ color: "var(--mu)" }} data-checking>
+                    <b style={{ color: "#0F1014" }}>{t("wizardV2.banner.checking", { minutes: num(minutes) })}</b> · {t("wizardV2.banner.tellLive")}
+                  </p>
+                )}
                 <div className="mca">
                   <Link href={actHref} className="dbtn sm">
                     {t(`cw.action.${act}`)}
@@ -229,4 +241,11 @@ export default async function ClientContestsPage({ searchParams }: PageProps<"/c
       </div>
     </>
   );
+}
+
+/** Which of these contests onboarding v2 made (owner, 2026-10-29); none before migration 0079 added the column. */
+async function v2Among(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const { data } = await createAdminClient().from("contests").select("id, brief_completion").in("id", ids);
+  return new Set((data ?? []).filter((r) => parseCompletion(r.brief_completion)).map((r) => r.id as string));
 }

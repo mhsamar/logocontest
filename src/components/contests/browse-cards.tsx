@@ -173,7 +173,8 @@ export function ContestCard({ c, t, locale, now, price, designer, facts, saved }
         <AddonBadges c={c} t={t} now={now} />
         <PackagePill pkg={c.package} t={t} />
       </div>
-      <p className="m-0 line-clamp-2 min-h-[44px] text-[14.5px] leading-normal text-muted">{hidden ? t(designer ? "browse.x.privateLineDesigner" : "browse.x.privateLine") : c.description}</p>
+      {/* Onboarding v2 may leave the description empty (owner, 2026-10-29): no empty lines then. */}
+      {hidden || c.description ? <p className="m-0 line-clamp-2 min-h-[44px] text-[14.5px] leading-normal text-muted">{hidden ? t(designer ? "browse.x.privateLineDesigner" : "browse.x.privateLine") : c.description}</p> : null}
       {facts && (
         <div className="grid grid-cols-2 gap-2">
           <Fact label={t("browse.x.facts.style")} value={!facts.unlocked ? t("browse.x.facts.hidden") : facts.styles.length ? facts.styles.map((s) => t(`wizard.styles.${s}`)).join(", ") : "—"} />

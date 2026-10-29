@@ -7,6 +7,7 @@ import type { NotificationData, NotificationType } from "@/lib/notifications";
 import { renderNotification } from "@/lib/notifications/render";
 import { typeChannelOn } from "@/lib/notifications/switches";
 import { awaitingApproval } from "@/lib/payments/manual";
+import { MANUAL_METHODS } from "@/lib/payments/manual-rules";
 import { notifyUser } from "@/lib/push";
 import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,6 +30,37 @@ const ROW_OF: Partial<Record<NotificationType, string>> = { followup_due_admin: 
 export const leadLink = (key: string) => `/admin/unpaid?sel=${key}#lead`;
 /** A brand or note as plain words: never a phone number or email (they reach bells, phones and pop-ups). */
 const words = (v: unknown) => scrubContacts(String(v ?? "").replace(/\s+/g, " ").trim()) || "—";
+
+// ---- Onboarding v2 (owner, 2026-10-29; migration 0079) ---------------------------------------------------------------
+
+/** How far a contest of the new 4-step wizard (/start-v2) got; the old wizard's contests have no brief_completion. */
+const V2_COLUMNS = "brief_completion, last_step, pricing_viewed_at, package_selected_at";
+const NO_COLUMN = /PGRST204|42703/;
+/** These columns plus onboarding v2's; `withV2` reads again without them before migration 0079. */
+export const v2Columns = <C extends string>(columns: C, v2: boolean) => (v2 ? `${columns}, ${V2_COLUMNS}` : columns) as `${C}, ${typeof V2_COLUMNS}`;
+export async function withV2<R extends { error: { code?: string } | null }>(read: (v2: boolean) => PromiseLike<R>): Promise<R> {
+  const first = await read(true);
+  // Before migration 0079 the columns don't exist yet: every contest is the old wizard's.
+  return first.error && NO_COLUMN.test(`${first.error.code}`) ? read(false) : first;
+}
+const isV2 = (c: Row) => c.brief_completion != null;
+/** On the payment step (or past it): last_step 4, or the payment opened. */
+const atPayment = (c: Row) => Number(c.last_step) >= 4 || c.status === "pending_payment";
+/**
+ * The new wizard saves a draft at the logo name, long before the price (plan decision 8, owner 2026-10-29): the team's
+ * alerts and the client's reminders start once they saw the prizes (step 3 also raises last_step, so a lost
+ * pricing_viewed_at doesn't keep a client on the payment step from the team).
+ */
+export const beforePrizes = (c: Row) => isV2(c) && !c.pricing_viewed_at && (Number(c.last_step) || 0) < 3 && !atPayment(c);
+/** `!beforePrizes` as a PostgREST filter (`.or`), so a read's limit counts only contests past it (needs migration 0079). */
+export const PAST_PRIZES = "brief_completion.is.null,pricing_viewed_at.not.is.null,last_step.gte.3,status.eq.pending_payment";
+/**
+ * A v2 draft's amount is the starting package's until the client picks one or goes on to pay the one shown: not shown
+ * before that (as on Admin › Unpaid contests).
+ */
+const amountOf = (c: Row) => (isV2(c) && !c.package_selected_at && !atPayment(c) ? undefined : ((c.total_amount as number | null) ?? undefined));
+/** A v2 contest's last step on the team's 1..10 scale: logo name, prizes, payment step. */
+const V2_STAGE: Record<number, number> = { 2: 2, 3: DRAFT_STAGE, 4: AT_PAYMENT };
 
 async function alertSettings() {
   return getSettings(["notify.unpaid_alerts", "notify.followup_due_minutes", "notify.lead_alert_minutes", "notify.lead_alert_emails_day"]);
@@ -91,13 +123,17 @@ async function once(contestId: string, kind: string): Promise<boolean> {
   return !error;
 }
 
-/** The furthest step each draft reached (wizard visits), else Prize (a draft exists from there). */
+/**
+ * The furthest step each draft reached: the old wizard's from its own visits (v2 visits count 1..5), else Prize (a draft
+ * exists from there); a v2 draft's from the contest itself.
+ */
 async function stagesOf(contests: Row[]): Promise<Map<string, number>> {
-  const ids = contests.map((c) => c.id as string);
-  const { data } = ids.length ? await createAdminClient().from("wizard_visits").select("contest_id, furthest_step, created_at").in("contest_id", ids) : { data: [] as Row[] };
+  const ids = contests.filter((c) => !isV2(c)).map((c) => c.id as string);
+  const read = (flow: boolean) => createAdminClient().from("wizard_visits").select((flow ? "contest_id, furthest_step, created_at, flow" : "contest_id, furthest_step, created_at") as "contest_id, furthest_step, created_at, flow").in("contest_id", ids);
+  const { data } = ids.length ? await withV2(read) : { data: [] as Row[] };
   const best = new Map<string, number>();
-  for (const v of data ?? []) best.set(v.contest_id as string, Math.max(best.get(v.contest_id as string) ?? 0, stageOf(v.furthest_step as number, v.created_at as string)));
-  return new Map(contests.map((c) => [c.id as string, c.status === "pending_payment" ? AT_PAYMENT : Math.min(Math.max(best.get(c.id as string) ?? DRAFT_STAGE, DRAFT_STAGE), AT_PAYMENT - 1)]));
+  for (const v of data ?? []) if ((v.flow ?? "v1") === "v1") best.set(v.contest_id as string, Math.max(best.get(v.contest_id as string) ?? 0, stageOf(v.furthest_step as number, v.created_at as string)));
+  return new Map(contests.map((c) => [c.id as string, c.status === "pending_payment" ? AT_PAYMENT : isV2(c) ? (V2_STAGE[Number(c.last_step)] ?? 2) : Math.min(Math.max(best.get(c.id as string) ?? DRAFT_STAGE, DRAFT_STAGE), AT_PAYMENT - 1)]));
 }
 
 /** Drafts the team has closed, hidden or blocked, and test clients: never alerted. */
@@ -136,15 +172,19 @@ async function newUnpaid(now: Date, minutes: number): Promise<number> {
   const db = createAdminClient();
   const quietSince = new Date(now.getTime() - minutes * 60_000);
   // Only drafts that stopped recently: older ones were the team's to see on the page already.
-  const { data } = await db
-    .from("contests")
-    .select("id, brand_name, total_amount, status, client_id, created_at, updated_at")
-    .in("status", ["draft", "pending_payment"])
-    .lte("updated_at", quietSince.toISOString())
-    .gte("updated_at", new Date(quietSince.getTime() - 3 * H).toISOString())
-    .order("updated_at", { ascending: false })
-    .limit(50);
-  if (!data?.length) return 0;
+  const { data: rows } = await withV2((v2) =>
+    db
+      .from("contests")
+      .select(v2Columns("id, brand_name, total_amount, status, client_id, created_at, updated_at", v2))
+      .in("status", ["draft", "pending_payment"])
+      .lte("updated_at", quietSince.toISOString())
+      .gte("updated_at", new Date(quietSince.getTime() - 3 * H).toISOString())
+      .order("updated_at", { ascending: false })
+      .limit(50),
+  );
+  // A v2 draft that hasn't reached the prizes: not yet (seeing them saves the contest, so it comes round again).
+  const data = (rows ?? []).filter((c) => !beforePrizes(c));
+  if (!data.length) return 0;
   // Still on Start a contest (or paying) right now: not stopped yet.
   const { data: live } = await db.from("wizard_live").select("contest_id, updated_at").in("contest_id", data.map((c) => c.id as string)).gt("updated_at", quietSince.toISOString());
   const active = new Set((live ?? []).map((l) => l.contest_id as string));
@@ -157,7 +197,7 @@ async function newUnpaid(now: Date, minutes: number): Promise<number> {
     if (!(await once(id, "unpaid_alert"))) continue;
     told.add(c.client_id as string);
     const key = `c:${id}`;
-    await sendUnpaidAlert({ event: "new_unpaid", type: "unpaid_new_admin", to: viewers, data: { brand: words(c.brand_name), step: stages.get(id), amount: (c.total_amount as number | null) ?? undefined, lead: key }, link: leadLink(key), ref: key, now });
+    await sendUnpaidAlert({ event: "new_unpaid", type: "unpaid_new_admin", to: viewers, data: { brand: words(c.brand_name), step: stages.get(id), amount: amountOf(c), lead: key }, link: leadLink(key), ref: key, now });
     sent++;
   }
   return sent;
@@ -175,12 +215,16 @@ async function clientsToldToday(contests: Row[], now: Date): Promise<Set<string>
   return new Set((told ?? []).map((t) => owner.get(t.contest_id as string)).filter((v): v is string => Boolean(v)));
 }
 
-/** "Payment failed": a card payment that didn't go through, or a bKash payment the team couldn't approve (with why). */
+/**
+ * "Payment failed": a card payment that didn't go through, or a bKash payment the team couldn't approve (with why). A
+ * manual bKash payment row marked failed is not one: the new wizard closes an outdated one that way when the client
+ * changes the package or a code (v2-actions closeOpenPayments); a rejected bKash payment comes from its proof.
+ */
 async function paymentFailed(now: Date): Promise<number> {
   const db = createAdminClient();
   const since = new Date(now.getTime() - 2 * H).toISOString();
   const [cards, proofs] = await Promise.all([
-    db.from("payments").select("id, contest_id, updated_at").eq("purpose", "contest").eq("status", "failed").gte("updated_at", since).limit(30),
+    db.from("payments").select("id, contest_id, updated_at").eq("purpose", "contest").eq("status", "failed").not("gateway", "in", `(${MANUAL_METHODS.join(",")})`).gte("updated_at", since).limit(30),
     db.from("manual_payments").select("id, contest_id, note, reviewed_by").eq("kind", "contest").eq("status", "rejected").gte("reviewed_at", since).limit(30),
   ]);
   const failures = [
@@ -188,15 +232,15 @@ async function paymentFailed(now: Date): Promise<number> {
     ...(proofs.data ?? []).map((p) => ({ id: p.id as string, contestId: p.contest_id as string, kind: "proofrej", note: (p.note as string | null) ?? null, actor: (p.reviewed_by as string | null) ?? undefined })),
   ].filter((f) => f.contestId);
   if (!failures.length) return 0;
-  const { data: contests } = await db.from("contests").select("id, brand_name, total_amount, status, client_id").in("id", [...new Set(failures.map((f) => f.contestId))]);
-  const open = (contests ?? []).filter((c) => c.status === "draft" || c.status === "pending_payment");
+  const { data: contests } = await withV2((v2) => db.from("contests").select(v2Columns("id, brand_name, total_amount, status, client_id", v2)).in("id", [...new Set(failures.map((f) => f.contestId))]));
+  const open = (contests ?? []).filter((c) => (c.status === "draft" || c.status === "pending_payment") && !beforePrizes(c));
   const [skip, viewers] = await Promise.all([skipped(open), adminIdsWith("unpaid.view")]);
   let sent = 0;
   for (const f of failures) {
     const c = open.find((x) => x.id === f.contestId);
     if (!c || skip.has(f.contestId) || !(await once(f.contestId, `${f.kind}:${f.id}`))) continue;
     const key = `c:${f.contestId}`;
-    const data = async (locale: Locale) => ({ brand: words(c.brand_name), amount: (c.total_amount as number | null) ?? undefined, lead: key, reason: f.note ? words(f.note) : (await translatorFor(locale))("admin.unpaid.alerts.reasons.card") });
+    const data = async (locale: Locale) => ({ brand: words(c.brand_name), amount: amountOf(c), lead: key, reason: f.note ? words(f.note) : (await translatorFor(locale))("admin.unpaid.alerts.reasons.card") });
     await sendUnpaidAlert({ event: "payment_failed", type: "unpaid_failed_admin", to: viewers, data, link: leadLink(key), ref: key, actorId: f.actor, now });
     sent++;
   }
@@ -292,13 +336,13 @@ export async function alertCreating(visitId: string, stage: number, now = new Da
 export async function alertCameBack(contestId: string, now = new Date()): Promise<void> {
   const db = createAdminClient();
   const minutes = (await alertSettings())["notify.lead_alert_minutes"];
-  const { data: c } = await db.from("contests").select("id, brand_name, total_amount, status, client_id, created_at, updated_at").eq("id", contestId).maybeSingle();
-  if (!c || (c.status !== "draft" && c.status !== "pending_payment")) return;
+  const { data: c } = await withV2((v2) => db.from("contests").select(v2Columns("id, brand_name, total_amount, status, client_id, created_at, updated_at", v2)).eq("id", contestId).maybeSingle());
+  if (!c || (c.status !== "draft" && c.status !== "pending_payment") || beforePrizes(c)) return;
   // They had stopped: the draft hadn't changed for [15 min].
   if (now.getTime() - Date.parse(c.updated_at as string) < minutes * 60_000) return;
   const [skip, stages] = await Promise.all([skipped([c]), stagesOf([c])]);
   const day = new Date(now.getTime() + 6 * H).toISOString().slice(0, 10);
   if (skip.has(contestId) || !(await once(contestId, `back:${day}`))) return;
   const key = `c:${contestId}`;
-  await sendUnpaidAlert({ event: "came_back", type: "unpaid_back_admin", to: await adminIdsWith("unpaid.view"), data: { brand: words(c.brand_name), step: stages.get(contestId), amount: (c.total_amount as number | null) ?? undefined, lead: key }, link: leadLink(key), ref: key, now });
+  await sendUnpaidAlert({ event: "came_back", type: "unpaid_back_admin", to: await adminIdsWith("unpaid.view"), data: { brand: words(c.brand_name), step: stages.get(contestId), amount: amountOf(c), lead: key }, link: leadLink(key), ref: key, now });
 }

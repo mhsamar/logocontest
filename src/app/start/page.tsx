@@ -4,6 +4,7 @@ import { DesignTypes, DesignTypesHow } from "@/components/services/design-types"
 import { PageShell } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
+import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { awaitingApproval } from "@/lib/payments/manual";
 import { getService } from "@/lib/services/store";
 import { isLogo, LOGO } from "@/lib/services/types";
@@ -28,6 +29,9 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
   // Its bKash payment is waiting for approval (owner, 2026-10-14): show that instead of paying again.
   const waiting = draft ? (await awaitingApproval([draft.id])).get(draft.id) : undefined;
   if (waiting) redirect(`/pay/contest/${waiting}`);
+  // A contest started in onboarding v2 (owner, 2026-10-28) is finished there: dashboard, email and resume links all
+  // come through here.
+  if (draft?.briefCompletion && onboardingV2On()) redirect(`/start-v2?draft=${draft.id}`);
   if (draft) {
     const service = await getService(draft.service);
     // A draft of a service that is now off can't be finished or paid (the server refuses it too).

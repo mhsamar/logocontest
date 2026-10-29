@@ -33,7 +33,8 @@ export function SupportWidget({ unread: initialUnread }: { unread: number }) {
     };
   }, [open]);
 
-  if (path === "/support") return null;
+  // Onboarding v2 has its own WhatsApp button and the team's help card in that corner (owner, 2026-10-28).
+  if (path === "/support" || path.startsWith("/start-v2")) return null;
   return (
     <>
       {open && (

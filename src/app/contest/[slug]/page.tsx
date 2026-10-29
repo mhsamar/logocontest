@@ -31,7 +31,7 @@ import { StatusChip } from "@/components/ui/status-chip";
 import { Avatar } from "@/components/ui/avatar";
 import { TrophyIcon } from "@/components/ui/trophy";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
+import { briefLanguageText, getContestBySlug, type ContestDetail } from "@/lib/contests/browse";
 import { EarlyAccessGate } from "@/components/pro/early-gate";
 import { contestVisibleTo, earlyCutoff } from "@/lib/pro/limits";
 import { EntryViewBeacon } from "@/components/pro/entry-view-beacon";
@@ -80,7 +80,8 @@ export async function generateMetadata({ params }: PageProps<"/contest/[slug]">)
     description,
     openGraph: openGraphFor({ title, description, path: `/contest/${contest.slug}`, locale }),
     // A brief written in English makes the Bangla address mostly the same text: offered in English only (owner, 2026-10-21).
-    alternates: !contest.brief || hasBangla(contest.brief.description) ? await pageAlternates(`/contest/${contest.slug}`) : englishOnlyAlternates(`/contest/${contest.slug}`),
+    // With no description (onboarding v2), the name, slogan and customers tell the language (owner, 2026-10-29).
+    alternates: !contest.brief || hasBangla(briefLanguageText({ ...contest.brief, brandName: contest.brandName })) ? await pageAlternates(`/contest/${contest.slug}`) : englishOnlyAlternates(`/contest/${contest.slug}`),
     // Private and NDA contests, test clients' contests, and anything not yet live stay out of search engines.
     ...robotsUnless(indexable),
   };
@@ -241,7 +242,8 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
           </div>
 
           {contest.brief ? (
-            <p className="m-0 mt-6 max-w-2xl whitespace-pre-line text-lg leading-relaxed text-muted">{contest.brief.description}</p>
+            // Onboarding v2 may leave the description empty (owner, 2026-10-29): then there is no paragraph.
+            contest.brief.description.trim() ? <p className="m-0 mt-6 max-w-2xl whitespace-pre-line text-lg leading-relaxed text-muted">{contest.brief.description}</p> : null
           ) : contest.isNda && user ? (
             <NdaGate contestId={contest.id} viewer={user.role === "designer" ? "designer" : "other"} loginHref={`/login?as=designer&next=${encodeURIComponent(`/contest/${contest.slug}`)}`} />
           ) : contest.isNda ? (
@@ -486,7 +488,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
             </div>
           ) : contest.brief ? (
-            <ContestBrief brief={contest.brief} extra={extraAnswers ? answerLines(...(await extraAnswers), locale) : []} />
+            <ContestBrief brief={contest.brief} extra={extraAnswers ? answerLines(...(await extraAnswers), locale) : []} defaults={contest.brief.defaults} />
           ) : (
             <div className="mx-auto max-w-xl">
               <EmptyState

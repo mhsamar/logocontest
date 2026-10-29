@@ -9,7 +9,7 @@ import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
 import { cx } from "@/lib/cx";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { CloseFakeButton, CopyResume, LogFollowUp, NextFollowUpActions, ReachButtons, RevealContact } from "./actions";
-import { LeadAvatar, StatusPill, type Fmt } from "./lead-list";
+import { ContestFacts, LeadAvatar, StatusPill, V2Chip, v2StepName, type Fmt } from "./lead-list";
 
 /**
  * One lead's details (owner, 2026-10-25; Design/unpaid-contests §6): who, how to reach them (Unpaid · Manage only, each
@@ -79,10 +79,14 @@ export function LeadDetails({
   const ownerId = lead.owner && owners.some((o) => o.id === lead.owner!.id) ? lead.owner.id : owners.some((o) => o.id === me) ? me : (owners[0]?.id ?? me);
   const stage = Math.min(lead.stage, STAGES);
   const paid = lead.stage >= PAID || Boolean(lead.wonBackAt);
+  // The new wizard's own step (owner, 2026-10-29); the bar below keeps the shared 1..10.
+  const stuck = lead.v2Step ? v2StepName(lead.v2Step, t, lead.package) : t("admin.unpaid.fu.details.stuck", { n: num(stage), all: num(STAGES), step: stepName(stage) });
   const failure = lead.paymentFailed ? (lead.paymentFailed.kind === "card" ? t("admin.unpaid.fu.details.failedCard") : lead.paymentFailed.note ? t("admin.unpaid.fu.details.failedBkash", { note: lead.paymentFailed.note }) : t("admin.unpaid.fu.details.failedBkashNoNote")) : null;
+  // A new-wizard step-1 sign-up (owner, 2026-10-29) is listed by its number like a guest, but has an account.
+  const account = lead.kind === "guest" && Boolean(lead.clientId);
   const meta = [
     lead.kind === "guest" ? lead.clientName || t("admin.unpaid.fu.list.guest") : lead.clientName || "—",
-    lead.kind === "guest" ? t("admin.unpaid.fu.details.gaveNumber", { when: day(lead.createdAt) }) : lead.signedUpAt ? t("admin.unpaid.fu.details.signedUp", { when: day(lead.signedUpAt) }) : null,
+    lead.kind === "guest" && !(account && lead.signedUpAt) ? t("admin.unpaid.fu.details.gaveNumber", { when: day(lead.createdAt) }) : lead.signedUpAt ? t("admin.unpaid.fu.details.signedUp", { when: day(lead.signedUpAt) }) : null,
     lead.device ? t("admin.unpaid.fu.details.startedOn", { device: t(`admin.unpaid.fu.devices.${lead.device}` as MessageKey) }) : null,
     lead.city,
   ].filter(Boolean);
@@ -113,14 +117,26 @@ export function LeadDetails({
             </h2>
             {lead.number && <IdChip prefix="LC" n={lead.number} />}
             <StatusPill status={status} t={t} />
+            {lead.v2 && <V2Chip t={t} />}
           </div>
           <em className="text-[14px] not-italic text-muted">{meta.join(" · ")}</em>
+          {/* Onboarding v2 (owner, 2026-10-29; spec §4): business type, package and when the client (not the team) last did something. */}
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <ContestFacts lead={lead} t={t} />
+            {lead.clientActivityAt && <span className="text-[13px] text-muted">{t("wizardV2.admin.unpaid.lastActive", { when: when(lead.clientActivityAt) })}</span>}
+          </span>
         </div>
         {lead.amount ? (
           <div className="flex flex-col items-end max-[700px]:w-full max-[700px]:items-start">
             <span className="text-[13px] font-bold text-muted">{t("admin.unpaid.fu.details.amount")}</span>
             <b className="lc-d text-[30px] font-semibold tabular-nums text-primary">{taka(lead.amount)}</b>
             {lead.prize ? <em className="text-[12.5px] not-italic text-muted">{lead.addons ? t("admin.unpaid.fu.details.breakdownAddons", { prize: taka(lead.prize), addons: taka(lead.addons) }) : t("admin.unpaid.fu.details.breakdown", { prize: taka(lead.prize) })}</em> : null}
+          </div>
+        ) : lead.noPackage ? (
+          // The new wizard's total is only the default package's until the client picks one.
+          <div className="flex flex-col items-end max-[700px]:w-full max-[700px]:items-start">
+            <span className="text-[13px] font-bold text-muted">{t("wizardV2.admin.unpaid.package")}</span>
+            <b className="text-[18px] font-semibold text-muted">{t("wizardV2.admin.unpaid.noPackage")}</b>
           </div>
         ) : null}
       </div>
@@ -141,12 +157,12 @@ export function LeadDetails({
         )}
       </div>
       {canManage && resumeDays !== null && open && <p className="-mt-2 m-0 text-[12.5px] text-muted">{t("admin.unpaid.fu.details.resumeHint", { days: num(resumeDays) })}</p>}
-      {lead.kind === "guest" && <p className="m-0 text-[13.5px] text-muted">{lead.detailsSaved || lead.clientName ? t("admin.unpaid.fu.details.guestNote") : t("admin.unpaid.fu.details.oldGuest")}</p>}
+      {lead.kind === "guest" && !account && <p className="m-0 text-[13.5px] text-muted">{lead.detailsSaved || lead.clientName ? t("admin.unpaid.fu.details.guestNote") : t("admin.unpaid.fu.details.oldGuest")}</p>}
 
       {/* Where they stopped */}
       <div className="flex flex-col gap-3 rounded-[16px] border border-[#F3D2CF] bg-[linear-gradient(180deg,#FFF8F7,#fff)] p-3.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <b className="text-[15px]">{paid ? t("admin.unpaid.fu.status.won") : t("admin.unpaid.fu.details.stuck", { n: num(stage), all: num(STAGES), step: stepName(stage) })}</b>
+          <b className="text-[15px]">{paid ? t("admin.unpaid.fu.status.won") : stuck}</b>
           {failure && (
             <span className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-[#B3261E]">
               <AdminIcon name="warning" size={15} />
@@ -154,7 +170,7 @@ export function LeadDetails({
             </span>
           )}
         </div>
-        <ol className="m-0 flex list-none gap-1 p-0" aria-label={t("admin.unpaid.fu.details.stuck", { n: num(stage), all: num(STAGES), step: stepName(stage) })}>
+        <ol className="m-0 flex list-none gap-1 p-0" aria-label={stuck}>
           {Array.from({ length: STAGES }, (_, i) => i + 1).map((n) => {
             const done = paid || n < stage;
             const here = !paid && n === stage;

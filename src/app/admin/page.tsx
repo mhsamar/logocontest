@@ -7,6 +7,7 @@ import { DesignerMoneyCard } from "@/components/admin/designer-money";
 import { CustomRange, PeriodTabs } from "@/components/admin/period";
 import { WhatsNew } from "@/components/admin/whats-new";
 import { AdmCard, AdmEmpty, CardTitle, KpiGrid, KpiTile } from "@/components/admin/ui";
+import { V2FunnelCard } from "@/components/admin/v2-funnel";
 import { adminUser } from "@/lib/admin/core";
 import { adminCounts } from "@/lib/admin/badges";
 import { dashboardStats } from "@/lib/admin/dashboard";
@@ -73,45 +74,50 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       </KpiGrid>
 
       <div className="flex flex-wrap items-start gap-4">
-        {/* Wizard drop-off */}
-        <AdmCard className="flex min-w-0 flex-[3_1_520px] flex-col gap-[18px] p-5 sm:p-6">
-          <CardTitle
-            title={t("admin.dashboard.funnel")}
-            sub={t("admin.dashboard.funnelLead")}
-            action={
-              <div className="flex gap-3.5 text-[13.5px] font-semibold text-adm-strong">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-[3px] bg-primary" />
-                  {t("admin.dashboard.legendStep")}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-[3px] bg-adm-pay" />
-                  {t("admin.dashboard.legendPayment")}
-                </span>
-              </div>
-            }
-          />
-          {(s.funnel[0]?.visits ?? 0) === 0 ? (
-            <AdmEmpty>{t("admin.dashboard.funnelEmpty")}</AdmEmpty>
-          ) : (
-            <ol className="m-0 flex list-none flex-col gap-[11px] p-0 text-[14.5px]">
-              {s.funnel.map((f) => {
-                const pct = Math.round((f.visits / top) * 100);
-                return (
-                  <li key={f.step} className="flex items-center gap-3.5">
-                    <span className="w-[92px] shrink-0 truncate text-[13px] font-semibold text-adm-strong sm:w-32 sm:text-[14.5px]">{t(`admin.dashboard.steps.s${f.step}` as MessageKey)}</span>
-                    <span className="h-3 flex-1 overflow-hidden rounded-full bg-[#f0f1f4]">
-                      <span className={cx("block h-full rounded-full", f.step >= 9 ? "bg-adm-pay" : "bg-primary")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
-                    </span>
-                    <span className="w-[72px] shrink-0 text-right tabular-nums">
-                      <strong>{num(f.visits)}</strong> <span className="text-muted">{num(pct)}%</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </AdmCard>
+        <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-4">
+          {/* Wizard drop-off (the old wizard's visits only, since onboarding v2) */}
+          <AdmCard className="flex flex-col gap-[18px] p-5 sm:p-6">
+            <CardTitle
+              title={t("admin.dashboard.funnel")}
+              sub={t("admin.dashboard.funnelLead")}
+              action={
+                <div className="flex gap-3.5 text-[13.5px] font-semibold text-adm-strong">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-[3px] bg-primary" />
+                    {t("admin.dashboard.legendStep")}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-[3px] bg-adm-pay" />
+                    {t("admin.dashboard.legendPayment")}
+                  </span>
+                </div>
+              }
+            />
+            {(s.funnel[0]?.visits ?? 0) === 0 ? (
+              <AdmEmpty>{t("admin.dashboard.funnelEmpty")}</AdmEmpty>
+            ) : (
+              <ol className="m-0 flex list-none flex-col gap-[11px] p-0 text-[14.5px]">
+                {s.funnel.map((f) => {
+                  const pct = Math.round((f.visits / top) * 100);
+                  return (
+                    <li key={f.step} className="flex items-center gap-3.5">
+                      <span className="w-[92px] shrink-0 truncate text-[13px] font-semibold text-adm-strong sm:w-32 sm:text-[14.5px]">{t(`admin.dashboard.steps.s${f.step}` as MessageKey)}</span>
+                      <span className="h-3 flex-1 overflow-hidden rounded-full bg-[#f0f1f4]">
+                        <span className={cx("block h-full rounded-full", f.step >= 9 ? "bg-adm-pay" : "bg-primary")} style={{ width: `${Math.max(pct, f.visits ? 2 : 0)}%` }} />
+                      </span>
+                      <span className="w-[72px] shrink-0 text-right tabular-nums">
+                        <strong>{num(f.visits)}</strong> <span className="text-muted">{num(pct)}%</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </AdmCard>
+
+          {/* The new 4-step wizard's funnel (owner, 2026-10-29): only once someone used it in this period */}
+          {s.v2Funnel && <V2FunnelCard steps={s.v2Funnel} />}
+        </div>
 
         <div className="flex min-w-0 flex-[2_1_340px] flex-col gap-4">
           {/* Revenue breakdown */}
