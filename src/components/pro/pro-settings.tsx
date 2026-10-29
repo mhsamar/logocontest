@@ -88,7 +88,7 @@ export async function ProSettingsExtras({ user }: { user: CurrentUser }) {
         </div>
         <div className="pr-xs">
           <b>{t("pro.settings.checker")}</b>
-          <em>{usage.trial ? t("pro.trial.checks", { left: n(usage.left), limit: n(usage.limit) }) : t("pro.settings.checkerLine", { used: n(usage.used), max: n(usage.limit), date: formatDate(usage.resetsOn, locale, "short") })}</em>
+          <em>{usage.trial ? t("pro.trial.checks", { left: n(usage.left), limit: n(usage.limit) }) : t("pro.settings.checkerLine", { used: n(Math.min(usage.used, usage.limit)), max: n(usage.limit), date: formatDate(usage.resetsOn, locale, "short") })}</em>
           <Slot used={usage.used} max={usage.limit} />
         </div>
         {settings.features.client_chat && <PrefToggle pref="client_messages" on={prefs.clientMessages} label={t("pro.settings.messagesToggle")} sub={t("pro.settings.messagesSub")} />}

@@ -31,7 +31,6 @@ const homePricingEn = {
     sub: "you set the amount · {fee}% fee on top",
     subLarge: "you set the amount · {fee}% fee on top, {largeFee}% above {largeFrom}",
     setAny: "Set any prize you want, from {min}",
-    checks: "Logo Checker by prize: {n} free per {amount}",
     phone: "Help from our team on the phone",
     call: "Call {phone}",
   },

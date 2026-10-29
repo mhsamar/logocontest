@@ -236,11 +236,6 @@ export const SETTINGS = {
     group: "limits", type: "int", schema: int(1), default: 5,
     description: "Below this many active entries, the client is prompted to buy an extension.",
   },
-  // Owner, 2026-10-14: the checker is free on every logo contest, 15 checks for each full ৳1,000 of prize.
-  "limits.logo_checks_per_1000": {
-    group: "limits", type: "int", schema: int(0, 1000), default: 15,
-    description: "Free AI logo checks a logo contest gets for each full ৳1,000 of prize (৳3,000 → 45). Failed checks do not count.",
-  },
   // US dollar prices for visitors from abroad, paid with Stripe (owner, 2026-10-14). Amounts stay in taka.
   "payments.usd_rate": {
     group: "payments", type: "int", schema: int(1, 1000), default: 122,
@@ -303,9 +298,10 @@ export const SETTINGS = {
     group: "costs", type: "int", schema: int(0, 10_000_000), default: 3000,
     description: "Emails the email plan includes each month (Resend's free plan: 3,000).",
   },
+  // Owner, 2026-10-29: the same number of checks for every logo contest, whatever the prize (before: 15 per ৳1,000).
   "limits.logo_checks_per_contest": {
-    group: "limits", type: "int", schema: int(1), default: 20,
-    description: "AI logo checks per contest when the checker is free (prize at or over the free limit). Failed checks do not count.",
+    group: "limits", type: "int", schema: int(1, 1000), default: 10,
+    description: "AI logo checks a logo contest's client gets, whatever the prize. Failed checks and designers' own checks before sending do not count.",
   },
   "limits.logo_checks_paid": {
     group: "limits", type: "int", schema: int(1), default: 10,

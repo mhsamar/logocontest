@@ -237,9 +237,11 @@ export async function ProDashboard({ user }: { user: CurrentUser }) {
           <Icon name="shield" size={26} />
         </span>
         <div>
-          <b>{t("pro.dash.checkerTitle", { n: n(usage.limit) })}</b>
+          {/* The free trial's checks are for the whole trial, not a month (owner, 2026-10-29: 5 for the 3 days). */}
+          <b>{usage.trial ? t("pro.trial.checks", { left: n(usage.left), limit: n(usage.limit) }) : t("pro.dash.checkerTitle", { n: n(usage.limit) })}</b>
           <em>
-            {t("pro.dash.checkerLead")} <b>{t("pro.dash.checkerLeft", { left: n(usage.left), date: formatDate(usage.resetsOn, locale, "short") })}</b>
+            {t("pro.dash.checkerLead")}{" "}
+            <b>{usage.trial ? t("pro.trial.endsOn", { date: formatDate(usage.resetsOn, locale, "short") }) : t("pro.dash.checkerLeft", { left: n(usage.left), date: formatDate(usage.resetsOn, locale, "short") })}</b>
           </em>
           <Slot used={usage.used} max={usage.limit} />
         </div>

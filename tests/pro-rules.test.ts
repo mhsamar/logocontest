@@ -43,9 +43,9 @@ describe("Pro limits", () => {
     expect(entryLimit(true, { ...S, proEntriesPerContest: 20 })).toBe(20);
   });
 
-  it("Basic gets 2 logo checks a month, Pro 100", () => {
+  it("Basic gets 2 logo checks a month, Pro 20 (owner, 2026-10-29)", () => {
     expect(logoCheckLimit(false, S)).toBe(2);
-    expect(logoCheckLimit(true, S)).toBe(100);
+    expect(logoCheckLimit(true, S)).toBe(20);
   });
 
   it("Pro portfolio holds 50 uploads", () => {

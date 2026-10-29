@@ -14,7 +14,8 @@ import { LEVEL_TONE, ScoreRing, ShieldIcon } from "./match";
 
 export type SendCheckSetup = {
   ready: boolean;
-  usage: { pro: boolean; used: number; limit: number; left: number; resetsOn: string };
+  /** trial: on the free Pro Trial, whose checks are for the whole trial (owner, 2026-10-29). */
+  usage: { pro: boolean; trial: boolean; used: number; limit: number; left: number; resetsOn: string };
   priceBdt: number;
   proLogoChecks: number;
 };
@@ -117,7 +118,7 @@ export function SendCheckModal({
     { key: "send", state: phase === "result" || phase === "nochecks" || phase === "unavailable" ? "active" : "todo" },
   ];
 
-  const leftLine = <p className="m-0 flex items-center gap-1.5 text-[13px] text-muted"><ShieldIcon className="size-3.5 text-success" />{t("entryCheck.send.left", { left: n(usage.left), limit: n(usage.limit), plan })}</p>;
+  const leftLine = <p className="m-0 flex items-center gap-1.5 text-[13px] text-muted"><ShieldIcon className="size-3.5 text-success" />{usage.trial ? t("entryCheck.send.leftTrial", { left: n(usage.left), limit: n(usage.limit) }) : t("entryCheck.send.left", { left: n(usage.left), limit: n(usage.limit), plan })}</p>;
   const sendWithout = (
     <Button variant="secondary" size="lg" block onClick={() => onSend(null)} loading={busy}>
       {t("entryCheck.send.skip")}
@@ -173,7 +174,7 @@ export function SendCheckModal({
               <p className="m-0 mt-2 text-[13.5px] text-[#6b4e00]" data-mockup-tip>
                 {t("checker.mockupTip")}
               </p>
-              <p className="m-0 mt-2 text-[13px] font-semibold text-muted">{t("entryCheck.send.uses", { left: n(usage.left), limit: n(usage.limit), plan })}</p>
+              <p className="m-0 mt-2 text-[13px] font-semibold text-muted">{usage.trial ? t("entryCheck.send.usesTrial", { left: n(usage.left), limit: n(usage.limit) }) : t("entryCheck.send.uses", { left: n(usage.left), limit: n(usage.limit), plan })}</p>
             </div>
             {error && <p className="m-0 text-[14px] font-semibold text-danger" role="alert">{error}</p>}
             <Button size="lg" block onClick={() => void start()} loading={starting}>
@@ -281,9 +282,9 @@ export function SendCheckModal({
             <div className="rounded-[16px] bg-chip p-4">
               <p className="m-0 flex items-start gap-2 font-bold">
                 <ShieldIcon className="mt-0.5 size-4 text-muted" />
-                {usage.pro ? t("entryCheck.send.usedAllPro", { n: n(usage.limit) }) : usage.limit === 1 ? t("entryCheck.send.usedAllOne") : t("entryCheck.send.usedAll", { n: n(usage.limit) })}
+                {usage.trial ? t("entryCheck.send.usedAllTrial", { n: n(usage.limit) }) : usage.pro ? t("entryCheck.send.usedAllPro", { n: n(usage.limit) }) : usage.limit === 1 ? t("entryCheck.send.usedAllOne") : t("entryCheck.send.usedAll", { n: n(usage.limit) })}
               </p>
-              <p className="m-0 mt-1 text-[14px] text-muted">{t("entryCheck.send.resets", { date: formatDate(new Date(usage.resetsOn), locale, "short") })}</p>
+              <p className="m-0 mt-1 text-[14px] text-muted">{t(usage.trial ? "entryCheck.send.resetsTrial" : "entryCheck.send.resets", { date: formatDate(new Date(usage.resetsOn), locale, "short") })}</p>
             </div>
             {!usage.pro && (
               <div className="rounded-[16px] bg-[#fff8e6] p-4 ring-1 ring-[#f3dca0]">

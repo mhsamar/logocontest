@@ -28,7 +28,6 @@ const homePricingBn: Messages["home2"]["pricing"] = {
     sub: "পরিমাণ আপনিই ঠিক করবেন · ওপরে {fee}% ফি",
     subLarge: "পরিমাণ আপনিই ঠিক করবেন · ওপরে {fee}% ফি, {largeFrom}-এর বেশি হলে {largeFee}%",
     setAny: "{min} থেকে যত খুশি পুরস্কার দিন",
-    checks: "পুরস্কার অনুযায়ী লোগো চেকার: প্রতি {amount}-এ {n}টি ফ্রি",
     phone: "ফোনে আমাদের টিমের সাহায্য",
     call: "কল করুন {phone}",
   },

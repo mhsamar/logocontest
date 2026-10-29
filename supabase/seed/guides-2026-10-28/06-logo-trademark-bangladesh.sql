@@ -70,7 +70,7 @@ A registration lasts for a fixed term and must be renewed before it ends, or it 
 
 Before you pick a winner, the [AI logo checker](/logo-checker) on logocontest.bd looks for similar logos. It reads the logo, searches the web by image, compares it with every design sent to any contest on the site, compares the shapes one by one, and tells you which font the letters look like. You get one of three clear answers (nothing very close, some similar logos worth a side-by-side look, or a very close match to avoid), the look-alikes next to your logo, and a PDF certificate with a verify link.
 
-Clients can use it free on every logo contest they run, from the day it opens until the final files are delivered; the number of checks depends on the prize. Designers can also check their own logos before they send them.
+Clients can use it free on every logo contest they run, from the day it opens until the final files are delivered; every contest gets the same number of checks, whatever the prize. Designers can also check their own logos before they send them.
 
 Be clear about what it is: an AI research report made on the date shown. It cannot promise that a logo is 100% original, it cannot see logos that are not online, and it does not replace a DPDT trademark search or a lawyer. Think of it as an early filter that drops risky designs before you spend on signboards, printing and filing.
 
@@ -166,7 +166,7 @@ DPDT-এর একজন পরীক্ষক আইন আর আগের ম
 
 বিজয়ী বাছাইয়ের আগে logocontest.bd-এর [AI লোগো চেকার](/logo-checker) আপনার লোগোর সাথে মিল থাকা লোগো খুঁজে দেখে। এটি লোগোটি পড়ে, ছবি দিয়ে ওয়েবে খোঁজে, সাইটের যেকোনো কনটেস্টে পাঠানো প্রতিটি ডিজাইনের সাথে মেলায়, মিল পাওয়া লোগোগুলোর আকার একে একে তুলনা করে, আর অক্ষরগুলো কোন ফন্টের মতো দেখতে তা জানায়। ফলাফলে পাবেন তিনটির একটি পরিষ্কার উত্তর (খুব কাছাকাছি কিছু নেই; কিছু মিল আছে, যা পাশাপাশি রেখে দেখা দরকার; অথবা খুব কাছাকাছি লোগো আছে, যা এড়ানো উচিত), মিল থাকা লোগোগুলো আপনার লোগোর পাশাপাশি, আর যাচাই লিংকসহ একটি PDF সার্টিফিকেট।
 
-ক্লায়েন্টরা নিজের প্রতিটি লোগো কনটেস্টে এটি ফ্রি ব্যবহার করতে পারেন, কনটেস্ট শুরুর দিন থেকে চূড়ান্ত ফাইল পাওয়া পর্যন্ত; কয়টি চেক পাবেন তা পুরস্কারের ওপর নির্ভর করে। ডিজাইনাররাও পাঠানোর আগে নিজের লোগো চেক করতে পারেন।
+ক্লায়েন্টরা নিজের প্রতিটি লোগো কনটেস্টে এটি ফ্রি ব্যবহার করতে পারেন, কনটেস্ট শুরুর দিন থেকে চূড়ান্ত ফাইল পাওয়া পর্যন্ত; পুরস্কার যত টাকারই হোক, প্রতিটি কনটেস্টে চেকের সংখ্যা একই। ডিজাইনাররাও পাঠানোর আগে নিজের লোগো চেক করতে পারেন।
 
 তবে এটি আসলে কী, তা পরিষ্কার থাকা দরকার: দেখানো তারিখে তৈরি একটি AI রিসার্চ রিপোর্ট। এটি লোগো ১০০% মৌলিক বলে নিশ্চয়তা দিতে পারে না, যে লোগো এখনো অনলাইনে নেই তা দেখতে পায় না, আর DPDT-এর ট্রেডমার্ক সার্চ বা আইনজীবীর বিকল্পও নয়। একে প্রথম ছাঁকনি ভাবুন: সাইনবোর্ড, প্রিন্ট আর ট্রেডমার্ক ফাইলিংয়ে টাকা খরচের আগেই ঝুঁকিপূর্ণ ডিজাইন বাদ দিতে সাহায্য করে।
 

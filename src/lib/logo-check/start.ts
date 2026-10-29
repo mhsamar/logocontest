@@ -77,7 +77,7 @@ export async function startCheck(user: CurrentUser, input: StartInput): Promise<
   }
   // Designers' contest checks don't use up the client's checks.
   const { count: used } = await db.from("logo_checks").select("id", { count: "exact", head: true }).eq("contest_id", input.contestId).neq("status", "failed").neq("source", "pre_submit");
-  if ((used ?? 0) >= limitFor(contest.prize_amount as number, Boolean(contest.logo_scan), limits)) return { ok: false, error: "limit" };
+  if ((used ?? 0) >= limitFor(Boolean(contest.logo_scan), limits)) return { ok: false, error: "limit" };
   const png = raw && (await normalizeLogo(raw));
   if (!png) return { ok: false, error: "bad_file" };
 

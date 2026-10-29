@@ -57,6 +57,7 @@ describe("3-day free Pro Trial (owner, 2026-10-14)", () => {
     expect(portfolioLimit("pro", DEFAULT_PRO_SETTINGS)).toBe(50);
     expect(DEFAULT_PRO_SETTINGS.freeTrialEnabled).toBe(false);
     expect(DEFAULT_PRO_SETTINGS.freeTrialDays).toBe(3);
-    expect(DEFAULT_PRO_SETTINGS.trialLogoChecks).toBe(10);
+    // Owner, 2026-10-29: 5 logo checks for the 3-day trial.
+    expect(DEFAULT_PRO_SETTINGS.trialLogoChecks).toBe(5);
   });
 });

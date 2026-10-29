@@ -57,13 +57,15 @@ const toItem = (r: Record<string, unknown>): CheckListItem => ({
 export async function contestChecks(contest: { id: string; prize: number; logoScan: boolean; status: string }): Promise<ContestChecks> {
   const limits = await checkLimits();
   const access = accessFor(contest.prize, contest.logoScan, limits);
-  const limit = limitFor(contest.prize, contest.logoScan, limits);
+  const limit = limitFor(contest.logoScan, limits);
   if (!isSupabaseConfigured()) return { access, limits, limit, used: 0, left: limit, checkable: false, checks: [] };
   // Designers' contest checks (owner, 2026-10-14) are on their entries, not in the client's checks.
   const { data } = await createAdminClient().from("logo_checks").select(LIST_COLUMNS).eq("contest_id", contest.id).neq("source", "pre_submit").order("created_at", { ascending: true });
   const checks = (data ?? []).map((r) => toItem(r as Record<string, unknown>));
   const used = checks.filter((c) => c.status !== "failed").length;
-  return { access, limits, limit, used, left: checksLeft(used, limit), checkable: isCheckable(contest.status), checks };
+  // Shown as at most the limit: a contest that checked more before the limit was lowered (owner, 2026-10-29) reads
+  // "10 of 10", not "30 of 10".
+  return { access, limits, limit, used: Math.min(used, limit), left: checksLeft(used, limit), checkable: isCheckable(contest.status), checks };
 }
 
 export type CheckMatch = {
@@ -167,7 +169,7 @@ export async function checkView(id: string, viewer: CurrentUser | null): Promise
     finishedAt: (r.finished_at as string | null) ?? null,
     stale: (r.status === "queued" || r.status === "running") && lockedUntil < Date.now(),
     costUsd: Number(r.cost_usd) || 0,
-    left: checksLeft(count ?? 0, limitFor(contest.prize_amount, Boolean(contest.logo_scan), limits)),
+    left: checksLeft(count ?? 0, limitFor(Boolean(contest.logo_scan), limits)),
     viewer: viewer && viewer.id === contest.client_id ? "client" : isDesigner ? "designer" : "admin",
   };
 }
@@ -266,17 +268,18 @@ export async function myChecks(userId: string): Promise<{ checks: MyCheck[]; con
   const byContest = new Map<string, ContestCheckCount>();
   for (const c of own ?? []) {
     const access = accessFor(c.prize_amount as number, Boolean(c.logo_scan), limits);
-    const limit = limitFor(c.prize_amount as number, Boolean(c.logo_scan), limits);
+    const limit = limitFor(Boolean(c.logo_scan), limits);
     byContest.set(c.id as string, { id: c.id as string, slug: c.slug as string, brand: c.brand_name as string, number: (c.contest_number as number | null) ?? null, used: 0, limit, left: limit, access, checkable: true, prize: c.prize_amount as number });
   }
   for (const k of checks) {
     if (!byContest.has(k.contest.id)) {
-      const limit = limitFor(k.contest.prize, k.contest.logoScan, limits);
+      const limit = limitFor(k.contest.logoScan, limits);
       byContest.set(k.contest.id, { id: k.contest.id, slug: k.contest.slug, brand: k.contest.brand, number: k.contest.number, used: 0, limit, left: limit, access: "free", checkable: false, prize: k.contest.prize });
     }
     if (k.status !== "failed") byContest.get(k.contest.id)!.used += 1;
   }
-  const contests = [...byContest.values()].map((c) => ({ ...c, left: checksLeft(c.used, c.limit) }));
+  // At most the limit, as in contestChecks (owner, 2026-10-29).
+  const contests = [...byContest.values()].map((c) => ({ ...c, used: Math.min(c.used, c.limit), left: checksLeft(c.used, c.limit) }));
   return { checks, contests, limits };
 }
 

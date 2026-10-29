@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkHeadline, sourceRows } from "@/lib/logo-check/present";
 import { accessFor, certNumber, checksLeft, limitFor, isFetchableUrl, isOnHosts, logoCropBox, overallScore, parseCertNumber, uniquenessScore, verdictFor } from "@/lib/logo-check/rules";
 
-const limits = { perThousand: 15, freeChecks: 20, paidChecks: 10, freeFrom: 5000, price: 250, closeFrom: 45, highRiskFrom: 85 };
+const limits = { freeChecks: 10, paidChecks: 10, freeFrom: 5000, price: 250, closeFrom: 45, highRiskFrom: 85 };
 
 describe("AI copyright checker rules (owner, 2026-10-10)", () => {
   it("is free on every logo contest, with no add-on (owner, 2026-10-14)", () => {
@@ -11,24 +11,20 @@ describe("AI copyright checker rules (owner, 2026-10-10)", () => {
     expect(accessFor(15000, true, limits)).toBe("free");
   });
 
-  it("gives 15 checks for each full ৳1,000 of prize: ৳1,000 → 15, ৳3,000 → 45, ৳5,000 → 75", () => {
-    expect(limitFor(1000, false, limits)).toBe(15);
-    expect(limitFor(3000, false, limits)).toBe(45);
-    expect(limitFor(5000, false, limits)).toBe(75);
-    expect(limitFor(2500, false, limits)).toBe(30);
-    expect(limitFor(999, false, limits)).toBe(0);
-    expect(limitFor(3000, false, { ...limits, perThousand: 10 })).toBe(30);
+  it("gives every logo contest the same checks, whatever the prize (owner, 2026-10-29: 10), from Settings", () => {
+    expect(limitFor(false, limits)).toBe(10);
+    expect(limitFor(false, { ...limits, freeChecks: 12 })).toBe(12);
   });
 
   it("a contest that bought the old add-on keeps at least the checks it paid for", () => {
-    expect(limitFor(500, true, limits)).toBe(10);
-    expect(limitFor(3000, true, limits)).toBe(45);
+    expect(limitFor(true, { ...limits, freeChecks: 5 })).toBe(10);
+    expect(limitFor(true, limits)).toBe(10);
   });
 
   it("counts checks left and never goes below zero", () => {
-    expect(checksLeft(0, limitFor(3000, false, limits))).toBe(45);
-    expect(checksLeft(40, limitFor(3000, false, limits))).toBe(5);
-    expect(checksLeft(50, limitFor(3000, false, limits))).toBe(0);
+    expect(checksLeft(0, limitFor(false, limits))).toBe(10);
+    expect(checksLeft(7, limitFor(false, limits))).toBe(3);
+    expect(checksLeft(12, limitFor(false, limits))).toBe(0);
   });
 
   it("gives the verdict from the closest found logo", () => {

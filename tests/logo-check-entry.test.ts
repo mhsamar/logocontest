@@ -55,9 +55,9 @@ const check = (over: Partial<CheckForBadge> = {}): CheckForBadge => ({ id: "k1",
 const entry = { id: "e1", checkId: "k1", fileSha256: SHA };
 
 describe("Logo check inside contests: limits (owner, 2026-10-14)", () => {
-  it("Basic gets 2 checks a month and Pro 100, from Admin › Pro plan", () => {
+  it("Basic gets 2 checks a month and Pro 20 (owner, 2026-10-29), from Admin › Pro plan", () => {
     expect(logoCheckLimit(false, DEFAULT_PRO_SETTINGS)).toBe(2);
-    expect(logoCheckLimit(true, DEFAULT_PRO_SETTINGS)).toBe(100);
+    expect(logoCheckLimit(true, DEFAULT_PRO_SETTINGS)).toBe(20);
     expect(logoCheckLimit(false, { ...DEFAULT_PRO_SETTINGS, basicLogoChecks: 5 })).toBe(5);
   });
 

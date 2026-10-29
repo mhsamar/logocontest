@@ -420,7 +420,8 @@ export async function emailProRenewal(designerId: string, days: number, until: D
         days_left: days,
         period_end: emailDate(until, false),
         amount: taka(amount),
-        checks_used: usage.used,
+        // At most the limit: a designer who used more before Pro went from 100 to 20 (owner, 2026-10-29).
+        checks_used: Math.min(usage.used, usage.limit),
         checks_limit: usage.limit,
         wins_month: wins ?? 0,
         renew_url: `${origin}/pro/checkout?renew=1`,

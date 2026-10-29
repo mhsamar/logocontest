@@ -9,8 +9,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("checker.my.title"), robots: { index: false } };
 }
 
-// My logo checks (owner, 2026-10-10). Designers check their own logos here (owner, 2026-10-13: Basic 2, Pro 100 a
-// month); a client's checks are in the client workspace at /client/checks (owner, 2026-10-17).
+// My logo checks (owner, 2026-10-10). Designers check their own logos here (owner, 2026-10-13: Basic 2 a month;
+// 2026-10-29: Pro 20); a client's checks are in the client workspace at /client/checks (owner, 2026-10-17).
 export default async function MyLogoChecksPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?as=client&next=/dashboard/logo-checks");

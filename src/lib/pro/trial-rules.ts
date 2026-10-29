@@ -1,6 +1,6 @@
 /**
  * 3-day free Pro Trial (owner, 2026-10-14). Pure: used by the server, the pages and the tests.
- * One trial per designer for life. While it runs the designer has Pro, with 10 logo checks and 10 portfolio images
+ * One trial per designer for life. While it runs the designer has Pro, with 5 logo checks (owner, 2026-10-29) and 10 portfolio images
  * for the whole trial (Admin › Pro plan). On the last day they are reminded; then it ends and they are Basic again.
  */
 

@@ -4,9 +4,9 @@ import { getI18n } from "@/lib/i18n/server";
 import { HERO_SAMPLES, pctColour, RADAR_FIND_COUNT, RADAR_FINDS, radarRadius, radarSpot, SAMPLE_SCORES, sampleLogo, VERDICT_COLOURS, type SampleVerdict } from "@/lib/logo-checker/samples";
 import { formatNumber } from "@/lib/money";
 
-/** perThousand: free checks for each ৳1,000 of prize (owner, 2026-10-14). */
+/** freeChecks: a logo contest's checks, whatever the prize (owner, 2026-10-29). */
 /** basicChecks / proChecks: a designer's own logo checks a month (owner, 2026-10-15: the checker is for designers too). */
-export type CheckerNumbers = { perThousand: number; freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number; basicChecks: number; proChecks: number };
+export type CheckerNumbers = { freeFrom: number; price: number; freeChecks: number; paidChecks: number; closeFrom: number; basicChecks: number; proChecks: number };
 
 type Css = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -49,10 +49,9 @@ function Ring({ size, stroke, score, colour, children }: { size: number; stroke:
  * parts are radio buttons with CSS, so they work without JavaScript; all motion stops with reduced motion.
  */
 export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) {
-  const { t, locale, price } = await getI18n();
+  const { t, locale } = await getI18n();
   const num = (n: number) => formatNumber(n, locale);
   const pct = (n: number) => `${num(n)}%`;
-  const taka = price;
   const verdictLabel = (v: SampleVerdict) => t(`checker.verdicts.${v}`);
   const steps = ["choose", "check", "result", "certificate"] as const;
   const checks = [
@@ -106,7 +105,7 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
             </span>
             <span>
               <Tick />
-              {t("checkerPage.hero.upTo", { n: num(numbers.perThousand) })}
+              {t("checkerPage.hero.upTo", { n: num(numbers.freeChecks) })}
             </span>
             <span>
               <Tick />
@@ -546,24 +545,25 @@ export async function LogoCheckerPage({ numbers }: { numbers: CheckerNumbers }) 
               <em className="lk-rib">{t("checkerPage.price.best")}</em>
               <span>{t("checkerPage.price.freeFor")}</span>
               <b>{t("checkerPage.price.free")}</b>
-              <small>{t("checkerPage.price.included", { n: num(numbers.perThousand) })}</small>
+              <small>{t("checkerPage.price.included", { n: num(numbers.freeChecks) })}</small>
               <i className="lk-pbig" aria-hidden>
-                {num(numbers.perThousand)}
+                {num(numbers.freeChecks)}
               </i>
             </div>
+            {/* Owner, 2026-10-29: the same checks on every contest, so the second card is the Pro designers' month. */}
             <div className="lk-pc1 lk-pd">
-              <span>{t("checkerPage.price.paidFor", { amount: taka(3000) })}</span>
-              <b>{t("checkerPage.price.free")}</b>
-              <small>{t("checkerPage.price.addon", { n: num(numbers.perThousand * 3) })}</small>
+              <span>{t("checkerPage.price.proFor")}</span>
+              <b>{t("checkerPage.price.inPlan")}</b>
+              <small>{t("checkerPage.price.proLine", { n: num(numbers.proChecks) })}</small>
               <i className="lk-pbig" aria-hidden>
-                {num(numbers.perThousand * 3)}
+                {num(numbers.proChecks)}
               </i>
             </div>
           </div>
           <ul className="lk-rls">
             {[
               t("checkerPage.price.rule1", { basic: num(numbers.basicChecks), pro: num(numbers.proChecks) }),
-              t("checkerPage.price.rule2", { n: num(numbers.perThousand) }),
+              t("checkerPage.price.rule2", { n: num(numbers.freeChecks) }),
               t("checkerPage.price.rule3"),
               t("checkerPage.price.rule4"),
             ].map((r) => (

@@ -19,7 +19,7 @@ import { checkerReady } from "./start";
 
 /**
  * Logo check inside contests (owner, 2026-10-14; Design/logo-check). The designer uploads the cover of a design,
- * then checks it here before sending: one of their monthly checks (Basic 2, Pro 100). The server makes the
+ * then checks it here before sending: one of their monthly checks (Basic 2, Pro 20; the trial's 5 count for the whole trial). The server makes the
  * fingerprint of the exact stored file and runs the existing Logo Checker. The browser never sends a score.
  */
 

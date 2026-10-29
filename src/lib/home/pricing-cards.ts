@@ -15,14 +15,14 @@ export type PackageCardKey = (typeof PACKAGE_CARDS)[number];
 export type PackageCard = { key: PackageCardKey; prize: number; feePercent: number; fee: number; total: number; checks: number };
 
 /** One card: the fee at this prize's own rate (the lower one above the threshold) and its free AI logo checks. */
-export function cardFor(key: PackageCardKey, prize: number, cfg: FeeConfig, checksPerThousand: number): PackageCard {
+export function cardFor(key: PackageCardKey, prize: number, cfg: FeeConfig, checksPerContest: number): PackageCard {
   const feePercent = feePercentFor(prize, cfg);
-  // Free on every logo contest, N checks for each full ৳1,000 of prize (owner, 2026-10-14).
-  return { key, prize, feePercent, fee: serviceFee(prize, feePercent), total: prizeWithFee(prize, cfg), checks: limitFor(prize, false, { perThousand: checksPerThousand, paidChecks: 0 }) };
+  // Free on every logo contest, the same number of checks whatever the prize (owner, 2026-10-29).
+  return { key, prize, feePercent, fee: serviceFee(prize, feePercent), total: prizeWithFee(prize, cfg), checks: limitFor(false, { freeChecks: checksPerContest, paidChecks: 0 }) };
 }
 
-export function packageCards(cfg: FeeConfig & Pick<PricingConfig, "packagePrizes">, checksPerThousand: number): PackageCard[] {
-  return PACKAGE_CARDS.map((key) => cardFor(key, cfg.packagePrizes[key], cfg, checksPerThousand));
+export function packageCards(cfg: FeeConfig & Pick<PricingConfig, "packagePrizes">, checksPerContest: number): PackageCard[] {
+  return PACKAGE_CARDS.map((key) => cardFor(key, cfg.packagePrizes[key], cfg, checksPerContest));
 }
 
 /** The fee rule for the lead and the Custom card: the normal rate, and the large-prize rate when it differs. */

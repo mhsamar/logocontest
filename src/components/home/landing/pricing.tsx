@@ -54,7 +54,7 @@ export async function LandingPricing() {
   const { t, locale, price, currency } = await getI18n();
   const [pricing, s, offers, contact, methods, invites] = await Promise.all([
     getPricingConfig(),
-    getSettings(["limits.logo_checks_per_1000", "timers.designer_file_upload_days", "guarantee.enabled", "guarantee.min_designers"]),
+    getSettings(["limits.logo_checks_per_contest", "timers.designer_file_upload_days", "guarantee.enabled", "guarantee.min_designers"]),
     visibleOffers(),
     getContact(locale),
     homePayMethods(currency.code).catch(() => []),
@@ -62,7 +62,7 @@ export async function LandingPricing() {
     invitesOpenForClients().catch(() => false),
   ]);
   const num = (n: number) => formatNumber(n, locale);
-  const per = s["limits.logo_checks_per_1000"];
+  const per = s["limits.logo_checks_per_contest"];
   const days = s["timers.designer_file_upload_days"];
   const cards = packageCards(pricing, per);
   const standard = cards.find((c) => c.key === "standard")!;
@@ -79,7 +79,7 @@ export async function LandingPricing() {
     only([
       t("home2.pricing.toWinner", { prize: price(c.prize) }),
       t("home2.pricing.fee", { pct: num(c.feePercent), fee: price(c.fee) }),
-      // Free on every logo contest, N checks per full ৳1,000 of prize (owner, 2026-10-14).
+      // Free on every logo contest, the same number of checks whatever the prize (owner, 2026-10-29).
       c.checks > 0 && t(c.checks === 1 ? "home2.pricing.checksOne" : "home2.pricing.checks", { n: num(c.checks) }),
       invites && t("home2.pricing.invite"),
       // The client race's prize is a gift box (owner, 2026-10-20); its switch is still called "smartphone".
@@ -87,7 +87,7 @@ export async function LandingPricing() {
     ]);
   const customLines = only([
     t("home2.pricing.custom.setAny", { min: price(pricing.customMin) }),
-    per > 0 && t("home2.pricing.custom.checks", { n: num(per), amount: price(1000) }),
+    per > 0 && t(per === 1 ? "home2.pricing.checksOne" : "home2.pricing.checks", { n: num(per) }),
     invites && t("home2.pricing.invite"),
     contact.phone && t("home2.pricing.custom.phone"),
     t("home2.pricing.rate"),

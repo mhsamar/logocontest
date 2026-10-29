@@ -55,7 +55,7 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
   const contests = [...new Map(counted.map((r) => [r.contest.id, r.contest])).values()].map((c) => {
     const mine = counted.filter((r) => r.contest.id === c.id);
     const paid = mine.some((r) => r.paid);
-    return { ...c, used: mine.length, paid, limit: limitFor(c.prize, c.logoScan, limits) };
+    return { ...c, used: mine.length, paid, limit: limitFor(c.logoScan, limits) };
   });
 
   const resultLine = (r: AdminCheckRow) =>
@@ -130,10 +130,10 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
           }
         />
         <dl className="m-0 mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {/* Owner, 2026-10-14: free on every logo contest, 15 checks per ৳1,000 of prize, logo contests only. */}
+          {/* Owner, 2026-10-14: free on every logo contest, logo contests only; 2026-10-29: the same number per contest. */}
           {[
             [t("entryCheck.policy.freeTitle"), t("entryCheck.policy.freeValue"), t("entryCheck.policy.freeLine")],
-            [t("entryCheck.policy.perTitle"), t("entryCheck.policy.perValue", { n: num(limits.perThousand) }), t("entryCheck.policy.perLine", { a: num(limits.perThousand), b: num(limits.perThousand * 3), c: num(limits.perThousand * 5) })],
+            [t("entryCheck.policy.perTitle"), t("entryCheck.policy.perValue", { n: num(limits.freeChecks) }), t("entryCheck.policy.perLine")],
             [t("entryCheck.policy.onlyTitle"), t("entryCheck.policy.onlyValue"), t("entryCheck.policy.onlyLine")],
             [t("admin.copyright.ruleClose"), t("admin.copyright.ruleCloseValue", { close: num(limits.closeFrom), high: num(limits.highRiskFrom) }), t("admin.copyright.ruleCloseLine")],
           ].map(([k, v, line]) => (
@@ -208,7 +208,7 @@ export default async function AdminCopyrightPage({ searchParams }: PageProps<"/a
                         {r.status === "done" && r.verdict ? <Pill tone={TONE[r.verdict]}>{t(`checker.verdicts.${r.verdict}`)}</Pill> : <Pill tone="neutral">{t(r.status === "failed" ? "admin.copyright.failedPill" : "admin.copyright.runningPill")}</Pill>}
                         <span className="mt-1 block text-[13.5px] text-muted">
                           {resultLine(r)}
-                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limitFor(r.contest.prize, r.contest.logoScan, limits)) })}` : ""}
+                          {r.nth ? ` · ${t("admin.copyright.nth", { n: num(r.nth), limit: num(limitFor(r.contest.logoScan, limits)) })}` : ""}
                         </span>
                       </td>
                     </tr>

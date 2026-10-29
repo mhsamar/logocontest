@@ -11,7 +11,7 @@ export const maxDuration = 300;
 /** Starts an AI logo check: form fields contestId, requestKey, and entryId or file. */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
-  // Designers check their own logos (owner, 2026-10-13: Basic 2 and Pro 100 a month).
+  // Designers check their own logos (owner, 2026-10-13: Basic 2 a month; 2026-10-29: Pro 20).
   if (user?.role === "designer" && user.status === "active") return designerStart(req, user);
   if (!user || user.role !== "client") return NextResponse.json({ ok: false, error: "not_found" }, { status: 403 });
   let form: FormData;

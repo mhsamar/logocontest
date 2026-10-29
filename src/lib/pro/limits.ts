@@ -14,7 +14,7 @@ export async function designsAllowed(designerId: string, siteMax: number): Promi
   return entryLimit(await isPro(designerId), settings, siteMax);
 }
 
-/** Logo checks for this designer: Basic 2 and Pro 100 a month, the free trial 10 in all (Admin › Pro plan). */
+/** Logo checks for this designer: Basic 2 and Pro 20 a month, the free trial 5 in all (Admin › Pro plan; owner, 2026-10-29). */
 export async function logoChecksAllowed(designerId: string): Promise<number> {
   return (await checkWindowFor(designerId)).limit;
 }

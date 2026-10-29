@@ -41,9 +41,10 @@ export async function DesignerChecks({ user }: { user: CurrentUser }) {
           <Icon name="shield" size={26} />
         </span>
         <div>
-          <b>{t("pro.checker.left", { left: n(usage.left), max: n(usage.limit) })}</b>
+          {/* On the free trial they are for the whole trial, not a month (owner, 2026-10-29). */}
+          <b>{usage.trial ? t("pro.trial.checks", { left: n(usage.left), limit: n(usage.limit) }) : t("pro.checker.left", { left: n(usage.left), max: n(usage.limit) })}</b>
           <em>
-            {t("pro.checker.resets", { date: formatDate(usage.resetsOn, locale, "long") })} · {t("pro.checker.lead")}
+            {usage.trial ? t("pro.trial.endsOn", { date: formatDate(usage.resetsOn, locale, "long") }) : t("pro.checker.resets", { date: formatDate(usage.resetsOn, locale, "long") })} · {t("pro.checker.lead")}
           </em>
           <Slot used={usage.used} max={usage.limit} />
         </div>

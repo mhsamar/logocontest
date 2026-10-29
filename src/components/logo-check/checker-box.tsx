@@ -60,7 +60,7 @@ export function CheckerBox() {
         </>
       ) : (
         <>
-          {state.access === "free" && counted.length === 0 && <span className="mt-4 inline-flex rounded-full bg-[#e3f3ea] px-2.5 py-0.5 text-[12.5px] font-bold text-[#14633c]">{t("checker.box.freeChip", { n: nf.format(state.limits.perThousand) })}</span>}
+          {state.access === "free" && counted.length === 0 && <span className="mt-4 inline-flex rounded-full bg-[#e3f3ea] px-2.5 py-0.5 text-[12.5px] font-bold text-[#14633c]">{t("checker.box.freeChip", { n: nf.format(state.limit) })}</span>}
           <p className="m-0 mt-3 text-[14.5px] text-ink">{allUsed ? t("checker.box.allUsedLead") : t("checker.box.lead")}</p>
           <div className="mt-3 flex items-center justify-between gap-3 rounded-[12px] bg-frame px-3.5 py-2.5">
             <span className="text-[14px] font-semibold text-ink">{t("entryCheck.policy.used", { used: nf.format(state.used), left: nf.format(state.left), limit: nf.format(state.limit) })}</span>

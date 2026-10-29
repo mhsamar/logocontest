@@ -29,7 +29,7 @@ export async function checkWindowFor(designerId: string, now: Date = new Date())
   return { ...w, monthKey: m.key };
 }
 
-/** A designer's own logo checks: Basic 2 and Pro 100 a month (they start again on the 1st), the trial 10 in all. */
+/** A designer's own logo checks: Basic 2 and Pro 20 a month (they start again on the 1st), the trial 5 in all (owner, 2026-10-29). */
 export async function designerCheckUsage(designerId: string, now: Date = new Date()): Promise<CheckUsage> {
   const { ready } = await getProSettings();
   const w = await checkWindowFor(designerId, now);

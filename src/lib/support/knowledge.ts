@@ -58,16 +58,24 @@ export async function siteInfo(): Promise<string> {
     visibleList("home_faq", "en"),
     getContact("en"),
     getProSettings(),
-    getSettings(["contact.whatsapp", "limits.withdrawal_min", "timers.copy_claim_days", "limits.entry_max_images", "limits.entry_max_images_pro"]),
+    getSettings(["contact.whatsapp", "limits.withdrawal_min", "timers.copy_claim_days", "limits.entry_max_images", "limits.entry_max_images_pro", "limits.logo_checks_per_contest", "limits.logo_check_close_from"]),
     legalParams(t, "en"),
   ]);
   const parts: string[] = [];
   parts.push("Common questions:\n" + faq.map((f) => `Q: ${f.text.q}\nA: ${fillLegal(f.text.a, params)}`).join("\n\n"));
   parts.push("How it works:\n" + howQa(messages, params).join("\n\n"));
 
-  // The logo checker page's own Q&A.
+  // The logo checker page's own Q&A, with its numbers filled in, and how many checks each person gets (owner,
+  // 2026-10-29: 10 per contest whatever the prize; Basic 2 and Pro 20 a month; the 3-day trial 5).
+  const nums = { basic: String(pro.settings.basicLogoChecks), pro: String(pro.settings.proLogoChecks), n: String(s["limits.logo_check_close_from"]) };
+  const fill = (v: string) => v.replace(/\{(basic|pro|n)\}/g, (_, k: keyof typeof nums) => nums[k]);
   const checker = flat((messages.checkerPage as Record<string, unknown> | undefined)?.faq).filter(([k]) => /\.(q|a)$/.test(k));
-  if (checker.length) parts.push("Logo checker:\n" + checker.map(([k, v]) => (k.endsWith(".q") ? `Q: ${v}` : `A: ${v}`)).join("\n"));
+  const allowance = [
+    `Clients: up to ${s["limits.logo_checks_per_contest"]} AI logo checks on each logo contest, whatever the prize (failed checks don't count).`,
+    pro.ready ? `Designers: Basic ${pro.settings.basicLogoChecks} a month, Pro ${pro.settings.proLogoChecks} a month (they start again on the 1st).` : "",
+    pro.ready && pro.settings.freeTrialEnabled ? `Free Pro Trial: ${pro.settings.freeTrialDays} days with ${pro.settings.trialLogoChecks} logo checks for the whole trial.` : "",
+  ].filter(Boolean);
+  parts.push("Logo checker:\n" + [...allowance, ...checker.map(([k, v]) => (k.endsWith(".q") ? `Q: ${fill(String(v))}` : `A: ${fill(String(v))}`))].join("\n"));
 
   // The Pro plan for designers.
   if (pro.ready) {

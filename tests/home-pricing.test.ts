@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cardFor, feeRule, packageCards, payKinds, payStep, payWording } from "@/lib/home/pricing-cards";
 
-// Admin › Pricing as on 2026-10-29: 25%, or 20% for prizes above ৳50,000; 15 free AI checks per full ৳1,000.
+// Admin › Pricing as on 2026-10-29: 25%, or 20% for prizes above ৳50,000; 10 free AI checks per contest.
 const cfg = {
   serviceFeePercent: 25,
   largeFeePercent: 20,
@@ -11,22 +11,22 @@ const cfg = {
 
 describe("home pricing cards (owner, 2026-10-29)", () => {
   it("shows Economy, Standard and Premium with each prize's fee, total and free checks", () => {
-    expect(packageCards(cfg, 15)).toEqual([
-      { key: "economy", prize: 3000, feePercent: 25, fee: 750, total: 3750, checks: 45 },
-      { key: "standard", prize: 5000, feePercent: 25, fee: 1250, total: 6250, checks: 75 },
-      { key: "premium", prize: 12_000, feePercent: 25, fee: 3000, total: 15_000, checks: 180 },
+    expect(packageCards(cfg, 10)).toEqual([
+      { key: "economy", prize: 3000, feePercent: 25, fee: 750, total: 3750, checks: 10 },
+      { key: "standard", prize: 5000, feePercent: 25, fee: 1250, total: 6250, checks: 10 },
+      { key: "premium", prize: 12_000, feePercent: 25, fee: 3000, total: 15_000, checks: 10 },
     ]);
   });
 
   it("uses the lower fee only above the large-prize threshold", () => {
-    expect(cardFor("premium", 60_000, cfg, 15)).toEqual({ key: "premium", prize: 60_000, feePercent: 20, fee: 12_000, total: 72_000, checks: 900 });
+    expect(cardFor("premium", 60_000, cfg, 10)).toEqual({ key: "premium", prize: 60_000, feePercent: 20, fee: 12_000, total: 72_000, checks: 10 });
     // Exactly at the threshold is not above it.
-    expect(cardFor("premium", 50_000, cfg, 15)).toMatchObject({ feePercent: 25, fee: 12_500, total: 62_500 });
+    expect(cardFor("premium", 50_000, cfg, 10)).toMatchObject({ feePercent: 25, fee: 12_500, total: 62_500 });
   });
 
-  it("counts checks per full ৳1,000 only, and none when the setting is 0", () => {
-    expect(cardFor("economy", 3500, cfg, 15).checks).toBe(45);
-    expect(cardFor("economy", 900, cfg, 15).checks).toBe(0);
+  it("gives every card the same checks whatever the prize (owner, 2026-10-29), and none when the setting is 0", () => {
+    expect(cardFor("economy", 3500, cfg, 10).checks).toBe(10);
+    expect(cardFor("economy", 900, cfg, 10).checks).toBe(10);
     expect(cardFor("standard", 5000, cfg, 0).checks).toBe(0);
   });
 

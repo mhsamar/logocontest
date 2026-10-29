@@ -36,10 +36,10 @@ function Match({ art, place, score, color, bar, width }: { art: React.ReactNode;
  * The prices and the number of checks come from Settings.
  */
 export async function AiChecker() {
-  const { t, locale, price } = await getI18n();
-  // Owner, 2026-10-14: free on every logo contest, 15 checks for each ৳1,000 of prize (Settings).
-  const s = await getSettings(["limits.logo_checks_per_1000"]);
-  const per = s["limits.logo_checks_per_1000"];
+  const { t, locale } = await getI18n();
+  // Owner, 2026-10-14: free on every logo contest; 2026-10-29: the same number of checks per contest (Settings).
+  const s = await getSettings(["limits.logo_checks_per_contest"]);
+  const per = s["limits.logo_checks_per_contest"];
   const fmt = (n: number) => formatNumber(n, locale);
   const scores = [
     { n: 14, label: t("home.aiCheck.scores.unique"), color: "#A3121B" },
@@ -64,7 +64,6 @@ export async function AiChecker() {
           <div className="flex flex-wrap gap-2 text-[15px] font-bold">
             <span className="rounded-full bg-[#FFE27A] px-3.5 py-[7px] text-[#3A2A00]">{t("home.aiCheck.free")}</span>
             <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.checks", { n: fmt(per) })}</span>
-            <span className="rounded-full border border-white/35 px-3.5 py-[7px]">{t("home.aiCheck.price", { amount: price(3000), n: fmt(per * 3) })}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-3">
             <Link href="/start" className="inline-flex min-h-[52px] items-center rounded-2xl bg-white px-7 font-bold text-[#8B0000]">
