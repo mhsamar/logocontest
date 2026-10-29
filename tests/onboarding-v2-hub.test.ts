@@ -75,6 +75,19 @@ describe("saving a part after paying", () => {
     expect(read("src/app/start-v2/brief/page.tsx")).toContain('onboarding.hidden.includes("files")');
   });
 
+  it("card 1 asks only for the slogan, description and customers (the logo name and type were given on step 2)", async () => {
+    expect(read("src/components/wizard-v2/brief-hub.tsx")).toContain('new Set([...props.onboarding.hidden, "brandName", "businessType", "logoText", "shortName"])');
+    const steps = read("src/components/wizard/steps-brief.tsx");
+    expect(steps).toContain('{!h("brandName") && (');
+    expect(steps).toContain('{!h("businessType") && (');
+    // Card 3 has no feel sliders (owner, 2026-10-29); the brief keeps its default feel for designers.
+    expect(read("src/components/wizard-v2/brief-hub.tsx")).toContain('new Set([...props.onboarding.hidden, "sliders"])');
+    expect(steps).toContain('{!p.hidden?.has("sliders") && (');
+    // Admin › Onboarding can never hide them in the old wizard: they aren't hideable questions.
+    const { parseOnboarding } = await import("@/lib/onboarding/config");
+    expect(parseOnboarding("client", { hidden: ["brandName", "businessType", "sliders", "slogan"] }).hidden).toEqual(["slogan"]);
+  });
+
   it("the page is the client's own, off unless ONBOARDING_V2, and the Pro invitations come back to it", () => {
     const page = read("src/app/start-v2/brief/page.tsx");
     expect(page).toContain("if (!onboardingV2On()) notFound();");

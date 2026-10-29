@@ -102,16 +102,19 @@ export function BrandStep(p: BriefStepProps) {
   const h = (k: string) => p.hidden?.has(k) ?? false;
   return (
     <div className="space-y-5">
-      <TextField
-        label={t("wizard.c01.brandLabel")}
-        value={p.brief.brandName}
-        onChange={(e) => p.update({ brandName: e.target.value })}
-        onBlur={() => p.touch("brandName")}
-        maxLength={LIMITS.brandName.max}
-        error={error("brandName")}
-        autoComplete="organization"
-        autoFocus
-      />
+      {/* Only onboarding v2's brief after paying leaves it out (the logo name was given on its step 2); Admin › Onboarding can't. */}
+      {!h("brandName") && (
+        <TextField
+          label={t("wizard.c01.brandLabel")}
+          value={p.brief.brandName}
+          onChange={(e) => p.update({ brandName: e.target.value })}
+          onBlur={() => p.touch("brandName")}
+          maxLength={LIMITS.brandName.max}
+          error={error("brandName")}
+          autoComplete="organization"
+          autoFocus
+        />
+      )}
       {!h("slogan") && (
         <TextField
           label={t("wizard.c01.sloganLabel")}
@@ -161,18 +164,21 @@ export function BusinessStep(p: BriefStepProps) {
   const h = (k: string) => p.hidden?.has(k) ?? false;
   return (
     <div className="space-y-5">
-      <SelectField
-        label={t("wizard.c02.typeLabel")}
-        placeholder={t("wizard.c02.typePlaceholder")}
-        value={p.brief.businessType}
-        onChange={(e) => {
-          p.update({ businessType: e.target.value as Brief["businessType"] });
-          p.touch("businessType");
-        }}
-        options={businessTypeOptions(p.choices.businessTypes, p.brief.businessType).map((v) => ({ value: v, label: t(`wizard.businessTypes.${v}`) }))}
-        error={error("businessType")}
-      />
-      {p.brief.businessType === "other" && (
+      {/* Only onboarding v2's brief after paying leaves it out (given on its step 2, with that type's defaults). */}
+      {!h("businessType") && (
+        <SelectField
+          label={t("wizard.c02.typeLabel")}
+          placeholder={t("wizard.c02.typePlaceholder")}
+          value={p.brief.businessType}
+          onChange={(e) => {
+            p.update({ businessType: e.target.value as Brief["businessType"] });
+            p.touch("businessType");
+          }}
+          options={businessTypeOptions(p.choices.businessTypes, p.brief.businessType).map((v) => ({ value: v, label: t(`wizard.businessTypes.${v}`) }))}
+          error={error("businessType")}
+        />
+      )}
+      {!h("businessType") && p.brief.businessType === "other" && (
         <TextField
           label={t("wizard.c02.otherLabel")}
           placeholder={t("wizard.c02.otherPlaceholder")}
@@ -364,27 +370,30 @@ export function StylesStep(p: BriefStepProps) {
       </div>
       <p className="-mt-3 text-xs text-muted">{t("wizard.c04.credit")}</p>
 
-      <fieldset className="space-y-5">
-        <legend className="mb-3 text-sm font-semibold text-ink">{t("wizard.c04.slidersTitle")}</legend>
-        {STYLE_SLIDERS.map((k) => (
-          <div key={k}>
-            <div className="mb-1 flex justify-between text-sm text-muted">
-              <span>{t(`wizard.sliders.${k}.left`)}</span>
-              <span>{t(`wizard.sliders.${k}.right`)}</span>
+      {/* Only onboarding v2's brief after paying leaves the feel out (owner, 2026-10-29); Admin › Onboarding can't. */}
+      {!p.hidden?.has("sliders") && (
+        <fieldset className="space-y-5">
+          <legend className="mb-3 text-sm font-semibold text-ink">{t("wizard.c04.slidersTitle")}</legend>
+          {STYLE_SLIDERS.map((k) => (
+            <div key={k}>
+              <div className="mb-1 flex justify-between text-sm text-muted">
+                <span>{t(`wizard.sliders.${k}.left`)}</span>
+                <span>{t(`wizard.sliders.${k}.right`)}</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                step={1}
+                value={p.brief.sliders[k]}
+                onChange={(e) => p.update({ sliders: { ...p.brief.sliders, [k]: Number(e.target.value) } })}
+                aria-label={`${t(`wizard.sliders.${k}.left`)} – ${t(`wizard.sliders.${k}.right`)}`}
+                className="h-11 w-full accent-primary"
+              />
             </div>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={p.brief.sliders[k]}
-              onChange={(e) => p.update({ sliders: { ...p.brief.sliders, [k]: Number(e.target.value) } })}
-              aria-label={`${t(`wizard.sliders.${k}.left`)} – ${t(`wizard.sliders.${k}.right`)}`}
-              className="h-11 w-full accent-primary"
-            />
-          </div>
-        ))}
-      </fieldset>
+          ))}
+        </fieldset>
+      )}
     </div>
   );
 }

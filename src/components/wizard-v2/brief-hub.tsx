@@ -8,7 +8,7 @@ import Link from "@/components/ui/link";
 import { useToast } from "@/components/ui/toast";
 import { FieldInput } from "@/components/services/field-input";
 import { BrandStep, BusinessStep, LinksStep, LookStep, NeedsStep, type BriefChoices, type BriefStepProps } from "@/components/wizard/steps-brief";
-import { briefLinks, cleanBrief, STYLE_SLIDERS, validateBriefStepV2, type Brief, type FieldErrors } from "@/lib/contests/brief";
+import { briefLinks, cleanBrief, validateBriefStepV2, type Brief, type FieldErrors } from "@/lib/contests/brief";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -48,6 +48,11 @@ export function BriefHub(props: {
   const router = useRouter();
   const actions = useMemo(() => ({ ...SERVER, ...props.actions }), [props.actions]);
   const hidden = useMemo(() => new Set(props.onboarding.hidden), [props.onboarding]);
+  // Card 1 is the slogan, description and customers only (owner, 2026-10-29): the logo name and business type were
+  // given on the wizard's step 2, and a new type would change the other cards' defaults.
+  const hiddenBusiness = useMemo(() => new Set([...props.onboarding.hidden, "brandName", "businessType", "logoText", "shortName"]), [props.onboarding]);
+  // Card 3 is the logo styles and colours, without the feel sliders (owner, 2026-10-29: "aitao remove koro").
+  const hiddenLook = useMemo(() => new Set([...props.onboarding.hidden, "sliders"]), [props.onboarding]);
   const [brief, setBrief] = useState(props.brief);
   const [edited, setEdited] = useState<BriefSection[]>(props.completion.edited);
   const [open, setOpen] = useState<BriefSection | null>(null);
@@ -117,17 +122,6 @@ export function BriefHub(props: {
     });
 
   // The cards' summaries, in words.
-  const feel = (b: Brief) =>
-    STYLE_SLIDERS.map((k) => {
-      const v = b.sliders[k];
-      const left = t(`wizard.sliders.${k}.left`);
-      const right = t(`wizard.sliders.${k}.right`);
-      if (v <= 1) return t("wizardV2.hub.feelOne", { a: left });
-      if (v === 2) return t("wizardV2.hub.feelToward", { a: left });
-      if (v === 3) return t("wizardV2.hub.feelMiddle", { a: left, b: right });
-      if (v === 4) return t("wizardV2.hub.feelToward", { a: right });
-      return t("wizardV2.hub.feelOne", { a: right });
-    }).join(" · ");
   const hint = <span className="italic text-muted">{t("wizardV2.hub.emptyHint")}</span>;
   const line = (label: string, value: React.ReactNode) => (
     <p className="m-0 text-[14px] leading-snug text-ink">
@@ -160,7 +154,6 @@ export function BriefHub(props: {
     look: (
       <>
         {brief.styles.length > 0 && chips(brief.styles.map((s) => t(`wizard.styles.${s}`)))}
-        <p className="m-0 text-[14px] text-ink">{feel(brief)}</p>
         <p className="m-0 flex flex-wrap items-center gap-1.5 text-[14px] text-ink">
           {brief.letDesignersChoose || brief.colors.length === 0
             ? t("wizardV2.hub.designersChoose")
@@ -197,12 +190,12 @@ export function BriefHub(props: {
       <div className="mt-4 space-y-6 border-t border-line pt-4">
         {s === "business" && (
           <>
-            <BrandStep {...p} />
-            <BusinessStep {...p} />
+            <BrandStep {...p} hidden={hiddenBusiness} />
+            <BusinessStep {...p} hidden={hiddenBusiness} />
           </>
         )}
         {s === "links" && <LinksStep {...p} />}
-        {s === "look" && <LookStep {...p} />}
+        {s === "look" && <LookStep {...p} hidden={hiddenLook} />}
         {s === "needs" && <NeedsStep {...p} />}
         {extras.map((q) => (
           <FieldInput
