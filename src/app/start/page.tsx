@@ -46,6 +46,9 @@ export default async function StartPage({ searchParams }: PageProps<"/start">) {
   if (draft || (typeof params.step === "string" && /^\d+$/.test(params.step)) || typeof params.name === "string") {
     const logo = await getService(LOGO);
     if (logo && !logo.on) return <ComingSoon service={logo} />;
+    // A new logo contest (an old ?step= or ?name= link) starts in onboarding v2 (owner, 2026-10-29, Phase D); a draft
+    // made in the old wizard is finished there.
+    if (!draft && onboardingV2On()) redirect("/start-v2");
     return logoWizard(draft && params.step === undefined ? { ...params, step: "8" } : params, user);
   }
 

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getI18n } from "@/lib/i18n/server";
 import { getService } from "@/lib/services/store";
+import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { isLogo } from "@/lib/services/types";
 import { cannotStart, ComingSoon, logoWizard, serviceDraftOf, serviceWizard } from "../start-flow";
 
@@ -28,5 +29,8 @@ export default async function StartServicePage({ params, searchParams }: PagePro
   const blocked = await cannotStart(user);
   if (blocked) return blocked;
   if (!service.on) return <ComingSoon service={service} />;
+  // Onboarding v2 (owner, 2026-10-29, Phase D): a new logo contest starts in the 4-step wizard; drafts made in the old
+  // one keep opening there (through /start?draft=).
+  if (isLogo(service.slug) && onboardingV2On()) redirect("/start-v2");
   return isLogo(service.slug) ? logoWizard(query, user) : serviceWizard(service, user);
 }

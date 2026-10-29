@@ -108,6 +108,14 @@ describe("the page and the rest of the site", () => {
     expect(read("src/app/start/page.tsx")).toContain("if (draft?.briefCompletion && onboardingV2On()) redirect(`/start-v2?draft=${draft.id}`);");
   });
 
+  it("Phase D: with the flag on a new logo contest starts in the new wizard; old-wizard drafts finish there", () => {
+    expect(read("src/app/start/[service]/page.tsx")).toContain('if (isLogo(service.slug) && onboardingV2On()) redirect("/start-v2");');
+    const start = read("src/app/start/page.tsx");
+    expect(start).toContain('if (!draft && onboardingV2On()) redirect("/start-v2");');
+    // The design-type picker and the other services stay on /start.
+    expect(start.indexOf('if (!draft && onboardingV2On()) redirect("/start-v2");')).toBeLessThan(start.indexOf("const picker = ("));
+  });
+
   it("no pop-up, ads, support button or email bar inside it; it sits in the client workspace for clients", () => {
     expect(popupAllowedOn("/start-v2")).toBe(false);
     expect(adsAllowedOn("/start-v2")).toBe(false);
