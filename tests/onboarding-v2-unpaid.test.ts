@@ -88,7 +88,8 @@ describe("Last active and New wizard step filters", () => {
     expect(parseUnpaidQuery({ active: "1y", v2step: "sent" })).toMatchObject({ active: null, v2step: null });
     const old = parseUnpaidQuery({ tab: "overdue", sort: "next", step: "8", owner: "me", range: "90", q: "LC-0016" });
     expect(old).toMatchObject({ active: null, v2step: null });
-    expect(unpaidHref(old)).toBe("/admin/unpaid?tab=overdue&q=LC-0016&sort=next&step=8&owner=me&range=90");
+    // The old Overdue tab is Due now since 2026-10-30.
+    expect(unpaidHref(old)).toBe("/admin/unpaid?tab=due&q=LC-0016&sort=next&step=8&owner=me&range=90");
   });
 
   it("a draft without a package has no amount: out of the amount filter, last when sorted by money", async () => {
@@ -382,6 +383,23 @@ describe("a closed step-1 lead whose visits left the newest 200", () => {
     const { leads, contacts } = await unpaidBoard(NOW);
     expect(leads.find((l) => l.key === `g:${id(200)}`)).toMatchObject({ status: "in_touch", clientId: "u20", clientName: "Rina", v2Step: "s1", hasContact: { mobile: true, email: true, whatsapp: false } });
     expect(contacts.get(`g:${id(200)}`)?.email).toBe("rina@example.com");
+  });
+});
+
+describe("Unread on the board (owner, 2026-10-30)", () => {
+  it("a lead leaves Unread once the team saved something for it; a copied resume link or a bare row doesn't count", async () => {
+    const { unpaidBoard } = await import("@/lib/admin/unpaid-board");
+    const { queueOf } = await import("@/lib/admin/unpaid-rules");
+    const row = (n: number, more: Row = {}): Row => ({ id: id(700 + n), kind: "contest", contest_id: id(n), guest_mobile: null, status: "new", contacts_count: 0, next_followup_at: null, created_at: ago(100), updated_at: ago(100), ...more });
+    db.tables.unpaid_leads = [row(1), row(2), row(3), row(4), row(5, { next_followup_at: ago(-600) })];
+    db.tables.lead_activities = [
+      { lead_id: id(702), kind: "note", event: null },
+      { lead_id: id(703), kind: "system", event: "resume_link" },
+      { lead_id: id(704), kind: "system", event: "planned" },
+    ];
+    const { leads } = await unpaidBoard(NOW);
+    const q = (n: number) => queueOf(leads.find((l) => l.key === `c:${id(n)}`)!, NOW);
+    expect([1, 2, 3, 4, 5].map(q)).toEqual(["unread", "waiting", "unread", "waiting", "waiting"]);
   });
 });
 

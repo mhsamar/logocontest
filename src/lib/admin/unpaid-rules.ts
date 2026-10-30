@@ -102,6 +102,12 @@ const isIn = <T extends string>(list: readonly T[], v: unknown): v is T => typeo
 export const isHow = (v: unknown): v is How => isIn(HOWS, v);
 export const isResult = (v: unknown): v is Result => isIn(RESULTS, v);
 export const isNextPreset = (v: unknown): v is NextPreset => isIn(NEXT_PRESETS, v);
+/**
+ * The next follow-up each result suggests, until the admin picks another (owner, 2026-10-30: "In 2 hours" after every
+ * call brought just-called people straight back): no answer, busy or needing help, again in 2 hours; talked or will
+ * pay, tomorrow; a wrong number or not interested, none.
+ */
+export const NEXT_FOR: Record<Exclude<Result, "fake">, NextPreset> = { talked: "tomorrow", no_answer: "2h", busy: "2h", wrong_number: "none", will_pay: "tomorrow", needs_help: "2h", not_interested: "none" };
 export const isFakeReason = (v: unknown): v is FakeReason => isIn(FAKE_REASONS, v);
 
 /**
@@ -178,6 +184,12 @@ export function nextFollowUpAt(preset: NextPreset, now: Date, picked?: string | 
 /** What the list needs to sort and filter a lead (the page's Lead has these and more). */
 export type LeadState = {
   status: LeadStatus;
+  /**
+   * Someone on the team saved something on this person: a call or message result, a note or a plan (owner,
+   * 2026-10-30). Taps on Call or WhatsApp and the resume link don't count, nor a close that was reopened. Left out, it is
+   * worked out from the status, the contacts and the plan.
+   */
+  handled?: boolean;
   closedReason: CloseReason | null;
   hidden: boolean;
   contacts: number;
@@ -198,8 +210,26 @@ export type LeadState = {
   v2Step?: V2Step | null;
 };
 
-export const TABS = ["all", "new", "today", "overdue", "promised", "unreachable", "won", "closed"] as const;
+/**
+ * The list's tabs, in the order the work is done (owner, 2026-10-30: "suru hoy all dea, jete dorkar unread"). Each
+ * open lead is in exactly one of the first three: Unread (nobody has saved anything on them yet), Due now (their
+ * follow-up time has come) or Waiting (handled, next follow-up later or none). Saving a follow-up, a note or a plan
+ * always moves a lead out of Unread.
+ */
+export const TABS = ["unread", "due", "waiting", "won", "closed", "all"] as const;
 export type Tab = (typeof TABS)[number];
+export type Queue = Exclude<Tab, "all">;
+/** The Status filter (the old Promised to pay and Not reachable tabs). */
+export const STATUS_FILTERS = ["new", "in_touch", "promised", "needs_help", "not_reachable"] as const;
+export type StatusFilter = (typeof STATUS_FILTERS)[number];
+/** Older links (alerts, bookmarks) with the old tabs. */
+const OLD_TABS: Record<string, { tab: Tab; status?: StatusFilter }> = {
+  new: { tab: "unread" },
+  today: { tab: "due" },
+  overdue: { tab: "due" },
+  promised: { tab: "all", status: "promised" },
+  unreachable: { tab: "all", status: "not_reachable" },
+};
 export const SORTS = ["money", "newest", "activity", "next"] as const;
 export type Sort = (typeof SORTS)[number];
 export const AMOUNTS = ["lt5k", "5to10k", "gt10k"] as const;
@@ -219,39 +249,59 @@ export const RANGE_DAYS: Record<Range, number> = { today: 0, "7": 6, "30": 29, "
 export const isOpen = (l: LeadState) => l.status !== "closed" && !l.wonBackAt;
 export const isOverdue = (l: LeadState, now: Date) => isOpen(l) && Boolean(l.nextAt && l.nextAt.getTime() < now.getTime());
 
-export function inTab(l: LeadState, tab: Tab, now: Date): boolean {
-  switch (tab) {
-    case "all":
-      return isOpen(l);
-    case "new":
-      return isOpen(l) && l.status === "new" && l.contacts === 0;
-    case "today":
-      return isOpen(l) && Boolean(l.nextAt && sameDhakaDay(l.nextAt, now));
-    case "overdue":
-      return isOverdue(l, now);
-    case "promised":
-      return isOpen(l) && l.status === "promised";
-    case "unreachable":
-      return isOpen(l) && l.status === "not_reachable";
-    case "won":
-      return Boolean(l.wonBackAt);
-    case "closed":
-      return l.status === "closed";
-  }
+/** Someone saved something on this lead (see LeadState.handled). */
+export const isHandled = (l: LeadState) => l.handled ?? (l.status !== "new" || l.contacts > 0 || l.nextAt !== null);
+
+/**
+ * How far ahead a follow-up already counts as Due now: the "Follow-up is due" alert's minutes, so it is there when the
+ * alert comes, but at most 30, so the usual "in 2 hours" never lands in Due now at once.
+ */
+export const dueSoonMs = (alertMinutes: number) => Math.min(Math.max(alertMinutes, 0), 30) * 60_000;
+
+/** The one tab a lead is in. `soonMs`: a follow-up due within this long already counts as due (see dueSoonMs). */
+export function queueOf(l: LeadState, now: Date, soonMs = 0): Queue {
+  if (l.wonBackAt) return "won";
+  if (l.status === "closed") return "closed";
+  if (!isHandled(l)) return "unread";
+  return l.nextAt && l.nextAt.getTime() <= now.getTime() + soonMs ? "due" : "waiting";
 }
 
-/** The pill on a lead: closed and paid first, then overdue, then what was logged. */
-export type ShownStatus = LeadStatus | "overdue" | "won" | `closed_${CloseReason}`;
+export const inTab = (l: LeadState, tab: Tab, now: Date, soonMs = 0) => (tab === "all" ? isOpen(l) : queueOf(l, now, soonMs) === tab);
+
+/**
+ * The pill on a lead: paid and closed first, then Unread, then overdue, then what was logged. A lead with only a note or
+ * a plan (still "new") reads "Followed up".
+ */
+export type ShownStatus = Exclude<LeadStatus, "new"> | "unread" | "followed_up" | "overdue" | "won" | `closed_${CloseReason}`;
 export function shownStatus(l: LeadState, now: Date): ShownStatus {
   if (l.wonBackAt) return "won";
   if (l.status === "closed") return `closed_${l.closedReason ?? "not_interested"}`;
+  if (!isHandled(l)) return "unread";
   if (isOverdue(l, now)) return "overdue";
-  return l.status;
+  return l.status === "new" ? "followed_up" : l.status;
 }
 
 /** `only`: the leads a phone or email search found (their keys, never the number itself). */
-export type UnpaidQuery = { tab: Tab; q: string; sort: Sort; step: number | null; owner: string | null; amount: Amount | null; started: Started | null; active: Active | null; v2step: V2Step | null; range: Range; sel: string | null; only: string[] | null };
-export const DEFAULT_QUERY: UnpaidQuery = { tab: "all", q: "", sort: "money", step: null, owner: null, amount: null, started: null, active: null, v2step: null, range: "30", sel: null, only: null };
+export type UnpaidQuery = {
+  tab: Tab;
+  q: string;
+  /** Null: the tab's own order (TAB_SORT). */
+  sort: Sort | null;
+  status: StatusFilter | null;
+  step: number | null;
+  owner: string | null;
+  amount: Amount | null;
+  started: Started | null;
+  active: Active | null;
+  v2step: V2Step | null;
+  range: Range;
+  sel: string | null;
+  only: string[] | null;
+};
+export const DEFAULT_QUERY: UnpaidQuery = { tab: "unread", q: "", sort: null, status: null, step: null, owner: null, amount: null, started: null, active: null, v2step: null, range: "30", sel: null, only: null };
+/** Each tab's own order: the money waiting for new people, the follow-up time once there is one, the newest last. */
+export const TAB_SORT: Record<Tab, Sort> = { unread: "money", due: "next", waiting: "next", won: "newest", closed: "newest", all: "money" };
+export const sortOf = (q: Pick<UnpaidQuery, "tab" | "sort">): Sort => q.sort ?? TAB_SORT[q.tab];
 
 const one = (v: unknown) => (Array.isArray(v) ? v[0] : v);
 const pick = <T extends string>(list: readonly T[], v: unknown, fallback: T) => (isIn(list, one(v)) ? (one(v) as T) : fallback);
@@ -271,11 +321,13 @@ export function parseUnpaidQuery(sp: Record<string, string | string[] | undefine
     .split(",")
     .filter((k) => LEAD_KEY.test(k))
     .slice(0, 20);
+  const old = OLD_TABS[String(one(sp.tab) ?? "")];
   return {
-    tab: pick(TABS, sp.tab, "all"),
+    tab: old?.tab ?? pick(TABS, sp.tab, "unread"),
     // A phone number or email never stays in the address (they are searched through the server instead).
     q: ((s) => (isContactSearch(s) ? "" : s))(String(one(sp.q) ?? "").replace(/\s+/g, " ").trim().slice(0, 80)),
-    sort: pick(SORTS, sp.sort, "money"),
+    sort: pickOrNull(SORTS, sp.sort),
+    status: old?.status ?? pickOrNull(STATUS_FILTERS, sp.status),
     step: Number.isInteger(step) && step >= 1 && step <= STAGES ? step : null,
     owner: owner === "me" || owner === "none" || UUID.test(owner) ? owner : null,
     amount: pickOrNull(AMOUNTS, sp.amount),
@@ -290,11 +342,13 @@ export function parseUnpaidQuery(sp: Record<string, string | string[] | undefine
 
 /** The page's address with some of the view changed (defaults are left out). */
 export function unpaidHref(q: UnpaidQuery, change: Partial<UnpaidQuery> = {}, hash = ""): string {
-  const next = { ...q, ...change };
+  // Another tab opens in its own order unless one is given (owner, 2026-10-30).
+  const next = { ...q, ...(change.tab && change.tab !== q.tab && !("sort" in change) ? { sort: null } : {}), ...change };
   const params = new URLSearchParams();
   for (const k of Object.keys(DEFAULT_QUERY) as (keyof UnpaidQuery)[]) {
     const v = next[k];
-    if (v === null || v === "" || v === DEFAULT_QUERY[k] || (Array.isArray(v) && !v.length)) continue;
+    // A link to one person keeps its tab, even Unread: without one the page opens the tab that person is in now.
+    if (v === null || v === "" || (v === DEFAULT_QUERY[k] && !(k === "tab" && next.sel)) || (Array.isArray(v) && !v.length)) continue;
     params.set(k, String(v));
   }
   const s = params.toString();
@@ -306,6 +360,7 @@ export const isContactSearch = (text: string) => text.includes("@") || text.repl
 
 /** The filters (not the tab): an admin's own view of who to call. */
 export function matchesFilters(l: LeadState, q: UnpaidQuery, now: Date, me: string): boolean {
+  if (q.status && l.status !== q.status) return false;
   if (q.step !== null && l.stage !== q.step) return false;
   if (q.owner === "me" && l.ownerId !== me) return false;
   if (q.owner === "none" && l.ownerId) return false;

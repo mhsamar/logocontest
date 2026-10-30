@@ -47,6 +47,7 @@ export function LeadDetails({
   resumeDays,
   gone = false,
   remindDefault = ["alert"],
+  openHref,
 }: {
   lead: Lead | null;
   status: ShownStatus | null;
@@ -64,6 +65,8 @@ export function LeadDetails({
   remindDefault?: RemindWay[];
   /** A link named a lead that is no longer on the list. */
   gone?: boolean;
+  /** This person in the address (this tab), kept after a Call or WhatsApp tap so a refresh can't swap them. */
+  openHref?: string;
 }) {
   const { t, num, taka, when, day, stepName } = fmt;
   if (!lead || !status) {
@@ -147,7 +150,7 @@ export function LeadDetails({
         <span className="text-[12.5px] text-muted">{t("admin.unpaid.fu.details.contactHint")}</span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {canManage && <ReachButtons leadKey={lead.key} has={{ mobile: lead.hasContact.mobile, email: lead.hasContact.email }} />}
+        {canManage && <ReachButtons leadKey={lead.key} has={{ mobile: lead.hasContact.mobile, email: lead.hasContact.email }} openHref={openHref} />}
         {canManage && resumeDays !== null && open && <CopyResume leadKey={lead.key} big />}
         {lead.slug && (
           <Link prefetch={false} href={`/admin/contests/${lead.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-[12px] px-2 text-[14px] font-bold text-primary hover:underline">
@@ -233,7 +236,7 @@ export function LeadDetails({
 
       {/* Log a follow-up | History */}
       <div className="grid gap-4 min-[901px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        {canManage && open ? <LogFollowUp key={lead.key} leadKey={lead.key} owners={ownerList} ownerId={ownerId} planned={Boolean(lead.nextAt)} remindBy={lead.remindBy ?? remindDefault} /> : null}
+        {canManage && open ? <LogFollowUp key={lead.key} leadKey={lead.key} owners={ownerList} ownerId={ownerId} planned={Boolean(lead.nextAt)} unread={status === "unread"} remindBy={lead.remindBy ?? remindDefault} /> : null}
         <div className={cx("flex min-w-0 flex-col gap-2", !(canManage && open) && "min-[901px]:col-span-2")}>
           <h3 className="m-0 text-[17px] font-semibold">{t("admin.unpaid.fu.history.title")}</h3>
           {history.length === 0 ? (

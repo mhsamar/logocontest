@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { closeAsFake, findLeadsByContact, followUpDone, logFollowUp, planFollowUp, reachLead, resumeLinkFor } from "@/lib/admin/unpaid-followup-actions";
-import { FAKE_REASONS, HOWS, isContactSearch, NEXT_PRESETS, RESULTS, unpaidHref, type How, type NextPreset, type Result, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
+import { FAKE_REASONS, HOWS, isContactSearch, NEXT_FOR, NEXT_PRESETS, RESULTS, unpaidHref, type How, type NextPreset, type Result, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
 import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
+import { REACHED_EVENT, showLogAfterReach, type Channel } from "./reached";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -28,13 +29,14 @@ const chip = (on: boolean, danger = false) => cx(CHIP, on ? (danger ? "bg-[#B326
 const OUTLINE = "inline-flex min-h-11 items-center gap-2 rounded-[12px] border border-[#E3E4E8] bg-surface px-4 text-[14.5px] font-bold text-ink hover:border-primary hover:text-primary disabled:opacity-50";
 const SELECT = "h-10 min-w-[160px] rounded-[10px] border border-[#E3E4E8] bg-surface px-3 text-[13.5px] font-bold text-ink";
 
-type Channel = "call" | "whatsapp" | "sms" | "email";
 const NOTE_EVENT = "lc-unpaid-note";
 const ICON: Record<Channel, AdminIconName> = { call: "phone", whatsapp: "whatsapp", sms: "sms", email: "mail" };
 
-function useReach(leadKey: string) {
+/** Reach someone. `openHref`: their own view (this tab), opened after the tap when it isn't the one in the address. */
+function useReach(leadKey: string, openHref?: string) {
   const toast = useToast();
   const { t } = useI18n();
+  const router = useRouter();
   const [pending, start] = useTransition();
   const go = (channel: Channel) => {
     // Opened now, in the click, so Safari doesn't block it; it goes to WhatsApp once the click is logged.
@@ -45,6 +47,7 @@ function useReach(leadKey: string) {
         tab?.close();
         return toast(t("admin.errors.generic"), "danger");
       }
+      showLogAfterReach(router, leadKey, channel, openHref);
       if (tab) {
         tab.opener = null;
         tab.location.href = r.href;
@@ -56,10 +59,10 @@ function useReach(leadKey: string) {
 }
 
 /** Call, WhatsApp, SMS and Email in the lead's details: each click is logged, then opens the phone or mail app. */
-export function ReachButtons({ leadKey, has }: { leadKey: string; has: { mobile: boolean; email: boolean } }) {
+export function ReachButtons({ leadKey, has, openHref }: { leadKey: string; has: { mobile: boolean; email: boolean }; openHref?: string }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
-  const { go, pending } = useReach(leadKey);
+  const { go, pending } = useReach(leadKey, openHref);
   if (readOnly) return null;
   return (
     <>
@@ -150,10 +153,10 @@ export function CopyResume({ leadKey, big = false }: { leadKey: string; big?: bo
 }
 
 /** The row's small Call and WhatsApp buttons, the client's resume link, and Add note (opens the form as a note). */
-export function QuickReach({ leadKey, has, resume = false, noteHref }: { leadKey: string; has: { mobile: boolean }; resume?: boolean; noteHref: string }) {
+export function QuickReach({ leadKey, has, resume = false, noteHref, openHref }: { leadKey: string; has: { mobile: boolean }; resume?: boolean; noteHref: string; openHref: string }) {
   const { t } = useI18n();
   const readOnly = useReadOnly();
-  const { go, pending } = useReach(leadKey);
+  const { go, pending } = useReach(leadKey, openHref);
   if (readOnly) return null;
   const btn = "relative z-10 flex size-8 items-center justify-center rounded-[9px] border border-[#E3E4E8] bg-surface text-adm-strong hover:bg-[#111216] hover:text-white disabled:opacity-50";
   return (
@@ -250,7 +253,7 @@ function OwnerSelect({ id, owners, value, onChange }: { id: string; owners: { id
 }
 
 /** "Log a follow-up" (handoff §6): how, result, what was said, next follow-up, who. Result "Fake contest" opens Close as fake. */
-export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: savedRemind = ["alert"] }: { leadKey: string; owners: { id: string; name: string }[]; ownerId: string; planned: boolean; remindBy?: RemindWay[] }) {
+export function LogFollowUp({ leadKey, owners, ownerId, planned, unread = false, remindBy: savedRemind = ["alert"] }: { leadKey: string; owners: { id: string; name: string }[]; ownerId: string; planned: boolean; unread?: boolean; remindBy?: RemindWay[] }) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
@@ -259,6 +262,11 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
   const [result, setResult] = useState<Result | null>(null);
   const [note, setNote] = useState("");
   const [next, setNext] = useState<NextPreset>("2h");
+  // Picked by hand: a result no longer changes it.
+  const [nextTouched, setNextTouched] = useState(false);
+  // Shown after a Call or WhatsApp tap until something is saved.
+  const [reached, setReached] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const [picked, setPicked] = useState(nowLocal);
   const [owner, setOwner] = useState(ownerId);
   // Shown as saved (or as the team's setting); only sent when changed, so a note never overwrites it.
@@ -268,7 +276,15 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
   const [fakeOpen, setFakeOpen] = useState(false);
   const [pending, start] = useTransition();
   const noteRef = useRef<HTMLTextAreaElement>(null);
-  const reset = () => (setHow("call"), setResult(null), setNote(""), setNext("2h"), setOwner(ownerId), setRemindBy(savedRemind), setRemindTouched(false), setError(null));
+  const reset = () => (setHow("call"), setResult(null), setNote(""), setNext("2h"), setNextTouched(false), setReached(false), setOwner(ownerId), setRemindBy(savedRemind), setRemindTouched(false), setError(null));
+  const pickResult = (r: Exclude<Result, "fake">) => {
+    setResult(r);
+    if (!nextTouched) setNext(NEXT_FOR[r]);
+  };
+  const pickNext = (v: NextPreset) => {
+    setNext(v);
+    setNextTouched(true);
+  };
   // A note leaves the planned follow-up as it is unless another time is picked; a call or message plans the next one.
   const pickHow = (h: How) => {
     setHow(h);
@@ -277,32 +293,59 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
       setNext(planned ? "keep" : "none");
     } else if (next === "keep" || how === "note") setNext("2h");
   };
-  // "Add note" on a row opens here as a note: on arrival (#log-note), or for the lead already open (its event).
+  // "Add note" on a row opens here as a note, and a Call or WhatsApp tap opens it set to that: on arrival (#log-note,
+  // #log-call …, read once and then taken out of the address, so a refresh or a later save doesn't bring it back), or
+  // for the lead already open (their events).
+  const asNote = () => {
+    setHow("note");
+    setResult(null);
+    setNext(planned ? "keep" : "none");
+    noteRef.current?.focus();
+    noteRef.current?.scrollIntoView({ block: "center" });
+  };
+  const reachedBy = (h: How) => {
+    setHow(h);
+    setReached(true);
+    formRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+  // The latest of both (they read `planned`) for the listeners, which are set up once per lead.
+  const latest = useRef({ asNote, reachedBy });
   useEffect(() => {
-    const asNote = () => {
-      setHow("note");
-      setResult(null);
-      setNext(planned ? "keep" : "none");
-      noteRef.current?.focus();
-      noteRef.current?.scrollIntoView({ block: "center" });
+    latest.current = { asNote, reachedBy };
+  });
+  useEffect(() => {
+    const arrived = /^#log-(note|call|whatsapp|sms|email)$/.exec(window.location.hash);
+    if (arrived) {
+      if (arrived[1] === "note") latest.current.asNote();
+      else latest.current.reachedBy(arrived[1] as How);
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    }
+    const onNote = (e: Event) => (e as CustomEvent<string>).detail === leadKey && latest.current.asNote();
+    const onReached = (e: Event) => {
+      const d = (e as CustomEvent<{ key: string; how: How }>).detail;
+      if (d?.key === leadKey) latest.current.reachedBy(d.how);
     };
-    if (window.location.hash === "#log-note") asNote();
-    const onNote = (e: Event) => (e as CustomEvent<string>).detail === leadKey && asNote();
     window.addEventListener(NOTE_EVENT, onNote);
-    return () => window.removeEventListener(NOTE_EVENT, onNote);
-  }, [leadKey, planned]);
+    window.addEventListener(REACHED_EVENT, onReached);
+    return () => {
+      window.removeEventListener(NOTE_EVENT, onNote);
+      window.removeEventListener(REACHED_EVENT, onReached);
+    };
+  }, [leadKey]);
   if (readOnly) return null;
   const save = () =>
     start(async () => {
       setError(null);
       const r = await logFollowUp(leadKey, { how, result: how === "note" ? null : result, note, next, pickAt: next === "pick" ? picked : null, ownerId: owner, remindBy: remindTouched ? remindBy : null });
       if (!r.ok) return setError(r.error);
-      toast(t("admin.unpaid.fu.log.saved"));
+      // Where the lead went (owner, 2026-10-30: it seemed to stay), as the server worked it out.
+      toast(t("admin.unpaid.fu.log.savedTo", { tab: t(`admin.unpaid.fu.list.tabs.${r.queue}`) }));
       reset();
       router.refresh();
     });
   return (
     <form
+      ref={formRef}
       id="log"
       className="flex scroll-mt-24 flex-col gap-3 rounded-[16px] border border-adm-line p-4"
       onSubmit={(e) => {
@@ -311,6 +354,7 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
       }}
     >
       <h3 className="m-0 text-[17px] font-semibold">{t("admin.unpaid.fu.log.title")}</h3>
+      {reached && <p className="m-0 rounded-[10px] bg-[#FFF6DD] px-3 py-2 text-[13.5px] font-semibold text-[#6B4E00]">{t(unread ? "admin.unpaid.fu.log.reachedHint" : "admin.unpaid.fu.log.reachedHintSaved")}</p>}
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
         <legend className="mb-2 text-[13px] font-extrabold text-adm-strong">{t("admin.unpaid.fu.log.how")}</legend>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
@@ -327,7 +371,7 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
           <legend className="mb-2 text-[13px] font-extrabold text-adm-strong">{t("admin.unpaid.fu.log.result")}</legend>
           <div role="radiogroup" className="flex flex-wrap gap-1.5">
             {RESULTS.map((r) => (
-              <button key={r} type="button" role="radio" aria-checked={result === r} onClick={() => (r === "fake" ? setFakeOpen(true) : setResult(r))} className={chip(result === r, r === "fake")}>
+              <button key={r} type="button" role="radio" aria-checked={result === r} onClick={() => (r === "fake" ? setFakeOpen(true) : pickResult(r))} className={chip(result === r, r === "fake")}>
                 {t(`admin.unpaid.fu.results.${r}`)}
               </button>
             ))}
@@ -348,7 +392,7 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, remindBy: saved
       </label>
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
         <legend className="mb-2 text-[13px] font-extrabold text-adm-strong">{t("admin.unpaid.fu.log.next")}</legend>
-        <NextPicker value={next} onChange={setNext} picked={picked} onPicked={setPicked} idPrefix={`log-${leadKey}`} canKeep={planned} />
+        <NextPicker value={next} onChange={pickNext} picked={picked} onPicked={setPicked} idPrefix={`log-${leadKey}`} canKeep={planned} />
       </fieldset>
       <label className="flex flex-col gap-1.5 text-[13px] font-extrabold text-adm-strong">
         {t("admin.unpaid.fu.log.assign")}

@@ -1,7 +1,7 @@
 import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard } from "@/components/admin/ui";
-import { biggestDrops, PAID, RANGES, unpaidHref, type FunnelStep, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
+import { biggestDrops, DEFAULT_QUERY, PAID, RANGES, unpaidHref, type FunnelStep, type Tab, type UnpaidQuery } from "@/lib/admin/unpaid-rules";
 import { cx } from "@/lib/cx";
 import type { MessageKey, Translate } from "@/lib/i18n/translate";
 
@@ -133,13 +133,14 @@ export function StuckFunnel({ funnel, q, t, num, stepName, empty }: { funnel: Fu
   );
 }
 
-export type PlanItem = { key: string; brand: string; at: Date; type: string; done: boolean; group: "overdue" | "today" | "tomorrow" | "later" };
+/** `tab`: the one this person is in now; opened with no search or filters, so their card is in the list. */
+export type PlanItem = { key: string; brand: string; at: Date; type: string; done: boolean; group: "overdue" | "today" | "tomorrow" | "later"; tab?: Tab };
 
 /** The Follow-up plan (handoff §8): overdue, today (done ones struck through), tomorrow and later. */
 export function FollowUpPlan({ items, q, t, label }: { items: PlanItem[]; q: UnpaidQuery; t: Translate; label: (i: PlanItem) => string }) {
   const groups = (["overdue", "today", "tomorrow", "later"] as const).map((g) => ({ g, list: items.filter((i) => i.group === g) })).filter((x) => x.list.length);
   return (
-    <AdmCard as="section" className="flex flex-col gap-3 p-5" data-unpaid-plan>
+    <AdmCard as="section" id="uplan" className="flex scroll-mt-24 flex-col gap-3 p-5" data-unpaid-plan>
       <h2 className="m-0 text-[20px] font-semibold tracking-[-0.02em]">{t("admin.unpaid.fu.plan.title")}</h2>
       {groups.length === 0 ? (
         <p className="m-0 text-[15px] text-muted">{t("admin.unpaid.fu.plan.empty")}</p>
@@ -152,7 +153,7 @@ export function FollowUpPlan({ items, q, t, label }: { items: PlanItem[]; q: Unp
                 {list.slice(0, 12).map((i) => (
                   <li key={`${i.key}-${i.at.getTime()}`}>
                     <Link prefetch={false}
-                      href={unpaidHref(q, { sel: i.key }, "#lead")}
+                      href={unpaidHref({ ...DEFAULT_QUERY, range: q.range }, { sel: i.key, tab: i.tab ?? "all" }, "#lead")}
                       className={cx("flex items-center gap-3 rounded-[12px] border px-3 py-2.5 hover:border-primary", g === "overdue" ? "border-[#F3D2CF] bg-[#FFF8F7]" : "border-adm-line-soft bg-[#FAFAFB]", i.done && "opacity-60")}
                     >
                       <b className={cx("min-w-[52px] text-[13px] tabular-nums", g === "overdue" && "text-[#B3261E]")}>{label(i)}</b>

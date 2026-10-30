@@ -201,7 +201,10 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
   const clientIds = [...new Set([...contests.map((c) => c.client_id as string), ...guests.map((g) => g.account)].filter((id): id is string => Boolean(id)))];
   const peopleIds = [...new Set([...clientIds, ...ownerIds, ...rows.flatMap((r) => [r.owner_id, r.closed_by].filter(Boolean) as string[])])];
 
-  const [people, sessions, visits, payments, proofs, done] = await Promise.all([
+  // Leads whose row alone doesn't show they were handled (still "new", no contact, no plan): a note, or a plan that was
+  // carried out, still takes them out of Unread (owner, 2026-10-30). Taps on Call or WhatsApp and the resume link don't.
+  const undecided = rows.filter((r) => r.status === "new" && !Number(r.contacts_count ?? 0) && !r.next_followup_at).map((r) => r.id as string);
+  const [people, sessions, visits, payments, proofs, done, worked] = await Promise.all([
     inChunks(peopleIds, (part) => db.from("profiles").select(PERSON).in("id", part)),
     inChunks(clientIds, (part) => db.from("user_sessions").select("user_id, device, city, last_seen_at").in("user_id", part).order("last_seen_at", { ascending: false }).limit(1000)),
     // Which wizard each visit was (migration 0079): only the old wizard's steps go through stageOf. Before it, all old.
@@ -213,7 +216,11 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
     inChunks(contestIds, (part) => db.from("payments").select("contest_id, status, gateway, created_at").eq("purpose", "contest").in("contest_id", part).order("created_at", { ascending: false }).limit(2000)),
     inChunks(contestIds, (part) => db.from("manual_payments").select("contest_id, status, note, created_at").eq("kind", "contest").in("contest_id", part).order("created_at", { ascending: false }).limit(2000)),
     ready ? db.from("lead_activities").select("lead_id, kind, completes_at, created_at").not("completes_at", "is", null).gte("created_at", dhakaMidnight(now).toISOString()).limit(500) : { data: [] as Row[] },
+    inChunks(undecided, (part) => db.from("lead_activities").select("lead_id, kind, event").in("lead_id", part).or("kind.neq.system,event.in.(planned,followup_done)").limit(2000)),
   ]);
+  // A logged call, message or note, or a plan made or carried out; not the system's own entries (a resume link copied,
+  // a close and reopen: reopened with nothing else saved, someone is in Unread again).
+  const noted = new Set(worked.filter((a) => a.kind !== "system" || a.event === "planned" || a.event === "followup_done").map((a) => a.lead_id as string));
   const person = new Map(people.map((p) => [p.id as string, p]));
   const session = new Map<string, Row>();
   for (const s of sessions) if (!session.has(s.user_id as string)) session.set(s.user_id as string, s);
@@ -231,6 +238,8 @@ export async function unpaidBoard(now = new Date(), include?: string): Promise<B
   const state = (r: Row | undefined) => ({
     leadId: (r?.id as string | undefined) ?? null,
     status: ((r?.status as LeadStatus | undefined) ?? "new") as LeadStatus,
+    // Someone saved something on this person (owner, 2026-10-30): it leaves Unread.
+    handled: Boolean(r) && (r!.status !== "new" || Number(r!.contacts_count ?? 0) > 0 || Boolean(r!.next_followup_at) || noted.has(r!.id as string)),
     closedReason: (r?.closed_reason as CloseReason | null | undefined) ?? null,
     fakeReason: (r?.fake_reason as FakeReason | null | undefined) ?? null,
     closeNote: (r?.close_note as string | null | undefined) ?? null,

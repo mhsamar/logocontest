@@ -2572,12 +2572,15 @@ const en = {
           searchButton: "Search",
           sort: "Sort: {sort}",
           sorts: { money: "Money waiting", newest: "Newest", activity: "Last activity", next: "Next follow-up" },
-          tabs: { all: "All", new: "New", today: "Follow-up today", overdue: "Overdue", promised: "Promised to pay", unreachable: "Not reachable", won: "Won back", closed: "Fake · closed" },
+          // Owner, 2026-10-30: one tab per lead, in the order the work is done; Unread first.
+          tabs: { unread: "Unread", due: "Due now", waiting: "Waiting", won: "Won back", closed: "Closed", all: "All" },
           filters: {
             step: "Step",
             owner: "Owner",
             amount: "Amount",
             started: "Started",
+            // The old Promised to pay and Not reachable tabs (owner, 2026-10-30).
+            status: "Status",
             any: "Any",
             anyone: "Anyone",
             me: "Me",
@@ -2588,6 +2591,7 @@ const en = {
           },
           emptyAll: "No unpaid contests.",
           empty: "No one here right now.",
+          emptyUnread: "Everyone has been followed up. See Due now.",
           noMatch: "No one matches. Clear the search or filters.",
           started: "started {when}",
           toPay: "to pay",
@@ -2607,7 +2611,10 @@ const en = {
           addNote: "Add note",
         },
         status: {
-          new: "New",
+          // Nobody has saved anything on them yet (owner, 2026-10-30), and a lead with only a note or a plan.
+          unread: "Unread",
+          followed_up: "Followed up",
+          new: "Not contacted yet",
           in_touch: "In touch",
           promised: "Promised to pay",
           needs_help: "Needs help",
@@ -2685,6 +2692,10 @@ const en = {
           save: "Save follow-up",
           cancel: "Cancel",
           saved: "Follow-up saved.",
+          // Owner, 2026-10-30: say where the lead went, and ask what happened after a Call or WhatsApp tap.
+          savedTo: "Saved · moved to {tab}.",
+          reachedHint: "Save what happened, so this person moves out of Unread.",
+          reachedHintSaved: "Save what happened, so the next follow-up is planned.",
           planTitle: "Change the follow-up",
           planType: "Type",
           planSave: "Save",

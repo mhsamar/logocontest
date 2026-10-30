@@ -62,6 +62,7 @@ vi.mock("@/lib/contests/resume", () => ({
 }));
 vi.mock("@/lib/admin/core", () => ({ adminUser: async (perm: string) => (perm === "unpaid.manage" ? s.admin : null), audit: vi.fn(), superAdmin: vi.fn() }));
 vi.mock("@/lib/admin/recipients", () => ({ adminIdsWith: async () => [] }));
+vi.mock("@/lib/settings", () => ({ getSettings: async () => ({ "notify.followup_due_minutes": 10 }) }));
 vi.mock("@/lib/admin/unpaid-leads", () => ({ resolve: async () => s.who, leadRow: async () => null }));
 
 const token = () => resumeToken("test-secret", C, new Date(Date.now() + 86_400_000));

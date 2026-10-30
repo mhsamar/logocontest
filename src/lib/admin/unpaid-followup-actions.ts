@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSettings } from "@/lib/settings";
 import { formatMobile } from "@/lib/phone";
 import { adminUser, audit, superAdmin } from "./core";
 import { adminIdsWith } from "./recipients";
@@ -12,6 +13,7 @@ import { cleanRemindBy } from "./unpaid-alert-rules";
 import {
   afterResult,
   dhakaMidnight,
+  dueSoonMs,
   fakeCloseErrors,
   isHow,
   isNextPreset,
@@ -21,6 +23,7 @@ import {
   type How,
   type LeadStatus,
   type NextPreset,
+  type Queue,
 } from "./unpaid-rules";
 
 /**
@@ -30,8 +33,9 @@ import {
  * ("no log, no number"). Phone numbers never go into the log.
  */
 
-type Result = { ok: true } | { ok: false; error: MessageKey };
-const fail = (error: MessageKey): Result => ({ ok: false, error });
+type Failed = { ok: false; error: MessageKey };
+type Result = { ok: true } | Failed;
+const fail = (error: MessageKey): Failed => ({ ok: false, error });
 type Row = Record<string, unknown>;
 const NOT_READY: MessageKey = "admin.unpaid.fu.errors.notReady";
 
@@ -51,7 +55,7 @@ const completes = (row: Row, now: Date) => {
   return due && due.getTime() < dhakaMidnight(now, 1).getTime() ? due.toISOString() : null;
 };
 
-export async function logFollowUp(key: string, input: { how: string; result?: string | null; note?: string; next: string; pickAt?: string | null; ownerId?: string | null; remindBy?: string[] | null }): Promise<Result> {
+export async function logFollowUp(key: string, input: { how: string; result?: string | null; note?: string; next: string; pickAt?: string | null; ownerId?: string | null; remindBy?: string[] | null }): Promise<{ ok: true; queue: Queue } | Failed> {
   const admin = await adminUser("unpaid.manage");
   if (!admin) return fail("auth.errors.generic");
   if (!isHow(input.how) || !isNextPreset(input.next)) return fail("admin.errors.generic");
@@ -97,7 +101,10 @@ export async function logFollowUp(key: string, input: { how: string; result?: st
   if (next && remindBy) await db.from("unpaid_leads").update({ remind_by: remindBy }).eq("id", row.id as string);
   await audit(admin.id, "unpaid_followup", "lead", key, { how, result, next: input.next, owner: owner !== admin.id ? owner : undefined, closed: after.close });
   refresh();
-  return { ok: true };
+  // The tab it is in now (owner, 2026-10-30), for "Saved · moved to …": saved, so out of Unread. It is saved already, so
+  // a settings read that fails takes the usual 10 minutes rather than failing the save.
+  const soon = dueSoonMs(await getSettings(["notify.followup_due_minutes"]).then((s) => s["notify.followup_due_minutes"], () => 10));
+  return { ok: true, queue: after.close ? "closed" : next && next.getTime() <= now.getTime() + soon ? "due" : "waiting" };
 }
 
 /** Change the planned follow-up: when, how and who (the bar's "Change"). */

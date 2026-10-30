@@ -2,7 +2,7 @@ import Link from "@/components/ui/link";
 import { AdminIcon } from "@/components/admin/icons";
 import { AdmCard, IdChip, isNewSince, NewPill } from "@/components/admin/ui";
 import type { Lead } from "@/lib/admin/unpaid-board";
-import { ACTIVE, AMOUNTS, PAID, SORTS, STAGES, STARTED, TABS, unpaidHref, V2_LIST_STEPS, type ShownStatus, type Tab, type UnpaidQuery, type V2Step } from "@/lib/admin/unpaid-rules";
+import { ACTIVE, AMOUNTS, PAID, SORTS, sortOf, STAGES, STARTED, STATUS_FILTERS, TAB_SORT, TABS, unpaidHref, V2_LIST_STEPS, type ShownStatus, type Tab, type UnpaidQuery, type V2Step } from "@/lib/admin/unpaid-rules";
 import { BUSINESS_TYPES, PACKAGES } from "@/lib/contests/brief";
 import { cx } from "@/lib/cx";
 import type { MessageKey, Translate } from "@/lib/i18n/translate";
@@ -16,7 +16,8 @@ import { Dropdown, LeadLink, LeadSearch, QuickReach } from "./actions";
 export type Fmt = { t: Translate; num: (n: number) => string; taka: (n: number) => string; when: (d: Date) => string; day: (d: Date) => string; stepName: (n: number) => string };
 
 const PILL: Record<string, string> = {
-  new: "bg-[#111216] text-white",
+  unread: "bg-[#111216] text-white",
+  followed_up: "bg-[#F1F1F5] text-[#3A3C45]",
   in_touch: "bg-[#F1F1F5] text-[#3A3C45]",
   promised: "bg-[#E4F5EC] text-[#14633C]",
   won: "bg-[#E4F5EC] text-[#14633C]",
@@ -122,16 +123,18 @@ export function LeadList({
   v2?: boolean;
 }) {
   const { t, num, taka, when, day, stepName } = fmt;
-  const filtered = Boolean(q.q || q.step || q.owner || q.amount || q.started || q.active || q.v2step || q.only);
+  const filtered = Boolean(q.q || q.status || q.step || q.owner || q.amount || q.started || q.active || q.v2step || q.only);
+  const sort = sortOf(q);
   const ownerName = q.owner === "me" ? t("admin.unpaid.fu.list.filters.me") : q.owner === "none" ? t("admin.unpaid.fu.list.filters.none") : owners.find((o) => o.id === q.owner)?.name;
   return (
-    <AdmCard as="section" className="flex min-w-0 scroll-mt-24 flex-col gap-3 p-5" id="ulist" data-unpaid-list>
+    <AdmCard as="section" className="flex min-w-0 scroll-mt-24 flex-col gap-3 p-5" id="ulist" data-unpaid-list data-tab={q.tab}>
       <h2 className="m-0 text-[20px] font-semibold tracking-[-0.02em]">{t("admin.unpaid.fu.list.title")}</h2>
       <div className="flex flex-wrap gap-2">
         <LeadSearch key={q.q} q={q} canManage={canManage} placeholder={t(canManage ? "admin.unpaid.fu.list.search" : "admin.unpaid.fu.list.searchView")} />
-        <Dropdown label={t("admin.unpaid.fu.list.sort", { sort: t(`admin.unpaid.fu.list.sorts.${q.sort}`) })} active={false}>
+        <Dropdown label={t("admin.unpaid.fu.list.sort", { sort: t(`admin.unpaid.fu.list.sorts.${sort}`) })} active={false}>
+          {/* Each tab has its own order; picking it again leaves the address clean. */}
           {SORTS.map((s) => (
-            <Option key={s} href={unpaidHref(q, { sort: s })} on={q.sort === s}>
+            <Option key={s} href={unpaidHref(q, { sort: s === TAB_SORT[q.tab] ? null : s })} on={sort === s}>
               {t(`admin.unpaid.fu.list.sorts.${s}`)}
             </Option>
           ))}
@@ -139,7 +142,7 @@ export function LeadList({
       </div>
       <nav className="flex flex-wrap gap-1.5" aria-label={t("admin.unpaid.fu.list.title")}>
         {TABS.map((tab) => (
-          <Link prefetch={false} key={tab} href={unpaidHref(q, { tab, sel: null })} scroll={false} aria-current={q.tab === tab ? "page" : undefined} className={cx("inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-bold", q.tab === tab ? "bg-[#111216] text-white" : "bg-[#F4F5F7] text-ink hover:bg-[#ECEDF0]")}>
+          <Link prefetch={false} key={tab} href={unpaidHref(q, { tab, sort: null, sel: null })} scroll={false} aria-current={q.tab === tab ? "page" : undefined} className={cx("inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-bold", q.tab === tab ? "bg-[#111216] text-white" : "bg-[#F4F5F7] text-ink hover:bg-[#ECEDF0]")}>
             {t(`admin.unpaid.fu.list.tabs.${tab}`)}
             <i className="not-italic opacity-60 tabular-nums">{num(counts[tab])}</i>
           </Link>
@@ -173,6 +176,17 @@ export function LeadList({
                 {o.name}
               </Option>
             ))}
+        </Dropdown>
+        {/* What the team logged: the old Promised to pay and Not reachable tabs (owner, 2026-10-30). */}
+        <Dropdown label={q.status ? `${t("admin.unpaid.fu.list.filters.status")}: ${t(`admin.unpaid.fu.status.${q.status}`)}` : t("admin.unpaid.fu.list.filters.status")} active={Boolean(q.status)}>
+          <Option href={unpaidHref(q, { status: null })} on={!q.status}>
+            {t("admin.unpaid.fu.list.filters.any")}
+          </Option>
+          {STATUS_FILTERS.map((s) => (
+            <Option key={s} href={unpaidHref(q, { status: s })} on={q.status === s}>
+              {t(`admin.unpaid.fu.status.${s}`)}
+            </Option>
+          ))}
         </Dropdown>
         <Dropdown label={q.amount ? `${t("admin.unpaid.fu.list.filters.amount")}: ${t(`admin.unpaid.fu.list.filters.amounts.${q.amount}`)}` : t("admin.unpaid.fu.list.filters.amount")} active={Boolean(q.amount)}>
           <Option href={unpaidHref(q, { amount: null })} on={!q.amount}>
@@ -219,14 +233,14 @@ export function LeadList({
         )}
         {q.only && <span className="inline-flex min-h-8 items-center rounded-[9px] bg-[#111216] px-2.5 text-[12.5px] font-bold text-white">{t("admin.unpaid.fu.list.foundByContact")}</span>}
         {filtered && (
-          <Link prefetch={false} href={unpaidHref({ ...q, q: "", step: null, owner: null, amount: null, started: null, active: null, v2step: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
+          <Link prefetch={false} href={unpaidHref({ ...q, q: "", status: null, step: null, owner: null, amount: null, started: null, active: null, v2step: null, only: null, sel: null })} scroll={false} className="text-[12.5px] font-bold text-primary hover:underline">
             {t("admin.unpaid.fu.list.filters.clear")}
           </Link>
         )}
       </div>
 
       {rows.length === 0 ? (
-        <p className="m-0 rounded-[14px] bg-[#F7F7F9] px-4 py-6 text-center text-[15px] text-muted">{t(filtered ? "admin.unpaid.fu.list.noMatch" : totalOpen === 0 && q.tab === "all" ? "admin.unpaid.fu.list.emptyAll" : "admin.unpaid.fu.list.empty")}</p>
+        <p className="m-0 rounded-[14px] bg-[#F7F7F9] px-4 py-6 text-center text-[15px] text-muted">{t(filtered ? "admin.unpaid.fu.list.noMatch" : totalOpen === 0 && (q.tab === "all" || q.tab === "unread") ? "admin.unpaid.fu.list.emptyAll" : q.tab === "unread" ? "admin.unpaid.fu.list.emptyUnread" : "admin.unpaid.fu.list.empty")}</p>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {rows.map((l) => {
@@ -300,7 +314,7 @@ export function LeadList({
                     </span>
                     {l.wonBack && <span className="text-[12.5px] font-semibold text-adm-good">{taka(l.wonBack.amount)} · {day(l.wonBack.at)}</span>}
                   </span>
-                  {canManage && l.status !== "closed" && !l.wonBackAt && <QuickReach leadKey={l.key} has={{ mobile: l.hasContact.mobile }} resume={l.kind === "contest" && Boolean(l.contestId) && l.stage < PAID} noteHref={unpaidHref(q, { sel: l.key }, "#log-note")} />}
+                  {canManage && l.status !== "closed" && !l.wonBackAt && <QuickReach leadKey={l.key} has={{ mobile: l.hasContact.mobile }} resume={l.kind === "contest" && Boolean(l.contestId) && l.stage < PAID} noteHref={unpaidHref(q, { sel: l.key }, "#log-note")} openHref={unpaidHref(q, { sel: l.key })} />}
                 </div>
               </li>
             );

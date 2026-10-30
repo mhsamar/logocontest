@@ -75,21 +75,101 @@ describe("tabs, overdue, filters and the address", () => {
   const base = { status: "in_touch" as const, closedReason: null, hidden: false, contacts: 1, nextAt: null, wonBackAt: null, amount: 6000, stage: 8, ownerId: null, createdAt: new Date("2026-10-24T10:00:00Z"), lastActivityAt: new Date("2026-10-24T10:00:00Z") };
   const now = new Date("2026-10-25T09:00:00Z");
 
-  it("overdue when the follow-up time has passed; closed and won back leave the open tabs", async () => {
-    const { inTab, shownStatus } = await import("@/lib/admin/unpaid-rules");
+  it("one tab per lead (owner, 2026-10-30): Unread until something is saved, then Due now when the follow-up time comes, otherwise Waiting", async () => {
+    const { inTab, queueOf, shownStatus, TABS } = await import("@/lib/admin/unpaid-rules");
     const late = { ...base, nextAt: new Date("2026-10-25T08:00:00Z") };
-    expect(inTab(late, "overdue", now)).toBe(true);
-    expect(inTab(late, "today", now)).toBe(true);
+    expect(queueOf(late, now)).toBe("due");
+    expect(inTab(late, "due", now) && !inTab(late, "waiting", now) && !inTab(late, "unread", now)).toBe(true);
     expect(shownStatus(late, now)).toBe("overdue");
-    expect(inTab({ ...base, nextAt: new Date("2026-10-25T12:00:00Z") }, "overdue", now)).toBe(false);
+    // Later today: Waiting until its time, or already Due within the alert's minutes.
+    const later = { ...base, nextAt: new Date("2026-10-25T12:00:00Z") };
+    expect(queueOf(later, now)).toBe("waiting");
+    expect(queueOf({ ...base, nextAt: new Date(now.getTime() + 5 * 60_000) }, now, 10 * 60_000)).toBe("due");
+    // Nothing saved yet: Unread. A note (handled) or a plan takes them out of it.
+    const fresh = { ...base, status: "new" as const, contacts: 0 };
+    expect(queueOf(fresh, now)).toBe("unread");
+    expect(shownStatus(fresh, now)).toBe("unread");
+    expect(queueOf({ ...fresh, handled: true }, now)).toBe("waiting");
+    expect(shownStatus({ ...fresh, handled: true }, now)).toBe("followed_up");
+    expect(queueOf({ ...fresh, nextAt: later.nextAt }, now)).toBe("waiting");
+    expect(queueOf({ ...fresh, handled: false, nextAt: null }, now)).toBe("unread");
     const fake = { ...late, status: "closed" as const, closedReason: "fake" as const, hidden: true };
-    expect(inTab(fake, "all", now) || inTab(fake, "overdue", now)).toBe(false);
-    expect(inTab(fake, "closed", now)).toBe(true);
+    expect(queueOf(fake, now)).toBe("closed");
+    expect(inTab(fake, "all", now)).toBe(false);
     expect(shownStatus(fake, now)).toBe("closed_fake");
     const won = { ...base, wonBackAt: now };
+    expect(queueOf(won, now)).toBe("won");
     expect(inTab(won, "all", now)).toBe(false);
-    expect(inTab(won, "won", now)).toBe(true);
-    expect(inTab({ ...base, status: "new" as const, contacts: 0 }, "new", now)).toBe(true);
+    // Every lead is in exactly one tab, and All is Unread + Due now + Waiting.
+    for (const l of [late, later, fresh, { ...fresh, handled: true }, fake, won, { ...base, status: "promised" as const }, { ...base, status: "not_reachable" as const, nextAt: late.nextAt }]) {
+      expect(TABS.filter((tab) => tab !== "all" && inTab(l, tab, now)).length).toBe(1);
+      expect(inTab(l, "all", now)).toBe(["unread", "due", "waiting"].includes(queueOf(l, now)));
+    }
+    expect(TABS[0]).toBe("unread");
+  });
+
+  it("Due now looks ahead by the due alert's minutes, at most 30: the usual 2 hours is never Due at once", async () => {
+    const { dueSoonMs, queueOf } = await import("@/lib/admin/unpaid-rules");
+    expect(dueSoonMs(10)).toBe(10 * 60_000);
+    expect(dueSoonMs(120)).toBe(30 * 60_000);
+    expect(queueOf({ ...base, nextAt: new Date(now.getTime() + 2 * 3_600_000) }, now, dueSoonMs(120))).toBe("waiting");
+  });
+
+  it("a link to one person keeps its tab, Unread too, so a save there doesn't jump the list; an alert's link has none", async () => {
+    const { DEFAULT_QUERY, parseUnpaidQuery, unpaidHref } = await import("@/lib/admin/unpaid-rules");
+    expect(unpaidHref(DEFAULT_QUERY)).toBe("/admin/unpaid");
+    expect(unpaidHref(DEFAULT_QUERY, { sel: "c:1" })).toBe("/admin/unpaid?tab=unread&sel=c%3A1");
+    expect(parseUnpaidQuery({ tab: "unread", sel: "c:1" }).tab).toBe("unread");
+    expect(read("src/lib/admin/unpaid-alerts.ts")).toContain("export const leadLink = (key: string) => `/admin/unpaid?sel=${key}#lead`;");
+    // Only a link with no tab opens the tab the person is in now.
+    const page = read("src/app/admin/unpaid/page.tsx");
+    expect(page).toContain("if (q.sel && sp.tab === undefined) {");
+    expect(page).toContain("const soon = dueSoonMs(settings[\"notify.followup_due_minutes\"]);");
+    // The plan opens each person in their own tab; Follow-ups today opens the plan, which lists what it counts.
+    expect(page).toContain("tab: queueOf(l, now, soon) })),");
+    expect(read("src/components/admin/unpaid/overview.tsx")).toContain('href={unpaidHref({ ...DEFAULT_QUERY, range: q.range }, { sel: i.key, tab: i.tab ?? "all" }, "#lead")}');
+    expect(page).toContain('href: unpaidHref(q, {}, "#uplan"), tone: "today" },');
+  });
+
+  it("a Call or WhatsApp tap moves no one; it opens that person's Log a follow-up (list, details, alert pop-up, Live now)", async () => {
+    // Reaching someone only writes the audit log.
+    const actions = read("src/lib/admin/unpaid-followup-actions.ts");
+    const reach = actions.slice(actions.indexOf("export async function reachLead"), actions.indexOf("export async function resumeLinkFor"));
+    expect(reach).not.toMatch(/from\("(unpaid_leads|lead_activities)"\)/);
+    const ui = read("src/components/admin/unpaid/actions.tsx");
+    expect(ui).toContain("showLogAfterReach(router, leadKey, channel, openHref);");
+    // The arrival mark is read once per person and taken out of the address, so a refresh or a save can't repeat it.
+    expect(ui).toContain("const arrived = /^#log-(note|call|whatsapp|sms|email)$/.exec(window.location.hash);");
+    expect(ui).toContain('window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);');
+    expect(ui).toMatch(/window\.removeEventListener\(REACHED_EVENT, onReached\);\s*\};\s*\}, \[leadKey\]\);/);
+    // On the Unpaid page the person opens in the admin's own view (tab, search, filters, order).
+    expect(read("src/components/admin/unpaid/reached.ts")).toContain('const tab = document.querySelector("[data-unpaid-list]")?.getAttribute("data-tab");');
+    expect(read("src/components/admin/unpaid/lead-list.tsx")).toContain("data-unpaid-list data-tab={q.tab}");
+    expect(ui).toContain('t(unread ? "admin.unpaid.fu.log.reachedHint" : "admin.unpaid.fu.log.reachedHintSaved")');
+    expect(ui).toContain("t(`admin.unpaid.fu.list.tabs.${r.queue}`)");
+    expect(ui).toContain("if (!nextTouched) setNext(NEXT_FOR[r]);");
+    expect(read("src/components/admin/unpaid/lead-list.tsx")).toContain("openHref={unpaidHref(q, { sel: l.key })}");
+    expect(read("src/components/admin/unpaid/lead-details.tsx")).toContain("openHref={openHref} />");
+    expect(read("src/components/admin/admin-alerts.tsx")).toContain('showLogAfterReach(router, p.key, "call", p.link);');
+    expect(read("src/components/admin/unpaid/live.tsx")).toContain('showLogAfterReach(router, c.leadKey!, "call",');
+    // The pop-ups are on every admin page: the helper is a small file of its own.
+    expect(read("src/components/admin/admin-alerts.tsx")).not.toContain("./unpaid/actions");
+  });
+
+  it("each tab opens in its own order, and Clear also clears Status", async () => {
+    const { DEFAULT_QUERY, unpaidHref } = await import("@/lib/admin/unpaid-rules");
+    // Any link to another tab (stat cards, funnel) drops the sort picked on this one, unless it gives its own.
+    expect(unpaidHref({ ...DEFAULT_QUERY, tab: "due", sort: "money" }, { tab: "won" })).toBe("/admin/unpaid?tab=won");
+    expect(unpaidHref({ ...DEFAULT_QUERY, tab: "due", sort: "money" }, { tab: "all", sort: "money" })).toBe("/admin/unpaid?tab=all&sort=money");
+    expect(unpaidHref({ ...DEFAULT_QUERY, tab: "due", sort: "money" }, { step: 3 })).toBe("/admin/unpaid?tab=due&sort=money&step=3");
+    const list = read("src/components/admin/unpaid/lead-list.tsx");
+    expect(list).toContain("href={unpaidHref(q, { tab, sort: null, sel: null })}");
+    expect(list).toContain('q: "", status: null, step: null');
+  });
+
+  it("a result suggests its next follow-up: again in 2 hours after no answer, tomorrow after talking", async () => {
+    const { NEXT_FOR } = await import("@/lib/admin/unpaid-rules");
+    expect(NEXT_FOR).toMatchObject({ no_answer: "2h", busy: "2h", needs_help: "2h", talked: "tomorrow", will_pay: "tomorrow", wrong_number: "none", not_interested: "none" });
   });
 
   it("filters by step, owner, amount and when they started; sorts by money", async () => {
@@ -124,11 +204,20 @@ describe("tabs, overdue, filters and the address", () => {
   it("reads and writes the view in the address; a lead is a contest or visit id, never a phone number", async () => {
     const { parseUnpaidQuery, unpaidHref } = await import("@/lib/admin/unpaid-rules");
     const id = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0";
+    // An old tab in a link opens the tab it became (owner, 2026-10-30).
     const q = parseUnpaidQuery({ tab: "overdue", sort: "next", step: "8", owner: "me", range: "90", sel: `c:${id}`, q: "  LC-0016 " });
-    expect(q).toMatchObject({ tab: "overdue", sort: "next", step: 8, owner: "me", range: "90", sel: `c:${id}`, q: "LC-0016" });
-    expect(unpaidHref(q, { sel: null }, "#ulist")).toBe("/admin/unpaid?tab=overdue&q=LC-0016&sort=next&step=8&owner=me&range=90#ulist");
+    expect(q).toMatchObject({ tab: "due", sort: "next", step: 8, owner: "me", range: "90", sel: `c:${id}`, q: "LC-0016" });
+    expect(unpaidHref(q, { sel: null }, "#ulist")).toBe("/admin/unpaid?tab=due&q=LC-0016&sort=next&step=8&owner=me&range=90#ulist");
     expect(unpaidHref(parseUnpaidQuery({}))).toBe("/admin/unpaid");
-    expect(parseUnpaidQuery({ sel: "g:+8801711111111", tab: "nope", step: "1; drop" })).toMatchObject({ sel: null, tab: "all", step: null });
+    expect(parseUnpaidQuery({ sel: "g:+8801711111111", tab: "nope", step: "1; drop" })).toMatchObject({ sel: null, tab: "unread", step: null });
+    expect(parseUnpaidQuery({ tab: "promised" })).toMatchObject({ tab: "all", status: "promised" });
+    expect(unpaidHref(parseUnpaidQuery({ tab: "unreachable" }))).toBe("/admin/unpaid?tab=all&status=not_reachable");
+    expect(parseUnpaidQuery({ tab: "new" }).tab).toBe("unread");
+    // Each tab has its own order until another is picked.
+    const { sortOf } = await import("@/lib/admin/unpaid-rules");
+    expect(sortOf(parseUnpaidQuery({}))).toBe("money");
+    expect(sortOf(parseUnpaidQuery({ tab: "due" }))).toBe("next");
+    expect(sortOf(parseUnpaidQuery({ tab: "due", sort: "newest" }))).toBe("newest");
     expect(parseUnpaidQuery({ sel: `l:${id}` }).sel).toBe(`l:${id}`);
   });
 
@@ -196,6 +285,7 @@ vi.mock("@/lib/admin/core", () => ({
   audit: async (...args: unknown[]) => void audits.push(args),
 }));
 vi.mock("@/lib/admin/recipients", () => ({ adminIdsWith: async () => ["a1", "a2"] }));
+vi.mock("@/lib/settings", () => ({ getSettings: async () => ({ "notify.followup_due_minutes": 10 }) }));
 // The resume link has its own tests (tests/resume-link.test.ts).
 vi.mock("@/lib/contests/resume", () => ({ noteResume: vi.fn(), resumeLink: async (id: string) => `https://logocontest.bd/r/link-${id}`, resumeTarget: async () => ({}) }));
 
@@ -224,7 +314,8 @@ describe("follow-up actions", () => {
 
   it("a call with Will pay makes the lead Promised to pay, plans the next one, and logs it without the number", async () => {
     const { logFollowUp } = await import("@/lib/admin/unpaid-followup-actions");
-    expect(await logFollowUp(KEY, { how: "call", result: "will_pay", note: "Pays tonight", next: "tonight" })).toEqual({ ok: true });
+    // Tonight is Due now only within its last minutes before 8 pm: the tab is checked below with fixed times.
+    expect(await logFollowUp(KEY, { how: "call", result: "will_pay", note: "Pays tonight", next: "tonight" })).toMatchObject({ ok: true });
     const lead = db.tables.unpaid_leads[0];
     expect(lead).toMatchObject({ kind: "contest", contest_id: C, status: "promised", contacts_count: 1, last_contact_type: "call", last_result: "will_pay", owner_id: "a1", next_followup_type: "call" });
     expect(lead.next_followup_at).toBeTruthy();
@@ -238,7 +329,7 @@ describe("follow-up actions", () => {
     const { logFollowUp, followUpDone } = await import("@/lib/admin/unpaid-followup-actions");
     await logFollowUp(KEY, { how: "call", result: "talked", next: "tomorrow" });
     const planned = db.tables.unpaid_leads[0].next_followup_at;
-    expect(await logFollowUp(KEY, { how: "note", note: "Sent the price list", next: "keep" })).toEqual({ ok: true });
+    expect(await logFollowUp(KEY, { how: "note", note: "Sent the price list", next: "keep" })).toEqual({ ok: true, queue: "waiting" });
     expect(db.tables.unpaid_leads[0]).toMatchObject({ next_followup_at: planned, contacts_count: 1 });
     expect(db.tables.lead_activities.at(-1)).toMatchObject({ kind: "note", completes_at: null });
     expect(await followUpDone(KEY)).toEqual({ ok: true });
@@ -249,7 +340,7 @@ describe("follow-up actions", () => {
   it("a guest who signs up keeps their follow-up: the draft takes over the guest's row", async () => {
     const { logFollowUp } = await import("@/lib/admin/unpaid-followup-actions");
     db.tables.unpaid_leads = [{ id: "g1", kind: "guest", guest_mobile: "+8801711111111", contest_id: null, status: "promised", contacts_count: 2, no_answer_streak: 0, owner_id: "a2" }];
-    expect(await logFollowUp(KEY, { how: "call", result: "talked", next: "2h" })).toEqual({ ok: true });
+    expect(await logFollowUp(KEY, { how: "call", result: "talked", next: "2h" })).toEqual({ ok: true, queue: "waiting" });
     expect(db.tables.unpaid_leads).toHaveLength(1);
     expect(db.tables.unpaid_leads[0]).toMatchObject({ id: "g1", kind: "contest", contest_id: C, guest_mobile: null, client_id: "u1", status: "promised", contacts_count: 3, owner_id: "a2" });
   });
@@ -259,6 +350,23 @@ describe("follow-up actions", () => {
     await logFollowUp(KEY, { how: "call", result: "no_answer", next: "2h" });
     await logFollowUp(KEY, { how: "call", result: "no_answer", next: "tomorrow" });
     expect(db.tables.unpaid_leads[0]).toMatchObject({ status: "not_reachable", no_answer_streak: 2, contacts_count: 2 });
+  });
+
+  it("a save says the tab the lead is in now: Waiting until its time, Closed for Not interested (owner, 2026-10-30)", async () => {
+    const { logFollowUp } = await import("@/lib/admin/unpaid-followup-actions");
+    expect(await logFollowUp(KEY, { how: "note", note: "Asked for the price list", next: "none" })).toEqual({ ok: true, queue: "waiting" });
+    expect(await logFollowUp(KEY, { how: "call", result: "no_answer", next: "2h" })).toEqual({ ok: true, queue: "waiting" });
+    expect(await logFollowUp(KEY, { how: "whatsapp", result: "not_interested", next: "2h" })).toEqual({ ok: true, queue: "closed" });
+  });
+
+  it("a save lands in Due now when its follow-up is due within the alert's minutes, or already overdue", async () => {
+    const { logFollowUp } = await import("@/lib/admin/unpaid-followup-actions");
+    // A time picked 8 minutes ahead, in Dhaka time (the alert's minutes are 10 here).
+    const soon = new Date(Date.now() + 8 * 60_000 + 6 * 3_600_000).toISOString().slice(0, 16);
+    expect(await logFollowUp(KEY, { how: "call", result: "talked", next: "pick", pickAt: soon })).toEqual({ ok: true, queue: "due" });
+    // A note that keeps a plan whose time has passed.
+    db.tables.unpaid_leads[0].next_followup_at = new Date(Date.now() - 3_600_000).toISOString();
+    expect(await logFollowUp(KEY, { how: "note", note: "Will call back", next: "keep" })).toEqual({ ok: true, queue: "due" });
   });
 
   it("Close as fake needs the tick, a reason and a note; it hides, blocks the phone and email, and never deletes", async () => {

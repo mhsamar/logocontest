@@ -13,7 +13,7 @@ import { sectionVisit } from "@/lib/admin/badges";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { cachedStuckFunnel, leadHistory, unpaidBoard, type Lead } from "@/lib/admin/unpaid-board";
-import { dhakaMidnight, inTab, isContactSearch, isOpen, matchesFilters, PAID, parseUnpaidQuery, sameDhakaDay, shownStatus, sortLeads, TABS, unpaidHref, type Tab } from "@/lib/admin/unpaid-rules";
+import { dhakaMidnight, dueSoonMs, inTab, isContactSearch, isOpen, matchesFilters, PAID, parseUnpaidQuery, queueOf, sameDhakaDay, shownStatus, sortLeads, sortOf, TABS, unpaidHref, type Tab } from "@/lib/admin/unpaid-rules";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
@@ -32,7 +32,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admin/unpaid">) {
   const me = await requirePermission("unpaid.view");
   const canManage = hasPermission(me, "unpaid.manage");
-  const q = parseUnpaidQuery(await searchParams);
+  const sp = await searchParams;
+  let q = parseUnpaidQuery(sp);
   const now = new Date();
   const [{ t, locale }, board, funnel, visit] = await Promise.all([
     getI18n(),
@@ -44,6 +45,13 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   // Phase 3 (owner, 2026-10-26): the team's Instant alerts and the Automatic reminders to clients, one setting each.
   const settings = await getSettings(["notify.unpaid_alerts", "notify.followup_due_minutes", "notify.lead_alert_minutes", "notify.unpaid_reminders", "notify.unpaid_reminder_first_hours", "notify.unpaid_reminder_last_hours", "security.resume_link_days"]);
   const alerts = settings["notify.unpaid_alerts"];
+  // A follow-up due within the "Follow-up is due" alert's minutes (at most 30) is already Due now.
+  const soon = dueSoonMs(settings["notify.followup_due_minutes"]);
+  // A link to one person with no tab (an alert, a shared view) opens the tab they are in, so their card is in the list.
+  if (q.sel && sp.tab === undefined) {
+    const linked = board.leads.find((l) => l.key === q.sel || (q.sel!.startsWith("g:") && l.visitIds.includes(q.sel!.slice(2))));
+    if (linked) q = { ...q, tab: queueOf(linked, now, soon) };
+  }
   const alertsOn = Object.values(alerts.events).some(Boolean) && (alerts.send.popup || alerts.send.push || alerts.send.email);
   const remindDefault = [...(alerts.send.popup || alerts.send.push ? ["alert" as const] : []), ...(alerts.send.email ? ["email" as const] : [])];
   const num = (n: number) => formatNumber(n, locale);
@@ -67,10 +75,10 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   };
   // The tab counts follow the search and filters, not the tab.
   const pool = board.leads.filter(found).filter((l) => matchesFilters(l, q, now, me.id));
-  const counts = Object.fromEntries(TABS.map((tab) => [tab, pool.filter((l) => inTab(l, tab, now)).length])) as Record<Tab, number>;
+  const counts = Object.fromEntries(TABS.map((tab) => [tab, pool.filter((l) => inTab(l, tab, now, soon)).length])) as Record<Tab, number>;
   const rows = sortLeads(
-    pool.filter((l) => inTab(l, q.tab, now)),
-    q.sort,
+    pool.filter((l) => inTab(l, q.tab, now, soon)),
+    sortOf(q),
   );
   // A link to someone (an alert, a shared view) opens that person or says they are gone; never someone else.
   const selected = q.sel ? (board.leads.find((l) => l.key === q.sel || (q.sel!.startsWith("g:") && l.visitIds.includes(q.sel!.slice(2)))) ?? null) : (rows[0] ?? null);
@@ -90,8 +98,8 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const cards: StatCard[] = [
     { key: "unpaid", label: t("admin.unpaid.fu.stats.unpaid"), value: num(open.length), hint: t("admin.unpaid.fu.stats.unpaidHint", { n: num(open.filter((l) => l.createdAt >= todayStart).length) }), href: unpaidHref(q, { tab: "all", sel: null }, "#ulist"), tone: "plain" },
     { key: "money", label: t("admin.unpaid.fu.stats.money"), value: taka(open.reduce((a, l) => a + (l.amount ?? 0), 0)), hint: t("admin.unpaid.fu.stats.moneyHint"), href: unpaidHref(q, { tab: "all", sort: "money", sel: null }, "#ulist"), tone: "money" },
-    { key: "today", label: t("admin.unpaid.fu.stats.today"), value: num(left + board.doneToday.length), hint: t("admin.unpaid.fu.stats.todayHint", { done: num(board.doneToday.length), left: num(left) }), href: unpaidHref(q, { tab: "today", sel: null }, "#ulist"), tone: "today" },
-    { key: "overdue", label: t("admin.unpaid.fu.stats.overdue"), value: num(open.filter((l) => l.nextAt && l.nextAt < now).length), hint: t("admin.unpaid.fu.stats.overdueHint"), href: unpaidHref(q, { tab: "overdue", sel: null }, "#ulist"), tone: "overdue" },
+    { key: "today", label: t("admin.unpaid.fu.stats.today"), value: num(left + board.doneToday.length), hint: t("admin.unpaid.fu.stats.todayHint", { done: num(board.doneToday.length), left: num(left) }), href: unpaidHref(q, {}, "#uplan"), tone: "today" },
+    { key: "overdue", label: t("admin.unpaid.fu.stats.overdue"), value: num(open.filter((l) => l.nextAt && l.nextAt < now).length), hint: t("admin.unpaid.fu.stats.overdueHint"), href: unpaidHref(q, { tab: "due", sel: null }, "#ulist"), tone: "overdue" },
     { key: "won", label: t("admin.unpaid.fu.stats.won"), value: `${num(won.length)} · ${taka(won.reduce((a, l) => a + (l.wonBack?.amount ?? 0), 0))}`, hint: t("admin.unpaid.fu.stats.wonHint"), href: unpaidHref(q, { tab: "won", sel: null }, "#ulist"), tone: "won" },
     { key: "fake", label: t("admin.unpaid.fu.stats.fake"), value: num(board.leads.filter((l) => l.status === "closed" && l.closedReason === "fake").length), hint: t("admin.unpaid.fu.stats.fakeHint"), href: unpaidHref(q, { tab: "closed", sel: null }, "#ulist"), tone: "plain" },
   ];
@@ -102,8 +110,11 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const plan: PlanItem[] = [
     ...open
       .filter((l) => l.nextAt)
-      .map((l) => ({ key: l.key, brand: l.brand || l.clientName || t("admin.unpaid.fu.list.guest"), at: l.nextAt!, type: l.nextType ?? "call", done: false, group: (l.nextAt! < todayStart ? "overdue" : l.nextAt! < tomorrow ? "today" : l.nextAt! < after ? "tomorrow" : "later") as PlanItem["group"] })),
-    ...board.doneToday.map((d) => ({ key: d.key, brand: d.brand, at: d.at, type: d.type === "system" ? "call" : d.type, done: true, group: "today" as const })),
+      .map((l) => ({ key: l.key, brand: l.brand || l.clientName || t("admin.unpaid.fu.list.guest"), at: l.nextAt!, type: l.nextType ?? "call", done: false, group: (l.nextAt! < todayStart ? "overdue" : l.nextAt! < tomorrow ? "today" : l.nextAt! < after ? "tomorrow" : "later") as PlanItem["group"], tab: queueOf(l, now, soon) })),
+    ...board.doneToday.map((d) => {
+      const l = board.leads.find((x) => x.key === d.key);
+      return { key: d.key, brand: d.brand, at: d.at, type: d.type === "system" ? "call" : d.type, done: true, group: "today" as const, tab: l ? queueOf(l, now, soon) : undefined };
+    }),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
   const planLabel = (i: PlanItem) => (i.group === "overdue" ? day(i.at) : i.group === "later" ? `${day(i.at)} ${time(i.at)}` : time(i.at));
 
@@ -143,7 +154,7 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
         <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} v2={board.leads.some((l) => l.v2)} />
         <DetailsWhileLoading>
-        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} />
+        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} openHref={selected ? unpaidHref(q, { sel: selected.key }) : undefined} />
         </DetailsWhileLoading>
       </div>
       </LeadSelection>

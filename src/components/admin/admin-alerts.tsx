@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { markRead } from "@/lib/notifications/actions";
 import type { ShownNotification } from "@/lib/notifications/render";
 import { AdminIcon } from "./icons";
+import { showLogAfterReach } from "./unpaid/reached";
 
 /** Owner, 2026-10-28: every 30 s (was 15 s) while the panel is in use; each check is a billed server run. */
 const EVERY_MS = 30_000;
@@ -124,6 +125,8 @@ export function AdminAlerts() {
       close(p.id);
       void markRead(p.id);
       window.location.href = r.href;
+      // Their Log a follow-up opens, to save what happened (owner, 2026-10-30).
+      if (p.key && p.link?.startsWith("/admin/unpaid")) showLogAfterReach(router, p.key, "call", p.link);
     });
   const max = phone ? 1 : SHOWN;
   const shown = pops.slice(0, max);

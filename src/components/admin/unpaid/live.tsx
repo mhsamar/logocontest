@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { AdminIcon } from "@/components/admin/icons";
 import { useReadOnly } from "@/components/admin/read-only";
@@ -9,6 +10,7 @@ import type { HelpThread, LiveCard } from "@/lib/admin/unpaid-live";
 import { reachLead } from "@/lib/admin/unpaid-followup-actions";
 import { helpReply, offerHelp } from "@/lib/admin/unpaid-live-actions";
 import { STAGES } from "@/lib/admin/unpaid-rules";
+import { showLogAfterReach } from "./reached";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -288,6 +290,7 @@ function WatchView({ c, name, gone, onClose }: { c: LiveCard; name: string; gone
 function HelpPanel({ c, name, me, manage, gone, time, stepName, onClose }: { c: LiveCard; name: string; me: string; manage: boolean; gone: boolean; time: string; stepName: (n: number, service?: string | null) => string; onClose: () => void }) {
   const { t } = useI18n();
   const toast = useToast();
+  const router = useRouter();
   const hello = (q: (typeof QUICK)[number]) => t("admin.unpaid.fu.now.offer.hello", { name: me, text: q === "q1" ? `${t("admin.unpaid.fu.now.offer.q1")} ${t("admin.unpaid.fu.now.offer.tail")}` : t(`admin.unpaid.fu.now.offer.${q}`) });
   const [quick, setQuick] = useState<(typeof QUICK)[number]>("q1");
   const [text, setText] = useState(() => hello("q1"));
@@ -331,6 +334,8 @@ function HelpPanel({ c, name, me, manage, gone, time, stepName, onClose }: { c: 
       const r = c.leadKey ? await reachLead(c.leadKey, "call") : { ok: false as const };
       if (!r.ok || !("href" in r) || !r.href) return toast(t("admin.errors.generic"), "danger");
       window.location.href = r.href;
+      // Their Log a follow-up opens, to save what happened (owner, 2026-10-30).
+      showLogAfterReach(router, c.leadKey!, "call", `/admin/unpaid?sel=${encodeURIComponent(c.leadKey!)}`);
     });
   const preview = sent ? (thread?.messages.find((m) => m.fromAdmin)?.body ?? text) : text;
 
