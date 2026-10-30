@@ -168,7 +168,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
   const editHref = briefEditHref({ id: contest.id, slug: contest.slug, status: contest.rawStatus, v2: completion !== null, hubOn: onboardingV2On() });
   const canEdit = editHref !== null;
   // Reference photos: on the v2 brief page's own photo card, or in Edit details.
-  const photosHref = completion !== null && editHref?.startsWith("/start-v2/") ? `${editHref}#photos` : `/dashboard/contests/${contest.slug}/edit#photos`;
+  const photosHref = completion !== null && editHref?.startsWith("/start-v2/") ? `${editHref}&step=extras#photos` : `/dashboard/contests/${contest.slug}/edit#photos`;
   const canExtend = contest.status === "open";
   // The main button follows what the contest needs now: pay, review, pick a winner or get the files.
   // A bKash payment sent and waiting for an admin (owner, 2026-10-25): nothing left to pay.

@@ -28,7 +28,9 @@ export default async function BriefHubPage({ searchParams }: PageProps<"/start-v
   const [params, user] = await Promise.all([searchParams, getCurrentUser()]);
   const id = typeof params.c === "string" && /^[0-9a-f-]{36}$/i.test(params.c) ? params.c : null;
   if (!id) notFound();
-  if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start-v2/brief?c=${id}`)}`);
+  // Straight to the pictures and invitations ("Add photos", back from inviting Pro designers).
+  const extras = params.step === "extras";
+  if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start-v2/brief?c=${id}${extras ? "&step=extras" : ""}`)}`);
   const contest = user.role === "client" ? await contestRepository().findContest(id) : null;
   if (!contest || contest.clientId !== user.id || !contest.briefCompletion) notFound();
   if (!briefOpen(contest.status)) redirect(`/client/contests/${contest.slug}`);
@@ -44,6 +46,7 @@ export default async function BriefHubPage({ searchParams }: PageProps<"/start-v
   ]);
   return (
     <BriefHub
+      initialStep={extras ? "extras" : undefined}
       contestId={contest.id}
       slug={contest.slug}
       brief={contest.brief}

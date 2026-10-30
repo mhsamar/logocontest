@@ -628,6 +628,8 @@
 .cwx .efl a { padding:7px 12px; border-radius:10px; background:#F4F4F7; font-weight:700; font-size:13.5px; color:#0F1014 }
 .cwx .efl a.on { background:#0F1014; color:#fff }
 .cwx .pring b em { display:block; font-style:normal; font-size:13px; font-weight:700; color:var(--mu) }
+/* The words under the number stay inside the ring (owner, 2026-10-30: "১০টির মধ্যে বাকি" touched it): two short lines. */
+.cwx .pring b em { max-width:62%; margin-top:2px; font-size:12px; line-height:1.25; text-align:center }
 .cwx .cfri > a.cover, .cwx .clci > a.cover, .cwx .mci > a.cover { position:absolute; inset:0; display:block }
 .cwx .cfri > a.cover > img, .cwx .cfri > a.cover > .tile, .cwx .mci > a.cover > img, .cwx .mci > a.cover > .tile { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff }
 .cwx .cfri > a.cover > .tile, .cwx .mci > a.cover > .tile { display:flex }

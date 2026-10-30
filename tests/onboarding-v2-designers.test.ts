@@ -38,7 +38,9 @@ describe("designers' tag", () => {
   const c = read("src/components/contests/contest-brief.tsx");
   it("each block carries its part's tag (About for the business or its links)", () => {
     expect(c).toContain('tag={tagFor("business", "links")}');
-    for (const block of ["styles", "feel", "colors"]) expect(c).toContain(`<Block title={t("contest.brief.${block}")} tag={tagFor("look")}>`);
+    for (const block of ["styles", "colors"]) expect(c).toContain(`<Block title={t("contest.brief.${block}")} tag={tagFor("look")}>`);
+    // A v2 client isn't asked for the feel: always the default for designers (owner, 2026-10-30).
+    expect(c).toContain('<Block title={t("contest.brief.feel")} tag={brief.v2 && !withDescription ? tag : tagFor("look")}>');
     for (const block of ["usedOn", "needs", "requirements"]) expect(c).toContain(`<Block title={t("contest.brief.${block}")} tag={tagFor("needs")}>`);
     expect(c).toContain('{ label: t("wizardV2.tag.label"), hint: t("wizardV2.tag.hint") }');
   });

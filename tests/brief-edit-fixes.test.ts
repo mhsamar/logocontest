@@ -7,6 +7,18 @@ import { briefEditHref, briefOpen, HUB_FIELDS, SECTION_FIELDS } from "@/lib/onbo
 // back after Finish, and some saved parts weren't shown.
 const read = (p: string) => readFileSync(p, "utf8");
 
+describe("Add photos and back from inviting Pro designers open the pictures step (owner, 2026-10-30)", () => {
+  it("the links carry step=extras, and the brief page opens on it (after signing in too)", () => {
+    expect(read("src/app/client/contests/[id]/page.tsx")).toContain("? `${editHref}&step=extras#photos` :");
+    expect(read("src/app/start/invite/page.tsx")).toContain("const next = fromHub ? `/start-v2/brief?c=${draftId}&step=extras` :");
+    const page = read("src/app/start-v2/brief/page.tsx");
+    expect(page).toContain('const extras = params.step === "extras";');
+    expect(page).toContain('initialStep={extras ? "extras" : undefined}');
+    expect(page).toContain('${extras ? "&step=extras" : ""}');
+    expect(read("src/components/wizard-v2/brief-hub.tsx")).toContain('useState(() => (props.initialStep === "extras" ? Math.max(0, steps.indexOf("extras")) : 0))');
+  });
+});
+
 describe("Edit brief: where it goes", () => {
   const c = { id: "c1", slug: "urao-1651e0", hubOn: true };
   it("a v2 contest opens its brief page while unpaid, waiting for approval or live", () => {
@@ -32,11 +44,19 @@ describe("Edit brief: where it goes", () => {
 
 describe("the brief page after paying", () => {
   const hub = read("src/components/wizard-v2/brief-hub.tsx");
-  it("one card at a time, and typing or pictures that aren't saved are never dropped without asking", () => {
-    expect(hub).toContain("{open === null && (");
-    // Cancel asks only for this card's typing; a save closes its card without asking.
-    expect(hub).toContain("const close = () => (!cardDirty || window.confirm(unsaved)) && shut();");
-    expect(hub).toMatch(/setEdited\(res\.edited\);\s*shut\(\);/);
+  it("one part per step (owner, 2026-10-30), and typing or pictures that aren't saved are never dropped without asking", () => {
+    // Business, links, look and needs one at a time, then the pictures and Pro invitations together.
+    expect(hub).toContain('[...BRIEF_SECTIONS, ...(props.photos || props.invites ? (["extras"] as const) : [])]');
+    // Next, Back or the step bar save what changed on this step first; unchanged parts stay defaults.
+    expect(hub).toContain("const go = (to: number) => (open && cardDirty ? save(open, (kept) => show(to, kept)) : show(to, brief));");
+    expect(hub).toContain("const finish = () => (open && cardDirty ? save(open, accept) : start(accept));");
+    // A "none yet" tick that takes away saved links or competitors is a change (it is saved on Next).
+    expect(hub).toContain('const tickClears = open === "links" && ((draft.noLinks && briefLinks(brief).length > 0) || (draft.noCompetitors && brief.competitors.trim() !== ""));');
+    // Nothing can be typed while a step saves; a lost connection stays on the step with what was typed.
+    expect(hub).toContain("<fieldset disabled={busy}");
+    expect(hub).toContain('if (!res) return setError(t("wizardV2.hub.offline"));');
+    // The photo card stays mounted (hidden on other steps), so its saved pictures are still there after Back.
+    expect(hub).toContain('<div hidden={step !== "extras"} className="flex flex-col gap-3">');
     // Leaving the page: the tab, and any link (client menu, top bar, Invite, "Later"), the photo card's pictures too.
     expect(hub).toContain("const dirty = cardDirty || photosDirty;");
     expect(hub).toContain('window.addEventListener("beforeunload", warn);');
@@ -59,10 +79,14 @@ describe("the brief page after paying", () => {
 
 describe("what designers and the client see", () => {
   const brief = read("src/components/contests/contest-brief.tsx");
-  it("the client's own links under one title, the description on the client's page, no feel sliders for v2", () => {
+  it("the client's own links under one title, the description on the client's page, and the feel for v2 too", () => {
     expect(brief).toContain('t("contest.brief.ownLinks")');
     expect(brief).toContain("withDescription && brief.description.trim() && (");
-    expect(brief).toContain("{!brief.v2 && (");
+    // Owner, 2026-10-30: the space beside the styles looked empty; a v2 contest shows its business type's feel, always
+    // tagged default for designers. Styles on the left, the feel, colours and uses on the right (uses left for 1–4 styles).
+    expect(brief).not.toContain("{!brief.v2 && (");
+    expect(brief).toContain('<Block title={t("contest.brief.feel")} tag={brief.v2 && !withDescription ? tag : tagFor("look")}>');
+    expect(brief).toContain("const usesLeft = brief.styles.length > 0 && brief.styles.length <= 4;");
     expect(read("src/lib/contests/browse.ts")).toContain("v2: parseCompletion(data.brief_completion) !== null,");
   });
   it("the public summary says how many more requirements there are", () => {

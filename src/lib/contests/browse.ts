@@ -345,7 +345,7 @@ export type ContestDetail = ContestRow & {
     files: ContestFileView[];
     /** Onboarding v2 (owner, 2026-10-29): the parts the client hasn't changed, tagged "default" for designers. */
     defaults: BriefSection[];
-    /** Made in onboarding v2, whose client isn't asked for the feel sliders. */
+    /** Made in onboarding v2: the feel is the business type's (the client isn't asked), always tagged default for designers. */
     v2: boolean;
   } | null;
 };

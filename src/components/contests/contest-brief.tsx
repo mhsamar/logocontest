@@ -66,6 +66,44 @@ export async function ContestBrief({
     brief.slogan && { label: t("contest.brief.slogan"), value: brief.slogan },
   ].filter(Boolean) as { label: string; value: string }[];
 
+  // A v2 client isn't asked for the feel: designers always see it as the default, even after the styles were changed.
+  const feel = (
+    <Block title={t("contest.brief.feel")} tag={brief.v2 && !withDescription ? tag : tagFor("look")}>
+      <ul className="space-y-4">
+        {STYLE_SLIDERS.map((key) => {
+          const value = brief.sliders[key] ?? 3;
+          return (
+            <li key={key}>
+              <div className="flex justify-between text-sm">
+                <span className={value <= 2 ? "font-semibold" : "text-muted"}>{t(`wizard.sliders.${key}.left`)}</span>
+                <span className={value >= 4 ? "font-semibold" : "text-muted"}>{t(`wizard.sliders.${key}.right`)}</span>
+              </div>
+              <div className="mt-2 flex gap-1.5" aria-hidden>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <span key={n} className={cx("h-2 flex-1 rounded-full", n === value ? "bg-primary" : "bg-line")} />
+                ))}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Block>
+  );
+
+  const uses = brief.usedOn.length > 0 && (
+    <Block title={t("contest.brief.usedOn")} tag={tagFor("needs")}>
+      <ul className="flex flex-wrap gap-2">
+        {brief.usedOn.map((u) => (
+          <li key={u} className="rounded-full bg-cream/60 px-3 py-1 text-sm font-medium text-primary-dark">
+            {t(`wizard.usedOn.${u}`)}
+          </li>
+        ))}
+      </ul>
+    </Block>
+  );
+  // Up to two rows of styles: the uses go under them, so the two sides come out about even.
+  const usesLeft = brief.styles.length > 0 && brief.styles.length <= 4;
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {/* The description is in the public page's header; the client's own page shows it here. */}
@@ -117,71 +155,47 @@ export async function ContestBrief({
         </Block>
       )}
 
-      {brief.styles.length > 0 && (
-        <Block title={t("contest.brief.styles")} tag={tagFor("look")}>
-          <ul className="grid grid-cols-2 gap-3">
-            {brief.styles.map((s) => (
-              <li key={s} className="rounded-md bg-canvas p-3 text-center">
-                <StyleExamples style={s} />
-                <p className="mt-2 text-sm font-medium">{t(`wizard.styles.${s}`)}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">{t("wizard.c04.credit")}</p>
-        </Block>
-      )}
-
-      {/* Not for an onboarding v2 contest: its client is never asked (owner, 2026-10-29), so these would be defaults. */}
-      {!brief.v2 && (
-      <Block title={t("contest.brief.feel")} tag={tagFor("look")}>
-        <ul className="space-y-4">
-          {STYLE_SLIDERS.map((key) => {
-            const value = brief.sliders[key] ?? 3;
-            return (
-              <li key={key}>
-                <div className="flex justify-between text-sm">
-                  <span className={value <= 2 ? "font-semibold" : "text-muted"}>{t(`wizard.sliders.${key}.left`)}</span>
-                  <span className={value >= 4 ? "font-semibold" : "text-muted"}>{t(`wizard.sliders.${key}.right`)}</span>
-                </div>
-                <div className="mt-2 flex gap-1.5" aria-hidden>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <span key={n} className={cx("h-2 flex-1 rounded-full", n === value ? "bg-primary" : "bg-line")} />
-                  ))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Block>
-      )}
-
-      <Block title={t("contest.brief.colors")} tag={tagFor("look")}>
-        {brief.colors.length > 0 && (
-          <ul className="flex flex-wrap gap-3">
-            {brief.colors.map((hex) => (
-              <li key={hex} className="flex items-center gap-2">
-                <span className="size-9 rounded-md ring-1 ring-inset ring-black/10" style={{ background: hex }} aria-hidden />
-                <span className="font-mono text-sm uppercase">{hex}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {(brief.letDesignersChoose || brief.colors.length === 0) && (
-          <p className={cx("text-sm text-muted", brief.colors.length > 0 && "mt-3")}>{t("contest.brief.designersChoose")}</p>
-        )}
-      </Block>
-
-      {brief.usedOn.length > 0 && (
-        <Block title={t("contest.brief.usedOn")} tag={tagFor("needs")}>
-          <ul className="flex flex-wrap gap-2">
-            {brief.usedOn.map((u) => (
-              <li key={u} className="rounded-full bg-cream/60 px-3 py-1 text-sm font-medium text-primary-dark">
-                {t(`wizard.usedOn.${u}`)}
-              </li>
-            ))}
-          </ul>
-        </Block>
-      )}
+      {/* The look and where the logo is used side by side (owner, 2026-10-30: the space beside the styles looked
+          empty): the styles on the left, the feel, colours and uses stacked on the right; one column on phones. The
+          feel is shown for an onboarding v2 contest too: its client isn't asked, so it is their business type's. */}
+      <div className="grid items-start gap-4 lg:col-span-2 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          {brief.styles.length > 0 && (
+            <Block title={t("contest.brief.styles")} tag={tagFor("look")}>
+              <ul className="grid grid-cols-2 gap-3">
+                {brief.styles.map((s) => (
+                  <li key={s} className="rounded-md bg-canvas p-3 text-center">
+                    <StyleExamples style={s} />
+                    <p className="mt-2 text-sm font-medium">{t(`wizard.styles.${s}`)}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-muted">{t("wizard.c04.credit")}</p>
+            </Block>
+          )}
+          {brief.styles.length === 0 && feel}
+          {usesLeft && uses}
+        </div>
+        <div className="flex flex-col gap-4">
+          {brief.styles.length > 0 && feel}
+          <Block title={t("contest.brief.colors")} tag={tagFor("look")}>
+            {brief.colors.length > 0 && (
+              <ul className="flex flex-wrap gap-3">
+                {brief.colors.map((hex) => (
+                  <li key={hex} className="flex items-center gap-2">
+                    <span className="size-9 rounded-md ring-1 ring-inset ring-black/10" style={{ background: hex }} aria-hidden />
+                    <span className="font-mono text-sm uppercase">{hex}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(brief.letDesignersChoose || brief.colors.length === 0) && (
+              <p className={cx("text-sm text-muted", brief.colors.length > 0 && "mt-3")}>{t("contest.brief.designersChoose")}</p>
+            )}
+          </Block>
+          {!usesLeft && uses}
+        </div>
+      </div>
 
       {/* What the client needs and their requirements, always side by side (owner, 2026-10-08: the old
           "likes" / "can't do" texts are no longer shown, older contests included) */}

@@ -37,7 +37,7 @@ export default async function InviteProPage({ searchParams }: PageProps<"/start/
   if (!data || user.role !== "client" || data.contest.clientId !== user.id) redirect("/start");
   const { contest } = data;
   const isLogo = contest.service === "logo";
-  const next = fromHub ? `/start-v2/brief?c=${draftId}` : `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;
+  const next = fromHub ? `/start-v2/brief?c=${draftId}&step=extras` : `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;
   if (!ready || !settings.features.invitations || !["draft", "pending_payment", "open"].includes(contest.status)) redirect(next);
   const [names, { data: notified }] = await Promise.all([serviceNames(locale), createAdminClient().from("contest_invites").select("designer_id").eq("contest_id", draftId).not("notified_at", "is", null)]);
   const sent = (notified ?? []).map((r) => r.designer_id as string);

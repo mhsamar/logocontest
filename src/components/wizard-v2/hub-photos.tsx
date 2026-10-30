@@ -24,7 +24,10 @@ type Upload = { id: string; name: string; status: "waiting" | "uploading" | "don
  */
 export function HubPhotos(props: {
   contestId: string;
-  number: string;
+  /** Shown before the title ("5 · …"); none inside the brief's last step, which has its own. */
+  number?: string;
+  /** Inside a step of the brief page: its title is a sub-heading of the step's. */
+  inStep?: boolean;
   files: ServerFile[];
   limits: { maxFiles: number; maxMb: number };
   /** The card is open (unsaved pictures may be in it): the hub keeps "finish" off meanwhile. */
@@ -127,13 +130,15 @@ export function HubPhotos(props: {
   };
 
   const shown = serverFiles.filter((f) => !removed.includes(f.id));
+  const Heading = props.inStep ? "h3" : "h2";
   return (
     // id: the client's "add photos" link lands here (owner, 2026-10-30).
     <section id="photos" className={cx("scroll-mt-24 rounded-2xl bg-surface p-4 ring-1", open ? "shadow-card ring-primary/40" : "ring-line")} data-section="photos">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="m-0 text-[16px] font-semibold text-ink">
-          {props.number} · {t("wizardV2.hub.cards.photos")}
-        </h2>
+        <Heading className="m-0 text-[16px] font-semibold text-ink">
+          {props.number && `${props.number} · `}
+          {t("wizardV2.hub.cards.photos")}
+        </Heading>
         {!open && (
           <button type="button" onClick={() => show(true)} className="min-h-11 shrink-0 px-1 text-sm font-bold text-primary underline">
             {t("wizardV2.hub.change")}

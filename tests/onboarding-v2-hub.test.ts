@@ -57,11 +57,12 @@ describe("saving a part after paying", () => {
   it("a cleared answer to one of the owner's questions is really cleared; the hub shows what was kept", () => {
     expect(a).toContain("const others = Object.fromEntries(Object.entries(contest.brief.extra ?? {}).filter(([k]) => !asked.some((q) => q.key === k)));");
     const hub = read("src/components/wizard-v2/brief-hub.tsx");
-    expect(hub).toContain("setBrief(cleanBrief(draft));");
-    // "None yet" is shown ticked for empty links or competitors, and Cancel forgets the last save's errors.
+    expect(hub).toContain("const kept = cleanBrief(draft);");
+    expect(hub).toContain("setBrief(kept);");
     // The link rows and the competitors box both start in view (owner, 2026-10-30); empty ones are dropped on save.
+    // Undo forgets this step's changes and the last save's errors.
     expect(hub).toContain("noLinks: false, noCompetitors: false");
-    expect(hub).toContain('<Button type="button" variant="ghost" onClick={close} disabled={busy}>');
+    expect(hub).toContain("const undo = () => (setDraft(withTicks(brief)), clear());");
   });
 
   it("reference pictures can be added after paying: same uploads and limits, only while the brief can change", () => {
@@ -72,7 +73,7 @@ describe("saving a part after paying", () => {
     const hub = read("src/components/wizard-v2/hub-photos.tsx");
     expect(hub).toContain("if (changed) await actions.changed({ contestId: props.contestId }).catch(() => null);");
     // "Finish" waits while the pictures card is open; Cancel waits while pictures are being made lighter.
-    expect(read("src/components/wizard-v2/brief-hub.tsx")).toContain("disabled={open !== null || photosOpen}");
+    expect(read("src/components/wizard-v2/brief-hub.tsx")).toContain("loading={busy} disabled={photosOpen} onClick={last ? finish : () => go(at + 1)}");
     expect(hub).toContain("disabled={busy || picking}");
     expect(read("src/app/start-v2/brief/page.tsx")).toContain('onboarding.hidden.includes("files")');
   });
@@ -95,7 +96,8 @@ describe("saving a part after paying", () => {
     expect(page).toContain("if (!onboardingV2On()) notFound();");
     expect(page).toContain("if (!contest || contest.clientId !== user.id || !contest.briefCompletion) notFound();");
     const invite = read("src/app/start/invite/page.tsx");
-    expect(invite).toContain('const next = fromHub ? `/start-v2/brief?c=${draftId}` : `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;');
+    // Back to the brief's pictures and invitations step (owner, 2026-10-30).
+    expect(invite).toContain('const next = fromHub ? `/start-v2/brief?c=${draftId}&step=extras` : `/start?draft=${draftId}&step=${isLogo ? "11" : "pay"}`;');
     expect(invite).toContain("{!fromHub && (");
   });
 });
