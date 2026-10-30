@@ -35,6 +35,12 @@
 .lc-landing .lc-wn-list { display: flex; gap: 16px; margin: 0; padding: 0 16px 0 0; list-style: none; }
 @keyframes lc-wn-scroll { to { transform: translateX(-50%); } }
 
+/* Fewer than four winners (owner, 2026-10-30): no marquee, the cards stand still, centred, and wrap when the window is
+   too narrow for them; under 720px they stay in one row that scrolls by hand. The padding leaves room for a card lifting
+   on hover. */
+.lc-landing .lc-wn-few { padding: 8px 0 18px; }
+.lc-landing .lc-wn-few .lc-wn-list { flex-wrap: wrap; justify-content: center; padding: 0; }
+
 /* One card. The name's link covers the whole card. */
 .lc-landing .lc-wn-card {
   position: relative;
@@ -127,6 +133,8 @@
 
 @media (max-width: 720px) {
   .lc-landing .lc-wn-mq { margin: 0 -16px; padding-left: 16px; }
+  .lc-landing .lc-wn-few { margin: 0 -16px; padding: 8px 16px 18px; overflow-x: auto; overscroll-behavior-x: contain; }
+  .lc-landing .lc-wn-few .lc-wn-list { flex-wrap: nowrap; justify-content: flex-start; width: max-content; margin: 0 auto; }
   .lc-landing .lc-wn-card { width: 260px; }
 }
 

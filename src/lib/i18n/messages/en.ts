@@ -3966,7 +3966,7 @@ const en = {
         pointsSaved: "Points saved.",
       },
       title: "Homepage",
-      lead: "Winning logos shown on the home page, in this order. With none picked, the home page shows live contests.",
+      lead: "Shown first, in this order, in the home page's \"Meet the designers who won\" section, with the designer and the prize; then the newest winners. Logo contests with a prize only, and only while the designer's account is active.",
       featured: "On the home page",
       none: "None picked yet.",
       moveUp: "Move up",

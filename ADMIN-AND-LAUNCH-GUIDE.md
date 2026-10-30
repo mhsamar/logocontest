@@ -273,7 +273,7 @@ After a month ends, the system proposes the **most-liked winning design** of tha
 3. Send the gift box, then **Mark gift as sent** with the courier name and tracking number. The winner is told.
 
 ### 11. Homepage
-Choose which winning logos appear on the home page and in what order (↑ ↓ ×). With none picked, the home page shows live contests.
+Choose which winning logos come first, and in what order (↑ ↓ ×), in the home page's **Meet the designers who won** section, with the designer and the prize. After them come the newest winners, so the section also fills itself with none picked. It shows from the first winner; from 4 winners the row moves. Only logo contests with a prize and designers whose account is active show; a blind contest's winner shows without the designer's name.
 
 ### 12. Blocked terms
 Extra words and names the "no contact details" filter blocks (on top of its built-in rules for phone numbers, emails,

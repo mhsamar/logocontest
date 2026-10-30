@@ -25,8 +25,9 @@ export type HomeWinner = {
   designer: { name: string; initials: string; username: string | null; avatarUrl: string | null } | null;
 };
 
-/** Fewer than this and the section hides: four cards are the least that fill a wide screen's marquee. */
-export const MIN_HOME_WINNERS = 4;
+/** Four cards are the least that fill a wide screen's marquee; with fewer the cards stand still, centred (owner,
+ * 2026-10-30: the section hid until the fourth winner, so the site's first winner never showed). */
+export const MARQUEE_WINNERS = 4;
 
 /** What winningDesigns() doesn't select: the prize, the kind of contest and the designer's account state. */
 export type WinnerFacts = { prize: number; service: string; designerIsTest: boolean; designerStatus: string | null };

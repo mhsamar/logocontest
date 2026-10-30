@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "@/components/ui/link";
-import { MIN_HOME_WINNERS, type HomeWinner } from "@/lib/home/winners";
+import { MARQUEE_WINNERS, type HomeWinner } from "@/lib/home/winners";
 import { getI18n } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import "./winners.css";
@@ -58,10 +58,11 @@ function WinnerCard({ w, tone, copy, t, price }: { w: HomeWinner; tone: number; 
  * "Meet the designers who won" (owner, 2026-10-29; Design/logocontest-site/index.html #winners): a marquee of real
  * winners from homeWinners(), the prize in the visitor's currency. Pure CSS: the list runs twice (the second run
  * hidden from screen readers), pauses on hover or keyboard focus, and stands still for reduced motion. The design has
- * no "see all" link, only "Join as a designer". Hidden while there are fewer than four winners.
+ * no "see all" link, only "Join as a designer". From the first winner on (owner, 2026-10-30); until there are enough
+ * to fill the marquee, the cards stand still in one centred row. Hidden with none.
  */
 export async function Winners({ winners }: { winners: HomeWinner[] }) {
-  if (winners.length < MIN_HOME_WINNERS) return null;
+  if (!winners.length) return null;
   const { t, price } = await getI18n();
   const cards = (copy: boolean) => winners.map((w, i) => <WinnerCard key={w.entryId} w={w} tone={i % TONES} copy={copy} t={t} price={price} />);
   return (
@@ -85,14 +86,20 @@ export async function Winners({ winners }: { winners: HomeWinner[] }) {
             </svg>
           </Link>
         </div>
-        <div className="lc-wn-mq">
-          <div className="lc-wn-track">
+        {winners.length < MARQUEE_WINNERS ? (
+          <div className="lc-wn-few">
             <ul className="lc-wn-list">{cards(false)}</ul>
-            <ul className="lc-wn-list" aria-hidden>
-              {cards(true)}
-            </ul>
           </div>
-        </div>
+        ) : (
+          <div className="lc-wn-mq">
+            <div className="lc-wn-track">
+              <ul className="lc-wn-list">{cards(false)}</ul>
+              <ul className="lc-wn-list" aria-hidden>
+                {cards(true)}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

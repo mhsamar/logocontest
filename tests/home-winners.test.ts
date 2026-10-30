@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Owner, 2026-10-29: "Meet the designers who won" on the new home page (Design/logocontest-site/index.html #winners).
@@ -19,6 +21,8 @@ vi.mock("@/lib/home/logos", () => ({ HOME_LOGOS_TAG: "home-logos" }));
 vi.mock("@/lib/rewards/queries", () => ({
   winningDesigns: async (q: { entryIds?: string[] }) => (q.entryIds ? state.featured : state.newest),
 }));
+vi.mock("@/lib/i18n/server", () => ({ getI18n: async () => ({ t: (k: string) => k, price: (n: number) => `৳${n}` }) }));
+vi.mock("@/components/ui/link", () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => createElement("a", { href }, children) }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: (name: string) => {
@@ -28,7 +32,8 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
-const { pickWinners, homeWinners, MIN_HOME_WINNERS } = await import("@/lib/home/winners");
+const { pickWinners, homeWinners, MARQUEE_WINNERS } = await import("@/lib/home/winners");
+const { Winners } = await import("@/components/home/landing/winners");
 type Facts = Parameters<typeof pickWinners>[3] extends Map<string, infer F> ? F : never;
 
 const d = (entryId: string, designerId = `p-${entryId}`, extra: Partial<Design> = {}): Design => ({
@@ -134,8 +139,44 @@ describe("homeWinners()", () => {
     expect(await homeWinners(12)).toEqual([]);
   });
 
-  it("hides the section below four winners", () => {
-    expect(MIN_HOME_WINNERS).toBe(4);
+});
+
+// Owner, 2026-10-30: the site's first winner, added in Admin › Homepage, never showed: the section waited for four.
+describe("the winners section", () => {
+  const list = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ entryId: `e${i}`, logoUrl: `/l${i}.png`, brandName: `Brand ${i}`, prize: 5000, designer: { name: `Designer ${i}`, initials: "D", username: `d${i}`, avatarUrl: null } }));
+  const html = async (n: number) => {
+    const out = await Winners({ winners: list(n) });
+    return out ? renderToStaticMarkup(out) : "";
+  };
+  const cards = (h: string) => h.match(/class="lc-wn-card /g)?.length ?? 0;
+
+  it("shows from the first winner, with the designer and the prize; hidden with none", async () => {
+    expect(await html(0)).toBe("");
+    const one = await html(1);
+    expect(one).toContain('id="winners"');
+    expect(one).toContain('href="/d/d0"');
+    expect(one).toContain("৳5000");
+    expect(cards(one)).toBe(1);
+  });
+
+  it("stands still in one row below four, with no hidden second run", async () => {
+    for (const n of [1, 3]) {
+      const h = await html(n);
+      expect(h).toContain('class="lc-wn-few"');
+      expect(h).not.toContain("lc-wn-mq");
+      expect(h).not.toContain("lc-wn-track");
+      expect(cards(h)).toBe(n);
+    }
+  });
+
+  it("runs the marquee from four, the list twice and the second run hidden", async () => {
+    expect(MARQUEE_WINNERS).toBe(4);
+    const h = await html(4);
+    expect(h).toContain('class="lc-wn-mq"');
+    expect(h).not.toContain("lc-wn-few");
+    expect(cards(h)).toBe(8);
+    expect(h.match(/<ul class="lc-wn-list" aria-hidden="true">/g)?.length).toBe(1);
   });
 });
 
