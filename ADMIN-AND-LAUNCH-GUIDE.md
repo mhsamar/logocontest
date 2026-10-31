@@ -300,6 +300,14 @@ Your plan (2026-10-31), the defaults:
   stopped by the person (Unsubscribe); the rest go whatever their settings say. The automatic reminders to unpaid
   clients are off, both on their row here and in Admin › Unpaid contests (turn on both to send them).
 
+### 13b. Email provider (Amazon SES with Resend as backup)
+Set in Vercel › Settings › Environment Variables (never in chat). `EMAIL_DRIVER`: `resend` (Resend only), `ses`
+(Amazon SES only) or `ses+resend` (SES first; an email SES can't send goes by Resend). SES needs `SES_REGION`
+(`ap-south-1`, Mumbai), `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY` from an IAM user that may only send email,
+the domain logocontest.bd verified in SES (its 3 DKIM CNAME records in DNS) and production access (out of the
+sandbox). Redeploy after changing a variable. Going back is changing `EMAIL_DRIVER` to `resend` and redeploying. With
+SES the daily limit in Admin › Notifications can go up.
+
 ### 14. Audit log
 A read-only list of every admin action: who, what, when, and the details. Filter by action.
 
