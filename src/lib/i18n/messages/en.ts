@@ -2835,6 +2835,17 @@ const en = {
           resume_link: "Copied the resume link",
           resume_opened: "Opened the resume link",
         },
+        delete: {
+          button: "Delete account",
+          title: "Delete this account for good?",
+          body: "For someone who signed up as a client by mistake (for example, they meant to join as a designer). Their account, this unpaid contest and any other unpaid drafts are erased, and the lead leaves this list. Their email and number are free again, so they can sign up as a designer. This can't be undone. Only for a client who never paid.",
+          reason: "Why (for the audit log)",
+          done: "Account deleted. They can sign up again with the same email.",
+          errors: {
+            notClient: "This is not a client account, so it can't be deleted from here.",
+            paid: "This client has paid, sent a bKash payment or has a live contest. Use Admin › Users instead.",
+          },
+        },
         close: {
           label: "Close this lead:",
           notInterested: "Not interested",

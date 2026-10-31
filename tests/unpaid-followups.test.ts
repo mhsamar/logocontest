@@ -239,11 +239,13 @@ const audits = vi.hoisted(() => [] as unknown[][]);
 function table(name: string) {
   const rows = () => (db.tables[name] ??= []);
   const filters: ((r: Row) => boolean)[] = [];
-  let op: { kind: "select" } | { kind: "insert"; rows: Row[] } | { kind: "update"; patch: Row } = { kind: "select" };
+  let op: { kind: "select" } | { kind: "insert"; rows: Row[] } | { kind: "update"; patch: Row } | { kind: "delete" } = { kind: "select" };
   let single = false;
   let returning = false;
+  let counting = false;
   const q = {
-    select: () => ((returning = op.kind !== "select" || returning), q),
+    select: (_cols?: string, o?: { count?: string }) => ((counting = Boolean(o?.count) || counting), (returning = op.kind !== "select" || returning), q),
+    delete: () => ((op = { kind: "delete" }), q),
     insert: (r: Row | Row[]) => ((op = { kind: "insert", rows: Array.isArray(r) ? r : [r] }), q),
     update: (p: Row) => ((op = { kind: "update", patch: p }), q),
     eq: (k: string, v: unknown) => (filters.push((r) => r[k] === v), q),
@@ -267,6 +269,8 @@ function table(name: string) {
         return Promise.resolve({ data: single ? made[0] : returning ? made : null, error: null }).then(ok);
       }
       const hit = rows().filter((r) => filters.every((f) => f(r)));
+      if (op.kind === "delete") db.tables[name] = rows().filter((r) => !hit.includes(r));
+      if (counting) return Promise.resolve({ data: null, count: hit.length, error: null }).then(ok);
       if (op.kind === "update") for (const r of hit) Object.assign(r, op.patch);
       const data = hit.map((r) => ({ ...r }));
       return Promise.resolve({ data: single ? (data[0] ?? null) : data, error: null }).then(ok);
@@ -285,6 +289,8 @@ vi.mock("@/lib/admin/core", () => ({
   audit: async (...args: unknown[]) => void audits.push(args),
 }));
 vi.mock("@/lib/admin/recipients", () => ({ adminIdsWith: async () => ["a1", "a2"] }));
+const purged = vi.hoisted(() => [] as string[]);
+vi.mock("@/lib/admin/trash", () => ({ purgeUser: async (id: string) => void purged.push(id) }));
 vi.mock("@/lib/settings", () => ({ getSettings: async () => ({ "notify.followup_due_minutes": 10 }) }));
 // The resume link has its own tests (tests/resume-link.test.ts).
 vi.mock("@/lib/contests/resume", () => ({ noteResume: vi.fn(), resumeLink: async (id: string) => `https://logocontest.bd/r/link-${id}`, resumeTarget: async () => ({}) }));
@@ -510,5 +516,52 @@ describe("blocks and the rest of the site", () => {
     expect(sql).not.toMatch(/create policy/);
     expect(sql).toContain("contest_id         uuid unique references public.contests (id) on delete set null");
     expect(read("supabase/rollback/0076_unpaid_followups_down.sql")).toContain("drop table if exists public.unpaid_leads;");
+  });
+});
+
+// Owner, 2026-10-31: a client who meant to sign up as a designer gets their email back.
+describe("Delete account on Unpaid contests", () => {
+  beforeEach(() => {
+    purged.length = 0;
+    audits.length = 0;
+    db.tables.profiles = [{ id: "u1", role: "client", mobile: "+8801711111111", email: "client@example.com" }];
+    db.tables.unpaid_leads = [{ id: "L1", contest_id: C, client_id: "u1", status: "new" }];
+    db.tables.lead_activities = [];
+    db.tables.payments = [];
+    db.tables.manual_payments = [];
+  });
+  const run = async (f: Record<string, string> = { reason: "Meant to be a designer" }) => (await import("@/lib/admin/unpaid-followup-actions")).deleteUnpaidAccount(KEY, f);
+
+  it("only a Super admin, with a reason", async () => {
+    who.admin = { id: "a1", isSuperAdmin: false };
+    expect((await run()).ok).toBe(false);
+    who.admin = { id: "a1", isSuperAdmin: true };
+    expect(await run({ reason: " " })).toEqual({ ok: false, error: "admin.errors.reason" });
+    expect(purged).toEqual([]);
+  });
+
+  it("erases a client who never paid, with their lead, and logs no contact details", async () => {
+    who.admin = { id: "a1", isSuperAdmin: true };
+    expect(await run()).toEqual({ ok: true });
+    expect(purged).toEqual(["u1"]);
+    expect(db.tables.unpaid_leads).toEqual([]);
+    expect(audits).toHaveLength(1);
+    expect(JSON.stringify(audits)).not.toMatch(/8801711111111|client@example/);
+  });
+
+  it("never someone who paid, sent a bKash payment, has a live contest, or isn't a client", async () => {
+    who.admin = { id: "a1", isSuperAdmin: true };
+    db.tables.payments = [{ id: "p1", client_id: "u1", status: "paid" }];
+    expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.paid" });
+    db.tables.payments = [];
+    db.tables.manual_payments = [{ id: "m1", user_id: "u1", status: "pending" }];
+    expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.paid" });
+    db.tables.manual_payments = [];
+    db.tables.contests.push({ id: "c2", client_id: "u1", status: "open" });
+    expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.paid" });
+    db.tables.contests.pop();
+    db.tables.profiles = [{ id: "u1", role: "designer" }];
+    expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.notClient" });
+    expect(purged).toEqual([]);
   });
 });

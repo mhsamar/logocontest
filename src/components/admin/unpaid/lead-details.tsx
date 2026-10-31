@@ -2,7 +2,7 @@ import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdmCard, IdChip } from "@/components/admin/ui";
-import { closeLead, reopenLead } from "@/lib/admin/unpaid-followup-actions";
+import { closeLead, deleteUnpaidAccount, reopenLead } from "@/lib/admin/unpaid-followup-actions";
 import type { HistoryItem, Lead } from "@/lib/admin/unpaid-board";
 import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
@@ -285,6 +285,21 @@ export function LeadDetails({
           <AdminAction label={t("admin.unpaid.fu.close.notInterested")} body={t("admin.unpaid.fu.close.notInterestedBody")} done={t("admin.unpaid.fu.close.closed")} fields={[{ name: "note", kind: "text", label: t("admin.unpaid.fu.close.note") }]} run={closeLead.bind(null, lead.key, "not_interested")} />
           <AdminAction label={t("admin.unpaid.fu.close.paidOther")} body={t("admin.unpaid.fu.close.paidOtherBody")} done={t("admin.unpaid.fu.close.closed")} fields={[{ name: "note", kind: "text", label: t("admin.unpaid.fu.close.note") }]} run={closeLead.bind(null, lead.key, "paid_other")} />
           <CloseFakeButton leadKey={lead.key} />
+        </div>
+      )}
+      {/* Delete account (owner, 2026-10-31): a client who meant to be a designer gets their email back. Super admin. */}
+      {isSuperAdmin && lead.kind === "contest" && lead.clientId && !lead.wonBack && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-adm-line-soft pt-3">
+          <AdminAction
+            label={t("admin.unpaid.fu.delete.button")}
+            title={t("admin.unpaid.fu.delete.title")}
+            body={t("admin.unpaid.fu.delete.body")}
+            confirm={t("admin.unpaid.fu.delete.button")}
+            done={t("admin.unpaid.fu.delete.done")}
+            tone="danger"
+            fields={[{ name: "reason", kind: "reason", label: t("admin.unpaid.fu.delete.reason") }]}
+            run={deleteUnpaidAccount.bind(null, lead.key)}
+          />
         </div>
       )}
     </AdmCard>

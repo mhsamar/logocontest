@@ -287,3 +287,40 @@ export async function resumeLinkFor(key: string): Promise<{ ok: true; link: stri
   await noteResume(who.contestId, "resume_link", admin.id);
   return { ok: true, link: await resumeLink(who.contestId, new Date(), target.locale) };
 }
+
+/**
+ * Delete the account (owner, 2026-10-31): people who meant to join as a designer sometimes sign up as a client, land
+ * here with a draft, and can't sign up again with the same email. A Super admin erases the client for good (their
+ * drafts, their lead and the login, as Trash › Erase now does), so the email and number are free again. Only for a
+ * client who never paid: no paid payment, no bKash payment sent, no contest past payment. Nothing about the person is
+ * kept in the audit log.
+ */
+export async function deleteUnpaidAccount(key: string, f: Record<string, string>): Promise<Result> {
+  const owner = await superAdmin();
+  if (!owner || !key.startsWith("c:")) return fail("auth.errors.generic");
+  const reason = String(f.reason ?? "").trim().slice(0, 300);
+  if (reason.length < 3) return fail("admin.errors.reason");
+  const db = createAdminClient();
+  const { data: c } = await db.from("contests").select("client_id").eq("id", key.slice(2)).maybeSingle();
+  const clientId = (c?.client_id as string | null) ?? null;
+  if (!clientId || clientId === owner.id) return fail("admin.errors.generic");
+  const { data: p } = await db.from("profiles").select("role, is_super_admin").eq("id", clientId).maybeSingle();
+  if (!p || p.role !== "client" || p.is_super_admin) return fail("admin.unpaid.fu.delete.errors.notClient");
+  const [contests, paid, bkash] = await Promise.all([
+    db.from("contests").select("id, status").eq("client_id", clientId),
+    db.from("payments").select("id", { count: "exact", head: true }).eq("client_id", clientId).eq("status", "paid"),
+    db.from("manual_payments").select("id", { count: "exact", head: true }).eq("user_id", clientId).in("status", ["pending", "approved"]),
+  ]);
+  if (contests.error || paid.error || bkash.error) return fail("admin.errors.generic");
+  const unpaid = new Set(["draft", "pending_payment", "deleted"]);
+  if ((paid.count ?? 0) > 0 || (bkash.count ?? 0) > 0 || (contests.data ?? []).some((r) => !unpaid.has(r.status as string))) return fail("admin.unpaid.fu.delete.errors.paid");
+  // The lead rows would outlive the contests (their link is only cleared), so they go first.
+  const ids = (contests.data ?? []).map((r) => r.id as string);
+  if (ids.length) await db.from("unpaid_leads").delete().in("contest_id", ids);
+  await db.from("unpaid_leads").delete().eq("client_id", clientId);
+  await audit(owner.id, "unpaid_delete_account", "user", clientId, { reason, contests: ids.length });
+  const { purgeUser } = await import("./trash");
+  await purgeUser(clientId);
+  refresh();
+  return { ok: true };
+}
