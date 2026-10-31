@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { EmailVerificationService, type VerificationRecord, type VerificationRepository } from "@/lib/auth/email-verification";
-import { CATALOG, chatEmailDue, digestDue, EMAIL_KEYS, parseEmailOff, parseTierOff, SETTINGS_KEYS, shouldSend, spanText, tierAllows, type EmailKey } from "@/lib/email/catalog";
+import { CATALOG, chatEmailDue, digestDue, digestTime, EMAIL_KEYS, parseEmailOff, parseTierOff, SETTINGS_KEYS, shouldSend, spanText, tierAllows, userMayStop, type EmailKey } from "@/lib/email/catalog";
 import { imageToken, readImageToken, unsubscribeOk, unsubscribeQuery, unsubscribeSig } from "@/lib/email/links";
 import { bodyHtml, escapeHtml, htmlToText, previewOf, render, type EmailData } from "@/lib/email/render";
 import { TEMPLATES } from "@/lib/email/templates";
@@ -132,26 +132,40 @@ describe("email templates (owner, 2026-10-15)", () => {
 });
 
 describe("who gets which email", () => {
-  it("codes and security emails always go; the rest follow Email settings", () => {
+  // Owner, 2026-10-31: only the new-designs email and the prize claim reminders can be stopped by the person.
+  it("codes and security emails always go; a person can stop only the new-designs email and the claim reminders", () => {
     expect(shouldSend("otp", ["otp", "notification"])).toBe(true);
     expect(shouldSend("notification", ["notification"], true)).toBe(true);
-    expect(shouldSend("notification", ["notification"])).toBe(false);
-    expect(shouldSend("chat-message", ["notification"])).toBe(true);
+    expect(shouldSend("notification", ["notification"])).toBe(true);
+    expect(shouldSend("notification", ["notification"], false, "monthly_claim_reminder")).toBe(false);
+    expect(shouldSend("notification", ["notification"], true, "monthly_claim_reminder")).toBe(true);
+    expect(shouldSend("client-new-entries", ["client-new-entries"])).toBe(false);
+    expect(shouldSend("contest-won", ["contest-won"])).toBe(true);
+    expect(shouldSend("chat-message", ["chat-message"])).toBe(true);
+    expect(userMayStop("client-new-entries")).toBe(true);
+    expect(userMayStop("pro-receipt")).toBe(false);
     expect(parseEmailOff(["chat-message", "otp", "nonsense", 3, "chat-message"])).toEqual(["chat-message"]);
     expect(parseEmailOff(null)).toEqual([]);
     expect(SETTINGS_KEYS.designer).not.toContain("otp");
     expect(SETTINGS_KEYS.client).not.toContain("contest-new");
   });
 
-  it("the new-designs digest goes at most once a day, and only with something new", () => {
-    const now = new Date("2026-10-15T12:00:00Z");
-    const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
-    expect(digestDue(null, 0, now)).toBe(false);
-    expect(digestDue(null, 2, now)).toBe(true);
-    expect(digestDue(hoursAgo(3), 5, now)).toBe(false);
-    expect(digestDue(hoursAgo(23.9), 5, now)).toBe(false);
-    expect(digestDue(hoursAgo(24), 1, now)).toBe(true);
-    expect(digestDue(hoursAgo(48), 0, now)).toBe(false);
+  // Owner, 2026-10-31: every day at 7 pm Bangladesh time, with every design since the last one.
+  it("the new-designs digest goes once a day from 7 pm Bangladesh time, and only with something new", () => {
+    const at = (iso: string) => new Date(iso);
+    // 6:59 pm in Dhaka (12:59 UTC): not yet.
+    expect(digestDue(null, 4, at("2026-10-15T12:59:00Z"))).toBe(false);
+    // 7 pm and later the same evening: once.
+    expect(digestTime(at("2026-10-15T13:20:00Z")).toISOString()).toBe("2026-10-15T13:00:00.000Z");
+    expect(digestDue(null, 4, at("2026-10-15T13:00:00Z"))).toBe(true);
+    expect(digestDue(at("2026-10-14T13:05:00Z"), 2, at("2026-10-15T13:15:00Z"))).toBe(true);
+    expect(digestDue(at("2026-10-15T13:05:00Z"), 2, at("2026-10-15T13:30:00Z"))).toBe(false);
+    // After midnight in Dhaka (18:30 UTC = 0:30 am) it waits for that evening.
+    expect(digestDue(at("2026-10-15T13:05:00Z"), 2, at("2026-10-15T18:30:00Z"))).toBe(false);
+    expect(digestDue(at("2026-10-15T13:05:00Z"), 0, at("2026-10-16T13:30:00Z"))).toBe(false);
+    // Another hour from Admin › Notifications.
+    expect(digestDue(null, 1, at("2026-10-15T03:00:00Z"), 9)).toBe(true);
+    expect(digestDue(null, 1, at("2026-10-15T02:59:00Z"), 9)).toBe(false);
   });
 
   it("chat emails: at most one per conversation every 30 minutes", () => {
@@ -254,7 +268,8 @@ describe("designer emails by plan (owner, 2026-10-15)", () => {
   it("the owner's switches are cleaned: designer emails only, no repeats", () => {
     expect(parseTierOff({ basic: ["contest-invite", "contest-invite", "otp", "client-new-entries", "nope"], pro: "x" })).toEqual({ basic: ["contest-invite"], pro: [] });
     expect(parseTierOff(null)).toEqual({ basic: [], pro: [] });
-    expect(SETTINGS["notifications.designer_emails"].default).toEqual({ basic: [], pro: [] });
+    // Owner, 2026-10-31: new contests by email go to Pro designers only.
+    expect(SETTINGS["notifications.designer_emails"].default).toEqual({ basic: ["contest-new"], pro: [] });
   });
 
   it("each plan gets only the emails that are on for it; other emails are not touched", () => {

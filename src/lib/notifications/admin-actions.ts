@@ -6,7 +6,7 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { SETTINGS, type SettingKey } from "@/lib/settings/registry";
 import { parseTierOff } from "@/lib/email/catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { NOTICE_ROWS, parseChannelsOff, type TimingKey } from "./admin-catalog";
+import { NOTICE_ROWS, parseChannelsOff, parseRoleEmailsOff, type TimingKey } from "./admin-catalog";
 import { parseTiming } from "./timing";
 import { settingsChanged } from "@/lib/settings";
 
@@ -15,10 +15,11 @@ type Result = { ok: true } | { ok: false; error: MessageKey; errors?: Record<str
 const TIMING_KEYS = new Set<TimingKey>(NOTICE_ROWS.flatMap((r) => r.timing ?? []));
 
 /**
- * Admin › Notifications (owner, 2026-10-15): saves which ways each notice goes and its timings. Like Settings, every
- * save needs a reason and goes to the audit log.
+ * Admin › Notifications (owner, 2026-10-15): saves which ways each notice goes and its timings; since 2026-10-31 also
+ * the email ticks for clients and designers and the daily email limit. Like Settings, every save needs a reason and
+ * goes to the audit log.
  */
-export async function saveNotifications(input: { off: unknown; tierOff?: unknown; timings: Record<string, string> }, reasonText: string): Promise<Result> {
+export async function saveNotifications(input: { off: unknown; tierOff?: unknown; roleOff?: unknown; dailyLimit?: string; timings: Record<string, string> }, reasonText: string): Promise<Result> {
   const admin = await adminUser("notifications.manage");
   if (!admin) return { ok: false, error: "auth.errors.generic" };
   const reason = cleanReason(reasonText);
@@ -29,13 +30,19 @@ export async function saveNotifications(input: { off: unknown; tierOff?: unknown
   const values = new Map<SettingKey, unknown>();
   values.set("notifications.channels", off);
   if (input.tierOff !== undefined) values.set("notifications.designer_emails", parseTierOff(input.tierOff));
+  if (input.roleOff !== undefined) values.set("notifications.role_emails", parseRoleEmailsOff(input.roleOff));
+  if (input.dailyLimit !== undefined) {
+    const n = /^\s*\d+\s*$/.test(input.dailyLimit) ? Number(input.dailyLimit) : NaN;
+    if (SETTINGS["email.daily_limit"].schema.safeParse(n).success) values.set("email.daily_limit", n);
+    else errors.dailyLimit = "range";
+  }
   for (const [key, raw] of Object.entries(input.timings ?? {})) {
     if (!TIMING_KEYS.has(key as TimingKey)) continue;
     const parsed = parseTiming(key as TimingKey, raw);
     if (parsed.ok) values.set(key as SettingKey, parsed.value);
     else errors[key] = parsed.error;
   }
-  if (Object.keys(errors).length) return { ok: false, error: "admin.notices.invalid", errors };
+  if (Object.keys(errors).length) return { ok: false, error: Object.keys(errors).every((k) => k === "dailyLimit") ? "admin.notices.limit.invalid" : "admin.notices.invalid", errors };
 
   const db = createAdminClient();
   const keys = [...values.keys()];

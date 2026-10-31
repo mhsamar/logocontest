@@ -207,11 +207,6 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(5, 1440), default: 30,
     description: "Admin \"New\" tags (owner, 2026-10-23): pages of a section opened again within this many minutes count as the same visit, so their New tags stay put.",
   },
-  // Owner, 2026-10-15: the new-designs email (client-new-entries) goes at most once in this many hours per contest.
-  "timers.new_entry_digest_hours": {
-    group: "timers", type: "int", schema: int(1, 168), default: 24,
-    description: "Hours between new-designs emails to a client (at most one per contest in this time; 24 = once a day).",
-  },
   // Suspension and ban rules (owner, 2026-10-12; migrations 0039, 0041): every rule break is a 48-hour suspension
   // that ends on its own; 3 suspensions within 30 days = permanent ban.
   "timers.suspension_hours": {
@@ -668,8 +663,8 @@ export const SETTINGS = {
 
   // ---- Emails (owner, 2026-10-15) ------------------------------------------------------------------------------------
   "email.daily_limit": {
-    group: "email", type: "int", schema: int(0, 100_000), default: 80,
-    description: "Most emails a day other than codes and security emails (the rest of the email plan's daily limit is kept for codes; Resend's free plan sends 100 a day). 0 = no limit.",
+    group: "email", type: "int", schema: int(0, 100_000), default: 100,
+    description: "Most emails a day other than login codes and security emails (owner, 2026-10-31: 100; Resend's free plan sends 100 a day, so on busy days codes can go over it). 0 = no limit.",
   },
 
   // ---- Withdrawals (owner, 2026-10-15): set in Admin › Withdrawals, not in Settings -----------------------------------
@@ -689,13 +684,29 @@ export const SETTINGS = {
   },
 
   // ---- Admin › Notifications (owner, 2026-10-15): set on that page, not in Settings ---------------------------------
+  // The owner's email plan (2026-10-31): only the emails on their list go out; the rest stay in the bell (and push).
   "notifications.channels": {
-    group: "notifications", type: "json", schema: z.record(z.string(), z.array(z.enum(["bell", "push", "email"]))), default: {} as Record<string, ("bell" | "push" | "email")[]>,
+    group: "notifications", type: "json", schema: z.record(z.string(), z.array(z.enum(["bell", "push", "email"]))),
+    default: Object.fromEntries(
+      ["contest_ending", "entry_comment_client", "entry_shortlisted", "agreements", "pro_invited", "pro_message", "pro_weekly", "entry_comment_designer", "unpaid_reminders", "guarantee"].map((id) => [id, ["email"]]),
+    ) as Record<string, ("bell" | "push" | "email")[]>,
     description: "Notices turned off in Admin › Notifications: row → the ways (bell, push, email) turned off.",
   },
   "notifications.designer_emails": {
-    group: "notifications", type: "json", schema: z.object({ basic: z.array(z.string()), pro: z.array(z.string()) }), default: { basic: [], pro: [] } as { basic: string[]; pro: string[] },
-    description: "Designer emails turned off in Admin › Notifications, for Basic and for Pro designers (owner, 2026-10-15).",
+    group: "notifications", type: "json", schema: z.object({ basic: z.array(z.string()), pro: z.array(z.string()) }), default: { basic: ["contest-new"], pro: [] } as { basic: string[]; pro: string[] },
+    description: "Designer emails turned off in Admin › Notifications, for Basic and for Pro designers (owner, 2026-10-15; 2026-10-31: new contests by email for Pro only).",
+  },
+  "notifications.role_emails": {
+    group: "notifications", type: "json", schema: z.object({ client: z.array(z.string()), designer: z.array(z.string()) }),
+    default: {
+      client: ["welcome", "handover_message", "logo_check_ready"],
+      designer: ["profile_reminders", "account_status", "monthly_won", "monthly_claim_reminder", "handover_message", "logo_check_ready"],
+    } as { client: string[]; designer: string[] },
+    description: "Emails of notices for everyone turned off for clients or for designers in Admin › Notifications (owner, 2026-10-31).",
+  },
+  "notify.digest_hour": {
+    group: "notifications", type: "int", schema: int(0, 23), default: 19,
+    description: "The new-designs email to a client goes once a day at this hour, Bangladesh time (19 = 7 pm), with every design since the last one (owner, 2026-10-31).",
   },
   "notify.chat_email_minutes": {
     group: "notifications", type: "int", schema: int(1, 1440), default: 30,

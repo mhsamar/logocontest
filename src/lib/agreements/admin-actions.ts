@@ -78,7 +78,7 @@ async function tellDesigner(designerId: string, type: "agreement_photo_requested
   const t = await translatorFor(lang);
   const link = `${await linkOrigin()}/dashboard/agreement`;
   const key = type === "agreement_rejected" ? "rejected" : "photo";
-  await emailText({ userId: designerId, email: p.email as string, locale: lang, subject: t(`admin.agreements.mail.${key}.subject`), body: t(`admin.agreements.mail.${key}.body`, { name: ((p.name as string | null) ?? "").trim(), reason: params.reason ?? "", link }), security: true });
+  await emailText({ userId: designerId, email: p.email as string, locale: lang, subject: t(`admin.agreements.mail.${key}.subject`), body: t(`admin.agreements.mail.${key}.body`, { name: ((p.name as string | null) ?? "").trim(), reason: params.reason ?? "", link }), security: true, notice: "agreements" });
 }
 
 export async function rejectAgreement(designerId: string, reasonText: string): Promise<Result> {

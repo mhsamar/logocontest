@@ -10,7 +10,7 @@ import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { DESIGNER_TIERS, SETTINGS_KEYS, type DesignerTier, type OptionalKey, type TierOff } from "@/lib/email/catalog";
 import { saveNotifications } from "@/lib/notifications/admin-actions";
-import { AUDIENCES, NOTICE_ROWS, type Audience, type Channel, type ChannelsOff, type NoticeRow, type TimingKey } from "@/lib/notifications/admin-catalog";
+import { AUDIENCES, EMAIL_ROLES, hasRoleEmails, NOTICE_ROWS, USER_STOPPABLE_ROWS, type Audience, type Channel, type ChannelsOff, type EmailRole, type NoticeRow, type RoleEmailsOff, type TimingKey } from "@/lib/notifications/admin-catalog";
 import { TIMING_INFO, timingLabelKey } from "@/lib/notifications/timing";
 import { useReadOnly } from "./read-only";
 import { ADM_INPUT } from "./ui";
@@ -19,17 +19,22 @@ const ICON: Record<Channel, string> = { bell: "🔔", push: "📲", email: "✉�
 
 /**
  * Admin › Notifications (owner, 2026-10-15): every notice, by who gets it, with a switch for each way it goes and its
- * timings. Saved together, with a reason, like Settings.
+ * timings. Saved together, with a reason, like Settings. Since 2026-10-31: notices for everyone have one email tick
+ * for clients and one for designers, and the daily email limit sits on top.
  */
 export function NoticesEditor({
   off: startOff,
   tierOff: startTierOff,
+  roleOff: startRoleOff,
+  limit,
   timings: startTimings,
   earlyAccess,
   autoRemind,
 }: {
   off: ChannelsOff;
   tierOff: TierOff;
+  roleOff: RoleEmailsOff;
+  limit: { value: number; today: number };
   timings: Record<string, string>;
   earlyAccess: { on: boolean; minutes: number };
   autoRemind: boolean;
@@ -42,13 +47,30 @@ export function NoticesEditor({
   const [off, setOff] = useState<ChannelsOff>(startOff);
   const [timings, setTimings] = useState<Record<string, string>>(startTimings);
   const [tierOff, setTierOff] = useState<TierOff>(startTierOff);
+  const [roleOff, setRoleOff] = useState<RoleEmailsOff>(startRoleOff);
+  const [dailyLimit, setDailyLimit] = useState(String(limit.value));
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, run] = useTransition();
   const norm = (o: ChannelsOff) => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([, v]) => v.length).map(([k, v]) => [k, [...v].sort()]).sort()));
   const normTier = (o: TierOff) => JSON.stringify(DESIGNER_TIERS.map((x) => [...o[x]].sort()));
-  const dirty = norm(off) !== norm(startOff) || normTier(tierOff) !== normTier(startTierOff) || Object.keys(timings).some((k) => timings[k] !== startTimings[k]);
+  const normRole = (o: RoleEmailsOff) => JSON.stringify(EMAIL_ROLES.map((x) => [...o[x]].sort()));
+  const limitChanged = dailyLimit.trim() !== String(limit.value);
+  const dirty =
+    norm(off) !== norm(startOff) || normTier(tierOff) !== normTier(startTierOff) || normRole(roleOff) !== normRole(startRoleOff) || limitChanged || Object.keys(timings).some((k) => timings[k] !== startTimings[k]);
+  const roleOn = (r: NoticeRow, role: EmailRole) => !roleOff[role].includes(r.id);
+  // Turning one role's email on when the row's whole email was off keeps the other role's tick as it looked: off.
+  const toggleRole = (r: NoticeRow, role: EmailRole) => {
+    if (isOn(r, "email") && roleOn(r, role)) return setRoleOff((cur) => ({ ...cur, [role]: [...cur[role], r.id] }));
+    const wholeOff = !isOn(r, "email");
+    if (wholeOff) setOff((cur) => ({ ...cur, [r.id]: (cur[r.id] ?? []).filter((x) => x !== "email") }));
+    setRoleOff((cur) => {
+      const next = { ...cur, [role]: cur[role].filter((x) => x !== r.id) };
+      if (wholeOff) for (const other of EMAIL_ROLES) if (other !== role && !next[other].includes(r.id)) next[other] = [...next[other], r.id];
+      return next;
+    });
+  };
   const tierOn = (tier: DesignerTier, k: OptionalKey) => !tierOff[tier].includes(k);
   const toggleTier = (tier: DesignerTier, k: OptionalKey) => setTierOff((cur) => ({ ...cur, [tier]: cur[tier].includes(k) ? cur[tier].filter((x) => x !== k) : [...cur[tier], k] }));
   const isOn = (r: NoticeRow, c: Channel) => r.locked || !(off[r.id] ?? []).includes(c);
@@ -63,7 +85,7 @@ export function NoticesEditor({
       setError(null);
       setErrors({});
       const changed = Object.fromEntries(Object.keys(timings).filter((k) => timings[k] !== startTimings[k]).map((k) => [k, timings[k]]));
-      const res = await saveNotifications({ off, tierOff, timings: changed }, reason);
+      const res = await saveNotifications({ off, tierOff, roleOff, timings: changed, ...(limitChanged ? { dailyLimit } : {}) }, reason);
       if (!res.ok) {
         setErrors(res.errors ?? {});
         return setError(t(res.error));
@@ -75,16 +97,47 @@ export function NoticesEditor({
   const cancel = () => {
     setOff(startOff);
     setTierOff(startTierOff);
+    setRoleOff(startRoleOff);
+    setDailyLimit(String(limit.value));
     setTimings(startTimings);
     setErrors({});
     setError(null);
   };
 
   const rows = NOTICE_ROWS.filter((r) => r.audience === tab);
-  const offCount = (a: Audience) => NOTICE_ROWS.filter((r) => r.audience === a && r.channels.some((c) => !isOn(r, c))).length;
+  const offCount = (a: Audience) => NOTICE_ROWS.filter((r) => r.audience === a && (r.channels.some((c) => !isOn(r, c)) || (hasRoleEmails(r) && EMAIL_ROLES.some((x) => !roleOn(r, x))))).length;
+  const pill = (on: boolean) => cx("inline-flex min-h-9 items-center gap-1 rounded-full px-3 text-[13.5px] font-bold ring-1 disabled:cursor-default", on ? "bg-[#E8F5EE] text-[#1F7A4D] ring-[#BFE3CE]" : "bg-surface text-muted line-through ring-[#dcdee3]");
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The daily email limit (owner, 2026-10-31): also in Settings › Emails. */}
+      <section aria-labelledby="email-limit" className="rounded-[16px] border border-adm-line bg-surface p-4 sm:p-5">
+        <h3 id="email-limit" className="m-0 text-[17px] font-semibold text-ink">
+          ✉️ {t("admin.notices.limit.title")}
+        </h3>
+        <p className="m-0 mt-1 text-[14px] text-muted">{t("admin.notices.limit.lead")}</p>
+        <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-2">
+          <label className="flex flex-col gap-1 text-[13.5px] font-semibold text-ink">
+            {t("admin.notices.limit.label")}
+            <span className="flex items-center gap-2">
+              <input
+                value={dailyLimit}
+                readOnly={readOnly}
+                inputMode="numeric"
+                onChange={(e) => setDailyLimit(e.target.value)}
+                className={cx(ADM_INPUT, "max-w-[120px]", limitChanged && "ring-2 ring-primary", errors.dailyLimit && "ring-2 ring-danger")}
+                aria-invalid={Boolean(errors.dailyLimit)}
+              />
+              <span className="text-[13.5px] font-medium text-muted">{t("admin.notices.limit.unit")}</span>
+            </span>
+            {errors.dailyLimit && <span className="text-[12.5px] font-semibold text-danger">{t(`admin.notices.errors.${errors.dailyLimit}` as MessageKey)}</span>}
+          </label>
+          <p className={cx("m-0 pb-2 text-[14px] font-semibold", limit.value > 0 && limit.today >= limit.value ? "text-danger" : "text-ink")}>
+            {t("admin.notices.limit.sentToday", { n: limit.value > 0 ? `${limit.today} / ${limit.value}` : String(limit.today) })}
+          </p>
+        </div>
+      </section>
+
       <nav aria-label={t("admin.notices.title")} className="flex flex-wrap gap-2">
         {AUDIENCES.map((a) => (
           <button
@@ -157,7 +210,13 @@ export function NoticesEditor({
               </div>
               <div className="flex flex-wrap gap-2">
                 {r.channels.map((c) =>
-                  r.locked ? (
+                  c === "email" && hasRoleEmails(r) ? (
+                    EMAIL_ROLES.map((role) => (
+                      <button key={role} type="button" role="switch" aria-checked={isOn(r, c) && roleOn(r, role)} disabled={readOnly} onClick={() => toggleRole(r, role)} className={pill(isOn(r, c) && roleOn(r, role))}>
+                        {ICON.email} {t(`admin.notices.roleEmail.${role}`)} · {isOn(r, c) && roleOn(r, role) ? t("admin.notices.on") : t("admin.notices.off")}
+                      </button>
+                    ))
+                  ) : r.locked ? (
                     <span key={c} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-[#F1F2F4] px-3 text-[13.5px] font-semibold text-muted ring-1 ring-[#E6E7EB]">
                       {ICON[c]} {t(`admin.notices.channels.${c}` as MessageKey)} · {t("admin.notices.always")}
                     </span>
@@ -212,7 +271,7 @@ export function NoticesEditor({
               </div>
             )}
 
-            {r.alsoIn === "user" && r.channels.includes("email") && !r.locked && <p className="m-0 mt-2 text-[12.5px] text-muted">{t("admin.notices.alsoUser")}</p>}
+            {(USER_STOPPABLE_ROWS as readonly string[]).includes(r.id) && <p className="m-0 mt-2 text-[12.5px] text-muted">{t("admin.notices.alsoUser")}</p>}
             {r.alsoIn === "unpaid" && (
               <p className="m-0 mt-2 text-[12.5px] text-muted">
                 {t("admin.notices.alsoUnpaid")}{" "}

@@ -22,7 +22,7 @@ export type TimingKey =
   | "timers.files_due_notice_hours"
   | "timers.files_strike_hours"
   | "timers.payout_hold_days"
-  | "timers.new_entry_digest_hours"
+  | "notify.digest_hour"
   | "rewards.claim_reminder_days"
   | "rewards.claim_reminders_max"
   | "notify.chat_email_minutes"
@@ -64,7 +64,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("contest_extended", "designer", ["contest_extended"], ["bell"]),
   row("entry_rated", "designer", ["entry_rated"], ["bell"]),
   row("entry_comment_client", "designer", ["entry_comment_client"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
-  row("entry_shortlisted", "designer", [], ["email"], { email: "entry-shortlisted", alsoIn: "user" }),
+  row("entry_shortlisted", "designer", ["entry_shortlisted"], ["bell", "email"], { email: "entry-shortlisted", alsoIn: "user" }),
   row("entry_rejected", "designer", ["entry_rejected", "entry_removed", "entry_picture_removed"], ["bell"]),
   row("entry_approved", "designer", ["entry_approved"], ["bell"]),
   row("winner_picked", "designer", ["winner_picked"], ["bell", "email"], { email: "contest-won", alsoIn: "user" }),
@@ -72,11 +72,12 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("win_card_ready", "designer", ["win_card_ready"], ["bell", "email"], { email: "notification", alsoIn: "user" }),
   row("files_due", "designer", ["files_due"], ["bell"], { timing: ["timers.files_due_notice_hours"] }),
   row("handover_updates", "designer", ["handover_revision", "handover_approved", "handover_approved_held"], ["bell"]),
-  row("late_files", "designer", ["late_files_strike", "files_missed_banned"], ["bell", "email"], { email: "notification", locked: true, timing: ["timers.files_strike_hours"] }),
+  // Its suspension email is the Account status row's (owner, 2026-10-31), so this row is the bell and the timing only.
+  row("late_files", "designer", ["late_files_strike", "files_missed_banned"], ["bell"], { timing: ["timers.files_strike_hours"] }),
   row("prize_released", "designer", ["prize_released", "no_result_share"], ["bell"], { timing: ["timers.payout_hold_days"] }),
   row("guarantee_designer", "designer", ["guarantee_designers"], ["bell"]),
   row("withdrawals", "designer", ["withdrawal_paid", "withdrawal_rejected"], ["bell"]),
-  row("agreements", "designer", ["agreement_photo_requested", "agreement_rejected"], ["bell", "email"], { email: "notification", locked: true }),
+  row("agreements", "designer", ["agreement_photo_requested", "agreement_rejected"], ["bell", "email"], { email: "notification" }),
   row("pro_checkout_reminder", "designer", ["pro_checkout_reminder"], ["bell", "push"], { timing: ["notify.upgrade_reminder_hours"], alsoIn: "pro" }),
 
   // ---- Pro designers ----
@@ -98,7 +99,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   // it is approved and the contest is live. Old contests get neither (their bell and push are the row above).
   row("onboarding_received", "client", [], ["email"], { email: "notification", alsoIn: "user" }),
   row("onboarding_live", "client", [], ["email"], { email: "notification", alsoIn: "user" }),
-  row("entry_new", "client", ["entry_new"], ["bell", "email"], { email: "client-new-entries", timing: ["timers.new_entry_digest_hours"], alsoIn: "user" }),
+  row("entry_new", "client", ["entry_new"], ["bell", "email"], { email: "client-new-entries", timing: ["notify.digest_hour"], alsoIn: "user" }),
   row("entry_comment_designer", "client", ["entry_comment_designer"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("ending_soon", "client", ["ending_soon", "ending_soon_extend"], ["bell"], { timing: ["timers.ending_soon_notice_hours"] }),
   row("judging_started", "client", ["judging_started"], ["bell", "email"], { email: "client-pick-winner", alsoIn: "user" }),
@@ -117,11 +118,11 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("password_reset", "everyone", [], ["email"], { email: "notification", locked: true }),
   // Admin › Users reminders (owner, 2026-10-22): verify email, add a photo, complete the profile.
   row("profile_reminders", "everyone", ["remind_verify_email", "remind_photo", "remind_profile"], ["bell", "push", "email"], { email: "notification", alsoIn: "user" }),
-  row("account_status", "everyone", ["account_suspended", "account_banned", "account_reactivated"], ["bell", "email"], { email: "notification", locked: true }),
+  row("account_status", "everyone", ["account_suspended", "account_banned", "account_reactivated"], ["bell", "email"], { email: "notification" }),
   row("handover_message", "everyone", ["handover_message"], ["bell", "email"], { email: "chat-message", timing: CHAT, alsoIn: "user" }),
   row("comments", "everyone", ["entry_comment_other", "contest_comment"], ["bell"]),
   row("contest_cancelled", "everyone", ["contest_cancelled", "contest_cancelled_client"], ["bell"]),
-  row("logo_check_ready", "everyone", [], ["email"], { email: "logo-check-ready", alsoIn: "user" }),
+  row("logo_check_ready", "everyone", ["logo_check_ready"], ["bell", "email"], { email: "logo-check-ready", alsoIn: "user" }),
   row("copy_claims", "everyone", ["claim_opened", "claim_rejected_client", "claim_rejected_designer", "claim_correction_client", "claim_correction_designer", "claim_upheld_client", "claim_fined", "claim_banned"], ["bell"]),
   row("moderation", "everyone", ["flag_warning", "report_upheld", "report_dismissed"], ["bell"]),
   row("monthly_won", "everyone", ["monthly_smartphone_won", "monthly_gift_box_won"], ["bell", "email"], { email: "notification", alsoIn: "user" }),
@@ -185,12 +186,36 @@ export function parseChannelsOff(raw: unknown): ChannelsOff {
   return out;
 }
 
-/** Whether this row goes out this way. Locked rows and unknown ids always do. */
-export function channelOn(off: ChannelsOff, id: string | undefined, channel: Channel): boolean {
+/** Whether this row goes out this way. Locked rows and unknown ids always do. With a role, an "everyone" row's email
+ * also has to be on for that role (RoleEmailsOff). */
+export function channelOn(off: ChannelsOff, id: string | undefined, channel: Channel, role?: { off: RoleEmailsOff; role: string | null }): boolean {
   if (!id) return true;
   const r = BY_ID.get(id);
   if (!r || r.locked) return true;
-  return !(off[id] ?? []).includes(channel);
+  if ((off[id] ?? []).includes(channel)) return false;
+  if (channel === "email" && role && hasRoleEmails(r) && (role.role === "client" || role.role === "designer")) return !role.off[role.role].includes(id);
+  return true;
+}
+
+// ---- Emails by role (owner, 2026-10-31) ---------------------------------------------------------------------------
+
+/** The roles an "everyone" row's email can be turned on or off for, one tick each. */
+export const EMAIL_ROLES = ["client", "designer"] as const;
+export type EmailRole = (typeof EMAIL_ROLES)[number];
+/** Row ids whose email is off for clients, and for designers. */
+export type RoleEmailsOff = Record<EmailRole, string[]>;
+
+/** The rows whose email each person can still stop with its Unsubscribe link (owner, 2026-10-31; email/catalog.ts). */
+export const USER_STOPPABLE_ROWS = ["entry_new", "monthly_claim_reminder"] as const;
+
+/** Rows for everyone with an email that can be turned off: one email tick for clients and one for designers. */
+export const hasRoleEmails = (r: NoticeRow) => r.audience === "everyone" && r.channels.includes("email") && !r.locked;
+
+/** The saved ticks, cleaned: only rows that have them. */
+export function parseRoleEmailsOff(raw: unknown): RoleEmailsOff {
+  const r = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const one = (v: unknown) => [...new Set((Array.isArray(v) ? v : []).filter((id): id is string => typeof id === "string" && Boolean(BY_ID.get(id) && hasRoleEmails(BY_ID.get(id)!))))];
+  return { client: one(r.client), designer: one(r.designer) };
 }
 
 /** Whether this notification type goes out this way (bell or push). */

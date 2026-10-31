@@ -222,7 +222,8 @@ const admins = () => [
 
 beforeEach(() => {
   db.tables = { profiles: admins() };
-  db.settings = {};
+  // Off by default since the owner's email plan (2026-10-31); these tests are about a team that turned the first one on.
+  db.settings = { "notify.unpaid_reminders": { first: true, last: false } };
   db.down = new Set();
   who.admin = { id: "m1", locale: "en" };
   who.perm = ["unpaid.view", "unpaid.manage"];

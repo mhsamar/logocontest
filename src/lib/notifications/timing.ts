@@ -6,7 +6,7 @@ import type { TimingKey } from "./admin-catalog";
  * ("12, 6" for two reminders). Each is checked against its setting's own rules. Pure.
  */
 
-export type TimingUnit = "minutes" | "hours" | "days" | "times";
+export type TimingUnit = "minutes" | "hours" | "days" | "times" | "clock";
 
 export const TIMING_INFO: Record<TimingKey, { unit: TimingUnit; list: boolean }> = {
   "timers.designer_ending_notice_hours": { unit: "hours", list: true },
@@ -15,7 +15,8 @@ export const TIMING_INFO: Record<TimingKey, { unit: TimingUnit; list: boolean }>
   "timers.files_due_notice_hours": { unit: "hours", list: false },
   "timers.files_strike_hours": { unit: "hours", list: false },
   "timers.payout_hold_days": { unit: "days", list: false },
-  "timers.new_entry_digest_hours": { unit: "hours", list: false },
+  // An hour of the day, Bangladesh time (owner, 2026-10-31).
+  "notify.digest_hour": { unit: "clock", list: false },
   "rewards.claim_reminder_days": { unit: "days", list: false },
   "rewards.claim_reminders_max": { unit: "times", list: false },
   "notify.chat_email_minutes": { unit: "minutes", list: false },

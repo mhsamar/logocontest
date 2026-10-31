@@ -25,8 +25,10 @@ export async function emailUser(userId: string, kind: MailKind, params: { reason
   const t = await translatorFor(lang);
   const until = params.until ? new Date(params.until).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "";
   const s = await getSettings(["timers.strike_expiry_days", "limits.strikes_for_ban"]);
-  // A security email (owner, 2026-10-15): always sent, no Unsubscribe.
+  // A security email (owner, 2026-10-15): no Unsubscribe and no daily limit. Admin › Notifications › Account status
+  // decides who gets it by email (owner, 2026-10-31: clients yes, designers in the bell only).
   await emailText({
+    notice: "account_status",
     userId,
     email: p.email as string,
     locale: lang,

@@ -77,7 +77,8 @@ export function followUpWays(send: UnpaidAlerts["send"], remindBy: RemindWay[] |
 
 // ---- Automatic reminders to the client --------------------------------------------------------------------------------
 
-export const remindersSchema = z.object({ first: on(true), last: on(false) });
+// Both off since the owner's email plan (2026-10-31): unpaid clients get no email unless the team turns one on here.
+export const remindersSchema = z.object({ first: on(false), last: on(false) });
 export type UnpaidReminders = z.infer<typeof remindersSchema>;
 export const DEFAULT_REMINDERS: UnpaidReminders = remindersSchema.parse({});
 

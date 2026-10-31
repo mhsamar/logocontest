@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { chatEmailDue, digestDue, isEmailKey } from "@/lib/email/catalog";
 import { MESSAGES } from "@/lib/i18n/messages";
-import { AUDIENCES, channelOn, NOTICE_ROWS, parseChannelsOff, RETIRED_TYPES, rowOfType, twoSlots, typeOn } from "@/lib/notifications/admin-catalog";
+import { AUDIENCES, channelOn, hasRoleEmails, NOTICE_ROWS, parseChannelsOff, parseRoleEmailsOff, RETIRED_TYPES, rowOfType, twoSlots, typeOn } from "@/lib/notifications/admin-catalog";
 import { parseTiming, TIMING_INFO, timingLabelKey, timingText } from "@/lib/notifications/timing";
 import { NOTIFICATION_TYPES } from "@/lib/notifications/types";
 import { renewalReminderDue } from "@/lib/pro/rules";
+import { DEFAULT_REMINDERS } from "@/lib/admin/unpaid-alert-rules";
 import { SETTINGS } from "@/lib/settings/registry";
 
 const text = (locale: "en" | "bn", key: string): unknown => key.split(".").reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Record<string, unknown>)[k] : undefined), MESSAGES[locale]);
@@ -52,11 +53,47 @@ describe("Admin › Notifications catalog (owner, 2026-10-15)", () => {
     for (const k of ["payment.body", "payment.bodyQa", "withdrawal.body"]) expect(holes(text("en", `admin.alerts.${k}`)), k).toContain("link");
   });
 
-  it("codes and security notices are always on", () => {
-    for (const id of ["email_code", "password_reset", "account_status", "late_files", "agreements"]) expect(NOTICE_ROWS.find((r) => r.id === id)?.locked, id).toBe(true);
-    const off = parseChannelsOff({ email_code: ["email"], account_status: ["bell", "email"] });
-    expect(off).toEqual({});
-    expect(channelOn({ account_status: ["bell"] }, "account_status", "bell")).toBe(true);
+  // Owner, 2026-10-31: codes and password resets stay locked; account status, late files and agreements can be turned
+  // off (designers get them in the bell only).
+  it("codes and password resets are always on", () => {
+    for (const id of ["email_code", "password_reset"]) expect(NOTICE_ROWS.find((r) => r.id === id)?.locked, id).toBe(true);
+    for (const id of ["account_status", "late_files", "agreements"]) expect(NOTICE_ROWS.find((r) => r.id === id)?.locked, id).toBeUndefined();
+    expect(parseChannelsOff({ email_code: ["email"], password_reset: ["email"] })).toEqual({});
+    expect(channelOn({ email_code: ["email"] }, "email_code", "email")).toBe(true);
+  });
+
+  it("notices for everyone have an email tick for clients and one for designers", () => {
+    const off = parseRoleEmailsOff({ client: ["welcome", "welcome", "email_code", "contest_new", "nope"], designer: "x" });
+    expect(off).toEqual({ client: ["welcome"], designer: [] });
+    const role = (r: string | null) => ({ off: { client: ["welcome"], designer: ["account_status"] }, role: r });
+    expect(channelOn({}, "welcome", "email", role("client"))).toBe(false);
+    expect(channelOn({}, "welcome", "email", role("designer"))).toBe(true);
+    expect(channelOn({}, "account_status", "email", role("designer"))).toBe(false);
+    expect(channelOn({}, "account_status", "email", role("client"))).toBe(true);
+    // Admins and addresses without an account aren't affected; nor is the bell.
+    expect(channelOn({}, "account_status", "email", role("admin"))).toBe(true);
+    expect(channelOn({}, "account_status", "email", role(null))).toBe(true);
+    expect(channelOn({}, "account_status", "bell", role("designer"))).toBe(true);
+    // The row's own email switch still wins.
+    expect(channelOn({ welcome: ["email"] }, "welcome", "email", role("designer"))).toBe(false);
+    expect(NOTICE_ROWS.filter(hasRoleEmails).every((r) => r.audience === "everyone" && !r.locked)).toBe(true);
+  });
+
+  it("the owner's email plan (2026-10-31) is the default", () => {
+    const off = parseChannelsOff(SETTINGS["notifications.channels"].default);
+    const roles = parseRoleEmailsOff(SETTINGS["notifications.role_emails"].default);
+    const to = (id: string, r: "client" | "designer") => channelOn(off, id, "email", { off: roles, role: r });
+    // Clients: codes, password reset, the bKash emails, the daily new-designs email, pick a winner, monthly prizes,
+    // the team's reminders and account status.
+    for (const id of ["email_code", "password_reset", "onboarding_received", "onboarding_live", "entry_new", "judging_started", "monthly_won", "monthly_claim_reminder", "profile_reminders", "account_status"]) expect(to(id, "client"), id).toBe(true);
+    for (const id of ["welcome", "entry_comment_designer", "unpaid_reminders", "guarantee", "handover_message", "logo_check_ready"]) expect(to(id, "client"), id).toBe(false);
+    // The unpaid reminders are also off where the team runs them, Admin › Unpaid contests, so both pages say so.
+    expect(DEFAULT_REMINDERS).toEqual({ first: false, last: false });
+    // Designers: codes, welcome, password reset, won, win card, the Pro plan's emails; new contests for Pro only.
+    for (const id of ["email_code", "welcome", "password_reset", "winner_picked", "win_card_ready", "contest_new", "contest_new_pro", "pro_activated", "pro_renew", "pro_expired", "pro_trial"]) expect(to(id, "designer"), id).toBe(true);
+    for (const id of ["contest_ending", "entry_comment_client", "entry_shortlisted", "agreements", "account_status", "pro_invited", "pro_message", "pro_weekly", "handover_message", "logo_check_ready", "monthly_won", "monthly_claim_reminder", "profile_reminders"]) expect(to(id, "designer"), id).toBe(false);
+    expect(SETTINGS["notifications.designer_emails"].default).toEqual({ basic: ["contest-new"], pro: [] });
+    expect(SETTINGS["email.daily_limit"].default).toBe(100);
   });
 
   it("the saved switches are cleaned, and each way of a notice is switched on its own", () => {
@@ -87,17 +124,18 @@ describe("timings typed on Admin › Notifications", () => {
     expect(parseTiming("notify.chat_email_minutes", "10, 20")).toEqual({ ok: false, error: "one" });
     expect(parseTiming("notify.chat_email_minutes", "0")).toEqual({ ok: false, error: "range" });
     expect(parseTiming("notify.pro_renewal_days", "7, 3, 1")).toEqual({ ok: false, error: "range" });
-    expect(parseTiming("timers.new_entry_digest_hours", "")).toEqual({ ok: false, error: "number" });
-    expect(parseTiming("timers.new_entry_digest_hours", "-3")).toEqual({ ok: false, error: "number" });
+    expect(parseTiming("notify.digest_hour", "")).toEqual({ ok: false, error: "number" });
+    expect(parseTiming("notify.digest_hour", "24")).toEqual({ ok: false, error: "range" });
+    expect(parseTiming("notify.digest_hour", "0")).toEqual({ ok: true, value: 0 });
   });
 
-  it("the new-designs email is once a day at first, and chat emails every 30 minutes", () => {
-    expect(SETTINGS["timers.new_entry_digest_hours"].default).toBe(24);
+  it("the new-designs email goes at 7 pm at first, and chat emails every 30 minutes", () => {
+    expect(SETTINGS["notify.digest_hour"].default).toBe(19);
     expect(SETTINGS["notify.chat_email_minutes"].default).toBe(30);
     const now = new Date("2026-10-15T12:00:00Z");
     const ago = (min: number) => new Date(now.getTime() - min * 60_000);
-    expect(digestDue(ago(3 * 60), 2, now, 3 * 3_600_000)).toBe(true);
-    expect(digestDue(ago(3 * 60), 2, now)).toBe(false);
+    expect(digestDue(ago(30 * 60), 2, now, 17)).toBe(true);
+    expect(digestDue(ago(30 * 60), 2, now)).toBe(false);
     expect(chatEmailDue(ago(10), now, 10 * 60_000)).toBe(true);
     expect(chatEmailDue(ago(10), now)).toBe(false);
   });

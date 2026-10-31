@@ -8,10 +8,11 @@ import { parseCompletion } from "@/lib/onboarding/brief-defaults";
 import { onboardingV2On } from "@/lib/onboarding/v2-steps";
 import { getService } from "@/lib/services/store";
 import { getSettings } from "@/lib/settings";
+import { notify } from "@/lib/notifications";
 import { isOwnUrl, ownOrigins } from "@/lib/site-hosts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
-import { chatEmailDue, digestDue, spanText, taka } from "./catalog";
+import { chatEmailDue, digestDue, digestTime, spanText, taka } from "./catalog";
 import { imageToken } from "./links";
 import { V2_NOTICE, v2Mail, type V2MailContest } from "./onboarding-v2";
 import { previewOf } from "./render";
@@ -175,11 +176,22 @@ async function entryInfo(entryId: string): Promise<EntryInfo | null> {
   return contest ? { id: e.id as string, number: e.number as number, designerId: e.designer_id as string, preview: firstPreview(e.images), contest } : null;
 }
 
-/** The client shortlisted a design (once per design, even if it is taken off and put back). */
+/**
+ * The client shortlisted a design (once per design, even if it is taken off and put back): in the bell (owner,
+ * 2026-10-31), and by email while Admin › Notifications has it on.
+ */
 export async function emailShortlisted(entryId: string): Promise<void> {
   await safe("entry-shortlisted", async () => {
     const e = await entryInfo(entryId);
-    if (!e || (await lastSent(e.designerId, "entry-shortlisted", `shortlist:${e.id}`))) return;
+    if (!e) return;
+    const link = `/contest/${e.contest.slug}?tab=entries&entry=${e.number}`;
+    const { count } = await db().from("notifications").select("id", { count: "exact", head: true }).eq("user_id", e.designerId).eq("type", "entry_shortlisted").eq("link", link);
+    if (!count) {
+      // The designer knows the brand (they designed for it), so the bell names it even for a private contest, like the others.
+      const { data: c } = await db().from("contests").select("brand_name").eq("id", e.contest.id).maybeSingle();
+      await notify([e.designerId], "entry_shortlisted", { brand: (c?.brand_name as string | null) ?? e.contest.title, number: e.number }, link);
+    }
+    if (await lastSent(e.designerId, "entry-shortlisted", `shortlist:${e.id}`)) return;
     const origin = await emailOrigin();
     await sendEmail({
       key: "entry-shortlisted",
@@ -237,19 +249,22 @@ export async function emailPickWinner(contestId: string, pickDays: number): Prom
 }
 
 /**
- * The daily digest of new designs (lifecycle job): each open contest's client, at most once a day per contest and only
- * when designs came in since the last one. Returns how many were sent.
+ * The daily digest of new designs (lifecycle job, every 15 minutes): each open contest's client, once a day from the
+ * digest hour (owner, 2026-10-31: 7 pm Bangladesh time, Admin › Notifications), with every design since the last one,
+ * and only when there are some. Returns how many were sent.
  */
 export async function sendClientDigests(now: Date = new Date()): Promise<number> {
   return (
     (await safe("client-new-entries", async () => {
       const { data: contests } = await db().from("contests").select("id, client_id, starts_at").in("status", ["open", "judging"]).is("deleted_at", null);
-      // At most one per contest in this many hours (Admin › Notifications; 24 = once a day).
-      const gapHours = (await getSettings(["timers.new_entry_digest_hours"]))["timers.new_entry_digest_hours"];
+      const hour = (await getSettings(["notify.digest_hour"]))["notify.digest_hour"];
+      if (now < digestTime(now, hour)) return 0;
       let sent = 0;
       for (const row of contests ?? []) {
         const ref = `digest:${row.id}`;
         const last = await lastSent(row.client_id as string, "client-new-entries", ref);
+        // Today's went already.
+        if (last && last >= digestTime(now, hour)) continue;
         const since = last ?? (row.starts_at ? new Date(row.starts_at as string) : new Date(0));
         const { data: fresh } = await db()
           .from("entries")
@@ -257,8 +272,10 @@ export async function sendClientDigests(now: Date = new Date()): Promise<number>
           .eq("contest_id", row.id)
           .in("status", SHOWN_STATUSES)
           .gt("created_at", since.toISOString())
+          // Up to today's digest time: a design that comes in later waits for tomorrow's email, so it never goes late at night.
+          .lte("created_at", digestTime(now, hour).toISOString())
           .order("created_at", { ascending: false });
-        if (!digestDue(last, fresh?.length ?? 0, now, gapHours * 3_600_000)) continue;
+        if (!digestDue(last, fresh?.length ?? 0, now, hour)) continue;
         const c = await contestCard(row.id as string);
         if (!c) continue;
         const [{ count: total }, { count: checked }] = await Promise.all([
@@ -354,7 +371,10 @@ export async function emailChat(input: { to: string; senderName: string; contest
 
 const LEVEL: Record<Verdict, string> = { no_match: "No close match", similar: "Similar logos found", high_risk: "High risk" };
 
-/** A logo check finished (not the quick check a designer runs while sending a design: they are on the page). */
+/**
+ * A logo check finished (not the quick check a designer runs while sending a design: they are on the page): in the bell
+ * (owner, 2026-10-31), and by email while Admin › Notifications has it on.
+ */
 export async function emailCheckReady(checkId: string): Promise<void> {
   await safe("logo-check-ready", async () => {
     const { data: k } = await db()
@@ -371,6 +391,7 @@ export async function emailCheckReady(checkId: string): Promise<void> {
       const { designerCheckUsage } = await import("@/lib/pro/logo-checks");
       checksLeft = String((await designerCheckUsage(k.requested_by as string)).left);
     }
+    await notify([k.requested_by as string], "logo_check_ready", entry ? { number: entry.number } : {}, "/dashboard/logo-checks");
     const origin = await emailOrigin();
     await sendEmail({
       key: "logo-check-ready",

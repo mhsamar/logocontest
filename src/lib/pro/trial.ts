@@ -58,7 +58,8 @@ export async function startTrial(designerId: string, by: { kind: "designer" } | 
   const actor = by.kind === "admin" ? by.adminId : designerId;
   await event(trial, "started", actor, { days: settings.freeTrialDays, by: by.kind });
   await logProActivity(actor, by.kind === "admin" ? "admin_started_trial" : "trial_started", designerId, null, { until: trial.endsAt.toISOString() });
-  await tellDesigner(designerId, "pro_trial_started", { days: settings.freeTrialDays }, "/dashboard");
+  // By email too (owner, 2026-10-31: trial emails for start, ending, end and extra days).
+  await tellDesigner(designerId, "pro_trial_started", { days: settings.freeTrialDays }, "/dashboard", { subject: "pro.mail.trialStarted.subject", body: "pro.mail.trialStarted.body", params: { days: settings.freeTrialDays } });
   return { ok: true, trial };
 }
 
@@ -76,7 +77,7 @@ export async function cancelTrial(designerId: string, by: { kind: "designer" } |
   const actor = by.kind === "admin" ? by.adminId : designerId;
   await event(trial, "cancelled", actor, { by: by.kind });
   await logProActivity(actor, by.kind === "admin" ? "admin_cancelled_trial" : "trial_cancelled", designerId, { status: "active" }, { status: "cancelled" });
-  await tellDesigner(designerId, "pro_trial_ended", {}, "/pro");
+  await tellDesigner(designerId, "pro_trial_ended", {}, "/pro", { subject: "pro.mail.trialEnded.subject", body: "pro.mail.trialEnded.body" });
   return true;
 }
 
@@ -95,7 +96,7 @@ export async function extendTrial(designerId: string, days: number, adminId: str
   const next = toTrial(data as Record<string, unknown>);
   await event(next, "extended", adminId, { days, until: until.toISOString(), was: t.status });
   await logProActivity(adminId, "admin_extended_trial", designerId, { status: t.status, until: t.endsAt.toISOString() }, { status: "active", until: until.toISOString() });
-  await tellDesigner(designerId, "pro_trial_extended", { days }, "/dashboard");
+  await tellDesigner(designerId, "pro_trial_extended", { days }, "/dashboard", { subject: "pro.mail.trialExtended.subject", body: "pro.mail.trialExtended.body", params: { days } });
   return next;
 }
 

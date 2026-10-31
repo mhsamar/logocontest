@@ -7,14 +7,14 @@ import { designerEmailsOff, noticeOn } from "@/lib/notifications/switches";
 import { isPro } from "@/lib/pro/status";
 import { linkOrigin } from "@/lib/site-origin";
 import { getEmailSender } from "./index";
-import { isDesignerEmail, isOptionalKey, parseEmailOff, shouldSend, tierAllows, type EmailKey } from "./catalog";
+import { isDesignerEmail, parseEmailOff, shouldSend, tierAllows, userMayStop, type EmailKey } from "./catalog";
 import { unsubscribeQuery } from "./links";
 import { render, type EmailData } from "./render";
 import { EmailSendError } from "./types";
 
 /**
- * Sending one designed email (owner, 2026-10-15). In order: the person's Email settings (codes and security emails
- * always go), the daily limit (Settings › Emails), the shared parts (logo, links, Unsubscribe), then Resend with up
+ * Sending one designed email (owner, 2026-10-15). In order: the person's Email settings (only for the emails they may
+ * stop), Admin › Notifications, the daily limit (Settings › Emails), the shared parts (logo, links, Unsubscribe), then Resend with up
  * to 3 retries, and a row in email_log either way. Never throws: it says "sent", "failed" or "skipped".
  */
 
@@ -91,8 +91,8 @@ async function log(row: { user_id: string | null; template: EmailKey; ref: strin
   if (error) console.error("[email] log:", error.message);
 }
 
-/** Emails (not codes or security emails) sent today, for the daily limit. */
-async function sentToday(now: Date): Promise<number> {
+/** Emails (not codes or security emails) sent today, for the daily limit and Admin › Notifications. */
+export async function sentToday(now: Date): Promise<number> {
   const { count } = await createAdminClient()
     .from("email_log")
     .select("id", { count: "exact", head: true })
@@ -138,7 +138,9 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
     };
     if (!p.email) return skip("no_email");
     if (p.gone && !security) return skip("deleted");
-    if (!shouldSend(key, p.off, security)) return skip("off");
+    const notice = input.notice ?? NOTICE_OF[key];
+    // Owner, 2026-10-31: only the new-designs email and the prize claim reminders can be stopped by the person.
+    if (!shouldSend(key, p.off, security, notice)) return skip("off");
     // Designer emails by plan (owner, 2026-10-15): Admin › Notifications sets which go to Basic and to Pro designers.
     if (!security && p.role === "designer" && p.id && isDesignerEmail(key)) {
       const tiers = await designerEmailsOff();
@@ -147,14 +149,16 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
         if (!tierAllows(tiers, tier, key)) return skip(`${tier}_off`);
       }
     }
-    if (!security && !(await noticeOn(input.notice ?? NOTICE_OF[key], "email"))) return skip("admin_off");
+    // Admin › Notifications, for this person's role too (owner, 2026-10-31). Security emails with a row the owner can
+    // turn off (account status, agreements) follow it as well; codes and password resets have none and always go.
+    if (!(await noticeOn(notice, "email", p.role))) return skip("admin_off");
     if (!security && isSupabaseConfigured()) {
       const limit = (await getSettings(["email.daily_limit"]))["email.daily_limit"];
       if (limit > 0 && (await sentToday(new Date())) >= limit) return skip("limit");
     }
 
     const origin = await emailOrigin();
-    const unsub = !security && p.id && isOptionalKey(key) ? unsubscribeQuery(requireEnv("OTP_SECRET"), p.id, key) : null;
+    const unsub = !security && p.id && userMayStop(key, notice) ? unsubscribeQuery(requireEnv("OTP_SECRET"), p.id, key) : null;
     const data: EmailData = {
       ...(await shared(origin)),
       email: p.email,

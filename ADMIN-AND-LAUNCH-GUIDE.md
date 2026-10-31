@@ -284,6 +284,22 @@ Every number you can change without code: fees and fee tiers, package prices, ad
 judging days, reminders, file deadline, claim days, 12h/6h notices…), limits, social links, WhatsApp number, live chat.
 Change a value, write a reason, **Save changes**. Changes apply at once and are logged.
 
+### 13a. Notifications (who gets which email)
+**Admin › Notifications.** Every notice the site sends, one row each, with a tick for each way it goes (🔔 bell in the
+site, 📲 phone push, ✉️ email) and its timings. Rows for everyone have two email ticks: one for clients, one for
+designers. Designer emails also have a Basic / Pro table at the top. A new kind of notice appears here as a new row with
+its own ticks. At the top, **Emails a day**: the daily limit (login codes and security emails don't count) and how many
+went today; once it is reached the rest don't go that day, but still show in the bell.
+Your plan (2026-10-31), the defaults:
+- **Clients by email:** login code, password reset, bKash payment received / contest live, new designs once a day at
+  7 pm (every design since the last email; the time is on the row), pick a winner, monthly prize and its claim
+  reminders, the team's reminders from Admin › Users, account suspended / banned / back.
+- **Designers by email:** login code, welcome, password reset, won, win card ready; **Pro only:** new contests (an hour
+  early), Pro receipt, renewal reminders (7 and 1 days before), Pro ended, trial emails.
+- Everything else is in the bell (and push where it has one). Only the new-designs email and the claim reminders can be
+  stopped by the person (Unsubscribe); the rest go whatever their settings say. The automatic reminders to unpaid
+  clients are off, both on their row here and in Admin › Unpaid contests (turn on both to send them).
+
 ### 14. Audit log
 A read-only list of every admin action: who, what, when, and the details. Filter by action.
 

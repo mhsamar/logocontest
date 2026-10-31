@@ -77,10 +77,16 @@ export function parseTierOff(raw: unknown): TierOff {
 /** Whether a designer on this plan gets this email (emails that aren't designer emails are not affected). */
 export const tierAllows = (off: TierOff, tier: DesignerTier, key: EmailKey) => !isDesignerEmail(key) || !off[tier].includes(key);
 
-/** Whether this email goes out: codes and security emails always do; the rest unless the person turned it off. */
-export function shouldSend(key: EmailKey, off: readonly string[], security = false): boolean {
+/**
+ * The emails a person can stop themselves (owner, 2026-10-31): the daily new-designs email and the monthly prize claim
+ * reminders. Everything else the owner sends goes whatever the person's Email settings say, and has no Unsubscribe.
+ */
+export const userMayStop = (key: EmailKey, notice?: string) => key === "client-new-entries" || (key === "notification" && notice === "monthly_claim_reminder");
+
+/** Whether this email goes out: codes and security emails always do; the rest unless the person may stop it and did. */
+export function shouldSend(key: EmailKey, off: readonly string[], security = false, notice?: string): boolean {
   if (key === "otp" || security) return true;
-  return !off.includes(key);
+  return !(userMayStop(key, notice) && off.includes(key));
 }
 
 /** The saved list of emails a person turned off, cleaned. */
@@ -91,12 +97,18 @@ export function parseEmailOff(raw: unknown): OptionalKey[] {
 /** Chat emails (owner, 2026-10-15): at most one per conversation every 30 minutes. */
 export const CHAT_EMAIL_GAP_MS = 30 * 60_000;
 
-/** The new-designs digest goes to a client at most once a day per contest (Admin › Notifications can change it), and only when there is something new. */
-export const DIGEST_GAP_MS = 24 * 3_600_000;
+/** The new-designs email (owner, 2026-10-31): once a day at this hour, Bangladesh time (Admin › Notifications). */
+export const DIGEST_HOUR = 19;
+const DHAKA_MS = 6 * 3_600_000;
 
-export function digestDue(lastSentAt: Date | null, newCount: number, now: Date, gapMs: number = DIGEST_GAP_MS): boolean {
+/** Today's digest time: this hour of today in Bangladesh. */
+export const digestTime = (now: Date, hour: number = DIGEST_HOUR) => new Date(Math.floor((now.getTime() + DHAKA_MS) / 86_400_000) * 86_400_000 - DHAKA_MS + hour * 3_600_000);
+
+/** Due once today's digest time has come, when today's isn't sent yet and designs came in since the last one. */
+export function digestDue(lastSentAt: Date | null, newCount: number, now: Date, hour: number = DIGEST_HOUR): boolean {
   if (newCount <= 0) return false;
-  return !lastSentAt || now.getTime() - lastSentAt.getTime() >= gapMs;
+  const at = digestTime(now, hour);
+  return now >= at && (!lastSentAt || lastSentAt < at);
 }
 
 /** True when nothing was sent for this conversation within the gap (30 minutes unless Admin › Notifications says otherwise). */

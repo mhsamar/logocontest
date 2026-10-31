@@ -125,7 +125,8 @@ const v2Draft = (id: string, client: string, more: Row = {}): Row => ({ id, bran
 
 beforeEach(() => {
   db.tables = { profiles: [{ id: "m1", role: "admin", status: "active", locale: "en", email: "m1@example.com" }] };
-  db.settings = {};
+  // Off by default since the owner's email plan (2026-10-31); these tests are about a team that turned the first one on.
+  db.settings = { "notify.unpaid_reminders": { first: true, last: false } };
   db.missing = new Set();
   sent.push = [];
   sent.email = [];

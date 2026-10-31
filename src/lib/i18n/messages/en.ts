@@ -1237,6 +1237,8 @@ const en = {
       entry_rejected: "Your design #{number} for {brand} was rejected",
       winner_picked: "You won the {brand} contest with design #{number}!",
       win_card_ready: "Your win card is ready. Download it or share it.",
+      entry_shortlisted: "The client shortlisted your design #{number} for {brand}",
+      logo_check_ready: "Your logo check report is ready.",
       monthly_smartphone_won: "You won the gift box for {month}! Claim your prize.",
       monthly_gift_box_won: "You won the mystery gift box for {month}! Claim your prize.",
       monthly_review: "The {month} prize winners are ready. Approve them to send the cards.",
@@ -4261,13 +4263,22 @@ const en = {
       alsoUnpaid: "Which events alert, pop-up, sound and quiet hours (or which reminders go) are set in Unpaid contests.",
       changeInUnpaid: "Change in Unpaid contests",
       alsoUser: "Each person can still stop this email with the Unsubscribe link in it.",
+      roleEmail: { client: "Email · clients", designer: "Email · designers" },
+      limit: {
+        title: "Emails a day",
+        lead: "The most emails the site sends in a day (Bangladesh time), not counting login codes and security emails. Once it is reached, the rest don't go that day; they still show in the bell.",
+        label: "Daily limit",
+        unit: "emails (0 = no limit)",
+        sentToday: "Sent today: {n}",
+        invalid: "Write the daily limit as a whole number: 0 (no limit) up to 100000.",
+      },
       tiers: {
         title: "Designer emails by plan",
         lead: "Choose which emails Basic and Pro designers get. Only the ones that are on are sent. Designers can't change this themselves.",
         email: "Email",
         basic: "Basic",
         pro: "Pro",
-        note: "An email turned off for a notice below stays off for everyone. Each email still carries an Unsubscribe link (Gmail and other inboxes require it), so a designer can stop one kind of email for themselves.",
+        note: "An email turned off for a notice below stays off for everyone. Designers can't stop the emails you send them; only the clients' daily new-designs email and the prize claim reminders have an Unsubscribe link.",
       },
       alsoProOn: "It also needs Auto reminder on in Admin › Pro plan (it is on now).",
       alsoProOff: "Auto reminder is off in Admin › Pro plan, so this doesn't go out now.",
@@ -4281,6 +4292,7 @@ const en = {
         hours: "hours",
         days: "days",
         times: "times",
+        clock: "o'clock (0–23)",
       },
       errors: {
         number: "Type whole numbers only.",
@@ -4302,7 +4314,7 @@ const en = {
         },
         everyone: {
           label: "Everyone",
-          lead: "Clients and designers alike.",
+          lead: "Clients and designers alike. Each email has one tick for clients and one for designers.",
         },
         admin: {
           label: "Admins",
@@ -4316,7 +4328,7 @@ const en = {
         timers_files_due_notice_hours: "Hours before the file deadline",
         timers_files_strike_hours: "Hours after winning",
         timers_payout_hold_days: "Days after the client approves",
-        timers_new_entry_digest_hours: "Email at most once every",
+        notify_digest_hour: "Email every day at (Bangladesh time)",
         rewards_claim_reminder_days: "Remind every",
         rewards_claim_reminders_max: "At most",
         notify_chat_email_minutes: "Chat email gap",
@@ -4361,7 +4373,7 @@ const en = {
         },
         entry_shortlisted: {
           label: "Design shortlisted",
-          when: "When the client shortlists their design. Email only, once per design.",
+          when: "When the client shortlists their design, once per design.",
         },
         entry_rejected: {
           label: "Design rejected or removed",
@@ -4393,7 +4405,7 @@ const en = {
         },
         late_files: {
           label: "Late final files: suspension",
-          when: "When the winner hasn't sent the first files in time. A security notice, always sent. Changing the hours changes the rule itself.",
+          when: "When the winner hasn't sent the first files in time. The suspension email follows Account status (Everyone tab). Changing the hours changes the rule itself.",
         },
         prize_released: {
           label: "Prize in wallet",
@@ -4409,7 +4421,7 @@ const en = {
         },
         agreements: {
           label: "ID check",
-          when: "When an admin asks for a new ID photo or rejects it. A security notice, always sent.",
+          when: "When an admin asks for a new ID photo or rejects it.",
         },
         pro_checkout_reminder: {
           label: "Upgrade reminder",
@@ -4473,7 +4485,7 @@ const en = {
         },
         entry_new: {
           label: "New designs",
-          when: "Bell at once for each new design. The email sums them up, at most once per contest in the time below.",
+          when: "Bell at once for each new design. The email sums up every design since the last one, once a day at the time below.",
         },
         entry_comment_designer: {
           label: "Designer reply",
@@ -4513,7 +4525,7 @@ const en = {
         },
         account_status: {
           label: "Suspended, banned or active again",
-          when: "With the reason. Always sent.",
+          when: "With the reason.",
         },
         handover_message: {
           label: "Final files chat",
@@ -4529,7 +4541,7 @@ const en = {
         },
         logo_check_ready: {
           label: "Logo check ready",
-          when: "When a logo check they ran is finished. Email only.",
+          when: "When a logo check they ran is finished.",
         },
         copy_claims: {
           label: "Copy claims",

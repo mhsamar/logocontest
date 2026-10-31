@@ -73,6 +73,9 @@ export const NOTIFICATION_TYPES = [
   "entry_picture_removed",
   // Owner, 2026-10-11: the designer's contest win card is ready.
   "win_card_ready",
+  // Owner, 2026-10-31: these were emails only; now they are in the bell, and by email only if Admin › Notifications says.
+  "entry_shortlisted",
+  "logo_check_ready",
   "monthly_smartphone_won",
   "monthly_gift_box_won",
   "monthly_review",
