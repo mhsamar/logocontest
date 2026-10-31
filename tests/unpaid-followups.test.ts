@@ -291,6 +291,8 @@ vi.mock("@/lib/admin/core", () => ({
 vi.mock("@/lib/admin/recipients", () => ({ adminIdsWith: async () => ["a1", "a2"] }));
 const purged = vi.hoisted(() => [] as string[]);
 vi.mock("@/lib/admin/trash", () => ({ purgeUser: async (id: string) => void purged.push(id) }));
+const stepOne = vi.hoisted(() => ({ account: null as null | { id: string; email: string | null } }));
+vi.mock("@/lib/admin/leads", async (orig) => ({ ...(await orig<Record<string, unknown>>()), stepOneAccount: async () => stepOne.account }));
 vi.mock("@/lib/settings", () => ({ getSettings: async () => ({ "notify.followup_due_minutes": 10 }) }));
 // The resume link has its own tests (tests/resume-link.test.ts).
 vi.mock("@/lib/contests/resume", () => ({ noteResume: vi.fn(), resumeLink: async (id: string) => `https://logocontest.bd/r/link-${id}`, resumeTarget: async () => ({}) }));
@@ -522,6 +524,7 @@ describe("blocks and the rest of the site", () => {
 // Owner, 2026-10-31: a client who meant to sign up as a designer gets their email back.
 describe("Delete account on Unpaid contests", () => {
   beforeEach(() => {
+    stepOne.account = null;
     purged.length = 0;
     audits.length = 0;
     db.tables.profiles = [{ id: "u1", role: "client", mobile: "+8801711111111", email: "client@example.com" }];
@@ -530,7 +533,7 @@ describe("Delete account on Unpaid contests", () => {
     db.tables.payments = [];
     db.tables.manual_payments = [];
   });
-  const run = async (f: Record<string, string> = { reason: "Meant to be a designer" }) => (await import("@/lib/admin/unpaid-followup-actions")).deleteUnpaidAccount(KEY, f);
+  const run = async (f: Record<string, string> = { reason: "Meant to be a designer" }) => (await import("@/lib/admin/unpaid-followup-actions")).deleteUnpaidLead(KEY, f);
 
   it("only a Super admin, with a reason", async () => {
     who.admin = { id: "a1", isSuperAdmin: false };
@@ -563,5 +566,49 @@ describe("Delete account on Unpaid contests", () => {
     db.tables.profiles = [{ id: "u1", role: "designer" }];
     expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.notClient" });
     expect(purged).toEqual([]);
+  });
+});
+
+describe("Delete lead for a guest", () => {
+  const V = "1a2b3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d";
+  beforeEach(() => {
+    stepOne.account = null;
+    purged.length = 0;
+    audits.length = 0;
+    who.admin = { id: "a1", isSuperAdmin: true };
+    db.tables.wizard_leads = [
+      { visit_id: V, mobile: "+8801722222222", brand_name: "Guest Tea", email: "g@example.com" },
+      { visit_id: "other", mobile: "+8801722222222", brand_name: "Guest Tea" },
+      { visit_id: "keep", mobile: "+8801733333333", brand_name: "Someone else" },
+    ];
+    db.tables.unpaid_leads = [{ id: "G1", kind: "guest", guest_mobile: "+8801722222222", status: "new" }];
+    db.tables.payments = [];
+    db.tables.manual_payments = [];
+  });
+  const run = async () => (await import("@/lib/admin/unpaid-followup-actions")).deleteUnpaidLead(`g:${V}`, { reason: "Meant to be a designer" });
+
+  it("erases the guest's number, details and lead, and nobody else's; no account, nothing purged", async () => {
+    expect(await run()).toEqual({ ok: true });
+    expect(db.tables.wizard_leads.map((r) => r.visit_id)).toEqual(["keep"]);
+    expect(db.tables.unpaid_leads).toEqual([]);
+    expect(purged).toEqual([]);
+    expect(JSON.stringify(audits)).not.toMatch(/8801722222222|g@example/);
+  });
+
+  it("an account made on the first step goes too, unless it paid", async () => {
+    stepOne.account = { id: "u9", email: "g@example.com" };
+    db.tables.profiles = [{ id: "u9", role: "client" }];
+    db.tables.payments = [{ id: "p9", client_id: "u9", status: "paid" }];
+    expect(await run()).toEqual({ ok: false, error: "admin.unpaid.fu.delete.errors.paid" });
+    expect(db.tables.wizard_leads).toHaveLength(3);
+    db.tables.payments = [];
+    expect(await run()).toEqual({ ok: true });
+    expect(purged).toEqual(["u9"]);
+  });
+
+  it("only a Super admin", async () => {
+    who.admin = { id: "a1", isSuperAdmin: false };
+    expect((await run()).ok).toBe(false);
+    expect(db.tables.wizard_leads).toHaveLength(3);
   });
 });

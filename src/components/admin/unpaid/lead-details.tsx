@@ -2,7 +2,7 @@ import Link from "@/components/ui/link";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminIcon, type AdminIconName } from "@/components/admin/icons";
 import { AdmCard, IdChip } from "@/components/admin/ui";
-import { closeLead, deleteUnpaidAccount, reopenLead } from "@/lib/admin/unpaid-followup-actions";
+import { closeLead, deleteUnpaidLead, reopenLead } from "@/lib/admin/unpaid-followup-actions";
 import type { HistoryItem, Lead } from "@/lib/admin/unpaid-board";
 import type { RemindWay } from "@/lib/admin/unpaid-alert-rules";
 import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
@@ -287,18 +287,18 @@ export function LeadDetails({
           <CloseFakeButton leadKey={lead.key} />
         </div>
       )}
-      {/* Delete account (owner, 2026-10-31): a client who meant to be a designer gets their email back. Super admin. */}
-      {isSuperAdmin && lead.kind === "contest" && lead.clientId && !lead.wonBack && (
+      {/* Delete (owner, 2026-10-31): a client who meant to be a designer gets their email back; a guest leaves for good. Super admin. */}
+      {isSuperAdmin && !lead.wonBack && (lead.kind === "guest" || lead.clientId) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-adm-line-soft pt-3">
           <AdminAction
-            label={t("admin.unpaid.fu.delete.button")}
-            title={t("admin.unpaid.fu.delete.title")}
-            body={t("admin.unpaid.fu.delete.body")}
-            confirm={t("admin.unpaid.fu.delete.button")}
+            label={t(lead.kind === "guest" ? "admin.unpaid.fu.delete.guestButton" : "admin.unpaid.fu.delete.button")}
+            title={t(lead.kind === "guest" ? "admin.unpaid.fu.delete.guestTitle" : "admin.unpaid.fu.delete.title")}
+            body={t(lead.kind === "guest" ? "admin.unpaid.fu.delete.guestBody" : "admin.unpaid.fu.delete.body")}
+            confirm={t(lead.kind === "guest" ? "admin.unpaid.fu.delete.guestButton" : "admin.unpaid.fu.delete.button")}
             done={t("admin.unpaid.fu.delete.done")}
             tone="danger"
             fields={[{ name: "reason", kind: "reason", label: t("admin.unpaid.fu.delete.reason") }]}
-            run={deleteUnpaidAccount.bind(null, lead.key)}
+            run={deleteUnpaidLead.bind(null, lead.key)}
           />
         </div>
       )}
