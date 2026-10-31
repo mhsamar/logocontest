@@ -307,6 +307,10 @@ Set in Vercel › Settings › Environment Variables (never in chat). `EMAIL_DRI
 the domain logocontest.bd verified in SES (its 3 DKIM CNAME records in DNS) and production access (out of the
 sandbox). Redeploy after changing a variable. Going back is changing `EMAIL_DRIVER` to `resend` and redeploying. With
 SES the daily limit in Admin › Notifications can go up.
+Bounces and spam complaints: SES (identity logocontest.bd › Notifications) sends them to an SNS topic subscribed to
+`https://logocontest.bd/api/email/ses-events`; set `SES_EVENTS_TOPIC_ARN` to that topic. A permanent bounce or a
+complaint puts the address on `email_suppressions` (migration 0081) and the site emails it no more, except login
+codes; delete its row there to email it again.
 
 ### 14. Audit log
 A read-only list of every admin action: who, what, when, and the details. Filter by action.

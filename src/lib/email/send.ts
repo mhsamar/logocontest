@@ -103,6 +103,13 @@ export async function sentToday(now: Date): Promise<number> {
   return count ?? 0;
 }
 
+/** On the bounce and complaint list (migration 0081; before it, nobody is). */
+async function suppressed(email: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  const { data, error } = await createAdminClient().from("email_suppressions").select("email").eq("email", email.trim().toLowerCase()).maybeSingle();
+  return !error && Boolean(data);
+}
+
 /** When this person was last sent this email about this thing (for "at most once per …"). */
 export async function lastSent(userId: string, key: EmailKey, ref: string): Promise<Date | null> {
   if (!isSupabaseConfigured()) return null;
@@ -137,6 +144,8 @@ export async function sendEmail(input: SendInput): Promise<SendStatus> {
       return "skipped" as const;
     };
     if (!p.email) return skip("no_email");
+    // Bounced for good or marked as spam (Amazon SES reports, owner 2026-11-01): no more email, except login codes.
+    if (key !== "otp" && (await suppressed(p.email))) return skip("suppressed");
     if (p.gone && !security) return skip("deleted");
     const notice = input.notice ?? NOTICE_OF[key];
     // Owner, 2026-10-31: only the new-designs email and the prize claim reminders can be stopped by the person.
