@@ -297,7 +297,15 @@ export function LeadDetails({
             confirm={t(lead.kind === "guest" ? "admin.unpaid.fu.delete.guestButton" : "admin.unpaid.fu.delete.button")}
             done={t("admin.unpaid.fu.delete.done")}
             tone="danger"
-            fields={[{ name: "reason", kind: "reason", label: t("admin.unpaid.fu.delete.reason") }]}
+            fields={[
+              {
+                name: "reason",
+                kind: "reason",
+                label: t("admin.unpaid.fu.delete.reason"),
+                // Ready-made reasons (owner, 2026-10-31): a tap fills the box.
+                suggestions: (["designer", "duplicate", "test", "asked", "fake"] as const).map((k) => ({ label: t(`admin.unpaid.fu.delete.why.${k}.label`), text: t(`admin.unpaid.fu.delete.why.${k}.text`) })),
+              },
+            ]}
             run={deleteUnpaidLead.bind(null, lead.key)}
           />
         </div>

@@ -2843,6 +2843,13 @@ const en = {
           guestTitle: "Delete this lead for good?",
           guestBody: "Their number, name and email and this lead are erased and leave this list. If they made an account on the first step, that account is erased too (only if they never paid), so they can sign up again, for example as a designer. This can't be undone.",
           reason: "Why (for the audit log)",
+          why: {
+            designer: { label: "Meant to be a designer", text: "Signed up as a client by mistake; they want to join as a designer." },
+            duplicate: { label: "Duplicate", text: "A duplicate: the same person is already on the list or signed up again." },
+            test: { label: "Test", text: "A test entry, not a real client." },
+            asked: { label: "Asked to delete", text: "They asked us to delete their details." },
+            fake: { label: "Fake / wrong number", text: "Fake name or wrong number; nobody real to follow up." },
+          },
           done: "Deleted. They can sign up again with the same email and number.",
           errors: {
             notClient: "This is not a client account, so it can't be deleted from here.",
