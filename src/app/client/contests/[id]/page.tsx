@@ -35,6 +35,7 @@ import { contestHref, contestStages, contestTab, CONTEST_TABS, designFilter, DES
 import { contestActivity, contestPayments, entryTimes, invitedCount, judgedEntries, payHref } from "@/lib/client/workspace";
 import { addonPrices } from "@/lib/contests/addon-payments";
 import { getContestBySlug } from "@/lib/contests/browse";
+import { feedbackContextOf } from "@/lib/handover/feedback-suggestions";
 import { contestRepository } from "@/lib/contests/services";
 import { briefEditHref, briefReadyPercent } from "@/lib/onboarding/brief-defaults";
 import { answerLines, contestExtraAnswers, getOnboarding } from "@/lib/onboarding/store";
@@ -676,6 +677,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                         maxRevisions={s["limits.max_revision_requests"]}
                         maxWords={s["limits.approval_feedback_max_words"]}
                         rating={handover.rating}
+                        feedbackContext={feedbackContextOf(contest, t)}
                       />
                     </div>
                     {handover.status !== "no_result" && (CHAT_STATUSES.includes(handover.status) || messages.length > 0) && (

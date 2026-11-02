@@ -30,6 +30,7 @@ import { addonPrices } from "@/lib/contests/addon-payments";
 import { contestChecks } from "@/lib/logo-check/queries";
 import { checkerReady } from "@/lib/logo-check/start";
 import { getContestBySlug } from "@/lib/contests/browse";
+import { feedbackContextOf } from "@/lib/handover/feedback-suggestions";
 import { cx } from "@/lib/cx";
 import { getEntryDetail, listEntries } from "@/lib/entries/queries";
 import { CheckedSummary, CheckLegend, JudgingSortBar, ReportPanel } from "@/components/logo-check/judging";
@@ -308,6 +309,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               maxRevisions={s["limits.max_revision_requests"]}
               maxWords={s["limits.approval_feedback_max_words"]}
               rating={handover.rating}
+              feedbackContext={feedbackContextOf(contest, t)}
             />
           </div>
           )}

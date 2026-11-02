@@ -8,6 +8,7 @@ import { TextAreaField } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { approveHandover, requestHandoverRevision } from "@/lib/handover/actions";
+import { addSuggestion, feedbackSuggestions, type FeedbackContext } from "@/lib/handover/feedback-suggestions";
 import { countWords, folderOf, KEEP_DAYS, type HandoverFileType, type HandoverStatus } from "@/lib/handover/options";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
@@ -26,6 +27,7 @@ export function ClientHandover({
   maxRevisions,
   maxWords,
   rating,
+  feedbackContext,
 }: {
   handoverId: string;
   status: HandoverStatus;
@@ -37,6 +39,8 @@ export function ClientHandover({
   maxRevisions: number;
   maxWords: number;
   rating: number | null;
+  /** The brand, business and style from the brief, for the ready-made feedback lines. */
+  feedbackContext: FeedbackContext;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -193,6 +197,26 @@ export function ClientHandover({
           counterLabel={t("handover.review.words", { n: words, max: maxWords })}
           error={words > maxWords ? t("handover.errors.feedback", { max: maxWords }) : undefined}
         />
+        {/* Ready-made lines (owner, 2026-11-03) so the client doesn't have to write from scratch. */}
+        <p className="mt-3 text-xs text-muted">{t("handover.review.suggestLabel")}</p>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {feedbackSuggestions(stars, feedbackContext).map((s) => {
+            const line = t(s.key as Parameters<typeof t>[0], s.params);
+            const used = feedback.includes(line);
+            return (
+              <button
+                key={s.key}
+                type="button"
+                disabled={used}
+                onClick={() => setFeedback((f) => addSuggestion(f, line))}
+                className={cx("rounded-full border px-3 py-1.5 text-left text-sm transition-colors", used ? "border-primary/25 bg-primary/5 text-muted" : "border-line bg-surface text-ink hover:border-primary/40 hover:text-primary")}
+              >
+                {used ? "✓ " : "+ "}
+                {line}
+              </button>
+            );
+          })}
+        </div>
       </Modal>
 
       <Modal

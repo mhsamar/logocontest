@@ -6837,6 +6837,28 @@ const en = {
       feedback: "Feedback for the designer",
       words: "{n} / {max} words",
       approveCta: "Approve and release payment",
+      suggestLabel: "Tap to add, then change it if you like:",
+      suggest: {
+        high: {
+          fitsBrand: "The logo fits {brand} perfectly. Thank you!",
+          business: "The design suits our business ({business}) really well.",
+          style: "The {style} look is exactly what I wanted.",
+          brief: "You understood the brief very well.",
+          files: "Clean, well-organised files, delivered on time.",
+          again: "I'd happily work with you again.",
+        },
+        mid: {
+          goodBrand: "A good logo for {brand}, thank you.",
+          details: "Nice design, though a few small details took some time to get right.",
+          filesOk: "The files were complete and in order.",
+          thanks: "Thanks for your work.",
+        },
+        low: {
+          notQuite: "The logo works, but it isn't quite what I had in mind for {brand}.",
+          slow: "Getting the right files took longer than I expected.",
+          effort: "Thanks for the effort.",
+        },
+      },
       respondBy: "Please approve or ask for a change by {date}.",
     },
     done: {
