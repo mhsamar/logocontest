@@ -512,6 +512,8 @@ const en = {
       },
     },
   },
+  /** "View in English" on Bangla pages (owner, 2026-11-03). In English on the Bangla site too, for whoever can't read Bangla. */
+  langHint: { view: "View in English", close: "Close" },
   common: {
     continue: "Continue",
     back: "Back",

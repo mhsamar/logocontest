@@ -47,8 +47,8 @@ describe("facts and addresses", () => {
   });
 
   it("English-only pages point both addresses to the English one", () => {
-    expect(englishOnlyAlternates("/contest/x")).toEqual({ canonical: "https://logocontest.bd/contest/x", languages: { en: "https://logocontest.bd/contest/x", "x-default": "https://logocontest.bd/contest/x" } });
-    expect(localizedPath("/logo-design-price", "bn")).toBe("/logo-design-price?lang=bn");
+    expect(englishOnlyAlternates("/contest/x")).toEqual({ canonical: "https://logocontest.bd/en/contest/x", languages: { en: "https://logocontest.bd/en/contest/x", "x-default": "https://logocontest.bd/en/contest/x" } });
+    expect(localizedPath("/logo-design-price", "bn")).toBe("/logo-design-price");
   });
 
   it("a service without a price table on its page carries no offers, and no inLanguage", () => {
@@ -63,7 +63,7 @@ describe("facts and addresses", () => {
     expect(org.sameAs).toEqual(["https://www.facebook.com/logocontest.bd/"]);
     expect(website().publisher).toEqual({ "@id": "https://logocontest.bd/#organization" });
     const s = service({ name: "Logo design", description: "d", path: "/logo-design-price", locale: "bn", offers: [{ name: "Starter", total: 3750 }] });
-    expect(s.offers?.[0]).toMatchObject({ price: 3750, priceCurrency: "BDT", url: "https://logocontest.bd/logo-design-price?lang=bn" });
+    expect(s.offers?.[0]).toMatchObject({ price: 3750, priceCurrency: "BDT", url: "https://logocontest.bd/logo-design-price" });
     expect(faqPage([{ q: "logo design koto taka?", a: "৳3,750" }], "en").mainEntity).toHaveLength(1);
     expect(ldJson({ x: "</script>" })).not.toContain("</script>");
     expect(JSON.stringify(org)).not.toContain("undefined");

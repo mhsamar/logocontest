@@ -1,5 +1,6 @@
 import { publishedGuides } from "@/lib/guides/queries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
+import { localizedPath } from "@/lib/i18n/lang-path";
 import { formatTaka } from "@/lib/money";
 import { searchIndexingOn } from "@/lib/seo";
 import { siteFacts } from "@/lib/seo/facts";
@@ -19,6 +20,8 @@ export async function GET() {
   const taka = (n: number) => formatTaka(n, "en");
   const packages = f.packages.map((p) => `${taka(p.prize)} prize = ${taka(p.total)} total`).join("; ");
   const page = (path: string, name: string, note = "") => `- [${name}](${base}${path})${note ? `: ${note}` : ""}`;
+  // English pages are under /en, Bangla ones at the plain address (owner, 2026-11-03).
+  const en = (path: string, name: string, note = "") => page(localizedPath(path, "en"), name, note);
   const lines = [
     "# logocontest.bd",
     "",
@@ -30,23 +33,23 @@ export async function GET() {
     ...(f.addonsFreeFrom > 0 ? [`- Every add-on (featured, private, blind, NDA, highlight, urgent) is free with a prize of ${taka(f.addonsFreeFrom)} or more; extra days are still paid.`] : []),
     "",
     "## Main pages",
-    page("/logo-design-price", "Logo design price in Bangladesh", "packages and totals in taka"),
-    page("/logo-design", "Logo design service"),
-    page("/how-it-works", "How a logo contest works"),
-    page("/how-it-works?for=designers", "For designers: earn from logo design contests"),
-    page("/logo-checker", "AI logo copyright checker"),
-    page("/about", "About logocontest.bd"),
-    page("/help", "Help and contact"),
+    en("/logo-design-price", "Logo design price in Bangladesh", "packages and totals in taka"),
+    en("/logo-design", "Logo design service"),
+    en("/how-it-works", "How a logo contest works"),
+    en("/how-it-works?for=designers", "For designers: earn from logo design contests"),
+    en("/logo-checker", "AI logo copyright checker"),
+    en("/about", "About logocontest.bd"),
+    en("/help", "Help and contact"),
     "",
     "## বাংলা",
-    page("/logo-design-price?lang=bn", "লোগো ডিজাইনের দাম"),
-    page("/logo-design?lang=bn", "লোগো ডিজাইন সার্ভিস"),
-    page("/how-it-works?lang=bn", "কীভাবে কাজ করে"),
-    page("/about?lang=bn", "logocontest.bd সম্পর্কে"),
-    ...(guides.length ? ["", "## Guides", ...guides.map((g) => page(`/guides/${g.slug}`, g.title_en as string))] : []),
+    page("/logo-design-price", "লোগো ডিজাইনের দাম"),
+    page("/logo-design", "লোগো ডিজাইন সার্ভিস"),
+    page("/how-it-works", "কীভাবে কাজ করে"),
+    page("/about", "logocontest.bd সম্পর্কে"),
+    ...(guides.length ? ["", "## Guides", ...guides.map((g) => en(`/guides/${g.slug}`, g.title_en as string))] : []),
     "",
     "## Policies",
-    ...LEGAL_SLUGS.map((s) => page(`/legal/${s}`, s.replace(/-/g, " "))),
+    ...LEGAL_SLUGS.map((s) => en(`/legal/${s}`, s.replace(/-/g, " "))),
     "",
   ];
   return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=600" } });

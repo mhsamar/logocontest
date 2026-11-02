@@ -12,6 +12,7 @@ import { SiteChrome } from "@/components/layout/site-chrome";
 import { SiteNav } from "@/components/layout/site-nav";
 import { VisitTracker } from "@/components/layout/visit-tracker";
 import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot";
+import { EnglishHint } from "@/components/layout/english-hint";
 import { SupportSlot } from "@/components/support/support-slot";
 import { WhatsAppSlot } from "@/components/support/whatsapp-slot";
 import { FloatingProCardSlot } from "@/components/pro/floating-card-slot";
@@ -146,6 +147,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <SiteChrome>
               <VisitTracker />
               <LangCookieSync />
+              <EnglishHint country={(await headers()).get("x-vercel-ip-country")} />
               <SupportSlot />
               <WhatsAppSlot />
               <VisitorPopupSlot signedIn={Boolean(user)} />

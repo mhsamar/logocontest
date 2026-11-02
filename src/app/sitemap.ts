@@ -15,25 +15,31 @@ const PUBLIC_CONTEST_STATUSES = ["open", "judging", "winner_selected", "handover
 /** When the search landing pages' words last changed (keep in step with their content modules' updatedAt). */
 const LANDING_UPDATED = new Date("2026-10-21T00:00:00Z");
 
+/** An address in one language: Bangla plain, English under /en (owner, 2026-11-03). */
+const inLanguage = (url: string, locale: "en" | "bn") => {
+  const u = new URL(url);
+  // Next.js writes these as they are: an "&" between two settings must be escaped for the XML.
+  return `${u.origin}${localizedPath(u.pathname + u.search, locale)}`.replace(/&/g, "&amp;");
+};
+
 /**
- * Every page twice (owner, 2026-10-21): the English address and the Bangla one (?lang=bn), each naming the other, so
- * search engines find and match both languages.
+ * Every page twice: the Bangla address (plain) and the English one (/en/…), each naming the other and Bangla as the
+ * default, so search engines find and match both languages. Only clean canonical addresses, never ?lang=.
  */
 function bothLanguages(list: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
   return list.flatMap((e) => {
-    const u = new URL(e.url);
-    const path = u.pathname + u.search;
-    // Next.js writes these as they are: an "&" between two settings must be escaped for the XML.
-    const xml = (url: string) => url.replace(/&/g, "&amp;");
-    const en = xml(`${u.origin}${localizedPath(path, "en")}`);
-    const bn = xml(`${u.origin}${localizedPath(path, "bn")}`);
-    const alternates = { languages: { en, bn, "x-default": en } };
+    const bn = inLanguage(e.url, "bn");
+    const en = inLanguage(e.url, "en");
+    const alternates = { languages: { bn, en, "x-default": bn } };
     return [
-      { ...e, url: en, alternates },
       { ...e, url: bn, alternates },
+      { ...e, url: en, alternates },
     ];
   });
 }
+
+/** A page whose text is English only: its /en address alone. */
+const englishAddress = (e: MetadataRoute.Sitemap[number]) => ({ ...e, url: inLanguage(e.url, "en") });
 
 const logError = (what: string, error: { message: string } | null) => {
   if (error) console.error(`[sitemap] ${what}:`, error.message);
@@ -64,14 +70,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...LEGAL_SLUGS.map((slug) => ({ url: `${base}/legal/${slug}`, changeFrequency: "yearly" as const, priority: 0.3 })),
   ];
   // Guides (owner, 2026-10-15): the list once there is something in it, and every published guide. A guide without its
-  // Bangla text yet only has its English address (owner, 2026-10-21).
+  // Bangla text yet only has its English address (owner, 2026-10-21), /en/guides/… since 2026-11-03.
   const guides = await publishedGuides();
   const englishOnly: MetadataRoute.Sitemap = [];
   if (guides.length) {
     pages.push({ url: `${base}/guides`, lastModified: new Date(guides[0].published_at), changeFrequency: "weekly", priority: 0.6 });
     for (const g of guides) (g.bn_ready ? pages : englishOnly).push({ url: `${base}/guides/${g.slug}`, lastModified: new Date(g.updated_at), changeFrequency: "monthly", priority: 0.6 });
   }
-  if (!isSupabaseConfigured()) return [...englishOnly, ...bothLanguages(pages)];
+  if (!isSupabaseConfigured()) return [...englishOnly.map(englishAddress), ...bothLanguages(pages)];
 
   const db = createAdminClient();
   const [contests, entries] = await Promise.all([
@@ -125,8 +131,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const contestRows = (contests.data ?? []) as { slug: string; updated_at: string; status: string; business_description: string | null; brand_name: string; slogan: string | null; target_audience: string | null }[];
   const bangla = (c: (typeof contestRows)[number]) => hasBangla(c.business_description?.trim() || [c.brand_name, c.slogan, c.target_audience].filter(Boolean).join(" "));
   return [
-    ...englishOnly,
-    ...contestRows.filter((c) => !bangla(c)).map(contestEntry),
+    ...englishOnly.map(englishAddress),
+    ...contestRows.filter((c) => !bangla(c)).map(contestEntry).map(englishAddress),
     ...bothLanguages([
       ...pages,
       ...contestRows.filter(bangla).map(contestEntry),

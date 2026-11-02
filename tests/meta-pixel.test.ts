@@ -56,7 +56,7 @@ describe("Meta Pixel base code", () => {
   it("never runs for the team, on Admin or unsubscribe pages, or while staff use Log in as", async () => {
     const layout = read("src/app/layout.tsx");
     expect(layout).toContain('const pixel = META_PIXEL && user?.role !== "admin" && (await headers()).get(NO_PIXEL_HEADER) !== "1" && !(user && (await viewingAs(user.id)));');
-    expect(read("src/proxy.ts")).toContain("if (noPixelPath(request.nextUrl.pathname)) request.headers.set(NO_PIXEL_HEADER, \"1\");");
+    expect(read("src/proxy.ts")).toContain("if (noPixelPath(path)) request.headers.set(NO_PIXEL_HEADER, \"1\");");
     const { noPixelPath } = await import("@/lib/analytics/meta-pixel");
     for (const p of ["/admin", "/admin/users", "/admin-login", "/admin-signed-out", "/email/unsubscribe"]) expect(noPixelPath(p), p).toBe(true);
     for (const p of ["/", "/start", "/contests", "/administration", "/client/contests/x", "/designers/signup"]) expect(noPixelPath(p), p).toBe(false);

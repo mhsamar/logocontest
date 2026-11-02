@@ -3,7 +3,7 @@ import { SHORT_LINK } from "@/lib/cards/rules";
 import { clientPathFor, OLD_CLIENT_PATH } from "@/lib/client/rules";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
-import { langOf, localizedPath, LOCALE_HEADER } from "@/lib/i18n/lang-path";
+import { isLocalizedPath, LANG_PARAM, langOf, localizedPath, LOCALE_HEADER, splitLangPath } from "@/lib/i18n/lang-path";
 import { NO_PIXEL_HEADER, noPixelPath } from "@/lib/analytics/meta-pixel";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateSession } from "@/lib/supabase/proxy";
@@ -11,41 +11,71 @@ import { updateSession } from "@/lib/supabase/proxy";
 const SIGNED_IN_ONLY = ["/admin"];
 
 /**
- * A public page opened with ?lang=bn or ?lang=en (owner, 2026-10-21: each language has its own address, so search
- * engines can find the Bangla pages): this request is drawn in that language, and the visitor's choice is kept in the
- * cookie. Only for reading a page (GET): a form or button posting from such an address follows the cookie.
+ * Languages by address (owner, 2026-11-03): a public page is always Bangla at its plain address and always English
+ * under /en, which is served here from the same page, for every visitor and search engine. Nobody is redirected by
+ * country, IP or cookie; a visitor who may want English sees a "View in English" bar instead (EnglishHint). An old
+ * ?lang= address moves to the clean one (301 for public pages). Pages without an /en address follow the cookie.
  */
 // Private areas never read ?lang= (Admin › Legal uses it for the document's language); their switches use the cookie.
 const NO_LANG_PARAM = /^\/(api|admin|admin-login|client|dashboard)(\/|$)/;
+const YEAR = 60 * 60 * 24 * 365;
+
+const keepLanguage = (response: NextResponse, locale: string) => {
+  response.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: YEAR, sameSite: "lax" });
+  return response;
+};
 
 export async function proxy(request: NextRequest) {
-  const lang = request.method === "GET" && !NO_LANG_PARAM.test(request.nextUrl.pathname) ? langOf(request.nextUrl.searchParams) : null;
+  const { pathname, searchParams } = request.nextUrl;
+  const { locale: prefixed, path } = splitLangPath(pathname);
+  const localized = isLocalizedPath(path);
+  const reading = request.method === "GET";
+
+  // ?lang=bn / ?lang=en: on to the clean address, and the choice is kept.
+  const asked = reading && !NO_LANG_PARAM.test(path) ? langOf(searchParams) : null;
+  if (asked) {
+    const rest = new URLSearchParams(searchParams);
+    rest.delete(LANG_PARAM);
+    const q = rest.toString();
+    const to = localized ? localizedPath(`${path}${q ? `?${q}` : ""}`, asked) : `${path}${q ? `?${q}` : ""}`;
+    return keepLanguage(NextResponse.redirect(new URL(to, request.url), localized ? 301 : 307), asked);
+  }
+  // /en on a page that has no English address: the page itself, in English.
+  if (prefixed && !localized) return keepLanguage(NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, request.url), 307), "en");
+  const lang = localized ? (prefixed ?? "bn") : null;
   if (lang) request.headers.set(LOCALE_HEADER, lang);
   else request.headers.delete(LOCALE_HEADER);
   // Pages that never get the Meta Pixel (Admin, signed unsubscribe links); the root layout reads this.
-  if (noPixelPath(request.nextUrl.pathname)) request.headers.set(NO_PIXEL_HEADER, "1");
+  if (noPixelPath(path)) request.headers.set(NO_PIXEL_HEADER, "1");
   else request.headers.delete(NO_PIXEL_HEADER);
-  const response = await route(request);
+  let response = await route(request, path, lang);
+  // The English address is drawn by the same page as the Bangla one.
+  if (prefixed && !response.headers.get("location")) {
+    const rewrite = NextResponse.rewrite(new URL(`${path}${request.nextUrl.search}`, request.url), { request: { headers: request.headers } });
+    for (const c of response.cookies.getAll()) rewrite.cookies.set(c);
+    response = rewrite;
+  }
   // Only a page opened in the browser keeps the language, never Next.js fetching a link ahead of time (those don't ask
   // for HTML). A browser's own early load of a Google result does count: its cookie is kept only if it is opened.
   const opened = (request.headers.get("accept") ?? "").includes("text/html");
-  if (lang && opened && request.cookies.get(LOCALE_COOKIE)?.value !== lang) response.cookies.set(LOCALE_COOKIE, lang, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  // Only English is remembered this way: a Bangla page is also what everyone lands on, not a choice.
+  if (prefixed && reading && opened && request.cookies.get(LOCALE_COOKIE)?.value !== "en") keepLanguage(response, "en");
   return response;
 }
 
-async function route(request: NextRequest): Promise<NextResponse> {
+async function route(request: NextRequest, pathname: string, lang: "en" | "bn" | null): Promise<NextResponse> {
   if (!isSupabaseConfigured()) return NextResponse.next({ request });
 
   const { response, userId, ended } = await updateSession(request);
-  const { pathname, search } = request.nextUrl;
+  const { search } = request.nextUrl;
 
   // The short link on contest cards (owner, 2026-10-19): /c/LC-0012 opens contest number 12. Client profiles
   // (/c/<username>) never look like this, so they are untouched.
   const short = request.method === "GET" ? SHORT_LINK.exec(pathname) : null;
   if (short) {
     const { data: c } = await createAdminClient().from("contests").select("slug").eq("contest_number", Number(short[1])).maybeSingle();
-    // Keeps ?lang=bn, so a Bangla card's link opens the Bangla page (owner, 2026-10-21).
-    if (c?.slug) return NextResponse.redirect(new URL(localizedPath(`/contest/${c.slug}`, langOf(request.nextUrl.searchParams) ?? "en"), request.url), 307);
+    // In the address's language, so an English card's link (/en/c/LC-0012) opens the English page.
+    if (c?.slug) return NextResponse.redirect(new URL(localizedPath(`/contest/${c.slug}`, lang ?? "bn"), request.url), 307);
   }
 
   // This login was signed out (owner, 2026-10-14): a page goes to the sign-in page with the reason; anything else just
