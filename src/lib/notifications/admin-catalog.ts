@@ -105,6 +105,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("judging_started", "client", ["judging_started"], ["bell", "email"], { email: "client-pick-winner", alsoIn: "user" }),
   row("judging_reminder", "client", ["judging_reminder"], ["bell"], { timing: ["timers.judging_reminder_days"] }),
   row("handover_submitted", "client", ["handover_submitted"], ["bell"]),
+  row("handover_download", "client", ["handover_download"], ["bell", "push"]),
   row("winner_changes", "client", ["repick_winner", "winner_picked_by_admin", "no_result_client"], ["bell"]),
   // Money-back guarantee (owner, 2026-10-21): too few designers, the claim, the decision and the money back.
   // Unpaid contests, phase 3 (owner, 2026-10-26): emails to a client who saved a contest but didn't pay; each also

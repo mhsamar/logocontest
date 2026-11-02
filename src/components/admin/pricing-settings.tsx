@@ -16,7 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 
 /** Settings with a short explanation under their name (admin.pricing.hints.*). */
-const HINTS = new Set(["feePercent", "largePercent", "largeFrom", "bestFrom", "allFreeFrom", "nda", "extPerDay", "extDays", "usdMarkup"]);
+const HINTS = new Set(["feePercent", "largePercent", "largeFrom", "bestFrom", "allFreeFrom", "nda", "extPrice", "extDays", "usdMarkup"]);
 
 /** The plain name of each setting on this page (admin.pricing.fields.*). */
 const FIELD: Partial<Record<SettingKey, string>> = {
@@ -38,7 +38,7 @@ const FIELD: Partial<Record<SettingKey, string>> = {
   "upgrades.highlight_price": "highlight",
   "upgrades.urgent_price": "urgent",
   "upgrades.nda_price": "nda",
-  "upgrades.extension_price_per_day": "extPerDay",
+  "upgrades.extension_price": "extPrice",
   "upgrades.extension_days_options": "extDays",
   "fees.counted_win_min_prize": "countedMinPrize",
   "fees.counted_win_min_designers": "countedMinDesigners",

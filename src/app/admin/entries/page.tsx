@@ -20,6 +20,7 @@ import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
+import { AutoSubmitSelect } from "@/components/admin/auto-submit-select";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -188,24 +189,24 @@ export default async function AdminEntriesPage({ searchParams }: PageProps<"/adm
             </label>
             <label className="flex-[0_1_200px]">
               <span className="sr-only">{t("admin.contests.contest")}</span>
-              <select name="contest" defaultValue={contest} className={cx(ADM_INPUT, "h-11")}>
+              <AutoSubmitSelect name="contest" defaultValue={contest} className={cx(ADM_INPUT, "h-11")}>
                 <option value="">{t("admin.entries.allContests")}</option>
                 {contests.map(([slug, brand]) => (
                   <option key={slug} value={slug}>
                     {brand}
                   </option>
                 ))}
-              </select>
+              </AutoSubmitSelect>
             </label>
             <label className="flex-[0_1_180px]">
               <span className="sr-only">{t("admin.contests.sort")}</span>
-              <select name="sort" defaultValue={sort} className={cx(ADM_INPUT, "h-11")}>
+              <AutoSubmitSelect name="sort" defaultValue={sort} className={cx(ADM_INPUT, "h-11")}>
                 {SORTS.map((x) => (
                   <option key={x} value={x}>
                     {t(`admin.entries.sorts.${x}`)}
                   </option>
                 ))}
-              </select>
+              </AutoSubmitSelect>
             </label>
             <button type="submit" className="h-11 rounded-[12px] bg-primary px-5 text-[15px] font-bold text-white hover:bg-adm-deep">
               {t("admin.filter")}

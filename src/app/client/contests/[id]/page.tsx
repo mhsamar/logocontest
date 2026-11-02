@@ -708,7 +708,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
                 <AddonsPanel
                   contestId={contest.id}
                   open={contest.status === "open"}
-                  active={{ promote: contest.isPromoted, private: contest.isPrivate, blind: contest.isBlind, logo_scan: contest.logoScan }}
+                  active={{ promote: contest.isPromoted, urgent: contest.isUrgent, highlight: contest.isHighlighted, private: contest.isPrivate, blind: contest.isBlind, logo_scan: contest.logoScan }}
                   prices={prices}
                   extensionDays={prices.extensionDays}
                   endsAt={contest.endsAt ? contest.endsAt.toISOString() : null}
@@ -751,7 +751,7 @@ export default async function ClientContestPage({ params, searchParams }: PagePr
           >
             <div className="space-y-5">
               {entries.find((e) => e.id === entry.id)?.chat && <MessageDesignerLink entryId={entry.id} label={t("pro.chat.message")} />}
-              <OwnerActions entryId={entry.id} number={entry.number} rating={entry.rating} shortlisted={entry.isShortlisted} canAct={reviewing && entry.status === "active" && !claimPending} readOnly={finished} fileDays={fileDays} variant="panel" wonHref={withParam(here, `won=${entry.number}`)} />
+              <OwnerActions entryId={entry.id} number={entry.number} rating={entry.rating} shortlisted={entry.isShortlisted} canAct={reviewing && entry.status === "active" && !claimPending} readOnly={finished} fileDays={fileDays} variant="panel" wonHref={withParam(here, `won=${entry.number}`)} preview={entry.previews[0] ?? null} designer={entry.designer ? designerName(entry) : null} />
               <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!finished} hint={finished ? t("contest.finished") : null} />
               {/* Share this design (owner, 2026-10-18): ask friends on Facebook, only when visitors can see it too. */}
               {shareOrigin && (

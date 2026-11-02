@@ -6,6 +6,7 @@ import { getProSettings } from "./settings";
 import { logFunnel, logProActivity, grantPro, sendReceipt, tellDesigner } from "./subscription";
 import { markProPromoUsed } from "@/lib/promos/promos";
 import { markTrialUpgraded } from "./trial";
+import { proMonthsOf } from "./rules";
 
 const db = () => createAdminClient();
 
@@ -23,7 +24,7 @@ export async function isProPayment(paymentId: string): Promise<boolean> {
  * marked failed, a renewal shows "Payment failed" on the plan, and no Pro is given. Runs once per payment.
  */
 export async function settleProPayment(v: VerifiedCallback): Promise<{ status: "paid" | "failed" | "error"; paymentId: string }> {
-  const { data: p } = await db().from("pro_payments").select("id, designer_id, kind, amount_bdt, status, method, receipt_no").eq("id", v.paymentId).maybeSingle();
+  const { data: p } = await db().from("pro_payments").select("*").eq("id", v.paymentId).maybeSingle();
   if (!p) return { status: "error", paymentId: v.paymentId };
   const match = callbackMatches({ status: p.status as string, amount: p.amount_bdt as number }, v);
   if (match === "already") return { status: p.status === "paid" ? "paid" : "failed", paymentId: v.paymentId };
@@ -47,7 +48,8 @@ export async function settleProPayment(v: VerifiedCallback): Promise<{ status: "
   // Claimed first, so two callbacks for the same payment never add two months.
   const { data: claimed } = await db().from("pro_payments").update({ status: "paid", paid_at: now, provider_ref: v.txnId }).eq("id", v.paymentId).eq("status", "pending").select("id");
   if (!claimed?.length) return { status: "paid", paymentId: v.paymentId };
-  const sub = await grantPro(designerId, { months: 1, method: (p.method as "bkash" | "card") ?? "bkash", priceBdt: p.amount_bdt as number });
+  // The plan's months (owner, 2026-11-02: 1, 6 or 12; before migration 0083 always 1).
+  const sub = await grantPro(designerId, { months: proMonthsOf(p.months ?? 1), method: (p.method as "bkash" | "card") ?? "bkash", priceBdt: p.amount_bdt as number });
   if (sub) await db().from("pro_payments").update({ subscription_id: sub.id }).eq("id", v.paymentId);
   // Paid during or after the free trial (owner, 2026-10-14): the trial counts as upgraded.
   if (sub) await markTrialUpgraded(designerId, v.paymentId);

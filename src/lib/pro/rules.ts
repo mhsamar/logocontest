@@ -6,6 +6,9 @@
 export type ProSettings = {
   isForSale: boolean;
   priceBdt: number;
+  /** Longer plans (owner, 2026-11-02): one payment for 6 or 12 months, same features (migration 0083). */
+  price6Bdt: number;
+  price12Bdt: number;
   offerEnabled: boolean;
   offerPriceBdt: number | null;
   offerAudience: "new" | "all";
@@ -41,6 +44,8 @@ export type ProFeature = (typeof PRO_FEATURES)[number];
 export const DEFAULT_PRO_SETTINGS: ProSettings = {
   isForSale: false,
   priceBdt: 500,
+  price6Bdt: 1000,
+  price12Bdt: 1500,
   offerEnabled: false,
   offerPriceBdt: null,
   offerAudience: "new",
@@ -209,6 +214,17 @@ export function messageFlags(text: string): ("phone" | "email" | "link" | "payme
 
 export type PriceQuote = { amount: number; list: number; reason: "list" | "offer" | "promo" | "trial"; trialDays: number };
 
+/** The plans a designer can buy (owner, 2026-11-02): 1 month (renewed each month), or 6 or 12 months at once. */
+export const PRO_PLANS = [1, 6, 12] as const;
+export type ProMonths = (typeof PRO_PLANS)[number];
+export const isProMonths = (v: unknown): v is ProMonths => typeof v === "number" && (PRO_PLANS as readonly number[]).includes(v);
+export const proMonthsOf = (v: unknown): ProMonths => {
+  const n = typeof v === "string" ? Number.parseInt(v, 10) : v;
+  return isProMonths(n) ? n : 1;
+};
+/** The list price of a plan. */
+export const planPrice = (s: ProSettings, months: ProMonths) => (months === 12 ? s.price12Bdt : months === 6 ? s.price6Bdt : s.priceBdt);
+
 const offerRunning = (s: ProSettings, now: Date) =>
   s.offerEnabled && s.offerPriceBdt !== null && (!s.offerStartsAt || s.offerStartsAt <= now) && (!s.offerEndsAt || s.offerEndsAt > now);
 
@@ -216,8 +232,13 @@ const offerRunning = (s: ProSettings, now: Date) =>
  * What a designer pays today. A free trial (first time only) costs nothing; otherwise the lowest of the list price,
  * a running offer (for new members only, unless the admin opened it to all) and a valid promo code.
  */
-export function priceQuote(s: ProSettings, opts: { firstTime: boolean; promo?: string | null; now?: Date }): PriceQuote {
+export function priceQuote(s: ProSettings, opts: { firstTime: boolean; promo?: string | null; now?: Date; months?: ProMonths }): PriceQuote {
   const now = opts.now ?? new Date();
+  // 6 and 12 months: their own price; the monthly plan's trial, offer and promo price are for the monthly plan only.
+  if (opts.months && opts.months !== 1) {
+    const list = planPrice(s, opts.months);
+    return { amount: list, list, reason: "list", trialDays: 0 };
+  }
   const list = s.priceBdt;
   if (opts.firstTime && s.trialDays > 0) return { amount: 0, list, reason: "trial", trialDays: s.trialDays };
   let best: PriceQuote = { amount: list, list, reason: "list", trialDays: 0 };

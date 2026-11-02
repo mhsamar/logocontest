@@ -40,6 +40,7 @@ import { pixelStartId, trackPixel } from "@/lib/analytics/meta-pixel";
 import { answerText } from "./service-answer";
 import { FieldInput } from "./field-input";
 import { cleanAnswers, LIMITS, sizeText, type Answers, type BriefField, type Lang, type ServiceDef } from "@/lib/services/types";
+import { ClientAccountNote } from "@/components/wizard/client-account-note";
 
 /** Add-ons a non-logo contest can take (the AI logo checker is for logos only). */
 const SERVICE_UPGRADES: UpgradeKey[] = ["promoted", "highlight", "urgent", "private", "blind", "nda"];
@@ -342,6 +343,7 @@ export function ServiceWizard({ service, user, pricing, passwordMin, resume, inv
             {step === "you" && (
               <div className="mt-4 space-y-5">
                 <p className="m-0 text-[17px] leading-relaxed text-muted">{t("wizard.you.helper")}</p>
+                <ClientAccountNote />
                 <TextField
                   mark
                   label={t("wizard.you.nameLabel")}

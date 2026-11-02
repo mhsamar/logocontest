@@ -14,7 +14,7 @@ type Message = { id: string; body: string; createdAt: string; mine: boolean; fro
  * The delivery chat (owner, 2026-10-12): the client writes what to change, the designer answers and sends the files
  * again, as often as needed until the client approves. Read-only once the files are approved.
  */
-export function HandoverChat({ handoverId, messages, open, viewer }: { handoverId: string; messages: Message[]; open: boolean; viewer: "client" | "designer" }) {
+export function HandoverChat({ handoverId, messages, open, viewer, closedNote }: { handoverId: string; messages: Message[]; open: boolean; viewer: "client" | "designer"; /** Why it is closed, when not because the files were approved. */ closedNote?: string }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -37,7 +37,7 @@ export function HandoverChat({ handoverId, messages, open, viewer }: { handoverI
         <h3 id={`chat-${handoverId}`} className="m-0 text-lg font-semibold text-ink">
           {t("handover.chat.title")}
         </h3>
-        <p className="m-0 mt-0.5 text-sm text-muted">{open ? t(viewer === "client" ? "handover.chat.leadClient" : "handover.chat.leadDesigner") : t("handover.chat.closedNote")}</p>
+        <p className="m-0 mt-0.5 text-sm text-muted">{open ? t(viewer === "client" ? "handover.chat.leadClient" : "handover.chat.leadDesigner") : (closedNote ?? t("handover.chat.closedNote"))}</p>
       </div>
       {messages.length === 0 ? (
         <p className="m-0 rounded-2xl bg-chip px-4 py-3 text-sm text-muted">{t("handover.chat.empty")}</p>

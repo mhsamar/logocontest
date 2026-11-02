@@ -59,7 +59,7 @@ export async function ClientContestCard({ contest: c, now, addons, awaitingPayme
       <AddonsButton
         contestId={c.id}
         brand={c.brandName}
-        active={{ promote: c.isPromoted, private: c.isPrivate, blind: c.isBlind, logo_scan: c.logoScan }}
+        active={{ promote: c.isPromoted, urgent: c.isUrgent, highlight: c.isHighlighted, private: c.isPrivate, blind: c.isBlind, logo_scan: c.logoScan }}
         prices={addons}
         extensionDays={addons.extensionDays}
         endsAt={c.endsAt ? c.endsAt.toISOString() : null}

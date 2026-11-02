@@ -12,7 +12,7 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
     getPricingConfig(),
     getProSettings(),
     getSettings([
-      "upgrades.extension_price_per_day",
+      "upgrades.extension_price",
       "timers.judging_window_days",
       "timers.designer_file_upload_days",
       "timers.client_response_days",
@@ -46,7 +46,7 @@ export async function faqParams(t: Translate, locale: Locale, price?: (bdt: numb
       durations: list(pricing.durationOptions.map((d) => num.format(d))),
       minDays: num.format(pricing.durationMin),
       maxDays: num.format(pricing.durationMax),
-      perDay: taka(s["upgrades.extension_price_per_day"]),
+      perDay: taka(s["upgrades.extension_price"]),
       judging: num.format(s["timers.judging_window_days"]),
       upload: num.format(s["timers.designer_file_upload_days"]),
       response: num.format(s["timers.client_response_days"]),

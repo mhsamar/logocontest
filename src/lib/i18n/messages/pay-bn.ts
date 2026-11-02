@@ -60,6 +60,8 @@ const payBn: Messages["pay"] = {
     shotPick: "স্ক্রিনশট দিন",
     shotRemove: "সরান",
     submit: "অনুমোদনের জন্য পাঠান",
+    whatsappHelp: "পেমেন্ট করতে সমস্যা? WhatsApp-এ মেসেজ দিন, আমরা সাহায্য করব।",
+    whatsappGreeting: "হ্যালো logocontest.bd, পেমেন্ট করতে সমস্যা হচ্ছে: ",
     keepMessage: "পেমেন্ট অনুমোদন না হওয়া পর্যন্ত বিকাশের মেসেজটি রেখে দিন।",
     successTitle: "আপনার পেমেন্ট সফল হয়েছে",
     successContest: "আপনার কনটেস্ট শিগগির লাইভ হবে। আমরা আপনাকে জানাব।",

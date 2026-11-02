@@ -45,7 +45,7 @@ export async function extendContest(contestId: string, f: Fields): Promise<Resul
 }
 
 /**
- * Super admin: switch Featured, Private or Blind on for the client's live contest, free (owner, 2026-10-26). The same
+ * Super admin: switch Featured, Urgent, Highlight (owner, 2026-11-02), Private or Blind on for the client's live contest, free (owner, 2026-10-26). The same
  * safe switch as a free add-on (open contest, not on yet, no bKash payment for it waiting); no payment is recorded, so
  * revenue and refunds stay true. In the audit log with the reason; the client is told (bell and phone).
  */
@@ -56,7 +56,7 @@ export async function grantAddon(contestId: string, f: Fields): Promise<Result> 
   const reason = cleanReason(f.reason);
   if (!reason) return fail("admin.errors.reason");
   const addon = f.addon;
-  if (addon !== "promote" && addon !== "private" && addon !== "blind") return fail("admin.errors.generic");
+  if (addon !== "promote" && addon !== "urgent" && addon !== "highlight" && addon !== "private" && addon !== "blind") return fail("admin.errors.generic");
   const res = await switchOnAddon(c.id, addon);
   if (!res.ok) return fail(res.error === "closed" ? "manage.addons.closed" : res.error === "active" ? "manage.addons.alreadyActive" : res.error === "waiting" ? "admin.contests.addonWaiting" : "admin.errors.generic");
   await audit(admin.id, "grant_addon", "contest", c.id, { addon, reason });

@@ -151,9 +151,24 @@ export function EntryViewer({
       ) : (
         <Link href={closeHref ?? "/"} scroll={false} className="absolute inset-0 cursor-default" aria-hidden tabIndex={-1} />
       )}
-      <div className="relative flex w-full max-w-6xl flex-col overflow-hidden bg-surface shadow-panel sm:rounded-2xl lg:flex-row">
+      {/* Phones and tablets (owner, 2026-11-02): the whole viewer scrolls as one page, picture included (only the lower
+          part scrolled before, and on some phones not at all), with a close button that stays on screen. */}
+      {onClose ? (
+        <button type="button" onClick={onClose} aria-label={t("entry.close")} className="fixed right-3 top-3 z-[60] flex size-11 items-center justify-center rounded-full bg-white/95 text-ink shadow-raised lg:hidden" data-viewer-close>
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+          </svg>
+        </button>
+      ) : (
+        <Link href={closeHref ?? "/"} scroll={false} aria-label={t("entry.close")} className="fixed right-3 top-3 z-[60] flex size-11 items-center justify-center rounded-full bg-white/95 text-ink shadow-raised lg:hidden" data-viewer-close>
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+          </svg>
+        </Link>
+      )}
+      <div className="relative flex w-full max-w-6xl flex-col overflow-y-auto overscroll-contain bg-surface shadow-panel sm:rounded-2xl lg:flex-row lg:overflow-hidden" data-viewer-panel>
         {/* Images */}
-        <div className="flex min-h-0 flex-col bg-canvas lg:flex-1">
+        <div className="flex flex-none flex-col bg-canvas lg:min-h-0 lg:flex-1">
           <div
             className="relative flex flex-1 items-center justify-center p-3 sm:p-5"
             onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
@@ -217,7 +232,7 @@ export function EntryViewer({
         </div>
 
         {/* Details and comments */}
-        <aside className="flex min-h-0 flex-1 flex-col border-t border-line lg:w-[24rem] lg:flex-none lg:border-l lg:border-t-0">
+        <aside className="flex flex-none flex-col border-t border-line lg:min-h-0 lg:w-[24rem] lg:flex-none lg:border-l lg:border-t-0">
           <div className="border-b border-line px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -245,7 +260,7 @@ export function EntryViewer({
               </div>
             )}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          <div className="px-5 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">{children}</div>
         </aside>
       </div>
       {removable && (

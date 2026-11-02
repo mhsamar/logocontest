@@ -14,34 +14,38 @@ import { addonsFreeFor } from "./pricing";
 /** Add-ons and extensions bought after launch (BLUEPRINT §7.4, owner 2026-10-08). */
 
 /** `allFreeFrom`: every add-on is free with a prize of at least this (owner, 2026-10-22); 0 = never. Extra days stay paid. */
-export type AddonPrices = Record<AddonKey, number> & { extensionPerDay: number; extensionDays: number[]; checkerFreeFrom: number; allFreeFrom: number };
+export type AddonPrices = Record<AddonKey, number> & { extensionPrice: number; extensionDays: number[]; checkerFreeFrom: number; allFreeFrom: number };
 
 export async function addonPrices(): Promise<AddonPrices> {
   const s = await getSettings([
     "upgrades.promoted_price",
+    "upgrades.urgent_price",
+    "upgrades.highlight_price",
     "upgrades.private_price",
     "upgrades.blind_price",
     "upgrades.logo_scan_price",
-    "upgrades.extension_price_per_day",
+    "upgrades.extension_price",
     "upgrades.extension_days_options",
     "upgrades.logo_check_free_from",
     "upgrades.all_free_from",
   ]);
   return {
     promote: s["upgrades.promoted_price"],
+    urgent: s["upgrades.urgent_price"],
+    highlight: s["upgrades.highlight_price"],
     private: s["upgrades.private_price"],
     blind: s["upgrades.blind_price"],
     logo_scan: s["upgrades.logo_scan_price"],
-    extensionPerDay: s["upgrades.extension_price_per_day"],
+    extensionPrice: s["upgrades.extension_price"],
     extensionDays: s["upgrades.extension_days_options"],
     checkerFreeFrom: s["upgrades.logo_check_free_from"],
     allFreeFrom: s["upgrades.all_free_from"],
   };
 }
 
-type ContestFlags = { id: string; slug: string; client_id: string; status: string; brand_name: string; prize_amount: number; is_promoted: boolean; is_private: boolean; is_blind: boolean; logo_scan: boolean };
+type ContestFlags = { id: string; slug: string; client_id: string; status: string; brand_name: string; prize_amount: number; is_promoted: boolean; is_urgent: boolean; is_highlighted: boolean; is_private: boolean; is_blind: boolean; logo_scan: boolean };
 
-const ACTIVE: Record<AddonKey, keyof ContestFlags> = { promote: "is_promoted", private: "is_private", blind: "is_blind", logo_scan: "logo_scan" };
+const ACTIVE: Record<AddonKey, keyof ContestFlags> = { promote: "is_promoted", urgent: "is_urgent", highlight: "is_highlighted", private: "is_private", blind: "is_blind", logo_scan: "logo_scan" };
 
 export type AddonOrder = { addon: AddonKey } | { extensionDays: number };
 
@@ -58,7 +62,7 @@ export async function startAddonCheckout(
   const db = createAdminClient();
   const { data: c } = await db
     .from("contests")
-    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan")
+    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_urgent, is_highlighted, is_private, is_blind, logo_scan")
     .eq("id", contestId)
     .maybeSingle<ContestFlags>();
   if (!c || c.client_id !== user.id) return { ok: false, error: "not_found" };
@@ -77,7 +81,8 @@ export async function startAddonCheckout(
     row = { purpose: "addon", addon: order.addon, extension_days: null };
   } else {
     if (!prices.extensionDays.includes(order.extensionDays)) return { ok: false, error: "invalid" };
-    amount = prices.extensionPerDay * order.extensionDays;
+    // One price for any of the day options (owner, 2026-11-02).
+    amount = prices.extensionPrice;
     row = { purpose: "extension", addon: null, extension_days: order.extensionDays };
   }
   if (amount <= 0) return { ok: false, error: "invalid" };
@@ -116,7 +121,7 @@ export async function activateFreeAddon(user: CurrentUser, contestId: string, ad
   if (addon === "logo_scan") return { ok: false, error: "active" };
   const { data: c } = await createAdminClient()
     .from("contests")
-    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan")
+    .select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_urgent, is_highlighted, is_private, is_blind, logo_scan")
     .eq("id", contestId)
     .maybeSingle<ContestFlags>();
   if (!c || c.client_id !== user.id) return { ok: false, error: "not_found" };
@@ -133,7 +138,7 @@ export async function activateFreeAddon(user: CurrentUser, contestId: string, ad
  */
 export async function switchOnAddon(contestId: string, addon: Exclude<AddonKey, "logo_scan">): Promise<{ ok: true; slug: string } | { ok: false; error: "not_found" | "closed" | "active" | "waiting" }> {
   const db = createAdminClient();
-  const { data: c } = await db.from("contests").select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_private, is_blind, logo_scan").eq("id", contestId).maybeSingle<ContestFlags>();
+  const { data: c } = await db.from("contests").select("id, slug, client_id, status, brand_name, prize_amount, is_promoted, is_urgent, is_highlighted, is_private, is_blind, logo_scan").eq("id", contestId).maybeSingle<ContestFlags>();
   if (!c) return { ok: false, error: "not_found" };
   if (c.status !== "open") return { ok: false, error: "closed" };
   if (c[ACTIVE[addon]]) return { ok: false, error: "active" };

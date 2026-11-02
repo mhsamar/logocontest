@@ -134,7 +134,9 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const [claim, messages] = handover ? await Promise.all([latestClaim(handover.id), handoverMessages(handover.id, user.id, handover.clientId)]) : [null, []];
   // Finished: the client can still see everything and download the files, but nothing changes (owner, 2026-10-12).
   const finished = isFinished(contest.rawStatus);
-  const readOnly = finished || adminView;
+  // A Super admin can do the client's work here (owner, 2026-11-02; audited); other staff only look.
+  const actAsClient = adminView && user.isSuperAdmin;
+  const readOnly = finished || (adminView && !actAsClient);
   const checker = {
     contest: { id: contest.id, slug: contest.slug, brand: contest.brandName },
     designs: entries.filter((e) => e.status !== "rejected").map((e) => ({ id: e.id, number: e.number, coverUrl: e.previews[0] ?? null, designer: e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? null) })),
@@ -145,8 +147,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
   const claimUntil = handover ? claimWindowEnds(handover.pickedAt, s["timers.copy_claim_days"]) : null;
   const claimable = handover ? canOpenClaim(handover, new Date(), s["timers.copy_claim_days"], claim?.status === "open") : false;
   const fileDays = s["timers.designer_file_upload_days"];
-  const reviewing = !adminView && (contest.status === "open" || contest.status === "judging");
-  const won = !adminView && typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
+  const reviewing = (!adminView || actAsClient) && (contest.status === "open" || contest.status === "judging");
+  const won = (!adminView || actAsClient) && typeof sp.won === "string" ? (entries.find((e) => e.status === "winner" && e.number === Number(sp.won)) ?? null) : null;
   const fmt = (n: number) => formatNumber(n, locale);
 
   const shown = entries.filter((e) => matchesFilter(e, filter));
@@ -166,7 +168,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
       {adminView ? <BackLink href={`/admin/contests/${contest.slug}`}>{t("manage.adminView.back")}</BackLink> : <BackLink href="/dashboard">{t("manage.back")}</BackLink>}
       {adminView && (
         <div>
-          <Alert tone="info">{t("manage.adminView.note")}</Alert>
+          <Alert tone="info">{t(actAsClient ? "manage.adminView.noteActing" : "manage.adminView.note")}</Alert>
         </div>
       )}
 
@@ -292,7 +294,7 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
           <div className="mt-4">
             <HandoverTracker status={handover.status} t={t} />
           </div>
-          {!adminView && (
+          {(!adminView || actAsClient) && (
           <div className="mt-5">
             <ClientHandover
               handoverId={handover.id}
@@ -316,6 +318,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                 handoverId={handover.id}
                 viewer="client"
                 open={!adminView && CHAT_STATUSES.includes(handover.status)}
+                // The team never writes in the client's name: the chat is only read here (owner, 2026-11-02).
+                closedNote={adminView && CHAT_STATUSES.includes(handover.status) ? t("handover.chat.adminView") : undefined}
                 messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
               />
             </div>
@@ -435,6 +439,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                         fileDays={fileDays}
                         variant="card"
                         wonHref={withParam(here, `won=${e.number}`)}
+                        preview={e.previews[0] ?? null}
+                        designer={e.designer?.username ? `@${e.designer.username}` : (e.designer?.name ?? null)}
                       />
                       <CheckCardAction entryId={e.id} reportCheckId={e.badge.kind === "checked" ? e.checkId : null} />
                       {chattable.has(e.id) && <MessageDesignerLink entryId={e.id} label={t("pro.chat.message")} size="sm" className="mt-2" />}
@@ -475,6 +481,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
                 grant={adminView && user.isSuperAdmin}
                 active={{
                   promote: contest.isPromoted,
+                  urgent: contest.isUrgent,
+                  highlight: contest.isHighlighted,
                   private: contest.isPrivate,
                   blind: contest.isBlind,
                   logo_scan: contest.logoScan,
@@ -520,6 +528,8 @@ export default async function ManageContestPage({ params, searchParams }: PagePr
               fileDays={fileDays}
               variant="panel"
               wonHref={withParam(here, `won=${entry.number}`)}
+              preview={entry.previews[0] ?? null}
+              designer={entry.designer?.username ? `@${entry.designer.username}` : (entry.designer?.name ?? null)}
             />
             {/* Like and dislike (owner, 2026-10-11): the client votes on designs in their own contest */}
             <VoteButtons entryId={entry.id} up={entry.upVotes} down={entry.downVotes} mine={entry.myVote} canVote={!readOnly} hint={finished ? t("contest.finished") : null} />

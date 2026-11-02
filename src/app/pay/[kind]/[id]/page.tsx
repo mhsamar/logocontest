@@ -13,6 +13,9 @@ import { formatTaka } from "@/lib/money";
 import { isManualKind, payTarget, type PayTarget } from "@/lib/payments/manual";
 import { showMobile } from "@/lib/payments/manual-rules";
 import { methodRows } from "@/lib/payments/methods";
+import { WhatsAppIcon } from "@/components/support/whatsapp-button";
+import { getSetting } from "@/lib/settings";
+import { whatsappLink } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -134,6 +137,9 @@ export default async function PayPage({ params }: PageProps<"/pay/[kind]/[id]">)
                   </ButtonLink>
                 )}
               </div>
+              <div className="mt-6">
+                <PayHelp t={t} />
+              </div>
             </div>
           </Box>
         </Panel>
@@ -197,6 +203,7 @@ export default async function PayPage({ params }: PageProps<"/pay/[kind]/[id]">)
 
             <PayForm kind={kind} paymentId={target.paymentId} />
             <p className="m-0 text-center text-sm text-muted">{t("pay.page.keepMessage")}</p>
+            <PayHelp t={t} />
           </div>
         </Box>
       </Panel>
@@ -205,6 +212,23 @@ export default async function PayPage({ params }: PageProps<"/pay/[kind]/[id]">)
 }
 
 type T = (key: MessageKey, params?: Record<string, string | number>) => string;
+
+/** A problem paying? The team's WhatsApp (owner, 2026-11-02), under the form and while a payment waits. */
+async function PayHelp({ t }: { t: T }) {
+  const number = await getSetting("contact.whatsapp").catch(() => "");
+  if (!number) return null;
+  return (
+    <a
+      href={whatsappLink(number, t("pay.page.whatsappGreeting"))}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-2 rounded-[14px] bg-[#e7f8ee] px-4 py-3 text-center text-[15px] font-semibold text-[#14633c] hover:bg-[#d6f2e2]"
+    >
+      <WhatsAppIcon className="size-5 shrink-0 text-[#25D366]" />
+      <span>{t("pay.page.whatsappHelp")}</span>
+    </a>
+  );
+}
 
 function forWhat(p: PayTarget, t: T): string {
   if (p.kind === "pro") return t("pay.page.forPro");

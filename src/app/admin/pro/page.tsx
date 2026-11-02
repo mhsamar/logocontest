@@ -123,6 +123,8 @@ export default async function AdminProPage({ searchParams }: PageProps<"/admin/p
             canManage={canManage}
             initial={{
               priceBdt: s.priceBdt,
+              price6Bdt: s.price6Bdt,
+              price12Bdt: s.price12Bdt,
               offerEnabled: s.offerEnabled,
               offerPriceBdt: s.offerPriceBdt,
               offerAudience: s.offerAudience,

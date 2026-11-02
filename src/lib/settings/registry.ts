@@ -112,9 +112,10 @@ export const SETTINGS = {
     group: "upgrades", type: "int", schema: int(), default: 25000,
     description: "Every add-on is free with a prize of this much or more (taka). Extra days stay paid. 0 = never free.",
   },
-  "upgrades.extension_price_per_day": {
-    group: "upgrades", type: "int", schema: int(1), default: 500,
-    description: "Price of each day added by a paid extension (taka). Extensions are never free or automatic.",
+  // Owner, 2026-11-02: one price for more time, whatever the number of days (was ৳500 a day).
+  "upgrades.extension_price": {
+    group: "upgrades", type: "int", schema: int(1), default: 1000,
+    description: "Price to extend an open contest by one of the day options below (any of them, the same price).",
   },
   "upgrades.extension_days_options": {
     group: "upgrades", type: "json", schema: intList, default: [3, 5, 7],
@@ -675,8 +676,8 @@ export const SETTINGS = {
 
   // ---- Support chat (owner, 2026-10-15) ------------------------------------------------------------------------------
   "support.ai_enabled": {
-    group: "support", type: "bool", schema: z.boolean(), default: true,
-    description: "The AI assistant answers support chats first and passes a chat to the team when a person is needed. Off = every chat goes to the team.",
+    group: "support", type: "bool", schema: z.boolean(), default: false,
+    description: "The AI assistant answers support chats first and passes a chat to the team when a person is needed. Off = every chat goes to the team (owner, 2026-11-02: off, it cost too much; WhatsApp is the quick way).",
   },
   "support.ai_daily_limit": {
     group: "support", type: "int", schema: int(1, 500), default: 40,

@@ -76,6 +76,8 @@ export const NOTIFICATION_TYPES = [
   // Owner, 2026-10-31: these were emails only; now they are in the bell, and by email only if Admin › Notifications says.
   "entry_shortlisted",
   "logo_check_ready",
+  // Owner, 2026-11-02: the client is told to download the approved files from the designer's Drive folder.
+  "handover_download",
   "monthly_smartphone_won",
   "monthly_gift_box_won",
   "monthly_review",

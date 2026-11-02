@@ -18,6 +18,9 @@ const db = () => createAdminClient();
 
 export type ProSettingsInput = {
   priceBdt: number;
+  /** 6 and 12 months at once (owner, 2026-11-02; migration 0083). */
+  price6Bdt: number;
+  price12Bdt: number;
   offerEnabled: boolean;
   offerPriceBdt: number | null;
   offerAudience: "new" | "all";
@@ -58,6 +61,7 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
   if (!ready) return fail("pro.admin.errors.notReady");
   const i = input;
   if (!intIn(i.priceBdt, 1, 100000)) return fail("pro.admin.errors.price");
+  if (!intIn(i.price6Bdt, 1, 1000000) || !intIn(i.price12Bdt, 1, 1000000)) return fail("pro.admin.errors.price");
   if (i.offerEnabled && !intIn(i.offerPriceBdt, 0, 100000)) return fail("pro.admin.errors.offer");
   if (i.offerPriceBdt !== null && !intIn(i.offerPriceBdt, 0, 100000)) return fail("pro.admin.errors.offer");
   const starts = isoOrNull(i.offerStartsAt);
@@ -79,6 +83,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
 
   const row: Record<string, unknown> = {
     price_bdt: i.priceBdt,
+    price_6m_bdt: i.price6Bdt,
+    price_12m_bdt: i.price12Bdt,
     offer_enabled: i.offerEnabled,
     offer_price_bdt: i.offerPriceBdt,
     offer_audience: i.offerAudience === "all" ? "all" : "new",
@@ -107,6 +113,8 @@ export async function saveProSettings(input: ProSettingsInput): Promise<Result> 
   };
   const old: Record<string, unknown> = {
     price_bdt: before.priceBdt,
+    price_6m_bdt: before.price6Bdt,
+    price_12m_bdt: before.price12Bdt,
     offer_enabled: before.offerEnabled,
     offer_price_bdt: before.offerPriceBdt,
     offer_audience: before.offerAudience,

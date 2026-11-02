@@ -26,6 +26,9 @@ type Props = {
   wonHref: string;
   /** A finished contest (owner, 2026-10-12): the stars only show the rating, and there is no shortlist heart. */
   readOnly?: boolean;
+  /** Shown in the "pick as winner" box so the client sees which design they are picking (owner, 2026-11-02). */
+  preview?: string | null;
+  designer?: string | null;
 };
 
 function StarIcon({ on, className }: { on: boolean; className?: string }) {
@@ -37,7 +40,7 @@ function StarIcon({ on, className }: { on: boolean; className?: string }) {
 }
 
 /** The client's tools on one design (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
-export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant, wonHref, readOnly = false }: Props) {
+export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fileDays, variant, wonHref, readOnly = false, preview = null, designer = null }: Props) {
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -47,6 +50,8 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
   const [menu, setMenu] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [picking, setPicking] = useState(false);
+  // Picking a winner can't be undone (owner, 2026-11-02): the button waits for "I checked, this is the one".
+  const [sure, setSure] = useState(false);
   const [reason, setReason] = useState<RejectReason | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -174,19 +179,31 @@ export function OwnerActions({ entryId, number, rating, shortlisted, canAct, fil
       </Modal>
       <Modal
         open={picking}
-        onClose={() => setPicking(false)}
+        onClose={() => (setPicking(false), setSure(false))}
         title={t("manage.winner.title", { n: number })}
         closeLabel={t("common.close")}
         footer={
           <div className="w-full space-y-2">
             {error && <Alert tone="danger">{error}</Alert>}
-            <Button block size="lg" onClick={pick} loading={busy}>
+            <Button block size="lg" onClick={pick} loading={busy} disabled={!sure}>
               {t("manage.winner.confirm")}
             </Button>
           </div>
         }
       >
-        <p className="text-ink">{t("manage.winner.body", { days: fileDays })}</p>
+        <div className="flex flex-col gap-3">
+          {preview && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt={t("manage.winner.pictureAlt", { n: number })} className="mx-auto max-h-60 w-full rounded-[14px] bg-frame object-contain" />
+          )}
+          <p className="m-0 text-center text-[15px] font-semibold text-ink">{designer ? t("manage.winner.which", { n: number, name: designer }) : t("manage.winner.whichNoName", { n: number })}</p>
+          <p className="m-0 text-ink">{t("manage.winner.body", { days: fileDays })}</p>
+          <label className="flex cursor-pointer items-start gap-3 rounded-[14px] bg-tint px-4 py-3 text-[15px] font-semibold text-ink">
+            <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-[var(--color-primary,#8b0000)]" />
+            <span>{t("manage.winner.sure", { n: number })}</span>
+          </label>
+          <p className="m-0 text-[13.5px] text-muted">{t("manage.winner.mistake")}</p>
+        </div>
       </Modal>
     </>
   );

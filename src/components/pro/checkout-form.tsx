@@ -15,7 +15,7 @@ import { proEvent } from "./upgrade-link";
  * moves to the gateway's secure page or the bKash pay page. The amount is worked out on the server; the browser only
  * sends the choices. Leaving without paying is counted as "closed checkout".
  */
-export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, methods }: { amountLabel: string; priceLabel: string; trialDays: number; renew: boolean; methods: PublicMethod[] }) {
+export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, methods, months = 1 }: { amountLabel: string; priceLabel: string; trialDays: number; renew: boolean; methods: PublicMethod[]; /** 1, 6 or 12 (owner, 2026-11-02). */ months?: number }) {
   const { t, locale, price, currency } = useI18n();
   const [method, setMethod] = useState<string | null>(methods[0]?.key ?? null);
   const [promo, setPromo] = useState("");
@@ -39,7 +39,7 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, method
   const pay = () =>
     start(async () => {
       setError(null);
-      const res = await startProCheckout({ method: method ?? "", promo: promo.trim() || undefined, acceptedTerms: agree });
+      const res = await startProCheckout({ method: method ?? "", promo: promo.trim() || undefined, acceptedTerms: agree, months });
       if (!res.ok) {
         setError(t(res.error));
         return;
@@ -118,7 +118,7 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, method
               onClick={() =>
                 check(async () => {
                   setError(null);
-                  const res = await previewProPromo(promo);
+                  const res = await previewProPromo(promo, months);
                   if (!res.ok) return setError(t(res.error));
                   setApplied({ code: res.code, amount: res.amount, percent: res.percent });
                 })
@@ -137,7 +137,7 @@ export function CheckoutForm({ amountLabel, priceLabel, trialDays, renew, method
       <label className="ck-agree">
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
         <span>
-          {trialDays > 0 ? t("pro.checkout.agreeTrial", { price: priceLabel }) : t("pro.checkout.agree", { price: priceLabel })}{" "}
+          {trialDays > 0 ? t("pro.checkout.agreeTrial", { price: priceLabel }) : months === 1 ? t("pro.checkout.agree", { price: priceLabel }) : t("pro.checkout.agreePlan", { price: priceLabel, n: n(months) })}{" "}
           <Link href="/legal/terms">{t("pro.checkout.terms")}</Link>
         </span>
       </label>

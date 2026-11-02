@@ -36,7 +36,7 @@ describe("BLUEPRINT defaults", () => {
     expect([d("fees.client_service_fee_percent"), d("fees.client_service_fee_large_percent"), d("fees.client_service_fee_large_from")]).toEqual([25, 20, 50000]);
     expect(d("upgrades.all_free_from")).toBe(25000);
     // Extension is a paid add-on, never free (owner, 2026-10-07)
-    expect(d("upgrades.extension_price_per_day")).toBe(500);
+    expect(d("upgrades.extension_price")).toBe(1000);
     expect([d("upgrades.blind_price"), d("upgrades.private_price"), d("upgrades.promoted_price")]).toEqual([1000, 1000, 1000]);
     // Owner, 2026-10-09: the Monthly Winner gets a gift box, not money.
     expect(Object.keys(SETTINGS).includes("monthly.champion_prize")).toBe(false);

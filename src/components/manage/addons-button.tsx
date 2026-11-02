@@ -21,7 +21,7 @@ export function AddonsButton({
   contestId: string;
   brand: string;
   active: Record<AddonKey, boolean>;
-  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number };
+  prices: Record<AddonKey, number> & { extensionPrice: number; checkerFreeFrom?: number };
   extensionDays: number[];
   endsAt: string | null;
   prize?: number;

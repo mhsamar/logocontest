@@ -13,6 +13,7 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { VisitTracker } from "@/components/layout/visit-tracker";
 import { VisitorPopupSlot } from "@/components/visitor-popup/visitor-popup-slot";
 import { SupportSlot } from "@/components/support/support-slot";
+import { WhatsAppSlot } from "@/components/support/whatsapp-slot";
 import { FloatingProCardSlot } from "@/components/pro/floating-card-slot";
 import { AdsScript } from "@/components/ads/ads-script";
 import { AdminPresence } from "@/components/admin/admin-presence";
@@ -146,6 +147,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <VisitTracker />
               <LangCookieSync />
               <SupportSlot />
+              <WhatsAppSlot />
               <VisitorPopupSlot signedIn={Boolean(user)} />
               <FloatingProCardSlot />
             </SiteChrome>

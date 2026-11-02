@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { proPriceWithCode } from "@/lib/payments/manual-rules";
-import { priceQuote } from "@/lib/pro/rules";
+import { priceQuote, proMonthsOf } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSubscription, getTrial } from "@/lib/pro/status";
 import { lookupPromo, reservePromo } from "./promos";
@@ -25,15 +25,17 @@ export async function redeemDesignerCode(code: string): Promise<{ ok: true; code
 }
 
 /** The Pro page's "Apply": the plan's own promo code, or a discount code, and the price with it. Nothing is kept. */
-export async function previewProPromo(code: string): Promise<{ ok: true; code: string; amount: number; list: number; percent: number | null } | Fail> {
+export async function previewProPromo(code: string, monthsIn: number = 1): Promise<{ ok: true; code: string; amount: number; list: number; percent: number | null } | Fail> {
   const user = await getCurrentUser();
   if (!user || user.role !== "designer") return { ok: false, error: "pay.promo.signIn" };
   const { settings, ready } = await getProSettings();
   if (!ready) return { ok: false, error: "pro.errors.notForSale" };
   const sub = await getSubscription(user.id);
   const firstTime = !sub && !(await getTrial(user.id));
-  const plain = priceQuote(settings, { firstTime });
-  const withPlanCode = priceQuote(settings, { firstTime, promo: code });
+  // The chosen plan (owner, 2026-11-02): a discount code takes its share off 6 or 12 months too.
+  const months = proMonthsOf(monthsIn);
+  const plain = priceQuote(settings, { firstTime, months });
+  const withPlanCode = priceQuote(settings, { firstTime, promo: code, months });
   if (withPlanCode.reason === "promo") return { ok: true, code: code.trim().toUpperCase(), amount: withPlanCode.amount, list: plain.amount, percent: null };
   const look = await lookupPromo(code, user.id, "pro_discount");
   if (!look.ok) return look;

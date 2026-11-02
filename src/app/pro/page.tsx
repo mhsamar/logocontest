@@ -253,6 +253,14 @@ export default async function GoProPage() {
               </div>
               {shown.reason === "offer" && <span className="gp-offer">{t(s.offerAudience === "all" ? "pro.go.offerAllLine" : "pro.go.offerLine", { amount: money(shown.amount), price })}</span>}
               {shown.reason === "trial" && <span className="gp-offer">{t("pro.go.trialLine", { days: n(shown.trialDays), price })}</span>}
+              {/* Longer plans (owner, 2026-11-02): links straight to that plan's checkout. */}
+              {forSale && (
+                <span className="gp-offer">
+                  <Link href="/pro/checkout?plan=6">{t("pro.go.plan6", { price: money(s.price6Bdt) })}</Link>
+                  {" · "}
+                  <Link href="/pro/checkout?plan=12">{t("pro.go.plan12", { price: money(s.price12Bdt) })}</Link>
+                </span>
+              )}
               {upgrade("hero")}
               <span className="gp-pc">{forSale || pro ? t("pro.go.cancelLine") : t("pro.go.soonLead")}</span>
               {!user && forSale && (

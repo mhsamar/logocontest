@@ -49,6 +49,7 @@ import { ReviewStep, type PromoPreview, type UploadState } from "./step-review";
 import { FieldInput } from "@/components/services/field-input";
 import { checkExtraAnswers, clientStepShown, EMPTY_ONBOARDING, extraOn, type OnboardingConfig } from "@/lib/onboarding/config";
 import type { Lang } from "@/lib/services/types";
+import { ClientAccountNote } from "./client-account-note";
 
 export type WizardProps = {
   user: { name: string; mobile: string } | null;
@@ -556,6 +557,7 @@ export function Wizard(props: WizardProps) {
               {/* 1. About you (new clients): real name for the payment check, mobile and email (owner, 2026-10-15) */}
               {step === S.you && (
                 <div className="space-y-5">
+                  <ClientAccountNote />
                   <TextField
                     mark
                     label={t("wizard.you.nameLabel")}

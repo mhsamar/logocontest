@@ -27,6 +27,22 @@ export function cleanDriveUrl(input: string): string | null {
   return u.toString();
 }
 
+/**
+ * One Google Drive folder for every final file (owner, 2026-11-02: uploading many big files made the site heavy). The
+ * winner pastes the folder's link, shared as "Anyone with the link can view", ticks each file type that is in it, and
+ * promises to keep the folder for at least KEEP_DAYS after the client approves.
+ */
+export const KEEP_DAYS = 30;
+
+/** A Drive folder link (drive.google.com/drive/folders/… or …/drive/u/0/folders/…). */
+export const isDriveFolderUrl = (url: string) => /^https:\/\/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/[A-Za-z0-9_-]{10,}/.test(url);
+
+/** The one folder link when every file of the handover is that same Drive folder; otherwise null (older handovers). */
+export function folderOf(files: { link: string | null; type: string }[]): string | null {
+  const links = [...new Set(files.map((f) => f.link))];
+  return files.length > 0 && links.length === 1 && links[0] && isDriveFolderUrl(links[0]) ? links[0] : null;
+}
+
 /** Private bucket for the final files (migration 0022): any type up to 50 MB; extensions are checked here. */
 export const HANDOVER_FILES_BUCKET = "handover-files";
 

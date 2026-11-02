@@ -10,14 +10,16 @@ import type { MessageKey, MessageParams } from "@/lib/i18n/translate";
 import { findBadWord } from "@/lib/moderation/bad-words";
 import { findContactDetails } from "@/lib/moderation/contact-filter";
 import { notify } from "@/lib/notifications";
+import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { getSetting, getSettings } from "@/lib/settings";
 import { getFileStorage } from "@/lib/storage";
 import { HANDOVER_FILES_BUCKET } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { payoutFor } from "@/lib/wallet/fees";
 import { driveLinkAccess } from "./drive";
-import { acceptsFile, CHAT_STATUSES, cleanDriveUrl, countWords, extensionOf, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
+import { acceptsFile, CHAT_STATUSES, cleanDriveUrl, countWords, extensionOf, HANDOVER_TYPES, isDriveFolderUrl, KEEP_DAYS, isHandoverType, isLinkType, MAX_EXTRA_FILES, type HandoverFileType } from "./options";
 import { emailChat } from "@/lib/email/events";
+import { actorFor, logActAsClient } from "@/lib/admin/act-as-client";
 
 type Fail = { ok: false; error: { key: MessageKey; params?: MessageParams } };
 const fail = (key: MessageKey, params?: MessageParams): Fail => ({ ok: false, error: { key, params } });
@@ -117,6 +119,42 @@ export async function saveHandoverLink(input: { handoverId: string; fileType: st
   return { ok: true };
 }
 
+/**
+ * Every final file in one Google Drive folder (owner, 2026-11-02): the folder's link, shared so anyone with it can
+ * view, the file types the winner ticked as inside it (all the contest needs), and their promise to keep it for at
+ * least KEEP_DAYS after the client approves. Saved as the link of each needed type, so the rest of the delivery
+ * (sending, the client's review) works as before; files uploaded earlier are removed.
+ */
+export async function saveHandoverFolder(input: { handoverId: string; url: string; types: string[]; extras: boolean; keep: boolean }): Promise<{ ok: true } | Fail> {
+  if (!isSupabaseConfigured()) return fail("auth.errors.notConfigured");
+  const own = await editableForWinner(input.handoverId);
+  if (!own) return fail("handover.errors.closed");
+  const url = cleanDriveUrl(input.url);
+  if (!url || !isDriveFolderUrl(url)) return fail("handover.errors.driveFolder");
+  const db = createAdminClient();
+  const { data: c } = await db.from("contests").select("final_types, deliverables").eq("id", own.h.contest_id).maybeSingle();
+  const need = ((c?.final_types as string[] | null)?.length ? (c!.final_types as string[]) : [...HANDOVER_TYPES]).filter((x) => isHandoverType(x) && x !== "extra");
+  const ticked = new Set(input.types);
+  const asked = ((c?.deliverables as string[] | null) ?? []).length > 0;
+  if (need.some((x) => !ticked.has(x)) || (asked && !input.extras)) return fail("handover.errors.folderTicks");
+  if (!input.keep) return fail("handover.errors.folderKeep");
+  const access = await driveLinkAccess(url);
+  if (access === "private") return fail("handover.errors.drivePrivate");
+  if (access === "missing") return fail("handover.errors.driveMissing");
+
+  const { data: old } = await db.from("handover_files").select("id, path").eq("handover_id", own.h.id);
+  if (old?.length) {
+    await db.from("handover_files").delete().in("id", old.map((o) => o.id as string));
+    const paths = old.map((o) => o.path as string | null).filter((p): p is string => Boolean(p));
+    if (paths.length) await getFileStorage().remove(HANDOVER_FILES_BUCKET, paths).catch(() => {});
+  }
+  const rows = [...need, ...(asked ? ["extra"] : [])].map((file_type) => ({ handover_id: own.h.id, file_type, link_url: url, path: null, size_bytes: null, original_name: "Google Drive folder" }));
+  const { error } = await db.from("handover_files").insert(rows);
+  if (error) return fail("handover.errors.upload");
+  refresh();
+  return { ok: true };
+}
+
 export async function removeHandoverFile(fileId: string): Promise<{ ok: true } | Fail> {
   if (!UUID.test(fileId)) return fail("auth.errors.generic");
   const db = createAdminClient();
@@ -145,12 +183,13 @@ export async function submitHandover(input: { handoverId: string; fontsNote: str
   return { ok: true };
 }
 
-/** The contest's client, for review actions. */
+/** The contest's client, for review actions, or a Super admin acting for them (owner, 2026-11-02: audited). */
 async function forClient(id: string) {
   const user = await getCurrentUser();
   const h = await loadHandover(id);
-  if (!user || user.status === "banned" || !h || h.contest?.client_id !== user.id) return null;
-  return { user, h };
+  const actor = h?.contest?.client_id ? actorFor(user, h.contest.client_id) : null;
+  if (!user || !h || !actor) return null;
+  return { user: { ...user, id: actor.clientId }, adminId: actor.adminId, h };
 }
 
 /** C-17: the client asks for a change (a note is required). */
@@ -167,6 +206,7 @@ export async function requestHandoverRevision(input: { handoverId: string; note:
   // The request also opens the delivery chat, so the designer can answer it there.
   await db.from("handover_messages").insert({ handover_id: own.h.id, author_id: own.user.id, body: note });
   await notify([own.h.designer_id], "handover_revision", { brand: own.h.contest?.brand_name }, `/dashboard/handover/${own.h.contest?.slug}`, own.user.id);
+  if (own.h.contest_id) await logActAsClient(own.adminId, "request_changes", own.h.contest_id as string, {});
   refresh();
   return { ok: true };
 }
@@ -194,6 +234,9 @@ export async function approveHandover(input: { handoverId: string; rating: numbe
   const paid = (data as { amount?: number } | null)?.amount;
   const amount = paid ?? payoutFor(own.h.prize, own.h.fee_rate).credit;
   await notify([own.h.designer_id], paid ? "handover_approved" : "handover_approved_held", { brand: own.h.contest?.brand_name, amount, stars: input.rating, days: s["timers.payout_hold_days"] }, "/dashboard/wallet", own.user.id);
+  // Download the files now (owner, 2026-11-02): the designer keeps the Drive folder for KEEP_DAYS.
+  if (own.h.contest?.client_id) await notifyWithPush([own.h.contest.client_id], "handover_download", { brand: own.h.contest?.brand_name, days: KEEP_DAYS }, `${contestHref(own.h.contest?.slug ?? "", "payment")}#files`);
+  if (own.h.contest_id) await logActAsClient(own.adminId, "approve_files", own.h.contest_id as string, { rating: input.rating });
   refresh();
   return { ok: true };
 }

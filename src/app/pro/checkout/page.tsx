@@ -12,7 +12,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { isProActive, priceQuote, receiptCode } from "@/lib/pro/rules";
+import { isProActive, planPrice, priceQuote, PRO_PLANS, proMonthsOf, receiptCode, type ProMonths } from "@/lib/pro/rules";
 import { getProSettings } from "@/lib/pro/settings";
 import { getSubscription, getTrial, pendingProPayment } from "@/lib/pro/status";
 import { logFunnel } from "@/lib/pro/subscription";
@@ -40,8 +40,10 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
   if (pending) redirect(`/pay/pro/${pending}`);
   const paymentId = typeof sp.payment === "string" && UUID.test(sp.payment) ? sp.payment : null;
   // Someone who had the free Pro Trial is not a first-time buyer (owner, 2026-10-14).
-  const quote = priceQuote(s, { firstTime: !sub && !(await getTrial(user.id)) });
-  const price = money(s.priceBdt);
+  // 1, 6 or 12 months (owner, 2026-11-02): chosen with ?plan=, monthly by default.
+  const months = proMonthsOf(sp.plan);
+  const quote = priceQuote(s, { firstTime: !sub && !(await getTrial(user.id)), months });
+  const price = money(planPrice(s, months));
   const n = (v: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(v);
   const features: { key: MessageKey; on: boolean }[] = [
     { key: "pro.checkout.inc.i1", on: true },
@@ -77,7 +79,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
       </ul>
       <div className="ck-tot">
         <div>
-          <span>{quote.reason === "trial" ? t("pro.checkout.trialLine", { days: n(quote.trialDays) }) : t("pro.checkout.line")}</span>
+          <span>{quote.reason === "trial" ? t("pro.checkout.trialLine", { days: n(quote.trialDays) }) : months === 1 ? t("pro.checkout.line") : t("pro.checkout.lineMonths", { n: n(months) })}</span>
           <b>{quote.reason === "list" ? price : <s>{price}</s>}</b>
         </div>
         {quote.reason === "offer" && (
@@ -91,7 +93,7 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
           <b>{money(quote.amount)}</b>
         </div>
       </div>
-      <span className="ck-ren">{t("pro.checkout.renews")}</span>
+      <span className="ck-ren">{months === 1 ? t("pro.checkout.renews") : t("pro.checkout.renewsPlan", { n: n(months) })}</span>
       <span className="ck-ren">{t("pro.checkout.renewsReminder")}</span>
     </aside>
   );
@@ -202,7 +204,12 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
     );
   } else {
     after(() => logFunnel("checkout_opened", { designerId: user.id, step: pro ? "renewal" : "new" }));
-    main = <CheckoutForm amountLabel={money(quote.amount)} priceLabel={price} trialDays={quote.reason === "trial" ? quote.trialDays : 0} renew={pro} methods={await openMethods(locale, currency.code)} />;
+    main = (
+      <div className="flex flex-col gap-4">
+        <PlanChooser months={months} plans={PRO_PLANS.map((m) => ({ months: m, label: m === 1 ? t("pro.checkout.plans.m1") : t("pro.checkout.plans.mN", { n: n(m) }), price: money(planPrice(s, m)), save: m === 1 ? null : savePercent(s.priceBdt * m, planPrice(s, m)) }))} t={t} n={n} />
+        <CheckoutForm key={months} months={months} amountLabel={money(quote.amount)} priceLabel={price} trialDays={quote.reason === "trial" ? quote.trialDays : 0} renew={pro} methods={await openMethods(locale, currency.code)} />
+      </div>
+    );
   }
 
   return (
@@ -212,5 +219,29 @@ export default async function ProCheckoutPage({ searchParams }: PageProps<"/pro/
         {summary}
       </div>
     </PageShell>
+  );
+}
+
+/** "Save 58%": how much a longer plan saves against paying monthly. */
+const savePercent = (monthly: number, plan: number) => (monthly > plan ? Math.round(((monthly - plan) / monthly) * 100) : null);
+
+/** The three plans (owner, 2026-11-02): links, so the price and summary come from the server. */
+function PlanChooser({ months, plans, t, n }: { months: ProMonths; plans: { months: ProMonths; label: string; price: string; save: number | null }[]; t: (k: MessageKey, p?: Record<string, string | number>) => string; n: (v: number) => string }) {
+  return (
+    <nav aria-label={t("pro.checkout.plans.title")} className="grid grid-cols-3 gap-2">
+      {plans.map((p) => (
+        <Link
+          key={p.months}
+          href={p.months === 1 ? "/pro/checkout" : `/pro/checkout?plan=${p.months}`}
+          scroll={false}
+          aria-current={p.months === months ? "true" : undefined}
+          className={`flex flex-col items-center gap-0.5 rounded-[16px] px-2 py-3 text-center ring-1 transition ${p.months === months ? "bg-ink text-white ring-ink" : "bg-surface text-ink ring-line hover:ring-ink"}`}
+        >
+          <span className="text-[13.5px] font-semibold">{p.label}</span>
+          <strong className="text-[18px] font-bold">{p.price}</strong>
+          {p.save ? <span className={`rounded-full px-2 text-[12px] font-bold ${p.months === months ? "bg-white/15" : "bg-[#e7f8ee] text-[#14633c]"}`}>{t("pro.checkout.plans.save", { n: n(p.save) })}</span> : <span className="text-[12px] opacity-70">{t("pro.checkout.plans.monthly")}</span>}
+        </Link>
+      ))}
+    </nav>
   );
 }

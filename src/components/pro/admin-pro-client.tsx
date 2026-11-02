@@ -145,6 +145,18 @@ export function PlanSettings({ initial, canManage }: { initial: Form; canManage:
               ))}
             </div>
             <small>{t("pro.admin.priceNote")}</small>
+            {/* 6 and 12 months at once (owner, 2026-11-02). */}
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {(["price6Bdt", "price12Bdt"] as const).map((k) => (
+                <label key={k} className="flex flex-col gap-1 text-[13.5px] font-semibold">
+                  {t(k === "price6Bdt" ? "pro.admin.price6" : "pro.admin.price12")}
+                  <span className="ap-pi">
+                    <span>৳</span>
+                    <input type="number" inputMode="numeric" value={f[k]} disabled={!canManage} onChange={(e) => set(k, num(e.target.value))} />
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="ap-box">
             <div className="ap-boxh">

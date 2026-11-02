@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { toE164 } from "@/lib/phone";
 import { isPersonName } from "@/lib/profile/name-rules";
 import type { V2Actions } from "./wizard-v2";
+import { ClientAccountNote } from "@/components/wizard/client-account-note";
 
 const PHONE_ERRORS = ["auth.errors.phoneTaken", "auth.errors.invalidPhone", "auth.errors.invalidPhoneIntl"];
 const EMAIL_ERRORS = ["wizard.errors.emailTaken", "wizard.errors.email", "auth.errors.emailFake", "auth.errors.emailDisposable", "auth.errors.emailNoMail", "auth.errors.emailTypo"];
@@ -136,6 +137,7 @@ export function AccountV2({
         submit();
       }}
     >
+      <ClientAccountNote />
       <TextField
         label={t("wizardV2.account.name")}
         hint={t("wizard.you.nameHint")}

@@ -13,6 +13,8 @@ export function rowToSettings(r: Record<string, unknown>): ProSettings {
   return {
     isForSale: r.is_for_sale === true,
     priceBdt: num(r.price_bdt, d.priceBdt),
+    price6Bdt: num(r.price_6m_bdt, d.price6Bdt),
+    price12Bdt: num(r.price_12m_bdt, d.price12Bdt),
     offerEnabled: r.offer_enabled === true,
     offerPriceBdt: typeof r.offer_price_bdt === "number" ? r.offer_price_bdt : null,
     offerAudience: r.offer_audience === "all" ? "all" : "new",

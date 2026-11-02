@@ -24,7 +24,7 @@ const STEP_ICONS = [
 /** P-01c Client home (owner, 2026-10-08): everything a returning client needs to start the next contest. */
 export async function ClientHome({ user }: { user: { id: string; name: string } }) {
   const { t, locale, price } = await getI18n();
-  const [pricing, perDay] = await Promise.all([getPricingConfig(), getSetting("upgrades.extension_price_per_day")]);
+  const [pricing, perDay] = await Promise.all([getPricingConfig(), getSetting("upgrades.extension_price")]);
   const taka = price;
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
 

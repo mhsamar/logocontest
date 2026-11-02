@@ -15,7 +15,7 @@ export const PRICING_SECTIONS = [
   {
     id: "addons",
     group: "upgrades",
-    keys: ["upgrades.all_free_from", "upgrades.promoted_price", "upgrades.blind_price", "upgrades.private_price", "upgrades.highlight_price", "upgrades.urgent_price", "upgrades.nda_price", "upgrades.extension_price_per_day", "upgrades.extension_days_options"],
+    keys: ["upgrades.all_free_from", "upgrades.promoted_price", "upgrades.blind_price", "upgrades.private_price", "upgrades.highlight_price", "upgrades.urgent_price", "upgrades.nda_price", "upgrades.extension_price", "upgrades.extension_days_options"],
   },
   { id: "designerFee", group: "fees", keys: ["fees.designer_tiers", "fees.counted_win_min_prize", "fees.counted_win_min_designers", "fees.counted_wins_max_per_client"] },
   { id: "dollars", group: "payments", keys: ["payments.usd_rate", "payments.usd_markup_percent"] },

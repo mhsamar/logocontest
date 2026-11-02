@@ -14,28 +14,32 @@ import { feeRateFor } from "@/lib/wallet/fees";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { REJECT_REASONS } from "./review-options";
 import { emailShortlisted, emailWon } from "@/lib/email/events";
+import { actorFor, logActAsClient } from "@/lib/admin/act-as-client";
 
 /** The client's review tools (UI-JOURNEY C-13b, C-15; owner 2026-10-08). */
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 const UUID = /^[0-9a-f-]{36}$/i;
 
-/** The entry and its contest, only when the signed-in user is that contest's client. */
+/** The entry and its contest, only when the signed-in user is that contest's client, or a Super admin acting for them
+ * (owner, 2026-11-02; then `adminId` is set and each action is audited). */
 async function ownEntry(entryId: string) {
   if (!isSupabaseConfigured() || !UUID.test(entryId)) return null;
   const user = await getCurrentUser();
-  if (!user || user.role !== "client" || user.status === "banned") return null;
+  if (!user || user.status === "banned" || (user.role !== "client" && !user.isSuperAdmin)) return null;
   const { data } = await createAdminClient()
     .from("entries")
     .select("id, number, status, designer_id, contest:contests!contest_id(id, slug, brand_name, client_id, status, logo_scan)")
     .eq("id", entryId)
     .maybeSingle();
   const c = data && ((Array.isArray(data.contest) ? data.contest[0] : data.contest) as { id: string; slug: string; brand_name: string; client_id: string; status: string; logo_scan: boolean } | null);
-  if (!data || !c || c.client_id !== user.id) return null;
+  const actor = data && c ? actorFor(user, c.client_id) : null;
+  if (!data || !c || !actor) return null;
   // A finished contest is read-only for its client too (owner, 2026-10-12): only the files can be downloaded. So is a
   // cancelled one (owner, 2026-10-21: after a money-back refund the designers aren't told about stars or shortlists).
   if (isFinished(c.status) || c.status === "cancelled") return null;
-  return { user, entry: data as { id: string; number: number; status: string; designer_id: string }, contest: c };
+  // As the client: their id is the one that goes on (a report, say) when a Super admin acts for them.
+  return { user: { ...user, id: actor.clientId }, adminId: actor.adminId, entry: data as { id: string; number: number; status: string; designer_id: string }, contest: c };
 }
 
 /** 1–5 stars; 0 clears the rating. */
@@ -47,6 +51,7 @@ export async function rateEntry(entryId: string, rating: number): Promise<Result
   if (error) return { ok: false, error: "auth.errors.generic" };
   // After the answer (owner, 2026-10-27: the stars waited for it).
   if (rating) after(() => notify([own.entry.designer_id], "entry_rated", { brand: own.contest.brand_name, number: own.entry.number, stars: rating }, `/contest/${own.contest.slug}?tab=entries&entry=${own.entry.number}`));
+  await logActAsClient(own.adminId, "rate", own.contest.id, { entry: own.entry.number, rating });
   refresh();
   return { ok: true };
 }
@@ -58,6 +63,7 @@ export async function setShortlist(entryId: string, on: boolean): Promise<Result
   if (error) return { ok: false, error: "auth.errors.generic" };
   // entry-shortlisted.html (owner, 2026-10-15), once per design.
   if (on) after(() => emailShortlisted(entryId));
+  await logActAsClient(own.adminId, "shortlist", own.contest.id, { entry: own.entry.number, on });
   refresh();
   return { ok: true };
 }
@@ -84,6 +90,7 @@ export async function rejectEntry(entryId: string, reason: string, note: string)
       () => undefined,
     );
   }
+  await logActAsClient(own.adminId, "reject", own.contest.id, { entry: own.entry.number, reason });
   refresh();
   return { ok: true };
 }
@@ -112,6 +119,7 @@ export async function pickWinner(entryId: string): Promise<Result> {
   await notify((await contestDesignerIds(own.contest.id)).filter((id) => id !== own.entry.designer_id), "contest_closed", n, link);
   // The designer's win card (owner, 2026-10-11), made in the background.
   await afterWinnerPicked(own.contest.id, entryId);
+  await logActAsClient(own.adminId, "pick_winner", own.contest.id, { entry: own.entry.number });
   refresh();
   return { ok: true };
 }

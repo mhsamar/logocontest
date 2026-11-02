@@ -9,7 +9,7 @@ import { openMethod } from "@/lib/payments/methods";
 import { openStripeCheckout } from "@/lib/payments/stripe-api";
 import { lookupPromo, reservePromo, markPromoUsed } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isProActive, priceQuote } from "./rules";
+import { isProActive, proMonthsOf, priceQuote } from "./rules";
 import { getProSettings } from "./settings";
 import { getSubscription, getTrial, isPro, pendingProPayment, proKind } from "./status";
 import { cancelTrial, startTrial } from "./trial";
@@ -30,7 +30,7 @@ async function designer() {
  * designer goes to the gateway's secure page, or for manual bKash (owner, 2026-10-14) to the pay page. A Pro
  * discount code from Admin › Payments › Promo codes takes its percent off. Refused while the plan is not for sale.
  */
-export async function startProCheckout(input: { method: string; promo?: string; acceptedTerms: boolean }): Promise<{ ok: true; redirectUrl: string } | Fail> {
+export async function startProCheckout(input: { method: string; promo?: string; acceptedTerms: boolean; months?: number }): Promise<{ ok: true; redirectUrl: string } | Fail> {
   const user = await designer();
   if (!user) return fail("pro.errors.designersOnly");
   const { settings, ready } = await getProSettings();
@@ -39,7 +39,9 @@ export async function startProCheckout(input: { method: string; promo?: string; 
 
   const sub = await getSubscription(user.id);
   // Someone who had the free Pro Trial (owner, 2026-10-14) is not a first-time buyer.
-  const quote = priceQuote(settings, { firstTime: !sub && !(await getTrial(user.id)), promo: input.promo ?? null });
+  // 1, 6 or 12 months (owner, 2026-11-02).
+  const months = proMonthsOf(input.months);
+  const quote = priceQuote(settings, { firstTime: !sub && !(await getTrial(user.id)), promo: input.promo ?? null, months });
   const typed = (input.promo ?? "").trim();
   // Not the plan's own promo code: maybe a discount code (checked now, kept for this designer when they pay).
   const discount = typed && quote.reason !== "promo" && quote.reason !== "trial" ? await lookupPromo(typed, user.id, "pro_discount") : null;
@@ -69,10 +71,10 @@ export async function startProCheckout(input: { method: string; promo?: string; 
     amount = Math.min(amount, proPriceWithCode(quote.amount, res.promo.value));
     // 100% off: nothing to pay, Pro for a month at once.
     if (amount === 0) {
-      const granted = await grantPro(user.id, { months: 1, method: "free", priceBdt: 0 });
+      const granted = await grantPro(user.id, { months, method: "free", priceBdt: 0 });
       if (!granted) return fail("pro.errors.generic");
       await markPromoUsed(reservedId);
-      await logProActivity(null, "granted", user.id, null, { months: 1, promo: discount.code });
+      await logProActivity(null, "granted", user.id, null, { months, promo: discount.code });
       refresh();
       return { ok: true, redirectUrl: "/pro/checkout?status=success" };
     }
@@ -85,6 +87,7 @@ export async function startProCheckout(input: { method: string; promo?: string; 
       subscription_id: sub?.id ?? null,
       kind: sub && isProActive(sub) ? "renewal" : "new",
       amount_bdt: amount,
+      months,
       method,
       provider: manual || stripe ? open.key : getPaymentGateway().name,
       promo_code: quote.reason === "promo" ? settings.promoCode : discount?.ok ? discount.code : null,
@@ -97,7 +100,7 @@ export async function startProCheckout(input: { method: string; promo?: string; 
   if (manual) return { ok: true, redirectUrl: `/pay/pro/${payment.id}` };
   // Stripe (owner, 2026-10-14): a card payment in US dollars on Stripe's page.
   if (stripe) {
-    const url = await openStripeCheckout({ kind: "pro", paymentId: payment.id as string, bdt: amount, name: "logocontest.bd Pro · 1 month", email: user.email, cancelPath: "/pro/checkout" });
+    const url = await openStripeCheckout({ kind: "pro", paymentId: payment.id as string, bdt: amount, name: `logocontest.bd Pro · ${months} month${months === 1 ? "" : "s"}`, email: user.email, cancelPath: "/pro/checkout" });
     if (!url) {
       await logFunnel("payment_failed", { designerId: user.id, step: "gateway" });
       return fail("pro.errors.payment");
@@ -109,7 +112,7 @@ export async function startProCheckout(input: { method: string; promo?: string; 
       paymentId: payment.id as string,
       amount,
       method,
-      description: "logocontest.bd Pro · 1 month",
+      description: `logocontest.bd Pro · ${months} month${months === 1 ? "" : "s"}`,
       customer: { name: user.name, mobile: user.mobile },
     });
     return { ok: true, redirectUrl };

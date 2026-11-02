@@ -19,6 +19,13 @@ type Item = AddonKey | "extend";
 
 const ICONS: Record<Item, React.ReactNode> = {
   promote: <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" />,
+  urgent: <path d="M13 2 4 14h7l-1 8 9-12h-7Z" />,
+  highlight: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M7 10h10M7 14h6" />
+    </>
+  ),
   extend: (
     <>
       <circle cx="12" cy="13" r="8" />
@@ -42,6 +49,8 @@ const ICONS: Record<Item, React.ReactNode> = {
 
 const TINT: Record<Item, string> = {
   promote: "from-[#fff7e0] to-[#ffe6a8] text-gold-ink",
+  urgent: "from-[#ffece8] to-[#ffd2c7] text-[#b42318]",
+  highlight: "from-[#fff9db] to-[#fff0a8] text-[#7a5b00]",
   extend: "from-[#e8f1ff] to-[#d4e4ff] text-[#1d4ed8]",
   private: "from-[#f1ecff] to-[#e2d6ff] text-[#5b21b6]",
   blind: "from-[#eef2f7] to-[#dde3ec] text-ink",
@@ -79,7 +88,7 @@ export function AddonsPanel({
   open: boolean;
   active: Record<AddonKey, boolean>;
   /** `allFreeFrom`: every add-on is free with a prize of at least this (owner, 2026-10-22); extra days stay paid. */
-  prices: Record<AddonKey, number> & { extensionPerDay: number; checkerFreeFrom?: number; allFreeFrom?: number };
+  prices: Record<AddonKey, number> & { extensionPrice: number; checkerFreeFrom?: number; allFreeFrom?: number };
   /** The contest prize: the AI copyright checker is free from `prices.checkerFreeFrom` (owner, 2026-10-10). */
   prize?: number;
   extensionDays: number[];
@@ -103,9 +112,10 @@ export function AddonsPanel({
       month: "long",
       timeZone: "Asia/Dhaka",
     }).format(d);
-  const price = (item: Item) => (item === "extend" ? prices.extensionPerDay * days : prices[item]);
+  const price = (item: Item) => (item === "extend" ? prices.extensionPrice : prices[item]);
   // The AI logo checker is free on every logo contest (owner, 2026-10-14): no longer sold as an add-on.
-  const items: Item[] = ["promote", "extend", "private", "blind"];
+  // Urgent and Highlight after launch too (owner, 2026-11-02).
+  const items: Item[] = ["promote", "urgent", "highlight", "extend", "private", "blind"];
   const checkerFree = prize !== undefined && prices.checkerFreeFrom !== undefined && prize >= prices.checkerFreeFrom;
   // Every add-on is free with a big enough prize (owner, 2026-10-22); extra days stay paid.
   const allFree = prize !== undefined && addonsFreeFor(prize, { addonsFreeFrom: prices.allFreeFrom });
@@ -165,7 +175,7 @@ export function AddonsPanel({
           ) : (
             <>
               <span className={cx("text-sm font-bold transition-colors duration-300", isFree(item) ? "text-success" : "text-ink group-hover:text-primary")}>
-                {isFree(item) ? t("wizard.c08.freeWithPrize") : item === "extend" ? `${taka(prices.extensionPerDay)}/${locale === "bn" ? "দিন" : "day"}` : taka(prices[item])}
+                {isFree(item) ? t("wizard.c08.freeWithPrize") : taka(item === "extend" ? prices.extensionPrice : prices[item])}
               </span>
               <button
                 type="button"
@@ -250,7 +260,7 @@ export function AddonsPanel({
                   className={cx("rounded-[14px] p-3 text-center ring-1 transition-colors", days === d ? "bg-primary/5 ring-2 ring-primary" : "ring-line hover:bg-chip")}
                 >
                   <span className="block font-bold text-ink">{t("manage.addons.extend.days", { n: nf.format(d) })}</span>
-                  <span className="block text-sm font-semibold text-primary">{taka(prices.extensionPerDay * d)}</span>
+                  <span className="block text-sm font-semibold text-primary">{taka(prices.extensionPrice)}</span>
                   {end && <span className="mt-1 block text-[0.6875rem] text-muted">{t("manage.addons.extend.newEnd", { date: date(end) })}</span>}
                 </button>
               );

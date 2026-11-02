@@ -61,6 +61,8 @@ const payEn = {
     shotPick: "Add screenshot",
     shotRemove: "Remove",
     submit: "Send for approval",
+    whatsappHelp: "Problem paying? Message us on WhatsApp and we'll help.",
+    whatsappGreeting: "Hi logocontest.bd, I have a problem with a payment: ",
     keepMessage: "Keep the bKash message until your payment is approved.",
     successTitle: "Your payment is successful",
     successContest: "Your contest will be live soon. We will notify you.",

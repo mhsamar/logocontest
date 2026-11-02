@@ -8,7 +8,7 @@ import { TextAreaField } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { approveHandover, requestHandoverRevision } from "@/lib/handover/actions";
-import { countWords, type HandoverFileType, type HandoverStatus } from "@/lib/handover/options";
+import { countWords, folderOf, KEEP_DAYS, type HandoverFileType, type HandoverStatus } from "@/lib/handover/options";
 import { cx } from "@/lib/cx";
 import { useI18n } from "@/lib/i18n/client";
 
@@ -76,7 +76,25 @@ export function ClientHandover({
   if (status === "awaiting_files") return <p className="rounded-2xl bg-[#e8f1ff] p-4 text-[#1d4ed8] ring-1 ring-[#bcd0ff]">{t("handover.waiting.client", { date: date(dueAt) })}</p>;
   if (status === "revision_requested") return <p className="rounded-2xl bg-[#fff6d6] p-4 text-gold-ink">{t("handover.waiting.revision")}</p>;
 
-  const fileList = (
+  // One Google Drive folder with every file (owner, 2026-11-02); older deliveries still list their files one by one.
+  const folder = folderOf(files);
+  const fileList = folder ? (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-surface p-3.5 ring-1 ring-line">
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-ink">{t("handover.review.folderTitle")}</span>
+        <span className="mt-1 flex flex-wrap gap-1.5">
+          {[...new Set(files.map((f) => f.type))].map((type) => (
+            <span key={type} className="rounded-full bg-chip px-2.5 py-0.5 text-xs font-bold uppercase text-ink">
+              {type === "extra" ? "+" : type}
+            </span>
+          ))}
+        </span>
+      </span>
+      <a href={folder} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-sm font-bold text-white">
+        {t("handover.review.openFolder")}
+      </a>
+    </div>
+  ) : (
     <ul className="grid gap-2 sm:grid-cols-2">
       {files.map((f) => (
         <li key={f.id} className="flex items-center gap-3 rounded-2xl bg-surface p-3 ring-1 ring-line">
@@ -108,6 +126,8 @@ export function ClientHandover({
           <p className="font-semibold text-success">{t("handover.done.title")}</p>
           <p className="text-sm text-ink/80">{t("handover.done.client")}</p>
           {rating && <p className="mt-1 text-sm text-gold-ink">{t("handover.done.rating")}: {"★".repeat(rating)}</p>}
+          {/* Download them now (owner, 2026-11-02): the designer keeps the folder for KEEP_DAYS, not forever. */}
+          {folder && <p className="m-0 mt-2 rounded-[12px] bg-[#fff6d6] px-3 py-2 text-sm font-semibold text-gold-ink">{t("handover.done.downloadNow", { days: KEEP_DAYS })}</p>}
         </div>
       ) : (
         <div>

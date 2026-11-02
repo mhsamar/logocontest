@@ -86,6 +86,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   entry_approved: "approved",
   entry_shortlisted: "rating",
   logo_check_ready: "safety",
+  handover_download: "files",
   entry_held_admin: "admin",
   win_cancelled: "safety",
   strike_received: "safety",
