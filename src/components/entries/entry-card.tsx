@@ -23,14 +23,14 @@ function Stars({ value }: { value: number }) {
  * The mockups of one design in a square, like the reference (owner, 2026-10-08):
  * 1 fills it, 2 side by side, 3 as one large and two small, 4+ as a 2×2 grid with "+N".
  */
-export function Collage({ previews, total, ratio = 1 }: { previews: string[]; total: number; /** Width ÷ height of a contest service's design (owner, 2026-10-13: real shape); 1 for logos. */ ratio?: number }) {
+export function Collage({ previews, total, ratio = 1, alt = "" }: { previews: string[]; total: number; /** Width ÷ height of a contest service's design (owner, 2026-10-13: real shape); 1 for logos. */ ratio?: number; /** The first picture's alt text (owner, 2026-11-03: for Google Images); the rest are the same design. */ alt?: string }) {
   const shown = previews.slice(0, 4);
-  const img = (src: string, i: number, className?: string) => <img key={i} src={src} alt="" className={cx("h-full w-full object-cover", className)} loading="lazy" />;
+  const img = (src: string, i: number, className?: string) => <img key={i} src={src} alt={i === 0 ? alt : ""} className={cx("h-full w-full object-cover", className)} loading="lazy" />;
   // Not square: the first image in its real shape, and "+N" for the rest.
   if (ratio !== 1)
     return (
       <div className="relative bg-canvas" style={{ aspectRatio: String(ratio) }}>
-        {shown[0] && <img src={shown[0]} alt="" className="h-full w-full object-contain" loading="lazy" />}
+        {shown[0] && <img src={shown[0]} alt={alt} className="h-full w-full object-contain" loading="lazy" />}
         {total > 1 && <span className="absolute bottom-2 right-2 rounded-full bg-ink/75 px-2 py-0.5 text-xs font-bold text-white">+{total - 1}</span>}
       </div>
     );
@@ -57,7 +57,7 @@ export function Collage({ previews, total, ratio = 1 }: { previews: string[]; to
 }
 
 /** One card in the Entries tab grid (UI-JOURNEY §1.3 entry card). Opens P-04. */
-export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number; /** Designer Pro plan (owner, 2026-10-13): badge, gold border, "Invited". */ pro?: { badge: boolean; highlight: boolean; invited: boolean; /** On the free Pro Trial (owner, 2026-10-14). */ trial?: boolean } }) {
+export function EntryCard({ entry, href, t, fmt, ratio = 1, pro, brand }: { entry: Entry; href: string; t: Translate; fmt: (n: number) => string; ratio?: number; /** The contest's brand, for the picture's alt text (none on a private contest). */ brand?: string; /** Designer Pro plan (owner, 2026-10-13): badge, gold border, "Invited". */ pro?: { badge: boolean; highlight: boolean; invited: boolean; /** On the free Pro Trial (owner, 2026-10-14). */ trial?: boolean } }) {
   const winner = entry.status === "winner";
   return (
     <Link
@@ -71,7 +71,7 @@ export function EntryCard({ entry, href, t, fmt, ratio = 1, pro }: { entry: Entr
     >
       <div className="relative">
         {/* Pro "Hide my design" (owner, 2026-10-14): a locked card for everyone but the client and the designer. */}
-        {entry.locked ? <LockedPicture title={t("pro.hide.lockedTitle")} sub={t("pro.hide.lockedSub")} ratio={ratio} /> : <Collage previews={entry.previews} total={entry.imageCount} ratio={ratio} />}
+        {entry.locked ? <LockedPicture title={t("pro.hide.lockedTitle")} sub={t("pro.hide.lockedSub")} ratio={ratio} /> : <Collage previews={entry.previews} total={entry.imageCount} ratio={ratio} alt={brand ? (entry.designer?.username ? t("logoAlt.by", { brand, n: fmt(entry.number), designer: `@${entry.designer.username}` }) : t("logoAlt.plain", { brand, n: fmt(entry.number) })) : ""} />}
         {entry.hidden && !entry.locked && (
           <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#5B21B6] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white" title={t("pro.hide.hiddenNote")}>
             <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>

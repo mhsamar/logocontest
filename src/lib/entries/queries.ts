@@ -6,7 +6,7 @@ import { getFileStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { proFeatureOn } from "@/lib/pro/settings";
 import { proIdsAmong } from "@/lib/pro/status";
-import { APPROVE_ALL_REASON, canSeeEntry, entryScope, GONE_STATUSES, HIDING_STATUSES, seesHiddenPicture, SHOWN_STATUSES, showDesignerName, sortEntries, stillHidden, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
+import { APPROVE_ALL_REASON, canSeeEntry, entryScope, GONE_STATUSES, HIDING_STATUSES, isShareableDesign, seesHiddenPicture, SHOWN_STATUSES, showDesignerName, sortEntries, stillHidden, type ContestForEntries, type EntrySort, type EntryStatus } from "./rules";
 
 /** Designs (entries) on the contest page: the grid, the viewer and their comments (UI-JOURNEY P-03, P-04). */
 
@@ -126,9 +126,18 @@ async function toCards(rows: Row[], contest: ContestForEntries, viewer: CurrentU
   const sorted = rows.map((r) => ({ ...r, images: [...(r.images ?? [])].sort((a, b) => a.position - b.position) }));
   // A locked design's pictures are never signed for this viewer.
   const paths = sorted.flatMap((r) => (locked.has(r.id) ? [] : r.images.slice(0, previewLimit).map((i) => i.preview_path)));
+  // Designs a logged-out visitor sees get addresses that never change, for Google Images (owner, 2026-11-03).
+  const pub = contest.publicImages;
+  const publicBrands = new Map(
+    pub
+      ? sorted
+          .filter((r) => !locked.has(r.id) && isShareableDesign({ status: r.status, isHidden: r.is_hidden }, { status: pub.status, isPrivate: false, isNda: false, isBlind: contest.isBlind, winnerIsPublic: contest.winnerIsPublic }))
+          .flatMap((r) => r.images.slice(0, previewLimit).map((i) => [i.preview_path, pub.brand] as const))
+      : [],
+  );
   const [urls, counts, votes] = await Promise.all([
     // Grid tiles are small; the open design gets the full picture.
-    getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS, { width: previewLimit <= 4 ? 640 : 1000 }).catch(() => new Map<string, string>()),
+    getFileStorage().createReadUrls(ENTRY_FILES_BUCKET, paths, LINK_SECONDS, { width: previewLimit <= 4 ? 640 : 1000, publicBrands }).catch(() => new Map<string, string>()),
     commentCounts(sorted.map((r) => r.id)),
     voteCounts(sorted.map((r) => r.id), viewer?.id ?? null),
   ]);

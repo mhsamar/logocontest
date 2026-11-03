@@ -31,6 +31,11 @@ export type ContestForEntries = {
   canSeeBrief: boolean;
   status: string;
   winnerIsPublic: boolean;
+  /**
+   * A contest whose public designs may have addresses that never change (Google Images, owner 2026-11-03): not
+   * private, not NDA. Its brand names the pictures; `status` is the stored one (as isShareableDesign wants).
+   */
+  publicImages?: { brand: string; status: string } | null;
 };
 
 export type EntryScope =

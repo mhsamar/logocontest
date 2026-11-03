@@ -111,6 +111,6 @@ describe("design pictures through the site", () => {
 
   it("the picture routes skip the login check on every request, and the grid asks for small pictures", () => {
     expect(read("src/proxy.ts")).toContain("api/img/|api/avatar/|api/email/image/|");
-    expect(read("src/lib/entries/queries.ts")).toContain("{ width: previewLimit <= 4 ? 640 : 1000 }");
+    expect(read("src/lib/entries/queries.ts")).toContain("{ width: previewLimit <= 4 ? 640 : 1000, publicBrands }");
   });
 });

@@ -20,7 +20,7 @@ import { getI18n, getLocale, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber } from "@/lib/money";
 import { championMonths } from "@/lib/rewards/queries";
-import { openGraphFor, robotsUnless } from "@/lib/seo";
+import { metaDescription, openGraphFor, robotsUnless } from "@/lib/seo";
 import { getSetting } from "@/lib/settings";
 import { localizedPath } from "@/lib/i18n/lang-path";
 
@@ -30,8 +30,11 @@ export async function generateMetadata({ params }: PageProps<"/d/[username]">): 
   if (!designer) return { title: t("notFound.title"), robots: { index: false } };
   const title = t("designerProfile.metaTitle", { name: designer.name });
   const path = `/d/${username.toLowerCase()}`;
-  // Without a bio the page still has a description (QA, 2026-10-18).
-  const description = designer.bio || t("designerProfile.metaDescription", { name: designer.name });
+  // Without a bio the page still has a description (QA, 2026-10-18); a short one (owner, 2026-11-03) says what the
+  // profile shows, in numbers, and a long one is cut to what search results show.
+  const fmt = (n: number) => formatNumber(n, locale);
+  const bio = designer.bio?.trim() ?? "";
+  const description = bio.length >= 70 ? metaDescription(bio) : t("designerProfile.metaStats", { name: designer.name, designs: fmt(designer.stats.designs), wins: fmt(designer.stats.wins) });
   return {
     title,
     description,

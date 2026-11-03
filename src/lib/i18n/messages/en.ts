@@ -118,6 +118,7 @@ const en = {
     home: "Home",
     breadcrumb: "You are here",
     updated: "Updated {date}",
+    byBusiness: "Logo design by business",
     related: {
       label: "More to read",
       price: "Logo design price",
@@ -512,6 +513,8 @@ const en = {
       },
     },
   },
+  /** A design picture's alt text, for Google Images (owner, 2026-11-03). */
+  logoAlt: { plain: "{brand} logo design #{n}", by: "{brand} logo design #{n} by {designer}" },
   /** "View in English" on Bangla pages (owner, 2026-11-03). In English on the Bangla site too, for whoever can't read Bangla. */
   langHint: { view: "View in English", close: "Close" },
   common: {
@@ -1498,6 +1501,8 @@ const en = {
     suspended: "Suspended until {date}",
     metaTitle: "{name} – Logo Designer in Bangladesh",
     metaDescription: "{name}'s logo designs and contest wins on logocontest.bd.",
+    /** Owner, 2026-11-03: a description with the profile's own numbers when the bio is short or missing. */
+    metaStats: "{name} is a logo designer in Bangladesh on logocontest.bd: {designs} public designs, {wins} contest wins. See the logo portfolio.",
     topDesigner: "Top Designer",
     share: "Share profile",
     wins: "Wins",

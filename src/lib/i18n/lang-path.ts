@@ -15,7 +15,7 @@ export const EN_PREFIX = "/en";
 
 /** The public pages, which have a Bangla and an English address (each with its own canonical and hreflang). */
 const LOCALIZED =
-  /^\/(?:|contests|contest\/[^/]+|contest\/[^/]+\/design\/\d+|design-studio|designers\/signup|guides|guides\/[^/]+|help|how-it-works|legal\/[^/]+|logo-checker|logo-design|logo-design-price|about|pro|winners|leaderboard|d\/[^/]+|designer\/[^/]+|c\/[^/]+)\/?$/;
+  /^\/(?:|contests|contest\/[^/]+|contest\/[^/]+\/design\/\d+|design-studio|designers\/signup|guides|guides\/[^/]+|help|how-it-works|legal\/[^/]+|logo-checker|logo-design|logo-design\/[^/]+|logo-design-price|about|pro|winners|leaderboard|d\/[^/]+|designer\/[^/]+|c\/[^/]+)\/?$/;
 
 export const isLocalizedPath = (pathname: string) => LOCALIZED.test(pathname);
 

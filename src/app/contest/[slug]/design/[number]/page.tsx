@@ -12,6 +12,7 @@ import { openGraphFor, robotsUnless } from "@/lib/seo";
 import { sharedDesign, type SharedDesign } from "@/lib/share/design";
 import { designPath, designPinPath } from "@/lib/share/links";
 import { isTestAccount } from "@/lib/seo/test-accounts";
+import { ldJson, logoImage } from "@/lib/seo/jsonld";
 
 const LABEL = "m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted";
 
@@ -54,14 +55,19 @@ export default async function SharedDesignPage({ params }: PageProps<"/contest/[
     [t("share.page.designs"), fmt(contest.entries)],
   ];
 
+  const alt = entry.designer?.username ? t("logoAlt.by", { brand: contest.brandName, n: fmt(entry.number), designer: `@${entry.designer.username}` }) : t("logoAlt.plain", { brand: contest.brandName, n: fmt(entry.number) });
+  // A winning design's picture for Google Images (owner, 2026-11-03), at its address that never changes.
+  const image = winner && entry.previews[0]?.includes("/logo/") ? logoImage({ contentUrl: entry.previews[0], name: alt, path: designPath(contest.slug, entry.number), locale, designer: entry.designer?.username ? `@${entry.designer.username}` : null, brand: contest.brandName }) : null;
+
   return (
     <PageShell>
+      {image && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(image) }} />}
       <section className="grid gap-6 rounded-[32px] bg-surface p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10 lg:p-8 max-[720px]:rounded-[24px]" data-shared-design={entry.number}>
         {/* The design: its cover big, the other pictures under it */}
         <div className="flex min-w-0 flex-col gap-2.5">
           <figure className="m-0 overflow-hidden rounded-[24px] bg-[#F4F5F7] ring-1 ring-line">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={entry.previews[0]} alt={t("share.page.picture", { n: fmt(1), d: fmt(entry.number) })} className="block aspect-square w-full object-contain" />
+            <img src={entry.previews[0]} alt={alt} className="block aspect-square w-full object-contain" />
           </figure>
           {entry.previews.length > 1 && (
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">

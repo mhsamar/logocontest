@@ -100,8 +100,11 @@ async function withFiles(rows: Light[]): Promise<StudioDesign[]> {
     byEntry.set(img.entry_id as string, list);
   }
   const paths = [...byEntry.values()].flat().map((f) => f.preview_path);
+  // Every design here is public: addresses that never change, for Google Images (owner, 2026-11-03).
+  const brandOf = new Map(rows.map((r) => [r.id, r.contest.brand_name]));
+  const publicBrands = new Map([...byEntry].flatMap(([id, files]) => files.map((f) => [f.preview_path, brandOf.get(id) ?? ""] as const)));
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640 })
+    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640, publicBrands })
     .catch(() => new Map<string, string>());
   return rows.map((r) => {
     const designer = r.contest.is_blind ? null : one(r.designer);
@@ -179,8 +182,10 @@ export async function studioHero(): Promise<StudioHero> {
         latest.map((r) => r.id),
       )
       .eq("position", 0);
+    const brandOf = new Map(latest.map((r) => [r.id, r.contest.brand_name]));
+    const publicBrands = new Map((data ?? []).map((d) => [d.preview_path as string, brandOf.get(d.entry_id as string) ?? ""]));
     const urls = await getFileStorage()
-      .createReadUrls(ENTRY_FILES_BUCKET, (data ?? []).map((d) => d.preview_path as string), 3600, { width: 640 })
+      .createReadUrls(ENTRY_FILES_BUCKET, (data ?? []).map((d) => d.preview_path as string), 3600, { width: 640, publicBrands })
       .catch(() => new Map<string, string>());
     for (const d of data ?? []) {
       const url = urls.get(d.preview_path as string);

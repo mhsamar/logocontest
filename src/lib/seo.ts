@@ -51,3 +51,15 @@ export function openGraphFor(o: { title: string; description?: string; path?: st
     ...(o.images ? { images: o.images } : o.path ? { images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "logocontest.bd" }] } : {}),
   };
 }
+
+/**
+ * A meta description cut to what search results show (about 155 letters), at a word, with "…" (owner, 2026-11-03:
+ * designers' bios ran to 300).
+ */
+export function metaDescription(text: string, max = 155): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,.;:–-]+$/, "")}…`;
+}

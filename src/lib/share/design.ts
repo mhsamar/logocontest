@@ -17,7 +17,7 @@ export const sharedDesign = cache(async (slug: string, number: number): Promise<
   if (!Number.isInteger(number) || number < 1) return null;
   const contest = await getContestBySlug(slug, null);
   if (!contest || !contest.canSeeBrief) return null;
-  const forEntries = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
+  const forEntries = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic, publicImages: !contest.isPrivate && !contest.isNda ? { brand: contest.brandName, status: contest.rawStatus } : null };
   const entry = await getEntryDetail(contest.id, number, forEntries, null);
   if (!entry || entry.locked || entry.previews.length === 0) return null;
   const ok = isShareableDesign(

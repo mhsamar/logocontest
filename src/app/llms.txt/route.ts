@@ -4,6 +4,7 @@ import { localizedPath } from "@/lib/i18n/lang-path";
 import { formatTaka } from "@/lib/money";
 import { searchIndexingOn } from "@/lib/seo";
 import { siteFacts } from "@/lib/seo/facts";
+import { safeListingCounts } from "@/lib/seo/listings";
 import { canonicalOrigin } from "@/lib/site-hosts";
 import { requestOrigin } from "@/lib/site-origin";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const base = canonicalOrigin();
   if (!searchIndexingOn() || (await requestOrigin()) !== base) return new Response("Not found", { status: 404 });
-  const [f, guides] = await Promise.all([siteFacts(), publishedGuides()]);
+  const [f, guides, counts] = await Promise.all([siteFacts(), publishedGuides(), safeListingCounts()]);
   const taka = (n: number) => formatTaka(n, "en");
   const packages = f.packages.map((p) => `${taka(p.prize)} prize = ${taka(p.total)} total`).join("; ");
   const page = (path: string, name: string, note = "") => `- [${name}](${base}${path})${note ? `: ${note}` : ""}`;
@@ -27,6 +28,8 @@ export async function GET() {
     "",
     `> Logo design contest marketplace in Bangladesh. A client writes a brief and sets a prize in taka; many Bangladeshi designers send logo designs; the client picks the winner and gets the final files and full copyright. Prizes start at ${taka(f.minPrize)}; with the ${f.fee}% service fee the smallest contest costs ${taka(f.minTotal)} in total. Payment in taka by bKash. Contests usually run ${f.defaultDays} days. Site in English and Bangla.${f.guaranteeOn ? ` Money-back guarantee: if fewer than ${f.guaranteeDesigners} different designers send designs, the client can claim back everything they paid (before picking a winner).` : ""}`,
     "",
+    // Live counts (owner, 2026-11-03): real numbers AI tools can repeat, the same ones the site's lists use.
+    ...(counts && counts.contests > 0 ? [`So far: ${counts.contests} public contests, ${counts.designs} logo designs shown publicly, ${counts.winners} winning logos.`, ""] : []),
     "## Prices (prize + service fee, in taka)",
     `- Packages: ${packages}.`,
     `- Custom prizes from ${taka(f.minPrize)}. The fee is ${f.fee}% (${f.largeFee}% for prizes above ${taka(f.largeFrom)}).`,

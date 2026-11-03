@@ -8,7 +8,9 @@ import type { Locale } from "@/lib/i18n/config";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { LandingContent, LandingCopy, LandingSection } from "@/lib/landing/types";
-import { formatTaka } from "@/lib/money";
+import { formatNumber, formatTaka } from "@/lib/money";
+import { INDUSTRIES } from "@/lib/landing/industries";
+import type { IndustryExample } from "@/lib/landing/industry-examples";
 import { openGraphFor } from "@/lib/seo";
 import { fillFacts, siteFacts, type SiteFacts } from "@/lib/seo/facts";
 import { breadcrumbs, faqPage, ldJson, service } from "@/lib/seo/jsonld";
@@ -49,6 +51,7 @@ async function filled(content: LandingContent): Promise<Filled> {
     breadcrumb: fill(raw.breadcrumb),
     sections: raw.sections.filter((s) => facts.guaranteeOn || !s.onlyWithGuarantee).map(section),
     cta: { heading: fill(raw.cta.heading), body: fill(raw.cta.body), button: fill(raw.cta.button) },
+    ...(raw.examplesHeading ? { examplesHeading: fill(raw.examplesHeading) } : {}),
   };
   return { copy, facts, locale };
 }
@@ -223,12 +226,64 @@ const RELATED = [
   { slug: "about", key: "landing.related.about" },
 ] as const;
 
-export async function LandingPage({ content, offers }: { content: LandingContent; offers?: boolean }) {
+/** The logo design service and its pages by business (owner, 2026-11-03), linked from each other. */
+function ByBusiness({ current, t }: { current: string; t: (k: MessageKey) => string }) {
+  return (
+    <nav aria-label={t("landing.byBusiness")} className="lc-card w-full p-6 sm:p-8">
+      <h2 className={h2}>{t("landing.byBusiness")}</h2>
+      <ul className="m-0 mt-4 flex list-none flex-wrap gap-2 p-0">
+        {INDUSTRIES.map((i) => (
+          <li key={i.slug}>
+            {`logo-design/${i.slug}` === current ? (
+              <span aria-current="page" className="inline-flex min-h-11 items-center rounded-full bg-tint px-4 text-[15px] font-semibold text-primary">
+                {t(`wizard.businessTypes.${i.type}` as MessageKey)}
+              </span>
+            ) : (
+              <Link href={`/logo-design/${i.slug}`} className="inline-flex min-h-11 items-center rounded-full bg-canvas px-4 text-[15px] font-semibold text-ink hover:text-primary">
+                {t(`wizard.businessTypes.${i.type}` as MessageKey)}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** Real designs from contests (a business page): the brand, the number and the designer, each linked to its contest. */
+function Examples({ heading, items, t, locale }: { heading: string; items: IndustryExample[]; t: (k: MessageKey, p?: Record<string, string | number>) => string; locale: Locale }) {
+  return (
+    <section className={card}>
+      <h2 className={h2}>{heading}</h2>
+      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
+        {items.map((x) => {
+          const n = formatNumber(x.number, locale);
+          const alt = x.designer ? t("logoAlt.by", { brand: x.brand, n, designer: x.designer }) : t("logoAlt.plain", { brand: x.brand, n });
+          return (
+            <li key={x.url}>
+              <Link href={x.href} className="group block overflow-hidden rounded-2xl bg-canvas ring-1 ring-line hover:ring-primary">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={x.url} alt={alt} width={480} height={480} loading="lazy" decoding="async" className="block aspect-square w-full object-cover" />
+                <span className="block truncate px-3 py-2 text-[13px] font-semibold text-ink">
+                  {x.winner && <span className="text-primary">★ </span>}
+                  {x.brand}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+export async function LandingPage({ content, offers, parent, examples }: { content: LandingContent; offers?: boolean; /** The page above this one in the breadcrumbs (a business page sits under Logo design service). */ parent?: { name: string; path: string }; /** A business page's real designs (owner, 2026-11-03). */ examples?: IndustryExample[] }) {
   const [{ copy, facts, locale }, { t }] = await Promise.all([filled(content), getI18n()]);
   const path = `/${content.slug}`;
   const faqs = copy.sections.flatMap((s) => (s.kind === "faq" ? s.items : []));
+  const business = content.slug === "logo-design" || content.slug.startsWith("logo-design/");
   const ld = [
-    breadcrumbs([{ name: t("landing.home"), path: "/" }, { name: copy.breadcrumb, path }], locale),
+    breadcrumbs([{ name: t("landing.home"), path: "/" }, ...(parent ? [parent] : []), { name: copy.breadcrumb, path }], locale),
     // The service, with one offer per package only when this page shows the price table.
     ...(offers ? [service({ name: copy.h1, description: copy.description, path, locale, offers: copy.sections.some((s) => s.kind === "prices") ? facts.packages.map((p) => ({ name: t(`wizard.packages.${p.key}.name` as MessageKey), total: p.total })) : undefined })] : []),
     ...(faqs.length ? [faqPage(faqs, locale)] : []),
@@ -242,6 +297,14 @@ export async function LandingPage({ content, offers }: { content: LandingContent
             {t("landing.home")}
           </Link>
           <span aria-hidden>›</span>
+          {parent && (
+            <>
+              <Link href={parent.path} className="hover:text-ink">
+                {parent.name}
+              </Link>
+              <span aria-hidden>›</span>
+            </>
+          )}
           <span aria-current="page" className="text-ink">
             {copy.breadcrumb}
           </span>
@@ -251,9 +314,11 @@ export async function LandingPage({ content, offers }: { content: LandingContent
       </Panel>
       <Panel tone="grey" className="flex flex-col items-center gap-3.5">
         <div className="flex w-full max-w-[880px] flex-col gap-3.5">
+          {examples && examples.length > 0 && copy.examplesHeading && <Examples heading={copy.examplesHeading} items={examples} t={t} locale={locale} />}
           {copy.sections.map((s, i) => (
             <Section key={i} s={s} facts={facts} locale={locale} t={t} />
           ))}
+          {business && <ByBusiness current={content.slug} t={t} />}
           <section className="w-full rounded-[24px] bg-[linear-gradient(150deg,#A30F0F,#8B0000_55%,#5C0A0C)] p-6 text-white sm:p-8">
             <h2 className="m-0 text-[clamp(22px,2.6vw,30px)] font-semibold leading-tight tracking-[-0.03em]">{copy.cta.heading}</h2>
             <p className="mb-0 mt-2.5 max-w-2xl text-[17px] text-[#F6DAD8]">{copy.cta.body}</p>

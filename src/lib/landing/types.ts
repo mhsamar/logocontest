@@ -47,6 +47,8 @@ export type LandingCopy = {
   sections: LandingSection[];
   /** The closing box with the main button (Start a contest). */
   cta: { heading: string; body: string; button: string };
+  /** A business page (owner, 2026-11-03): the heading over its real designs from contests. */
+  examplesHeading?: string;
 };
 
 export type LandingContent = {

@@ -116,6 +116,7 @@ const bn: Messages = {
     home: "হোম",
     breadcrumb: "আপনি এখানে আছেন",
     updated: "হালনাগাদ: {date}",
+    byBusiness: "ব্যবসা অনুযায়ী লোগো ডিজাইন",
     related: {
       label: "আরও পড়ুন",
       price: "লোগো ডিজাইনের দাম",
@@ -506,6 +507,8 @@ const bn: Messages = {
       },
     },
   },
+  /** A design picture's alt text, for Google Images (owner, 2026-11-03). */
+  logoAlt: { plain: "{brand}-এর লোগো ডিজাইন #{n}", by: "{designer}-এর করা {brand}-এর লোগো ডিজাইন #{n}" },
   /** "View in English" on Bangla pages (owner, 2026-11-03). In English on the Bangla site too, for whoever can't read Bangla. */
   langHint: { view: "View in English", close: "বন্ধ করুন" },
   common: {
@@ -1487,6 +1490,8 @@ const bn: Messages = {
     suspended: "{date} পর্যন্ত সাসপেন্ড",
     metaTitle: "{name} – লোগো ডিজাইনার, পোর্টফোলিও",
     metaDescription: "logocontest.bd-তে {name}-এর লোগো ডিজাইন ও কনটেস্ট জয়।",
+    /** Owner, 2026-11-03: a description with the profile's own numbers when the bio is short or missing. */
+    metaStats: "{name} বাংলাদেশের একজন লোগো ডিজাইনার। logocontest.bd-তে {designs}টি পাবলিক ডিজাইন, {wins}টি কনটেস্ট জয়। লোগো পোর্টফোলিও দেখুন।",
     topDesigner: "টপ ডিজাইনার",
     share: "প্রোফাইল শেয়ার",
     wins: "জয়",

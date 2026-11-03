@@ -115,6 +115,8 @@ export const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale,
 
   const cover = d.files[0];
   const tileLabel = t("studio.open", { brand: d.brandName, who, n: formatNumber(Math.max(1, n), locale) });
+  // The cover's alt text (owner, 2026-11-03: for Google Images); the other pictures are the same design.
+  const coverAlt = d.designer?.username ? t("logoAlt.by", { brand: d.brandName, n: formatNumber(d.number, locale), designer: `@${d.designer.username}` }) : t("logoAlt.plain", { brand: d.brandName, n: formatNumber(d.number, locale) });
   const badges = (
     <>
       <StudioBadge winner={d.isWinner} isNew={isNew} labels={labels} />
@@ -133,7 +135,7 @@ export const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale,
         <div className="ds-tile ds-swipe-wrap" role="button" tabIndex={0} aria-label={tileLabel} data-card-tile={d.id} onClick={open} onKeyDown={onKey}>
           <div className="ds-swipe h-full" onScroll={onSwipe}>
             {d.files.map((f, k) => (
-              <img key={f.url} src={f.url} alt="" loading={k === 0 ? (i < 10 ? "eager" : "lazy") : "lazy"} decoding="async" />
+              <img key={f.url} src={f.url} alt={k === 0 ? coverAlt : ""} loading={k === 0 ? (i < 10 ? "eager" : "lazy") : "lazy"} decoding="async" />
             ))}
           </div>
           {badges}
@@ -155,7 +157,7 @@ export const StudioCard = memo(function StudioCard({ d, i, mode, now, t, locale,
           {cover ? (
             <>
               <span className="ds-sf" data-on={idx === 0 ? "" : undefined}>
-                <img src={cover.url} alt="" loading={i < 10 ? "eager" : "lazy"} decoding="async" />
+                <img src={cover.url} alt={coverAlt} loading={i < 10 ? "eager" : "lazy"} decoding="async" />
               </span>
               {armed &&
                 d.files.slice(1).map((f, k) => (

@@ -87,9 +87,10 @@ describe("less Supabase egress", () => {
   });
 
   it("design pictures are converted once a month per width, not twice a day", () => {
-    const img = read("src/app/api/img/[token]/route.ts");
-    expect(img).toContain('["img-v1"],\n  { revalidate: 30 * 86400 },');
-    expect(img).toContain("await converted(t.bucket, t.path, t.width)");
+    expect(read("src/lib/storage/converted.ts")).toContain('["img-v1"],\n  { revalidate: 30 * 86400 },');
+    expect(read("src/app/api/img/[token]/route.ts")).toContain("await convertedPicture(t.bucket, t.path, t.width)");
+    // The public logo pictures (owner, 2026-11-03) share the same kept conversions.
+    expect(read("src/app/logo/[token]/[name]/route.ts")).toContain('await convertedPicture("entry-files", t.path, t.width)');
     expect(read("scripts/backup-files.mjs")).toContain('const root = path.join("backups", "files");');
   });
 });

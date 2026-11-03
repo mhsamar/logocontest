@@ -73,5 +73,24 @@ export function faqPage(items: { q: string; a: string }[], locale: Locale) {
   };
 }
 
+/**
+ * A winning design's picture (owner, 2026-11-03: designers' logos in Google Images): the picture at its address that
+ * never changes, what it is, and the designer by @username (never a real name), on this site.
+ */
+export function logoImage(i: { contentUrl: string; name: string; path: string; locale: Locale; designer: string | null; brand: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ImageObject",
+    contentUrl: i.contentUrl.startsWith("/") ? `${canonicalOrigin()}${i.contentUrl}` : i.contentUrl,
+    name: i.name,
+    caption: i.name,
+    url: url(i.path, i.locale),
+    about: { "@type": "Brand", name: i.brand },
+    ...(i.designer ? { creator: { "@type": "Person", name: i.designer }, creditText: i.designer } : {}),
+    copyrightHolder: { "@type": "Brand", name: i.brand },
+    publisher: { "@id": ORG_ID() },
+  };
+}
+
 /** JSON for a <script type="application/ld+json">: "<" escaped so nothing in it can close the tag. */
 export const ldJson = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");

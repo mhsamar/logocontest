@@ -40,6 +40,8 @@ describe("QA fixes", () => {
 
   it("pages without a brief or bio still have a description", () => {
     expect(readFileSync("src/app/contest/[slug]/page.tsx", "utf8")).toContain('t("contest.metaDescription"');
-    for (const f of ["src/app/d/[username]/page.tsx", "src/app/designer/[username]/page.tsx"]) expect(readFileSync(f, "utf8")).toContain('t("designerProfile.metaDescription"');
+    expect(readFileSync("src/app/designer/[username]/page.tsx", "utf8")).toContain('t("designerProfile.metaDescription"');
+    // /d/<username> (owner, 2026-11-03): with the profile's own numbers.
+    expect(readFileSync("src/app/d/[username]/page.tsx", "utf8")).toContain('t("designerProfile.metaStats"');
   });
 });

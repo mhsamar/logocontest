@@ -81,7 +81,7 @@ describe("an empty description", () => {
     const s = read("src/app/sitemap.ts");
     expect(s).toContain("business_description, brand_name, slogan, target_audience,");
     expect(s).toContain('hasBangla(c.business_description?.trim() || [c.brand_name, c.slogan, c.target_audience].filter(Boolean).join(" "))');
-    expect(s).toContain("...contestRows.filter(bangla).map(contestEntry),");
+    expect(s).toContain("...contestRows.filter(bangla).map(withCovers),");
   });
 });
 

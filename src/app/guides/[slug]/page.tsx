@@ -6,7 +6,7 @@ import { publishedGuide, publishedGuides } from "@/lib/guides/queries";
 import { guideText } from "@/lib/guides/rules";
 import { getI18n, pageAlternates } from "@/lib/i18n/server";
 import { englishOnlyAlternates } from "@/lib/i18n/url";
-import { openGraphFor } from "@/lib/seo";
+import { metaDescription, openGraphFor } from "@/lib/seo";
 
 export async function generateMetadata({ params }: PageProps<"/guides/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -16,8 +16,9 @@ export async function generateMetadata({ params }: PageProps<"/guides/[slug]">):
   const cover = pictureUrl(g.cover_path);
   const path = `/guides/${g.slug}`;
   return {
-    title: x.title.text,
-    description: x.summary.text,
+    // A long title without " · logocontest.bd" (owner, 2026-11-03), so search results show its own words.
+    title: x.title.text.length > 50 ? { absolute: x.title.text } : x.title.text,
+    description: metaDescription(x.summary.text),
     // A guide without its Bangla text yet is only offered in English (the Bangla address would repeat the English).
     alternates: g.bn_ready ? await pageAlternates(path) : englishOnlyAlternates(path),
     openGraph: { ...openGraphFor({ title: x.title.text, description: x.summary.text, path: g.bn_ready ? path : undefined, locale, ...(cover ? { images: [cover] } : {}) }), type: "article", publishedTime: g.published_at ?? undefined, modifiedTime: g.updated_at },

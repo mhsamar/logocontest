@@ -68,8 +68,11 @@ const publicRows = cache(async (designerId: string): Promise<(Row & { contest: N
   });
 });
 
-/** Signed links to the files (up to 8, in order, with their names) of these designs. */
-async function signFiles(ids: string[]): Promise<Record<string, StudioFile[]>> {
+/**
+ * Links to the files (up to 8, in order, with their names) of these designs. All public, so their addresses never
+ * change (for Google Images, owner 2026-11-03); `brands` names each design's brand for the file name.
+ */
+async function signFiles(ids: string[], brands: Map<string, string>): Promise<Record<string, StudioFile[]>> {
   if (ids.length === 0) return {};
   const { data } = await createAdminClient().from("entry_images").select("entry_id, position, preview_path, label").in("entry_id", ids).order("position", { ascending: true });
   const byEntry = new Map<string, { path: string; label: string | null }[]>();
@@ -78,8 +81,9 @@ async function signFiles(ids: string[]): Promise<Record<string, StudioFile[]>> {
     if (list.length < STUDIO_MAX_FILES) list.push({ path: img.preview_path as string, label: ((img.label as string | null) ?? "").trim() || null });
     byEntry.set(img.entry_id as string, list);
   }
+  const publicBrands = new Map([...byEntry].flatMap(([id, files]) => files.map((f) => [f.path, brands.get(id) ?? ""] as const)));
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, [...byEntry.values()].flat().map((f) => f.path), 3600, { width: 640 })
+    .createReadUrls(ENTRY_FILES_BUCKET, [...byEntry.values()].flat().map((f) => f.path), 3600, { width: 640, publicBrands })
     .catch(() => new Map<string, string>());
   const out: Record<string, StudioFile[]> = {};
   for (const id of ids) out[id] = (byEntry.get(id) ?? []).flatMap((f) => (urls.has(f.path) ? [{ url: urls.get(f.path)!, label: f.label }] : []));
@@ -88,8 +92,8 @@ async function signFiles(ids: string[]): Promise<Record<string, StudioFile[]>> {
 
 /** Files for more of this designer's designs ("See more", other tabs). Only public designs of this designer. */
 export async function profileFiles(designerId: string, ids: string[]): Promise<Record<string, StudioFile[]>> {
-  const allowed = new Set((await publicRows(designerId)).map((r) => r.id));
-  return signFiles([...new Set(ids)].filter((id) => allowed.has(id)).slice(0, 48));
+  const brands = new Map((await publicRows(designerId)).map((r) => [r.id, r.contest.brand_name]));
+  return signFiles([...new Set(ids)].filter((id) => brands.has(id)).slice(0, 48), brands);
 }
 
 /** The optional extras from Edit profile (migration 0042). Before that SQL runs they are simply empty. */
@@ -131,7 +135,7 @@ export async function designerProfileData(designer: { id: string; username: stri
   const first = [...rows.slice(0, PROFILE_PAGE_SIZE), ...winRows.slice(0, PROFILE_PAGE_SIZE), ...rated.slice(0, PROFILE_PAGE_SIZE)].map((r) => r.id);
 
   const [files, seen, agreement, wonAt, ratedNotes, extra] = await Promise.all([
-    signFiles([...new Set(first)]),
+    signFiles([...new Set(first)], new Map(rows.map((r) => [r.id, r.contest.brand_name]))),
     isSupabaseConfigured() ? db.from("profiles").select("last_seen_at").eq("id", designer.id).maybeSingle() : Promise.resolve({ data: null }),
     isSupabaseConfigured() ? db.from("designer_agreements").select("review_status").eq("designer_id", designer.id).maybeSingle() : Promise.resolve({ data: null }),
     winRows.length > 0 ? db.from("handovers").select("entry_id, created_at").in("entry_id", winRows.map((r) => r.id)).neq("status", "cancelled") : Promise.resolve({ data: [] }),

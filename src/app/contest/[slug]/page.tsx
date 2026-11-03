@@ -115,7 +115,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
   // Suspended (owner, 2026-10-12): no comments or likes until the suspension ends; the boxes say why.
   const held = suspendedError(user);
   const heldNote = held ? t(held.key, held.params) : null;
-  const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic };
+  const entryContest = { ownerId: contest.ownerId, isBlind: contest.isBlind, canSeeBrief: contest.canSeeBrief, status: contest.status, winnerIsPublic: contest.winnerIsPublic, publicImages: !contest.isPrivate && !contest.isNda && contest.canSeeBrief ? { brand: contest.brandName, status: contest.rawStatus } : null };
   // Blind contests: designers still see their own designs (UI-JOURNEY P-03).
   const blindHidden = contest.isBlind && entryScope(entryContest, user).kind === "none";
   // Owner, 2026-10-10: opening a contest always shows its designs first (an empty list says so).
@@ -528,7 +528,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <ul data-still className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
               {ordered.map((e) => (
                 <li key={e.id}>
-                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} pro={proMark(e)} />
+                  <EntryCard entry={e} href={`${entriesHref}&entry=${e.number}`} t={t} fmt={fmt} ratio={ratio} pro={proMark(e)} brand={contest.canSeeBrief && !contest.isPrivate ? contest.brandName : undefined} />
                 </li>
               ))}
             </ul>

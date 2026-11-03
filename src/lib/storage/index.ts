@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { viaSite, viewExp, viewImageToken, viewWidth } from "./view-links";
+import { publicImagePath, viaSite, viewExp, viewImageToken, viewWidth } from "./view-links";
 
 /**
  * File storage behind an interface (BLUEPRINT §4). The browser uploads straight
@@ -20,7 +20,11 @@ export interface FileStorage {
    * Links to read private files. Missing files are left out. Design previews shown on the site (an hour or more) go
    * through the site's own address at about `width` pixels (see view-links.ts).
    */
-  createReadUrls(bucket: string, paths: string[], seconds: number, opts?: { width?: number }): Promise<Map<string, string>>;
+  /**
+   * `publicBrands`: design previews a logged-out visitor already sees, with their brand: they get an address that never
+   * changes (/logo/…, for Google Images) instead of one that changes every 12 hours.
+   */
+  createReadUrls(bucket: string, paths: string[], seconds: number, opts?: { width?: number; publicBrands?: Map<string, string> }): Promise<Map<string, string>>;
 }
 
 /**
@@ -96,7 +100,7 @@ class SupabaseFileStorage implements FileStorage {
     return out;
   }
 
-  async createReadUrls(bucket: string, paths: string[], seconds: number, opts?: { width?: number }): Promise<Map<string, string>> {
+  async createReadUrls(bucket: string, paths: string[], seconds: number, opts?: { width?: number; publicBrands?: Map<string, string> }): Promise<Map<string, string>> {
     // Design previews on the site: through /api/img, kept by the CDN, so Supabase sends each one about once a day
     // (owner, 2026-10-27: the free 5 GB of egress ran out). Short links (win cards, 10 minutes) stay as they were.
     const secret = process.env.OTP_SECRET;
@@ -106,7 +110,11 @@ class SupabaseFileStorage implements FileStorage {
       const exp = viewExp(new Date());
       const width = viewWidth(opts?.width);
       const base = (process.env.SITE_URL ?? "").replace(/\/$/, "");
-      for (const p of paths) if (viaSite(bucket, p)) out.set(p, `${base}/api/img/${viewImageToken(secret, { bucket, path: p, width, exp })}`);
+      for (const p of paths) {
+        if (!viaSite(bucket, p)) continue;
+        const brand = bucket === "entry-files" ? opts?.publicBrands?.get(p) : undefined;
+        out.set(p, brand !== undefined ? `${base}${publicImagePath(secret, p, width, brand)}` : `${base}/api/img/${viewImageToken(secret, { bucket, path: p, width, exp })}`);
+      }
       return out;
     }
     if (!KEEP_BUCKETS.has(bucket)) return this.signNow(bucket, paths, seconds);

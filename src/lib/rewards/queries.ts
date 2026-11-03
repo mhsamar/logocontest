@@ -105,8 +105,10 @@ export async function winningDesigns(q: { month?: string | null; type?: string |
   // Newest first.
   const designs = mapped.sort((a, b) => b.finishedAt.getTime() - a.finishedAt.getTime()).slice(0, q.limit ?? 60);
   const paths = designs.map((d) => d.coverUrl).filter((p): p is string => Boolean(p));
+  // Public winners: addresses that never change, for Google Images (owner, 2026-11-03).
+  const publicBrands = new Map(designs.flatMap((d) => (d.coverUrl ? [[d.coverUrl, d.brandName] as const] : [])));
   const urls = await getFileStorage()
-    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640 })
+    .createReadUrls(ENTRY_FILES_BUCKET, paths, 3600, { width: 640, publicBrands })
     .catch(() => new Map<string, string>());
   return designs.map((d) => ({ ...d, coverUrl: d.coverUrl ? (urls.get(d.coverUrl) ?? null) : null }));
 }

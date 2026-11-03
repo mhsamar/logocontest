@@ -49,3 +49,42 @@ export const VIEW_WIDTHS = [240, 480, 640, 1000] as const;
 export const viaSite = (bucket: string, path: string) =>
   bucket === "entry-files" ? path.startsWith("previews/") : bucket === "logo-checks" ? /\.(png|jpe?g|webp)$/i.test(path) && !path.includes("certificate") : false;
 export const viewWidth = (w: number | undefined) => VIEW_WIDTHS.find((x) => x >= (w ?? 1000)) ?? 1000;
+
+/**
+ * A public design's picture at an address that never changes (owner, 2026-11-03: designers' logos in Google Images).
+ * The links above change every 12 hours, so search engines could never keep a picture. This one names a design
+ * preview and a width, signed, with no end time; the /logo route checks on every load that the design is still public
+ * (isShareableDesign), so a design made private, rejected or removed stops showing at once. Only made for designs a
+ * logged-out visitor already sees.
+ */
+const signPublic = (secret: string, body: string) => createHmac("sha256", secret).update(`public-image:${body}`).digest("base64url").slice(0, 22);
+
+export function publicImageToken(secret: string, t: { path: string; width: number }): string {
+  const body = Buffer.from(JSON.stringify([t.path, t.width])).toString("base64url");
+  return `${body}.${signPublic(secret, body)}`;
+}
+
+export function readPublicImageToken(secret: string, token: unknown): { path: string; width: number } | null {
+  if (typeof token !== "string" || token.length > 400) return null;
+  const [body, sig, extra] = token.split(".");
+  if (!body || !sig || extra !== undefined) return null;
+  const want = Buffer.from(signPublic(secret, body));
+  const got = Buffer.from(sig);
+  if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
+  try {
+    const [path, width] = JSON.parse(Buffer.from(body, "base64url").toString()) as [unknown, unknown];
+    if (typeof path !== "string" || !viaSite("entry-files", path) || !(VIEW_WIDTHS as readonly unknown[]).includes(width)) return null;
+    return { path, width: width as number };
+  } catch {
+    return null;
+  }
+}
+
+/** "MyAdvocate" → "myadvocate-logo"; a name without Latin letters → "logo". For the picture's file name. */
+export function logoFileName(brand: string): string {
+  const slug = brand.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50);
+  return slug ? `${slug}-logo` : "logo";
+}
+
+/** The address of a public design picture on this site. */
+export const publicImagePath = (secret: string, path: string, width: number, brand: string) => `/logo/${publicImageToken(secret, { path, width })}/${logoFileName(brand)}.webp`;

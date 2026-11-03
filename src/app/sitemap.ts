@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
 import { isSupabaseConfigured } from "@/lib/env";
+import { isPublicDesign, isShareableDesign, type EntryStatus } from "@/lib/entries/rules";
 import { hasBangla, localizedPath } from "@/lib/i18n/lang-path";
 import { publishedGuides } from "@/lib/guides/queries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { searchIndexingOn, siteUrl } from "@/lib/seo";
 import { safeListingCounts } from "@/lib/seo/listings";
+import { publicImagePath } from "@/lib/storage/view-links";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Rebuilt at most once an hour.
@@ -83,7 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [contests, entries] = await Promise.all([
     db
       .from("contests")
-      .select("slug, updated_at, status, business_description, brand_name, slogan, target_audience, client:profiles!client_id!inner(is_test)")
+      .select("id, slug, updated_at, status, is_blind, winner_is_public, business_description, brand_name, slogan, target_audience, client:profiles!client_id!inner(is_test)")
       .in("status", PUBLIC_CONTEST_STATUSES)
       .eq("is_private", false)
       .eq("is_nda", false)
@@ -94,7 +96,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Designers with at least one design that is shown publicly (not private, not blind).
     db
       .from("entries")
-      .select("designer_id, created_at, contest:contests!contest_id!inner(is_private, is_blind, is_nda, status)")
+      .select("designer_id, created_at, status, is_hidden, contest:contests!contest_id!inner(is_private, is_blind, is_nda, status, winner_is_public)")
       .in("status", ["active", "winner"])
       .eq("contest.is_private", false)
       .eq("contest.is_blind", false)
@@ -116,7 +118,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const latest = new Map<string, string>();
-  for (const e of entries.data ?? []) if (!latest.has(e.designer_id as string)) latest.set(e.designer_id as string, e.created_at as string);
+  // Only designs the profile itself counts (a Pro designer's hidden design isn't public until the winner is picked), so
+  // a profile listed here is never one that tells search engines to stay away (seen 2026-11-03).
+  const one = <T,>(v: T | T[]): T => (Array.isArray(v) ? v[0] : v);
+  for (const e of entries.data ?? []) {
+    const c = one(e.contest as { is_private: boolean; is_blind: boolean; status: string; winner_is_public: boolean } | { is_private: boolean; is_blind: boolean; status: string; winner_is_public: boolean }[]);
+    if (!isPublicDesign({ status: e.status as EntryStatus, isHidden: e.is_hidden as boolean | null }, { status: c.status, isPrivate: c.is_private, isBlind: c.is_blind, winnerIsPublic: c.winner_is_public })) continue;
+    if (!latest.has(e.designer_id as string)) latest.set(e.designer_id as string, e.created_at as string);
+  }
   const designers = latest.size ? await db.from("profiles").select("id, username").in("id", [...latest.keys()]).eq("role", "designer").eq("status", "active").eq("is_test", false).not("username", "is", null) : { data: [], error: null };
   logError("designers", designers.error);
 
@@ -128,14 +137,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   });
   // A contest whose brief is in English is listed in English only, like its page (owner, 2026-10-21). With no
   // description (onboarding v2), its name, slogan and customers tell the language, as on the page (browse.ts, 2026-10-29).
-  const contestRows = (contests.data ?? []) as { slug: string; updated_at: string; status: string; business_description: string | null; brand_name: string; slogan: string | null; target_audience: string | null }[];
+  const contestRows = (contests.data ?? []) as { id: string; slug: string; updated_at: string; status: string; is_blind: boolean; winner_is_public: boolean; business_description: string | null; brand_name: string; slogan: string | null; target_audience: string | null }[];
   const bangla = (c: (typeof contestRows)[number]) => hasBangla(c.business_description?.trim() || [c.brand_name, c.slogan, c.target_audience].filter(Boolean).join(" "));
+
+  // The designers' logos for Google Images (owner, 2026-11-03): each contest page with its public designs' first
+  // pictures (the winner first), and each winning design's page with all its pictures, at addresses that never change.
+  const secret = process.env.OTP_SECRET;
+  const byId = new Map(contestRows.map((c) => [c.id, c]));
+  const designs: { contest: (typeof contestRows)[number]; number: number; winner: boolean; created: string; pictures: string[] }[] = [];
+  if (secret && contestRows.length) {
+    const { data, error } = await db
+      .from("entries")
+      .select("contest_id, number, status, is_hidden, created_at, images:entry_images!entry_id(position, preview_path)")
+      .in("contest_id", [...byId.keys()])
+      .in("status", ["active", "winner"])
+      .order("created_at", { ascending: false })
+      .limit(10000);
+    logError("design pictures", error);
+    for (const e of data ?? []) {
+      const c = byId.get(e.contest_id as string);
+      if (!c) continue;
+      const status = e.status as EntryStatus;
+      if (!isShareableDesign({ status, isHidden: e.is_hidden as boolean | null }, { status: c.status, isPrivate: false, isNda: false, isBlind: c.is_blind, winnerIsPublic: c.winner_is_public })) continue;
+      const images = [...((e.images as { position: number; preview_path: string }[] | null) ?? [])].sort((a, b) => a.position - b.position);
+      const pictures = images.map((i) => `${base}${publicImagePath(secret, i.preview_path, 1000, c.brand_name)}`);
+      if (pictures.length) designs.push({ contest: c, number: e.number as number, winner: status === "winner", created: e.created_at as string, pictures });
+    }
+  }
+  const coversOf = new Map<string, string[]>();
+  for (const d of [...designs].sort((a, b) => Number(b.winner) - Number(a.winner))) {
+    const list = coversOf.get(d.contest.id) ?? [];
+    if (list.length < 20) list.push(d.pictures[0]);
+    coversOf.set(d.contest.id, list);
+  }
+  const withCovers = (c: (typeof contestRows)[number]) => ({ ...contestEntry(c), ...(coversOf.get(c.id)?.length ? { images: coversOf.get(c.id) } : {}) });
+  // Only a winning design's own page is in search engines (owner, 2026-10-21); the others' pictures come with the contest.
+  const designPages = designs.filter((d) => d.winner).map((d) => ({
+    url: `${base}/contest/${d.contest.slug}/design/${d.number}`,
+    lastModified: new Date(d.created),
+    changeFrequency: "monthly" as const,
+    priority: d.winner ? 0.6 : 0.4,
+    images: d.pictures,
+  }));
   return [
     ...englishOnly.map(englishAddress),
-    ...contestRows.filter((c) => !bangla(c)).map(contestEntry).map(englishAddress),
+    ...contestRows.filter((c) => !bangla(c)).map(withCovers).map(englishAddress),
     ...bothLanguages([
       ...pages,
-      ...contestRows.filter(bangla).map(contestEntry),
+      ...contestRows.filter(bangla).map(withCovers),
+      ...designPages,
       ...(designers.data ?? []).map((d) => ({ url: `${base}/d/${d.username}`, lastModified: new Date(latest.get(d.id as string)!), changeFrequency: "weekly" as const, priority: 0.5 })),
     ]),
   ];
