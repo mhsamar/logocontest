@@ -41,3 +41,10 @@ describe("business logo pages", () => {
     }
   });
 });
+
+describe("business logo pages are listed", () => {
+  it("in the sitemap and in llms.txt", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const f of ["src/app/sitemap.ts", "src/app/llms.txt/route.ts"]) expect(readFileSync(f, "utf8")).toContain("INDUSTRIES.map((i) =>");
+  });
+});

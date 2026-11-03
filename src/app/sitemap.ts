@@ -3,6 +3,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { isPublicDesign, isShareableDesign, type EntryStatus } from "@/lib/entries/rules";
 import { hasBangla, localizedPath } from "@/lib/i18n/lang-path";
 import { publishedGuides } from "@/lib/guides/queries";
+import { INDUSTRY_CONTENT } from "@/lib/landing/content/industries";
+import { INDUSTRIES } from "@/lib/landing/industries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { searchIndexingOn, siteUrl } from "@/lib/seo";
 import { safeListingCounts } from "@/lib/seo/listings";
@@ -60,6 +62,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: base, changeFrequency: "daily", priority: 1 },
     { url: `${base}/logo-design-price`, lastModified: LANDING_UPDATED, changeFrequency: "monthly", priority: 0.9 },
     { url: `${base}/logo-design`, lastModified: LANDING_UPDATED, changeFrequency: "monthly", priority: 0.9 },
+    // Logo design by business (owner, 2026-11-03).
+    ...INDUSTRIES.map((i) => ({ url: `${base}/logo-design/${i.slug}`, lastModified: new Date(`${INDUSTRY_CONTENT[i.slug].updatedAt}T00:00:00Z`), changeFrequency: "monthly" as const, priority: 0.8 })),
     ...(counts.contests ? [{ url: `${base}/contests`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
     ...(counts.designs ? [{ url: `${base}/design-studio`, changeFrequency: "daily" as const, priority: 0.6 }] : []),
     ...(counts.winners ? [{ url: `${base}/winners`, changeFrequency: "daily" as const, priority: 0.7 }] : []),

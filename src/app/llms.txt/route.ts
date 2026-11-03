@@ -1,4 +1,6 @@
 import { publishedGuides } from "@/lib/guides/queries";
+import { INDUSTRY_CONTENT } from "@/lib/landing/content/industries";
+import { INDUSTRIES } from "@/lib/landing/industries";
 import { LEGAL_SLUGS } from "@/lib/legal/types";
 import { localizedPath } from "@/lib/i18n/lang-path";
 import { formatTaka } from "@/lib/money";
@@ -38,6 +40,7 @@ export async function GET() {
     "## Main pages",
     en("/logo-design-price", "Logo design price in Bangladesh", "packages and totals in taka"),
     en("/logo-design", "Logo design service"),
+    ...INDUSTRIES.map((i) => en(`/logo-design/${i.slug}`, INDUSTRY_CONTENT[i.slug].en.h1)),
     en("/how-it-works", "How a logo contest works"),
     en("/how-it-works?for=designers", "For designers: earn from logo design contests"),
     en("/logo-checker", "AI logo copyright checker"),
@@ -47,6 +50,7 @@ export async function GET() {
     "## বাংলা",
     page("/logo-design-price", "লোগো ডিজাইনের দাম"),
     page("/logo-design", "লোগো ডিজাইন সার্ভিস"),
+    ...INDUSTRIES.map((i) => page(`/logo-design/${i.slug}`, INDUSTRY_CONTENT[i.slug].bn.h1)),
     page("/how-it-works", "কীভাবে কাজ করে"),
     page("/about", "logocontest.bd সম্পর্কে"),
     ...(guides.length ? ["", "## Guides", ...guides.map((g) => en(`/guides/${g.slug}`, g.title_en as string))] : []),
