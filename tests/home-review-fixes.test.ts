@@ -42,6 +42,7 @@ describe("new home page: review fixes", () => {
   });
 
   it("no payment chip in the hero while nothing is open in the visitor's currency", () => {
-    expect(read("src/components/home/landing/hero.tsx")).toContain("{pay && <span");
+    // The video hero (owner, 2026-11-06): "pay by bKash" only while a bKash method is open in this currency.
+    expect(read("src/components/home/landing/hero.tsx")).toContain('{bkash && ` · ${t("heroVideo.pay")}`}');
   });
 });

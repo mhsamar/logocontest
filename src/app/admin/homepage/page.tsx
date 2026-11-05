@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminAction } from "@/components/admin/admin-action";
 import { EntryThumb } from "@/components/admin/entry-thumb";
+import { HeroVideoCard } from "@/components/admin/hero-video-card";
 import { HowVideosCard, type HowVideoTabData } from "@/components/admin/how-videos";
 import { PictureField } from "@/components/admin/picture-field";
 import { pictureUrl } from "@/lib/content/pictures";
@@ -27,7 +28,7 @@ export default async function AdminHomepagePage() {
   const [picked, available, s, en, bn] = await Promise.all([
     entriesByIds(featured.map((f) => f.entryId)),
     entriesByIds(candidates),
-    getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer", "how.video_start", "how.start_video_on", "how.start_video_autoplay"]),
+    getSettings(["how.video_client", "how.video_designer", "how.video_autoplay", "how.cover_client", "how.cover_designer", "how.video_start", "how.start_video_on", "how.start_video_autoplay", "hero.video", "hero.video_on", "hero.video_sound", "hero.video_chapters", "hero.video_poster"]),
     translatorFor("en"),
     translatorFor("bn"),
   ]);
@@ -56,6 +57,14 @@ export default async function AdminHomepagePage() {
   return (
     <div className="space-y-6">
       <AdminHead title={t("admin.homepage.title")} lead={t("admin.homepage.lead")} />
+      {/* The home hero's explainer video (owner, 2026-11-06). */}
+      <HeroVideoCard
+        video={s["hero.video"]}
+        on={s["hero.video_on"]}
+        sound={s["hero.video_sound"]}
+        chapters={s["hero.video_chapters"]}
+        poster={<PictureField kind="hero_video" url={pictureUrl(s["hero.video_poster"])} fallback={s["hero.video"].kind === "youtube" ? `https://i.ytimg.com/vi/${s["hero.video"].id}/maxresdefault.jpg` : null} />}
+      />
       <HowVideosCard tabs={videoTabs} autoplay={s["how.video_autoplay"]} start={{ data: startVideo, on: s["how.start_video_on"], autoplay: s["how.start_video_autoplay"] }} />
       <section className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-line">
         <h2 className="font-semibold text-ink">

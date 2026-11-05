@@ -909,6 +909,34 @@ export const SETTINGS = {
     group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
     description: "How it works page, For designers: the tutorial video (a YouTube or Vimeo link, checked when saved). Empty hides the video.",
   },
+  // ---- Home hero video (owner, 2026-11-06; Design/logocontest-update) -----------------------------------------
+  "hero.video": {
+    group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
+    description: "Home page hero: the explainer video (a YouTube link, checked when saved). Empty shows the built-in animation.",
+  },
+  "hero.video_on": {
+    group: "how", type: "bool", schema: z.boolean(), default: true,
+    description: "Play the home hero video. Off shows only its poster picture.",
+  },
+  "hero.video_sound": {
+    group: "how", type: "bool", schema: z.boolean(), default: true,
+    description: "Try to start the home hero video with sound (browsers allow it only after a tap; otherwise it plays muted with a sound button).",
+  },
+  "hero.video_poster": {
+    group: "how", type: "string", schema: z.string().regex(/^(hero_video\/[0-9a-f-]{36}\.(png|jpg|webp))?$/), default: "",
+    description: "Poster picture of the home hero video, shown until it plays. Empty uses YouTube's own picture.",
+  },
+  "hero.video_chapters": {
+    group: "how", type: "json",
+    schema: z.array(z.object({ at: int(0, 36000), label: z.string().trim().min(1).max(40) })).max(8),
+    default: [
+      { at: 0, label: "লোগো কনটেস্ট কী" },
+      { at: 15, label: "কীভাবে কাজ করে" },
+      { at: 35, label: "টাকা কীভাবে নিরাপদ" },
+      { at: 50, label: "শুরু করুন" },
+    ],
+    description: "Chapters under the home hero video: when each part starts (seconds) and its label.",
+  },
   "how.video_autoplay": {
     group: "how", type: "bool", schema: z.boolean(), default: true,
     description: "Start the How it works video by itself (muted, with Tap for sound) when it is on screen.",

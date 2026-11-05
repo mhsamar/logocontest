@@ -1,7 +1,7 @@
 /** Site pictures (BLUEPRINT §13.1, A-17): stored in the public "site" bucket (migration 0028). */
 
 export const SITE_BUCKET = "site";
-export const PICTURE_KINDS = ["logo", "icon", "hero", "share", "how_client", "how_designer"] as const;
+export const PICTURE_KINDS = ["logo", "icon", "hero", "share", "how_client", "how_designer", "hero_video"] as const;
 export type PictureKind = (typeof PICTURE_KINDS)[number];
 /** The pictures on Brand & notice (A-17); the How it works video covers are in Admin → Homepage. */
 export const BRAND_PICTURES = ["logo", "icon", "hero", "share"] as const satisfies readonly PictureKind[];
@@ -14,6 +14,8 @@ export const PICTURE_SETTING = {
   share: "brand.share",
   how_client: "how.cover_client",
   how_designer: "how.cover_designer",
+  // The home hero video's poster (owner, 2026-11-06), in Admin → Homepage.
+  hero_video: "hero.video_poster",
 } as const satisfies Record<PictureKind, string>;
 export const isPictureKind = (v: string): v is PictureKind => (PICTURE_KINDS as readonly string[]).includes(v);
 
@@ -31,6 +33,7 @@ export const PICTURE_TYPES: Record<PictureKind, Record<string, string>> = {
   share: { ...PNG, ...JPG },
   how_client: { ...PNG, ...JPG, ...WEBP },
   how_designer: { ...PNG, ...JPG, ...WEBP },
+  hero_video: { ...PNG, ...JPG, ...WEBP },
 };
 
 /** The stored path of a freshly uploaded picture must look exactly like this. */
@@ -49,7 +52,7 @@ export function pictureUrl(path: string | null | undefined): string | null {
  * name never shows a different picture. SVG logos stay on Supabase, never on the site's own address.
  */
 export const SITE_IMAGE_PATH =
-  /^(?:(?:logo|icon|hero|share|how_client|how_designer)\/[0-9a-f-]{36}\.(?:png|jpg|webp)|hero-slides\/[0-9a-f-]{36}-\d{1,4}x\d{1,4}\.(?:jpg|png)|guides\/[0-9a-f-]{36}\.(?:png|jpg|webp))$/;
+  /^(?:(?:logo|icon|hero|share|how_client|how_designer|hero_video)\/[0-9a-f-]{36}\.(?:png|jpg|webp)|hero-slides\/[0-9a-f-]{36}-\d{1,4}x\d{1,4}\.(?:jpg|png)|guides\/[0-9a-f-]{36}\.(?:png|jpg|webp))$/;
 
 /** Where a page shows a site picture: through /api/site-img, or its public Storage URL for anything else. */
 export function siteImageUrl(path: string | null | undefined): string | null {

@@ -13,7 +13,6 @@ import { DesignTypesSection } from "@/components/services/design-types";
 import { LiveContests } from "@/components/home/landing/live-contests";
 import "@/components/home/landing/landing.css";
 import { getCurrentUser } from "@/lib/auth/session";
-import { brandPictures } from "@/lib/content/brand";
 import { getContact } from "@/lib/content/contact";
 import { carouselContests } from "@/lib/home/carousel";
 import { faqParams } from "@/lib/home/faq-params";
@@ -47,14 +46,13 @@ export default async function HomePage() {
   if (!showsLanding(user?.role)) return null;
 
   const { t, locale, price } = await getI18n();
-  const [{ params }, contests, winners, social, contact, pictures] = await Promise.all([
+  const [{ params }, contests, winners, social, contact] = await Promise.all([
     faqParams(t, locale, price),
     // Visitors share a light list kept for a minute; admins see it live (owner, 2026-10-28).
     carouselContests(user ?? null),
     homeWinners(12),
     getSettings(["social.facebook", "social.facebook_group", "social.instagram", "social.youtube", "social.linkedin"]),
     getContact(locale),
-    brandPictures(),
   ]);
   // Structured data for search engines and AI tools (BLUEPRINT §15.1; owner, 2026-10-21): who we are and the site,
   // with one fixed id each; only our own profiles, never the Facebook group.
@@ -65,7 +63,7 @@ export default async function HomePage() {
     <div data-lc-landing className="lc-landing flex flex-1 flex-col gap-3.5 px-3.5 pt-3.5">
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
-      <LandingHero picture={pictures.hero} nav={<SiteNav user={user} />} />
+      <LandingHero nav={<SiteNav user={user} />} />
       <LiveContests contests={contests} />
       <AskBand />
       <DesignerWall />
