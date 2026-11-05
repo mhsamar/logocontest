@@ -131,7 +131,7 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
   }, []);
 
   const start = useCallback(
-    (withSound: boolean) => {
+    (withSound: boolean, tapped = false) => {
       if (!id || !mount.current || player.current) return;
       setStarted(true);
       loadYouTube()
@@ -147,22 +147,29 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
                 setReady(true);
                 setDuration(p.getDuration());
                 p.playVideo();
-                if (withSound && !userMuted.current) {
+                // Sound only once the visitor has tapped the page: phones (Chrome, Safari) pause a video whose sound
+                // is turned on before that, so it would never start (owner, 2026-11-06: "auto play hoy na").
+                const active = tapped || (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive === true;
+                if (withSound && active && !userMuted.current) {
                   p.unMute();
                   p.setVolume(100);
                 }
-                // Still muted after half a second: the browser said no to sound.
                 window.setTimeout(() => {
+                  // The browser stopped it for its sound: play on muted, with "Turn on sound".
+                  if (p.getPlayerState() !== 1 && !p.isMuted()) {
+                    p.mute();
+                    p.playVideo();
+                  }
                   const m = p.isMuted();
                   setMuted(m);
                   if (m && !userMuted.current) setAskSound(true);
                   if (!m) heardFrom.current = p.getCurrentTime();
-                }, 500);
+                }, 700);
               },
               onStateChange: (e: { data: number }) => {
-                const isPlaying = e.data === YT.PlayerState.PLAYING;
-                setPlaying(isPlaying);
-                if (isPlaying) heroTrack("hero_video_play");
+                // Buffering counts as playing, so the play button doesn't flash while it loads.
+                setPlaying(e.data === YT.PlayerState.PLAYING || e.data === 3);
+                if (e.data === YT.PlayerState.PLAYING) heroTrack("hero_video_play");
               },
               onError: () => setFailed(true),
             },
@@ -181,12 +188,15 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
     const go = () => start(sound && !userMuted.current);
     const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
     let handle = 0;
-    const later = () => (idle ? (handle = idle(go, { timeout: 2500 })) : (handle = window.setTimeout(go, 1200)));
+    const later = () => (idle ? (handle = idle(go, { timeout: 1500 })) : (handle = window.setTimeout(go, 600)));
+    // Once the page has loaded, or after 2.5 s at the latest (a slow picture shouldn't hold the video back).
+    const latest = window.setTimeout(go, 2500);
     if (document.readyState === "complete") later();
     else window.addEventListener("load", later, { once: true });
     return () => {
       window.removeEventListener("load", later);
       window.clearTimeout(handle);
+      window.clearTimeout(latest);
     };
   }, [usable, sound, start]);
 
@@ -254,14 +264,14 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
 
   const toggle = () => {
     const p = player.current;
-    if (!p) return start(true);
+    if (!p) return start(true, true);
     pausedOffscreen.current = false;
     if (playing) p.pauseVideo();
     else p.playVideo();
   };
   const toggleSound = () => {
     const p = player.current;
-    if (!p) return start(true);
+    if (!p) return start(true, true);
     if (muted) unmute(true);
     else {
       p.mute();
@@ -275,7 +285,7 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
   const onShield = () => (muted && !userMuted.current ? unmute(true) : toggle());
   const seek = (at: number) => {
     const p = player.current;
-    if (!p) return start(true);
+    if (!p) return start(true, true);
     p.seekTo(at, true);
     p.playVideo();
     setTime(at);
@@ -294,10 +304,18 @@ export function HeroVideo({ id, on, sound, poster, chapters, demoPrize }: { id: 
             </div>
             {poster && <img src={poster} alt="" className="hv-poster" data-off={ready && playing ? "" : undefined} onError={(e) => (e.currentTarget.src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`)} />}
             {ready ? (
-              <button type="button" className="hv-shield" aria-label={playing ? t("heroVideo.pause") : t("heroVideo.play")} onClick={onShield} />
+              <>
+                <button type="button" className="hv-shield" aria-label={playing ? t("heroVideo.pause") : t("heroVideo.play")} onClick={onShield} />
+                {/* Not playing (paused, or a phone's power saving stopped it from starting): a clear play button. */}
+                {!playing && (
+                  <button type="button" className="hv-bigplay" aria-label={t("heroVideo.play")} onClick={toggle}>
+                    <Icon d={PLAY} size={30} />
+                  </button>
+                )}
+              </>
             ) : (
               !started && (
-                <button type="button" className="hv-bigplay" aria-label={t("heroVideo.play")} onClick={() => start(true)}>
+                <button type="button" className="hv-bigplay" aria-label={t("heroVideo.play")} onClick={() => start(true, true)}>
                   <Icon d={PLAY} size={30} />
                 </button>
               )
