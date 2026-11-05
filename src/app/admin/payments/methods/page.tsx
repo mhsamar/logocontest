@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { AdminHead } from "@/components/admin/page-head";
 import { MethodCard } from "@/components/payments/admin-pay";
+import { PayPageCard } from "@/components/payments/pay-page-card";
+import { pictureUrl } from "@/lib/content/pictures";
+import { payFunnel } from "@/lib/payments/admin-queries";
+import { getSettings } from "@/lib/settings";
 import { requirePermission } from "@/lib/admin/core";
 import { hasPermission } from "@/lib/admin/permissions";
 import { getI18n } from "@/lib/i18n/server";
@@ -17,7 +21,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PaymentMethodsPage() {
   const admin = await requirePermission("payments.view");
   const canManage = hasPermission(admin, "payments.manage");
-  const [{ t, locale }, rows] = await Promise.all([getI18n(), methodRows()]);
+  const [{ t, locale }, rows, s, stats] = await Promise.all([
+    getI18n(),
+    methodRows(),
+    getSettings(["pay.voice_on", "pay.voice_path", "pay.voice_name", "pay.voice_cues", "pay.support_hours", "pay.howto_video"]),
+    payFunnel(30),
+  ]);
   const tag = locale === "bn" ? "bn-BD" : "en-GB";
   const full = (iso: string) => new Date(iso).toLocaleString(tag, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" });
   const noneOpen = rows.length > 0 && !rows.some(isOpen);
@@ -45,6 +54,14 @@ export default async function PaymentMethodsPage() {
           />
         ))}
       </div>
+      {/* The contest payment screen (owner, 2026-11-06): voice guide, support hours, video, and its numbers. */}
+      <PayPageCard
+        canManage={canManage}
+        voice={{ url: pictureUrl(s["pay.voice_path"]), name: s["pay.voice_name"], on: s["pay.voice_on"], cues: s["pay.voice_cues"] }}
+        hours={s["pay.support_hours"]}
+        video={s["pay.howto_video"]}
+        stats={stats}
+      />
     </div>
   );
 }

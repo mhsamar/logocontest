@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { primeVoice } from "@/components/pay-v3/voice";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
@@ -126,6 +127,8 @@ export function PrizeV2(props: {
 
   const next = () => {
     if (!price) return;
+    // On this tap, so the payment screen's voice guide may then speak (owner, 2026-11-06; iPhone Safari included).
+    primeVoice();
     props.onError(null);
     start(async () => {
       // The last choice is saved first (anything still waiting, or a save that failed); the payment step prices what

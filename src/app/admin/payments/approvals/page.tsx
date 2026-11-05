@@ -79,13 +79,35 @@ export default async function PaymentApprovalsPage({ searchParams }: PageProps<"
               </div>
 
               <dl className="m-0 grid gap-x-6 gap-y-2 text-[15px] sm:grid-cols-2">
-                <div className="flex min-w-0 items-center justify-between gap-3">
-                  <dt className="text-muted">{t("pay.admin.approvals.txn")}</dt>
-                  <dd className="m-0 flex items-center gap-2">
-                    <span className="font-mono text-[15px] font-bold tracking-wide text-ink">{r.txnId}</span>
-                    <CopyChip value={r.txnId} />
+                {/* How it was sent (owner, 2026-11-06): their bKash app, a bank app or another way. */}
+                <div className="flex min-w-0 justify-between gap-3 sm:col-span-2">
+                  <dt className="text-muted">{t("pay.admin.approvals.how")}</dt>
+                  <dd className="m-0 text-right font-semibold">
+                    {t(`pay.admin.approvals.hows.${r.how}`)}
+                    {r.bank ? ` · ${r.bank}` : ""}
                   </dd>
                 </div>
+                {r.txnId && (
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <dt className="text-muted">{t(r.how === "bank" ? "pay.admin.approvals.bankRef" : "pay.admin.approvals.txn")}</dt>
+                    <dd className="m-0 flex items-center gap-2">
+                      <span className="font-mono text-[15px] font-bold tracking-wide text-ink">{r.txnId}</span>
+                      <CopyChip value={r.txnId} />
+                    </dd>
+                  </div>
+                )}
+                {r.how === "other" && (
+                  <>
+                    <div className="flex min-w-0 justify-between gap-3">
+                      <dt className="text-muted">{t("pay.admin.approvals.amountSent")}</dt>
+                      <dd className="m-0 font-semibold tabular-nums">{r.amountSent ? taka(r.amountSent) : "—"}</dd>
+                    </div>
+                    <div className="flex min-w-0 justify-between gap-3">
+                      <dt className="text-muted">{t("pay.admin.approvals.sentAround")}</dt>
+                      <dd className="m-0 text-right">{r.sentAround ?? "—"}</dd>
+                    </div>
+                  </>
+                )}
                 <div className="flex min-w-0 justify-between gap-3">
                   <dt className="text-muted">{t("pay.admin.approvals.to", { method: t(`pay.methods.${r.method}` as MessageKey) })}</dt>
                   <dd className="m-0 font-mono font-semibold tabular-nums">{showMobile(r.toNumber)}</dd>
@@ -120,7 +142,7 @@ export default async function PaymentApprovalsPage({ searchParams }: PageProps<"
                   )}
                 </div>
                 {r.status === "pending" && canManage ? (
-                  <ProofActions id={r.id} amount={taka(r.amount)} txn={r.txnId} />
+                  <ProofActions id={r.id} amount={taka(r.amount)} txn={r.txnId || t(`pay.admin.approvals.hows.${r.how}`)} />
                 ) : r.status !== "pending" ? (
                   <span className="flex flex-col items-end gap-0.5 text-right text-sm">
                     <Pill tone={r.status === "approved" ? "good" : "bad"}>{t(r.status === "approved" ? "pay.admin.approvals.approved" : "pay.admin.approvals.rejected")}</Pill>

@@ -20,6 +20,11 @@ export type ProofRow = {
   toNumber: string;
   amount: number;
   txnId: string;
+  /** How the money was sent (owner, 2026-11-06): their bKash app, a bank app (txnId is the receipt's number), or another way. */
+  how: "bkash" | "bank" | "other";
+  bank: string | null;
+  amountSent: number | null;
+  sentAround: string | null;
   sender: string | null;
   shotUrl: string | null;
   qa: boolean;
@@ -43,7 +48,7 @@ export async function proofList(status: ProofStatus, limit = 100): Promise<Proof
   const { data, error } = await db()
     .from("manual_payments")
     .select(
-      "id, kind, payment_id, method, to_number, amount, txn_id, sender_number, screenshot_path, qa_code, status, note, created_at, reviewed_at, payer:profiles!user_id(id, name, email, mobile, role), reviewer:profiles!reviewed_by(name), contest:contests!contest_id(slug, brand_name, contest_number, status)",
+      "id, kind, payment_id, method, to_number, amount, txn_id, proof_method, bank_name, amount_sent, sent_around, sender_number, screenshot_path, qa_code, status, note, created_at, reviewed_at, payer:profiles!user_id(id, name, email, mobile, role), reviewer:profiles!reviewed_by(name), contest:contests!contest_id(slug, brand_name, contest_number, status)",
     )
     .eq("status", status)
     .order("created_at", { ascending: status === "pending" })
@@ -68,7 +73,11 @@ export async function proofList(status: ProofStatus, limit = 100): Promise<Proof
       method: r.method as string,
       toNumber: r.to_number as string,
       amount: r.amount as number,
-      txnId: r.txn_id as string,
+      txnId: (r.txn_id as string | null) ?? "",
+      how: ((r.proof_method as ProofRow["how"] | undefined) ?? "bkash"),
+      bank: (r.bank_name as string | null) ?? null,
+      amountSent: (r.amount_sent as number | null) ?? null,
+      sentAround: (r.sent_around as string | null) ?? null,
       sender: (r.sender_number as string | null) ?? null,
       shotUrl: r.screenshot_path ? (urls.get(r.screenshot_path as string) ?? null) : null,
       qa: Boolean(r.qa_code),
@@ -202,4 +211,17 @@ export async function promoCsv(key: string): Promise<{ name: string; csv: string
   };
   const body = line.codes.map((r) => [r.code, r.audience, r.kind, r.value, r.mode, r.active, r.used, r.reserved, r.startsAt?.toISOString() ?? "", r.endsAt?.toISOString() ?? "", r.label ?? ""].map(cell).join(","));
   return { name: `promo-codes-${line.first.code.split("-")[0].toLowerCase()}-${line.codes.length}.csv`, csv: [head.join(","), ...body].join("\n") + "\n" };
+}
+
+/** The contest payment screen's numbers (owner, 2026-11-06) in the last `days` days: clients who reached it, chose "pay later", and sent proof. */
+export async function payFunnel(days: number, now = new Date()): Promise<{ opened: number; later: number; sent: number }> {
+  if (!isSupabaseConfigured()) return { opened: 0, later: 0, sent: 0 };
+  const iso = new Date(now.getTime() - days * 86_400_000).toISOString();
+  const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
+  const [opened, later, sent] = await Promise.all([
+    count(db().from("pay_events").select("id", { count: "exact", head: true }).eq("event", "opened").gte("created_at", iso)),
+    count(db().from("pay_events").select("id", { count: "exact", head: true }).eq("event", "later").gte("created_at", iso)),
+    count(db().from("manual_payments").select("id", { count: "exact", head: true }).eq("kind", "contest").gte("created_at", iso)),
+  ]);
+  return { opened, later, sent };
 }

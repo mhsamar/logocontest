@@ -909,6 +909,41 @@ export const SETTINGS = {
     group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,
     description: "How it works page, For designers: the tutorial video (a YouTube or Vimeo link, checked when saved). Empty hides the video.",
   },
+  // ---- Contest payment screen (owner, 2026-11-06; Design/logocontest-update PayV3) -------------------------------
+  "pay.voice_on": {
+    group: "payments", type: "bool", schema: z.boolean(), default: true,
+    description: "Play the voice guide on the contest payment screen (when a voice file is uploaded).",
+  },
+  "pay.voice_path": {
+    group: "payments", type: "string", schema: z.string().regex(/^(voice\/[0-9a-f-]{36}\.(mp3|m4a))?$/), default: "",
+    description: "The payment screen's voice guide (MP3 or M4A in the site bucket). Empty hides the player.",
+  },
+  "pay.voice_name": {
+    group: "payments", type: "string", schema: z.string().max(120), default: "",
+    description: "The uploaded voice file's own name, shown in admin.",
+  },
+  "pay.voice_cues": {
+    group: "payments", type: "json",
+    schema: z.array(z.object({ from: int(0, 600), to: int(0, 600), box: z.enum(["none", "bkash-number", "amount", "reference", "trxid-step", "money-held", "whatsapp"]), text: z.string().trim().max(80) })).max(20),
+    default: [
+      { from: 0, to: 5, box: "none", text: "কনটেস্ট রেডি, শুধু পেমেন্ট বাকি" },
+      { from: 5, to: 11, box: "bkash-number", text: "Send Money চাপুন, নম্বরটা কপি করুন" },
+      { from: 11, to: 16, box: "amount", text: "টাকার পরিমাণ লিখুন" },
+      { from: 16, to: 20, box: "reference", text: "Reference-এ কনটেস্ট কোড দিন" },
+      { from: 20, to: 25, box: "trxid-step", text: "SMS-এর TrxID পরের পেজে লিখুন" },
+      { from: 25, to: 30, box: "money-held", text: "টাকা আমাদের কাছে জমা থাকে" },
+      { from: 30, to: 35, box: "whatsapp", text: "আটকে গেলে WhatsApp করুন" },
+    ],
+    description: "The voice guide's lines: from and to (seconds), the box lit up meanwhile, and the line shown.",
+  },
+  "pay.howto_video": {
+    group: "payments", type: "json", schema: howVideoSchema, default: NO_VIDEO,
+    description: "\"How to Send Money\" video on the payment screen (a YouTube link). Empty hides the link.",
+  },
+  "pay.support_hours": {
+    group: "payments", type: "string", schema: z.string().trim().max(60), default: "সকাল ১০টা – রাত ২টা",
+    description: "Support hours shown under the WhatsApp help on the payment screen.",
+  },
   // ---- Home hero video (owner, 2026-11-06; Design/logocontest-update) -----------------------------------------
   "hero.video": {
     group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,

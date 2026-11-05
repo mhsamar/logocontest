@@ -1,6 +1,7 @@
 import { contestHref } from "@/lib/client/rules";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { PayFlow } from "@/components/pay-v3/pay-flow";
 import { CopyButton, PayForm } from "@/components/payments/pay-form";
 import { ButtonLink } from "@/components/ui/button";
 import { PageShell, Panel } from "@/components/ui/panel";
@@ -11,6 +12,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { formatTaka } from "@/lib/money";
 import { isManualKind, payTarget, type PayTarget } from "@/lib/payments/manual";
+import { contestPayV3 } from "@/lib/payments/pay-v3";
 import { showMobile } from "@/lib/payments/manual-rules";
 import { methodRows } from "@/lib/payments/methods";
 import { WhatsAppIcon } from "@/components/support/whatsapp-button";
@@ -104,6 +106,19 @@ export default async function PayPage({ params }: PageProps<"/pay/[kind]/[id]">)
         </Panel>
       </PageShell>
     );
+
+  // A contest payment (owner, 2026-11-06; Design/logocontest-update): the new flow, open or waiting for the check.
+  if (kind === "contest" && target.state === "open") {
+    const data = await contestPayV3(id, user.id);
+    if (data)
+      return (
+        <PageShell>
+          <Panel tone="grey" className="flex flex-1 flex-col items-center max-[720px]:bg-surface max-[720px]:px-4">
+            <PayFlow data={data} briefHref={contestHref(data.slug, "brief")} />
+          </Panel>
+        </PageShell>
+      );
+  }
 
   // Sent: "Your payment is successful … we will notify you", waiting for an admin.
   if (proof?.status === "pending")

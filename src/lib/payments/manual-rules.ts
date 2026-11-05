@@ -29,6 +29,20 @@ export type PublicMethod = { key: MethodKey; manual: boolean; number: string | n
 /** bKash transaction IDs are 10 letters and digits; a little room either way. Spaces and lower case are fixed. */
 export const normalizeTxn = (v: string) => v.replace(/[\s-]+/g, "").toUpperCase();
 export const isTxnId = (v: string) => /^[A-Z0-9]{8,14}$/.test(v);
+/** A bank app's receipt number (Reference No., Transaction ID, Trace No.): longer than a bKash TrxID (migration 0084). */
+export const normalizeBankRef = (v: string) => v.replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
+export const isBankRef = (v: string) => /^[A-Z0-9]{6,24}$/.test(v);
+
+/** How the payer sent the money (owner, 2026-11-06): their own bKash app, a bank app, or another way (an agent, someone else's phone). */
+export const PROOF_METHODS = ["bkash", "bank", "other"] as const;
+export type ProofMethod = (typeof PROOF_METHODS)[number];
+export const isProofMethod = (v: unknown): v is ProofMethod => typeof v === "string" && (PROOF_METHODS as readonly string[]).includes(v);
+
+/** The banks people in Bangladesh most often send to bKash from, for the bank app tab (plus "Other"). */
+export const BANKS = ["BRAC Bank", "Dutch-Bangla Bank", "City Bank", "Eastern Bank", "Islami Bank", "Sonali Bank", "Prime Bank", "Mutual Trust Bank", "Bank Asia", "Pubali Bank", "Standard Chartered", "UCB", "Dhaka Bank", "Jamuna Bank", "Southeast Bank", "AB Bank", "One Bank", "NRB Bank", "Trust Bank", "Al-Arafah Islami Bank"] as const;
+
+/** The reference to write in bKash so the team can find the money (owner, 2026-11-06): LC and the contest's number. */
+export const payReference = (contestNumber: number | null | undefined) => (contestNumber ? `LC${contestNumber}` : null);
 
 /** Bangladesh mobile numbers: 01XXXXXXXXX, 8801XXXXXXXXX or +8801XXXXXXXXX. */
 export function normalizeMobile(v: string): string | null {

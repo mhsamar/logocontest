@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { getFileStorage } from "@/lib/storage";
 import { isManualKind, payTarget, PROOF_BUCKET, submitProof, type SubmitError } from "./manual";
+import { isProofMethod, type ProofMethod } from "./manual-rules";
 
 /** The pay page (owner, 2026-10-14): the payer's transaction ID and the optional screenshot. */
 
@@ -21,6 +22,11 @@ const ERRORS: Record<SubmitError, MessageKey> = {
   sender: "pay.page.errors.sender",
   shot: "pay.page.errors.shot",
   txnUsed: "pay.page.errors.txnUsed",
+  bankRef: "pay.page.errors.bankRef",
+  bank: "pay.page.errors.bank",
+  senderNeeded: "pay.page.errors.senderNeeded",
+  amount: "pay.page.errors.amount",
+  shotNeeded: "pay.page.errors.shotNeeded",
   already: "pay.page.errors.already",
   closed: "pay.page.errors.closed",
   generic: "pay.page.errors.generic",
@@ -47,12 +53,15 @@ export async function preparePaymentProof(input: { kind: string; paymentId: stri
 }
 
 /** Sends the transaction ID for an admin to check. The payer sees "Your payment is successful" and waits. */
-export async function submitPaymentProof(input: { kind: string; paymentId: string; txnId: string; sender?: string; screenshotPath?: string | null }): Promise<{ ok: true } | Fail> {
+export async function submitPaymentProof(input: { kind: string; paymentId: string; txnId: string; sender?: string; screenshotPath?: string | null; method?: ProofMethod; bank?: string | null; amountSent?: number | null; sentAround?: string | null }): Promise<{ ok: true } | Fail> {
   const own = await ownTarget(input.kind, input.paymentId);
   if (!own) return fail("pay.page.errors.generic");
   const shot = input.screenshotPath || null;
   if (shot && !(await getFileStorage().exists(PROOF_BUCKET, shot))) return fail("pay.page.errors.shot");
-  const res = await submitProof(own.target, { txnId: input.txnId, sender: input.sender ?? null, screenshotPath: shot }, { id: own.user.id, name: own.user.name });
+  const method = isProofMethod(input.method) ? input.method : "bkash";
+  // The new ways to pay (owner, 2026-11-06) are for contest payments only; add-ons and Pro keep the bKash ID.
+  if (method !== "bkash" && own.target.kind !== "contest") return fail("pay.page.errors.generic");
+  const res = await submitProof(own.target, { txnId: input.txnId, sender: input.sender ?? null, screenshotPath: shot, method, bank: input.bank ?? null, amountSent: input.amountSent ?? null, sentAround: input.sentAround ?? null }, { id: own.user.id, name: own.user.name });
   if (!res.ok) return fail(ERRORS[res.error]);
   refresh();
   return { ok: true };

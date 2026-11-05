@@ -192,7 +192,8 @@ export function WizardV2(props: WizardV2Props) {
           )}
 
           <div key={step} className="animate-step-in">
-            {step !== V2.done && (
+            {/* The payment flow writes its own heading on each of its screens (owner, 2026-11-06). */}
+            {step !== V2.done && step !== V2.pay && (
               <>
                 <h1 className="m-0 text-[clamp(26px,3.2vw,34px)] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">{t(`wizardV2.${key as "account"}.heading`)}</h1>
                 {/* The payment step writes its own line, with the amount once the payment is ready. */}
@@ -255,10 +256,8 @@ export function WizardV2(props: WizardV2Props) {
                 approvalMinutes={props.approvalMinutes}
                 onBar={setBar}
                 onBack={back}
-                onDone={() => {
-                  setSent(true);
-                  go(V2.done, contestId, true);
-                }}
+                // The flow's own waiting screen follows the sent payment (owner, 2026-11-06); the help card goes.
+                onDone={() => setSent(true)}
               />
             )}
             {step === V2.done && contestId && <DoneV2 contestId={contestId} slug={slug} brandName={brandName} />}

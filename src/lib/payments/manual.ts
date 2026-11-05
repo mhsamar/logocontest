@@ -12,7 +12,7 @@ import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { settleProPayment } from "@/lib/pro/payments";
 import { markContestPromoUsed } from "@/lib/promos/promos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isManual, isTxnId, normalizeMobile, normalizeTxn, type ManualMethod } from "./manual-rules";
+import { isBankRef, isManual, isTxnId, normalizeBankRef, normalizeMobile, normalizeTxn, type ManualMethod, type ProofMethod } from "./manual-rules";
 
 /**
  * Manual bKash payments (owner, 2026-10-14). The payer sends money to the bKash personal or merchant number, then
@@ -30,7 +30,13 @@ export const isManualKind = (v: unknown): v is ManualKind => v === "contest" || 
 export type Proof = {
   id: string;
   status: "pending" | "approved" | "rejected";
+  /** The bKash TrxID or the bank receipt's number; none when sent another way (migration 0084). */
   txnId: string;
+  /** How the money was sent (owner, 2026-11-06); "bkash" for every proof before migration 0084. */
+  method: ProofMethod;
+  bank: string | null;
+  amountSent: number | null;
+  sentAround: string | null;
   sender: string | null;
   screenshotPath: string | null;
   qaCode: string | null;
@@ -57,7 +63,11 @@ export type PayTarget = {
 const toProof = (r: Record<string, unknown>): Proof => ({
   id: r.id as string,
   status: r.status as Proof["status"],
-  txnId: r.txn_id as string,
+  txnId: (r.txn_id as string | null) ?? "",
+  method: ((r.proof_method as ProofMethod | undefined) ?? "bkash"),
+  bank: (r.bank_name as string | null) ?? null,
+  amountSent: (r.amount_sent as number | null) ?? null,
+  sentAround: (r.sent_around as string | null) ?? null,
   sender: (r.sender_number as string | null) ?? null,
   screenshotPath: (r.screenshot_path as string | null) ?? null,
   qaCode: (r.qa_code as string | null) ?? null,
@@ -66,7 +76,7 @@ const toProof = (r: Record<string, unknown>): Proof => ({
   reviewedAt: r.reviewed_at ? new Date(r.reviewed_at as string) : null,
 });
 
-const PROOF_COLUMNS = "id, status, txn_id, sender_number, screenshot_path, qa_code, note, created_at, reviewed_at";
+const PROOF_COLUMNS = "id, status, txn_id, proof_method, bank_name, amount_sent, sent_around, sender_number, screenshot_path, qa_code, note, created_at, reviewed_at";
 
 async function latestProof(kind: ManualKind, paymentId: string): Promise<Proof | null> {
   const { data } = await db().from("manual_payments").select(PROOF_COLUMNS).eq("kind", kind).eq("payment_id", paymentId).order("created_at", { ascending: false }).limit(1);
@@ -121,7 +131,7 @@ export async function awaitingApproval(contestIds: string[]): Promise<Map<string
   return new Map((data ?? []).map((r) => [r.contest_id as string, r.payment_id as string]));
 }
 
-export type SubmitError = "txn" | "sender" | "shot" | "txnUsed" | "already" | "closed" | "generic";
+export type SubmitError = "txn" | "bankRef" | "bank" | "sender" | "senderNeeded" | "amount" | "shot" | "shotNeeded" | "txnUsed" | "already" | "closed" | "generic";
 
 /**
  * The payer's transaction ID (and optional sender number and screenshot). A QA test ID made by an admin is marked
@@ -129,20 +139,36 @@ export type SubmitError = "txn" | "sender" | "shot" | "txnUsed" | "already" | "c
  */
 export async function submitProof(
   target: PayTarget,
-  input: { txnId: string; sender?: string | null; screenshotPath?: string | null },
+  input: { txnId: string; sender?: string | null; screenshotPath?: string | null; method?: ProofMethod; bank?: string | null; amountSent?: number | null; sentAround?: string | null },
   payer: { id: string; name: string },
 ): Promise<{ ok: true; proof: Proof } | { ok: false; error: SubmitError }> {
   if (target.state !== "open") return { ok: false, error: "closed" };
   if (target.proof?.status === "pending") return { ok: false, error: "already" };
-  const txn = normalizeTxn(input.txnId ?? "");
-  if (!isTxnId(txn)) return { ok: false, error: "txn" };
+  // How it was sent (owner, 2026-11-06): the bKash app needs its TrxID; a bank app its receipt number, the bank and the
+  // receipt's picture; another way (an agent, someone else's phone) the sender, the amount and a picture.
+  const how: ProofMethod = input.method ?? "bkash";
+  let txn: string | null = null;
+  if (how === "bkash") {
+    txn = normalizeTxn(input.txnId ?? "");
+    if (!isTxnId(txn)) return { ok: false, error: "txn" };
+  } else if (how === "bank") {
+    txn = normalizeBankRef(input.txnId ?? "");
+    if (!isBankRef(txn)) return { ok: false, error: "bankRef" };
+  }
+  const bank = how === "bank" ? (input.bank ?? "").trim().slice(0, 60) : null;
+  if (how === "bank" && !bank) return { ok: false, error: "bank" };
   const sender = input.sender && input.sender.trim() ? normalizeMobile(input.sender) : null;
   if (input.sender && input.sender.trim() && !sender) return { ok: false, error: "sender" };
+  if (how === "other" && !sender) return { ok: false, error: "senderNeeded" };
+  const amountSent = how === "other" ? Math.round(Number(input.amountSent)) : null;
+  if (how === "other" && !(amountSent && amountSent > 0 && amountSent <= 10_000_000)) return { ok: false, error: "amount" };
+  const sentAround = how === "other" ? (input.sentAround ?? "").trim().slice(0, 60) || null : null;
   const shot = input.screenshotPath ?? null;
   if (shot && !new RegExp(`^${payer.id}/${target.paymentId}-[0-9a-f-]{36}\\.(png|jpg|webp)$`).test(shot)) return { ok: false, error: "shot" };
+  if (how !== "bkash" && !shot) return { ok: false, error: "shotNeeded" };
 
   const { data: method } = await db().from("payment_methods").select("account_number").eq("key", target.method).maybeSingle();
-  const { data: qa } = await db().from("qa_txn_codes").select("code").eq("code", txn).is("used_at", null).maybeSingle();
+  const { data: qa } = txn ? await db().from("qa_txn_codes").select("code").eq("code", txn).is("used_at", null).maybeSingle() : { data: null };
   const { data: row, error } = await db()
     .from("manual_payments")
     .insert({
@@ -154,6 +180,8 @@ export async function submitProof(
       to_number: (method?.account_number as string | null) ?? "",
       amount: target.amount,
       txn_id: txn,
+      // Before migration 0084 these columns don't exist: only the bKash app's TrxID goes in as before.
+      ...(how === "bkash" ? {} : { proof_method: how, bank_name: bank, amount_sent: amountSent, sent_around: sentAround }),
       sender_number: sender,
       screenshot_path: shot,
       qa_code: qa ? txn : null,
@@ -165,7 +193,7 @@ export async function submitProof(
     console.error("[manual-pay] proof insert failed:", error?.message);
     return { ok: false, error: "generic" };
   }
-  if (qa) await db().from("qa_txn_codes").update({ used_by: row.id, used_at: new Date().toISOString() }).eq("code", txn).is("used_at", null);
+  if (qa && txn) await db().from("qa_txn_codes").update({ used_by: row.id, used_at: new Date().toISOString() }).eq("code", txn).is("used_at", null);
 
   await notifyWithPush([payer.id], "payment_received", { amount: target.amount }, `/pay/${target.kind}/${target.paymentId}`);
   // The team hears at once, on the phone and by email too (owner, 2026-10-22): a paid contest waits for this approval.
@@ -182,7 +210,7 @@ export async function submitProof(
       ref: row.id as string,
       subject: "admin.alerts.payment.subject",
       body: qa ? "admin.alerts.payment.bodyQa" : "admin.alerts.payment.body",
-      params: (t, locale) => ({ name: payer.name, amount: formatTaka(target.amount, locale), txn, what: t(`admin.alerts.payment.what.${target.kind}`, { brand }) }),
+      params: (t, locale) => ({ name: payer.name, amount: formatTaka(target.amount, locale), txn: txn ?? "—", what: t(`admin.alerts.payment.what.${target.kind}`, { brand }) }),
     }),
   );
   // Onboarding v2 (owner, 2026-10-29): a /start-v2 contest's client also gets "we got your payment" by email. After the

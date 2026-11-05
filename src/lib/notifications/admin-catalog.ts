@@ -94,7 +94,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("pro_weekly", "pro", ["pro_weekly"], ["bell", "push", "email"], { email: "notification", alsoIn: "user" }),
 
   // ---- Clients ----
-  row("payments", "client", ["payment_received", "payment_approved_contest", "payment_approved_addon", "payment_rejected", "addon_granted"], ["bell", "push"]),
+  row("payments", "client", ["payment_received", "payment_later", "payment_approved_contest", "payment_approved_addon", "payment_rejected", "addon_granted"], ["bell", "push"]),
   // Onboarding v2 (owner, 2026-10-29): a /start-v2 contest's client by email when their bKash payment is sent, and when
   // it is approved and the contest is live. Old contests get neither (their bell and push are the row above).
   row("onboarding_received", "client", [], ["email"], { email: "notification", alsoIn: "user" }),

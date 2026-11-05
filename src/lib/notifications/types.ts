@@ -121,6 +121,8 @@ export const NOTIFICATION_TYPES = [
   "pro_trial_extended",
   // Manual bKash payments (owner, 2026-10-14)
   "payment_received",
+  // "Pay later" on the payment screen (owner, 2026-11-06): the link to pay when they are ready.
+  "payment_later",
   "payment_approved_contest",
   "payment_approved_addon",
   "payment_rejected",
