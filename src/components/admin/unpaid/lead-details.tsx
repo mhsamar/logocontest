@@ -9,6 +9,7 @@ import { PAID, STAGES, type ShownStatus } from "@/lib/admin/unpaid-rules";
 import { cx } from "@/lib/cx";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { CloseFakeButton, CopyResume, LogFollowUp, NextFollowUpActions, ReachButtons, RevealContact } from "./actions";
+import { ReadyMessages } from "./messages";
 import { ContestFacts, LeadAvatar, StatusPill, V2Chip, v2StepName, type Fmt } from "./lead-list";
 
 /**
@@ -48,6 +49,7 @@ export function LeadDetails({
   gone = false,
   remindDefault = ["alert"],
   openHref,
+  bkash = null,
 }: {
   lead: Lead | null;
   status: ShownStatus | null;
@@ -67,6 +69,8 @@ export function LeadDetails({
   gone?: boolean;
   /** This person in the address (this tab), kept after a Call or WhatsApp tap so a refresh can't swap them. */
   openHref?: string;
+  /** The bKash number clients send to, for the ready messages (owner, 2026-11-06). */
+  bkash?: string | null;
 }) {
   const { t, num, taka, when, day, stepName } = fmt;
   if (!lead || !status) {
@@ -161,6 +165,22 @@ export function LeadDetails({
       </div>
       {canManage && resumeDays !== null && open && <p className="-mt-2 m-0 text-[12.5px] text-muted">{t("admin.unpaid.fu.details.resumeHint", { days: num(resumeDays) })}</p>}
       {lead.kind === "guest" && !account && <p className="m-0 text-[13.5px] text-muted">{lead.detailsSaved || lead.clientName ? t("admin.unpaid.fu.details.guestNote") : t("admin.unpaid.fu.details.oldGuest")}</p>}
+      {/* Ready messages to copy or send (owner, 2026-11-06), with the client's name and the logo's name in. */}
+      {canManage && open && (lead.hasContact.mobile || lead.hasContact.whatsapp) && (
+        <ReadyMessages
+          key={lead.key}
+          leadKey={lead.key}
+          name={lead.clientName}
+          logo={lead.brand}
+          atPayment={lead.stage >= 9}
+          contacts={lead.contacts}
+          startedAt={lead.createdAt.toISOString()}
+          bkash={bkash}
+          canLink={resumeDays !== null}
+          hasMobile={lead.hasContact.mobile}
+          openHref={openHref}
+        />
+      )}
 
       {/* Where they stopped */}
       <div className="flex flex-col gap-3 rounded-[16px] border border-[#F3D2CF] bg-[linear-gradient(180deg,#FFF8F7,#fff)] p-3.5">

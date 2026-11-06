@@ -300,7 +300,8 @@ export type UnpaidQuery = {
 };
 export const DEFAULT_QUERY: UnpaidQuery = { tab: "unread", q: "", sort: null, status: null, step: null, owner: null, amount: null, started: null, active: null, v2step: null, range: "30", sel: null, only: null };
 /** Each tab's own order: the money waiting for new people, the follow-up time once there is one, the newest last. */
-export const TAB_SORT: Record<Tab, Sort> = { unread: "money", due: "next", waiting: "next", won: "newest", closed: "newest", all: "money" };
+// Unread opens newest first (owner, 2026-11-06), so the latest people are followed up first.
+export const TAB_SORT: Record<Tab, Sort> = { unread: "newest", due: "next", waiting: "next", won: "newest", closed: "newest", all: "money" };
 export const sortOf = (q: Pick<UnpaidQuery, "tab" | "sort">): Sort => q.sort ?? TAB_SORT[q.tab];
 
 const one = (v: unknown) => (Array.isArray(v) ? v[0] : v);

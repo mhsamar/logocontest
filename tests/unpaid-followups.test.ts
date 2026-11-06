@@ -215,7 +215,7 @@ describe("tabs, overdue, filters and the address", () => {
     expect(parseUnpaidQuery({ tab: "new" }).tab).toBe("unread");
     // Each tab has its own order until another is picked.
     const { sortOf } = await import("@/lib/admin/unpaid-rules");
-    expect(sortOf(parseUnpaidQuery({}))).toBe("money");
+    expect(sortOf(parseUnpaidQuery({}))).toBe("newest");
     expect(sortOf(parseUnpaidQuery({ tab: "due" }))).toBe("next");
     expect(sortOf(parseUnpaidQuery({ tab: "due", sort: "newest" }))).toBe("newest");
     expect(parseUnpaidQuery({ sel: `l:${id}` }).sel).toBe(`l:${id}`);

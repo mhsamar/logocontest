@@ -30,6 +30,20 @@ const OUTLINE = "inline-flex min-h-11 items-center gap-2 rounded-[12px] border b
 const SELECT = "h-10 min-w-[160px] rounded-[10px] border border-[#E3E4E8] bg-surface px-3 text-[13.5px] font-bold text-ink";
 
 const NOTE_EVENT = "lc-unpaid-note";
+/** The one-click notes and the result each one picks, if any (owner, 2026-11-06). */
+type QuickKey = "noAnswer" | "off" | "busy" | "fakeNumber" | "interested" | "willPay" | "help" | "price" | "notNow" | "messaged";
+const QUICK: [QuickKey, Exclude<Result, "fake"> | null][] = [
+  ["noAnswer", "no_answer"],
+  ["off", "no_answer"],
+  ["busy", "busy"],
+  ["fakeNumber", "wrong_number"],
+  ["interested", "talked"],
+  ["willPay", "will_pay"],
+  ["help", "needs_help"],
+  ["price", "talked"],
+  ["notNow", "not_interested"],
+  ["messaged", null],
+];
 const ICON: Record<Channel, AdminIconName> = { call: "phone", whatsapp: "whatsapp", sms: "sms", email: "mail" };
 
 /** Reach someone. `openHref`: their own view (this tab), opened after the tap when it isn't the one in the address. */
@@ -378,6 +392,26 @@ export function LogFollowUp({ leadKey, owners, ownerId, planned, unread = false,
           </div>
         </fieldset>
       )}
+      {/* One-click notes (owner, 2026-11-06): the line goes in "What was said", and the result too where it is clear. */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-extrabold text-adm-strong">{t("admin.unpaid.quick.label")}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK.map(([k, r]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => {
+                const line = t(`admin.unpaid.quick.${k}`);
+                setNote((n) => (n.includes(line) ? n : n.trim() ? `${n.trim()}\n${line}` : line));
+                if (r && how !== "note") pickResult(r);
+              }}
+              className="inline-flex min-h-8 items-center rounded-full border border-[#E3E4E8] bg-surface px-3 text-[13px] font-semibold text-ink hover:border-primary hover:text-primary"
+            >
+              + {t(`admin.unpaid.quick.${k}`)}
+            </button>
+          ))}
+        </div>
+      </div>
       <label className="flex flex-col gap-1.5 text-[13px] font-extrabold text-adm-strong">
         {t("admin.unpaid.fu.log.said")}
         <textarea

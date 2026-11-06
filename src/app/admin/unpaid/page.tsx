@@ -19,6 +19,8 @@ import type { MessageKey } from "@/lib/i18n/translate";
 import { formatNumber, formatTaka } from "@/lib/money";
 import { formatMobile, maskBdMobile } from "@/lib/phone";
 import { getSettings } from "@/lib/settings";
+import { showMobile } from "@/lib/payments/manual-rules";
+import { isOpen as methodOpen, methodRows } from "@/lib/payments/methods";
 import { firstName } from "@/lib/wizard-live-rules";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -87,6 +89,10 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
   const masked = canManage && contact?.mobile ? (contact.mobile.startsWith("+880") ? maskBdMobile(contact.mobile) : `${formatMobile(contact.mobile).slice(0, 4)} •••• ${contact.mobile.slice(-3)}`) : null;
   // The client's resume link (owner, 2026-10-26): made and logged on the server when it is copied.
   const resumeDays = selected?.kind === "contest" && selected.contestId && selected.stage < PAID ? settings["security.resume_link_days"] : null;
+  // The number clients send to, for the ready messages (owner, 2026-11-06): bKash Personal when open, else Merchant.
+  const methods = selected ? await methodRows() : [];
+  const bkashRow = methods.find((r) => r.key === "bkash_personal" && methodOpen(r)) ?? methods.find((r) => r.key === "bkash_merchant" && methodOpen(r));
+  const bkash = bkashRow?.number ? showMobile(bkashRow.number).replace(/-/g, "") : null;
 
   // The six numbers (handoff §1), each a way into the list.
   const open = board.leads.filter(isOpen);
@@ -154,7 +160,7 @@ export default async function AdminUnpaidPage({ searchParams }: PageProps<"/admi
       <div className="grid items-start gap-4 min-[1251px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]">
         <LeadList rows={rows} counts={counts} q={q} fmt={fmt} me={me.id} owners={board.owners} canManage={canManage} since={visit.since} selectedKey={selected?.key ?? null} status={status} totalOpen={open.length} v2={board.leads.some((l) => l.v2)} />
         <DetailsWhileLoading>
-        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} openHref={selected ? unpaidHref(q, { sel: selected.key }) : undefined} />
+        <LeadDetails lead={selected} status={selected ? status(selected) : null} history={history} fmt={fmt} now={now} canManage={canManage} isSuperAdmin={me.isSuperAdmin} owners={board.owners} me={me.id} masked={masked} resumeDays={resumeDays} bkash={bkash} gone={Boolean(q.sel && !selected)} remindDefault={remindDefault} openHref={selected ? unpaidHref(q, { sel: selected.key }) : undefined} />
         </DetailsWhileLoading>
       </div>
       </LeadSelection>
