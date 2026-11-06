@@ -16,6 +16,10 @@ export type UpsellContest = {
   /** "open", "judging", "winner_selected", "handover"… */
   status: string;
   endsAt: Date | null;
+  /** When the client's time to pick a winner ends (judging). */
+  judgingEndsAt?: Date | null;
+  /** Designs shown in the contest (active or winning). */
+  designs?: number;
   active: Record<UpsellAddon, boolean>;
   /** Shown designs the client hasn't rated. */
   unrated: number;
@@ -25,7 +29,7 @@ export type UpsellContest = {
 type Base = { contestId: string; slug: string; brand: string };
 export type Upsell =
   | (Base & { mode: "files" })
-  | (Base & { mode: "pick" })
+  | (Base & { mode: "pick"; until: string | null; designs: number; /** The client's days to pick (timers.judging_window_days). */ days: number })
   | (Base & { mode: "extend"; endsAt: string; price: number; days: number[] })
   | (Base & { mode: "rate"; count: number })
   | (Base & { mode: "boost"; items: { key: UpsellAddon; price: number; free: boolean }[] });
@@ -33,12 +37,12 @@ export type Upsell =
 /** "Last day": the contest ends within this. */
 export const LAST_DAY_MS = 24 * 3_600_000;
 
-export function pickUpsell(contests: UpsellContest[], prices: Record<UpsellAddon, number> & { extensionPrice: number; extensionDays: number[] }, allFree: (prize: number) => boolean, now: Date): Upsell | null {
+export function pickUpsell(contests: UpsellContest[], prices: Record<UpsellAddon, number> & { extensionPrice: number; extensionDays: number[] }, allFree: (prize: number) => boolean, now: Date, judgingDays = 3): Upsell | null {
   const base = (c: UpsellContest): Base => ({ contestId: c.id, slug: c.slug, brand: c.brand });
   const files = contests.find((c) => c.filesReady);
   if (files) return { ...base(files), mode: "files" };
   const judging = contests.find((c) => c.status === "judging");
-  if (judging) return { ...base(judging), mode: "pick" };
+  if (judging) return { ...base(judging), mode: "pick", until: judging.judgingEndsAt ? judging.judgingEndsAt.toISOString() : null, designs: judging.designs ?? 0, days: judgingDays };
   const live = contests.filter((c) => c.status === "open" && c.endsAt && c.endsAt.getTime() > now.getTime()).sort((a, b) => a.endsAt!.getTime() - b.endsAt!.getTime());
   // The one ending first, on its last day: more time.
   const ending = live.find((c) => c.endsAt!.getTime() - now.getTime() <= LAST_DAY_MS);

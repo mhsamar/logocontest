@@ -2,6 +2,7 @@ import "server-only";
 import { addonPrices } from "@/lib/contests/addon-payments";
 import { addonsFreeFor } from "@/lib/contests/pricing";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getSetting } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pickUpsell, type Upsell, type UpsellContest } from "./upsell-rules";
 
@@ -12,7 +13,7 @@ export async function upsellFor(clientId: string, now: Date = new Date()): Promi
     const db = createAdminClient();
     const { data } = await db
       .from("contests")
-      .select("id, slug, brand_name, prize_amount, status, ends_at, is_promoted, is_urgent, is_highlighted")
+      .select("id, slug, brand_name, prize_amount, status, ends_at, judging_ends_at, is_promoted, is_urgent, is_highlighted")
       .eq("client_id", clientId)
       .in("status", ["open", "judging", "winner_selected", "handover"])
       .is("deleted_at", null)
@@ -21,14 +22,18 @@ export async function upsellFor(clientId: string, now: Date = new Date()): Promi
     const rows = data ?? [];
     if (!rows.length) return null;
     const ids = rows.map((c) => c.id as string);
-    const [unrated, handovers, prices] = await Promise.all([
+    const [unrated, shown, handovers, prices, judgingDays] = await Promise.all([
       db.from("entries").select("contest_id").in("contest_id", ids).eq("status", "active").is("rating", null),
+      db.from("entries").select("contest_id").in("contest_id", ids).in("status", ["active", "winner"]),
       db.from("handovers").select("contest_id").in("contest_id", ids).eq("status", "submitted"),
       addonPrices(),
+      getSetting("timers.judging_window_days").catch(() => 3),
     ]);
     const unratedBy = new Map<string, number>();
     for (const e of unrated.data ?? []) unratedBy.set(e.contest_id as string, (unratedBy.get(e.contest_id as string) ?? 0) + 1);
     const ready = new Set((handovers.data ?? []).map((h) => h.contest_id as string));
+    const shownBy = new Map<string, number>();
+    for (const e of shown.data ?? []) shownBy.set(e.contest_id as string, (shownBy.get(e.contest_id as string) ?? 0) + 1);
     const contests: UpsellContest[] = rows.map((c) => ({
       id: c.id as string,
       slug: c.slug as string,
@@ -36,11 +41,13 @@ export async function upsellFor(clientId: string, now: Date = new Date()): Promi
       prize: (c.prize_amount as number) ?? 0,
       status: c.status as string,
       endsAt: c.ends_at ? new Date(c.ends_at as string) : null,
+      judgingEndsAt: c.judging_ends_at ? new Date(c.judging_ends_at as string) : null,
+      designs: shownBy.get(c.id as string) ?? 0,
       active: { promote: Boolean(c.is_promoted), urgent: Boolean(c.is_urgent), highlight: Boolean(c.is_highlighted) },
       unrated: unratedBy.get(c.id as string) ?? 0,
       filesReady: ready.has(c.id as string),
     }));
-    return pickUpsell(contests, prices, (prize) => addonsFreeFor(prize, { addonsFreeFrom: prices.allFreeFrom }), now);
+    return pickUpsell(contests, prices, (prize) => addonsFreeFor(prize, { addonsFreeFrom: prices.allFreeFrom }), now, judgingDays);
   } catch {
     return null;
   }

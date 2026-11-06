@@ -59,7 +59,18 @@ const en = {
   },
   clientUpsell: {
     files: { title: "Your final files for {brand} are ready", body: "The winner sent your files. Check them now and approve them, or ask for changes.", cta: "Check the files now" },
-    pick: { title: "Time to pick your winner for {brand}", body: "Your contest has ended. Look through the designs and pick the one you like best.", cta: "Pick the winner" },
+    pick: {
+      title: "Time to pick your winner for {brand}",
+      body: "Your contest has ended. Look through the designs and pick the one you like best.",
+      cta: "Pick the winner",
+      ended: "Your contest has ended!",
+      until: "Last time to pick the winner: {date}",
+      daysLeft: "{n} days left",
+      daysHoursLeft: "{d} days {h} hours left",
+      hoursLeft: "{n} hours left",
+      warning: "If you don't pick a winner within {days} days, the prize money is shared among all the designers. So don't wait to pick your winner.",
+      designs: "{n} designs are waiting for you. Look through them and pick the one you like best.",
+    },
     rate: { title: "{n} new designs for {brand}", body: "Rate them with stars. Designers see your ratings and send better designs that match what you like.", cta: "Rate the designs" },
     boost: {
       title: "Get better designs for {brand}",

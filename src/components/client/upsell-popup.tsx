@@ -19,22 +19,25 @@ export function UpsellPopup({ upsell }: { upsell: Upsell }) {
   const [open, setOpen] = useState(false);
   const key = upsellSeenKey(upsell);
 
+  // A winner to pick (owner, 2026-11-06): the big warning on every visit (once per browser session), not once a day.
+  const pick = upsell.mode === "pick";
   useEffect(() => {
     let seen: string | null = null;
     try {
-      seen = localStorage.getItem(key);
+      seen = pick ? sessionStorage.getItem(key) : localStorage.getItem(key);
     } catch {
       // Storage blocked: show it, as a first visit would.
     }
-    if (seen === dhakaDate(new Date())) return;
+    if (pick ? seen : seen === dhakaDate(new Date())) return;
     const id = window.setTimeout(() => setOpen(true), 1200);
     return () => window.clearTimeout(id);
-  }, [key]);
+  }, [key, pick]);
 
   const close = () => {
     setOpen(false);
     try {
-      localStorage.setItem(key, dhakaDate(new Date()));
+      if (pick) sessionStorage.setItem(key, "1");
+      else localStorage.setItem(key, dhakaDate(new Date()));
     } catch {
       // Then it may show again on the next page; never an error.
     }
@@ -51,7 +54,9 @@ export function UpsellPopup({ upsell }: { upsell: Upsell }) {
 
   return (
     <Modal open={open} onClose={close} closeLabel={t("common.close")} title={t(`clientUpsell.${upsell.mode}.title`, { brand: upsell.brand, n: upsell.mode === "rate" ? num(upsell.count) : "" })}>
-      {upsell.mode === "files" || upsell.mode === "pick" || upsell.mode === "rate" ? (
+      {upsell.mode === "pick" ? (
+        <PickWarning until={upsell.until} designs={upsell.designs} days={upsell.days} />
+      ) : upsell.mode === "files" || upsell.mode === "rate" ? (
         <p className="m-0 text-[15.5px] text-ink">{t(`clientUpsell.${upsell.mode}.body`)}</p>
       ) : upsell.mode === "extend" ? (
         <div className="flex flex-col gap-3 text-[15.5px] text-ink">
@@ -83,5 +88,43 @@ export function UpsellPopup({ upsell }: { upsell: Upsell }) {
         </button>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * The winner warning (owner, 2026-11-06): the contest ended, until when the client can pick, and that the prize is
+ * shared among all the designers if no winner is picked in time, so they don't wait.
+ */
+function PickWarning({ until, designs, days }: { until: string | null; designs: number; days: number }) {
+  const { t, locale } = useI18n();
+  const num = (n: number) => new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-US").format(n);
+  const end = until ? new Date(until) : null;
+  // eslint-disable-next-line react-hooks/purity -- the time left is read when the pop-up opens
+  const left = end ? end.getTime() - Date.now() : null;
+  const hours = left !== null ? Math.max(0, Math.ceil(left / 3_600_000)) : null;
+  const date = end ? new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Dhaka" }).format(end) : null;
+  return (
+    <div className="flex flex-col gap-3.5 text-[15.5px] text-ink">
+      <div className="flex items-start gap-3 rounded-[18px] bg-[linear-gradient(135deg,#8B0000,#B3201B)] px-4 py-4 text-white">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15" aria-hidden>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        </span>
+        <span className="flex min-w-0 flex-col gap-1">
+          <strong className="text-[18px] leading-snug">{t("clientUpsell.pick.ended")}</strong>
+          {date && <span className="text-[14px] text-white/85">{t("clientUpsell.pick.until", { date })}</span>}
+          {hours !== null && (
+            <span className="mt-1 self-start rounded-[10px] bg-white px-3 py-1 text-[14px] font-bold text-primary">
+              {hours >= 24 ? (hours % 24 ? t("clientUpsell.pick.daysHoursLeft", { d: num(Math.floor(hours / 24)), h: num(hours % 24) }) : t("clientUpsell.pick.daysLeft", { n: num(hours / 24) })) : t("clientUpsell.pick.hoursLeft", { n: num(hours) })}
+            </span>
+          )}
+        </span>
+      </div>
+      <p role="alert" className="m-0 rounded-[16px] border-2 border-[#F2B8B5] bg-[#FDECEA] px-4 py-3.5 text-[16px] font-semibold leading-relaxed text-[#8B1E1E]">
+        {t("clientUpsell.pick.warning", { days: num(days) })}
+      </p>
+      <p className="m-0">{designs > 0 ? t("clientUpsell.pick.designs", { n: num(designs) }) : t("clientUpsell.pick.body")}</p>
+    </div>
   );
 }
