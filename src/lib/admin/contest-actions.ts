@@ -16,6 +16,7 @@ import { switchOnAddon } from "@/lib/contests/addon-payments";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { emailWon } from "@/lib/email/events";
+import { finishNoResult, type NoResultContest } from "@/lib/lifecycle/no-result";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
@@ -115,6 +116,60 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
   await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, admin.id);
   await emailWon(entry.id as string);
   await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), admin.id);
+  await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
+  await afterWinnerPicked(c.id, entry.id as string);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * No winner by the end of judging (owner, 2026-11-06): the team shares the prize among the designers who took part,
+ * exactly as the daily run used to do at once.
+ */
+export async function shareNoResult(contestId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c || c.status !== "judging") return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const db = createAdminClient();
+  const [{ data: full }, s] = await Promise.all([db.from("contests").select("id, slug, brand_name, client_id, prize_amount").eq("id", c.id).single(), getSettings(["fees.designer_tiers"])]);
+  if (!full) return fail("auth.errors.generic");
+  const once = async (id: string, kind: string) => !(await db.from("lifecycle_events").insert({ contest_id: id, kind })).error;
+  const done = await finishNoResult(full as NoResultContest, s["fees.designer_tiers"], new Date(), once).catch(() => false);
+  if (!done) return fail("manage.closed");
+  await audit(admin.id, "share_no_result", "contest", c.id, { reason });
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * A winner after the prize was shared (owner, 2026-11-06): the team picks one design, and chooses whether the shares
+ * go back out of the designers' wallets (as far as they are still there) or everyone keeps theirs. Then as a pick.
+ */
+export async function awardAfterNoResult(contestId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c || c.status !== "no_result" || !UUID.test(f.entry ?? "") || (f.takeBack !== "1" && f.takeBack !== "0")) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const takeBack = f.takeBack === "1";
+  const db = createAdminClient();
+  const { data: entry } = await db.from("entries").select("id, number, status, designer_id").eq("id", f.entry).eq("contest_id", c.id).maybeSingle();
+  if (!entry || entry.status !== "active") return fail("manage.winner.notActive");
+  const [{ data: designer }, s] = await Promise.all([db.from("profiles").select("counted_wins_count").eq("id", entry.designer_id).single(), getSettings(["fees.designer_tiers", "timers.designer_file_upload_days"])]);
+  const { rate: feeRate, redemptionId } = await designerFeeWithCode(entry.designer_id as string, feeRateFor(designer?.counted_wins_count ?? 0, s["fees.designer_tiers"]));
+  const dueAt = new Date(Date.now() + s["timers.designer_file_upload_days"] * 86_400_000).toISOString();
+  const { data: res, error } = await db.rpc("admin_award_no_result", { p_contest_id: c.id, p_entry_id: entry.id, p_fee_rate: feeRate, p_due_at: dueAt, p_take_back: takeBack });
+  if (error) return fail("manage.closed");
+  const out = res as { taken: number; short: number; designers: { designer_id: string; taken: number; short: number }[] };
+  await markPromoUsed(redemptionId, { contestId: c.id });
+  await audit(admin.id, "award_after_no_result", "contest", c.id, { entry: entry.number, reason, feeRate, takeBack, taken: out.taken, short: out.short });
+  const n = { brand: c.brand_name, number: entry.number as number };
+  await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, admin.id);
+  await emailWon(entry.id as string);
+  await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), admin.id);
+  for (const d of out.designers ?? []) if (d.taken > 0) await notify([d.designer_id], "share_taken_back", { brand: c.brand_name, amount: d.taken }, "/dashboard/wallet", admin.id);
   await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
   await afterWinnerPicked(c.id, entry.id as string);
   refresh();

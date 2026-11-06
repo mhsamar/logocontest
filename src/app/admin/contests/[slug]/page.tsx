@@ -6,10 +6,10 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
-import { cancelContest, extendContest, forceAward, grantAddon } from "@/lib/admin/contest-actions";
+import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, shareNoResult } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
-import { adminContestFiles, getAdminContest, getContestClient } from "@/lib/admin/contests";
+import { adminContestFiles, getAdminContest, getContestClient, noWinnerState } from "@/lib/admin/contests";
 import { briefFileLimits } from "@/lib/contests/brief-files";
 import { contestServiceInfo } from "@/lib/services/contest-service";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -56,6 +56,11 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const when = (d: Date | null) => (d ? d.toLocaleString(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) : "—");
   const active = c.entriesList.filter((e) => e.status === "active");
   const canAward = (c.status === "open" || c.status === "judging") && active.length > 0;
+  // No winner (owner, 2026-11-06): judging over with no pick, the team decides; or a no-result share to change.
+  const noWinner = c.status === "judging" || c.status === "no_result" ? await noWinnerState(c.id, c.judgingEndsAt) : null;
+  const decideNow = c.status === "judging" && noWinner?.judgingOver && active.length > 0;
+  const canAwardAfter = c.status === "no_result" && !c.handover && active.length > 0;
+  const entryOptions = active.map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
   const canCancel = !["completed", "no_result", "cancelled", "deleted"].includes(c.status);
 
   return (
@@ -128,6 +133,9 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
         )}
       </div>
 
+      {/* No winner (owner, 2026-11-06): what happened, and what the team can do (the buttons below). */}
+      {decideNow && <p className="m-0 rounded-[14px] border border-[#f1e3a8] bg-[#fffbea] px-4 py-3 text-[15px] text-gold-ink">{t("admin.contests.noWinner.decide", { date: when(c.judgingEndsAt) })}</p>}
+      {canAwardAfter && noWinner && noWinner.shared.designers > 0 && <p className="m-0 rounded-[14px] border border-line bg-canvas px-4 py-3 text-[15px] text-ink">{t("admin.contests.noWinner.shared", { total: taka(noWinner.shared.total), n: String(noWinner.shared.designers) })}</p>}
       <div className="flex flex-wrap gap-2">
         <a
           href="#reference-photos"
@@ -178,6 +186,29 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
               { name: "reason", kind: "reason" },
             ]}
             run={forceAward.bind(null, c.id)}
+          />
+        )}
+        {decideNow && (
+          <AdminAction label={t("admin.contests.noWinner.share")} body={t("admin.contests.noWinner.shareBody", { n: String(new Set(active.map((e) => e.designer.id)).size) })} fields={[{ name: "reason", kind: "reason" }]} run={shareNoResult.bind(null, c.id)} />
+        )}
+        {canAwardAfter && (
+          <AdminAction
+            label={t("admin.contests.noWinner.award")}
+            body={t("admin.contests.noWinner.awardBody", { total: taka(noWinner?.shared.total ?? 0), n: String(noWinner?.shared.designers ?? 0) })}
+            fields={[
+              { name: "entry", kind: "select", label: t("admin.contests.winningDesign"), options: entryOptions },
+              {
+                name: "takeBack",
+                kind: "select",
+                label: t("admin.contests.noWinner.takeBack"),
+                options: [
+                  { value: "1", label: t("admin.contests.noWinner.takeBackYes") },
+                  { value: "0", label: t("admin.contests.noWinner.takeBackNo") },
+                ],
+              },
+              { name: "reason", kind: "reason" },
+            ]}
+            run={awardAfterNoResult.bind(null, c.id)}
           />
         )}
         {!inTrash && <AdminAction label={t("admin.trash.deleteContest")} body={t("admin.trash.deleteContestBody", { days: String(keepDays) })} tone="danger" run={deleteContest.bind(null, c.id)} />}

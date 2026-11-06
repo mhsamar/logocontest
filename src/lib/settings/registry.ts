@@ -169,6 +169,12 @@ export const SETTINGS = {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the client has to pick a winner after the contest ends; then it ends with no result and the prize is shared.",
   },
+  // Owner, 2026-11-06: when the client picks no winner by the end of judging, the team decides (a winner, or a share for
+  // everyone) instead of the prize being shared at once. Off: shared at once, as before.
+  "lifecycle.no_winner_admin_decides": {
+    group: "timers", type: "bool", schema: z.boolean(), default: true,
+    description: "No winner picked by the end of judging: the team decides (Admin › Contests) instead of the prize being shared among the designers at once.",
+  },
   "timers.repick_window_days": {
     group: "timers", type: "int", schema: int(1), default: 3,
     description: "Days the client has to pick another winner after the first one missed the file deadline.",

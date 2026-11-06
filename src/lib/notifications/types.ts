@@ -23,6 +23,8 @@ export const NOTIFICATION_TYPES = [
   "repick_winner",
   "no_result_client",
   "no_result_share",
+  // The team picked a winner after a no-result share (owner, 2026-11-06): the share was taken back from the wallet.
+  "share_taken_back",
   "handover_approved_held",
   "prize_released",
   "claim_opened",
@@ -89,6 +91,8 @@ export const NOTIFICATION_TYPES = [
   "late_files_strike",
   "files_missed_banned",
   "late_files_admin",
+  // No winner picked by the end of judging (owner, 2026-11-06): the team decides.
+  "no_winner_admin",
   "files_missed_admin",
   "handover_message",
   "withdrawal_requested_admin",

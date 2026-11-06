@@ -21,7 +21,8 @@ import { broadcastToDesigners } from "@/lib/notifications/broadcast";
 import { remindUnclaimed } from "@/lib/rewards/claims";
 import { closeMonth, jobOrigin, sendMonthRewards } from "@/lib/rewards/month-close";
 import { missedMonth } from "@/lib/rewards/race-rules";
-import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endingSoonDue, reminderKind, splitPrize, type SplitEntry } from "./rules";
+import { finishNoResult, noResultShares } from "./no-result";
+import { designerEndingKind, designerNoticesDue, dueReminders, ENDING_SOON, endingSoonDue, reminderKind } from "./rules";
 import { testContestIds } from "@/lib/seo/test-accounts";
 
 /**
@@ -51,6 +52,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     "timers.files_strike_hours",
     "timers.strike_expiry_days",
     "timers.suspension_hours",
+    "lifecycle.no_winner_admin_decides",
   ]);
   const iso = now.toISOString();
   const fail = (step: string, id: string, e: unknown) => report.errors.push(`${step} ${id}: ${e instanceof Error ? e.message : String(e)}`);
@@ -271,28 +273,23 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
     const silentIds = (silent ?? []).map((h) => h.contest_id as string);
     const { data: silentContests } = silentIds.length ? await db.from("contests").select(SELECT).in("id", silentIds) : { data: [] };
     const due = [...((judging ?? []) as ContestRow[]), ...((silentContests ?? []) as ContestRow[])].filter((c) => !frozen.has(c.id));
+    const judgingIds = new Set(((judging ?? []) as ContestRow[]).map((c) => c.id));
     for (const c of due) {
       try {
-        const { data: entries } = await db.from("entries").select("designer_id, status, created_at").eq("contest_id", c.id);
-        const list: SplitEntry[] = (entries ?? []).map((e) => ({ designerId: e.designer_id as string, status: e.status as string, createdAt: new Date(e.created_at as string) }));
-        const ids = [...new Set(list.map((e) => e.designerId))];
-        const { data: profiles } = ids.length ? await db.from("profiles").select("id, counted_wins_count").in("id", ids) : { data: [] };
-        const wins = new Map((profiles ?? []).map((p) => [p.id as string, (p.counted_wins_count as number) ?? 0]));
-        const shares = splitPrize(c.prize_amount, list, (id) => wins.get(id) ?? 0, s["fees.designer_tiers"]);
-        const { data: done, error } = await db.rpc("finish_no_result", {
-          p_contest_id: c.id,
-          p_shares: shares.map((x) => ({ designer_id: x.designerId, share: x.share, fee_rate: x.feeRate })),
-        });
-        if (error) throw new Error(error.message);
-        if (!done || !(done as { id?: string }).id) continue;
-        // Nobody got a share and the guarantee still applies (owner, 2026-10-21): the client hears they can claim, not
-        // that the prize was shared.
-        const late = shares.length === 0 ? await contestGuarantee(c.id, now) : null;
-        if (late?.state.kind === "available" && late.state.late) {
-          if (await once(c.id, "guarantee_available_late")) await tellClient("available", { clientId: c.client_id, slug: c.slug, brand: c.brand_name }, { min: late.state.min, designers: late.state.designers, until: late.state.until, late: true });
-        } else await notify([c.client_id], "no_result_client", { brand: c.brand_name }, contestHref(c.slug));
-        for (const x of shares) await notify([x.designerId], "no_result_share", { brand: c.brand_name, amount: x.credit }, "/dashboard/wallet");
-        report.noResult++;
+        // No winner by the end of judging (owner, 2026-11-06): the team decides, a winner or a share for everyone,
+        // instead of sharing at once. Once per contest the team hears; the contest waits, marked for review. Not when
+        // nobody took part (nothing to decide), nor a client gone silent after the files (unchanged).
+        if (judgingIds.has(c.id) && s["lifecycle.no_winner_admin_decides"]) {
+          const shares = await noResultShares(c.id, c.prize_amount, s["fees.designer_tiers"]);
+          if (shares.length > 0) {
+            if (await once(c.id, "no_winner_admin")) {
+              await db.from("contests").update({ admin_review: true }).eq("id", c.id);
+              await notify(await adminIdsWith("contests.manage"), "no_winner_admin", { brand: c.brand_name, number: shares.length }, `/admin/contests/${c.slug}`);
+            }
+            continue;
+          }
+        }
+        if (await finishNoResult(c, s["fees.designer_tiers"], now, once)) report.noResult++;
       } catch (e) {
         fail("no-result", c.id, e);
       }

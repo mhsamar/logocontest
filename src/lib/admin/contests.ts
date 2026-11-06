@@ -277,3 +277,16 @@ export async function getContestClient(clientId: string, opts: { canSeeContact: 
     contact: opts.canSeeContact ? { mobile: p.mobile as string, email: (p.email as string | null) ?? null, bkash, whatsapp: p.whatsapp === true } : null,
   };
 }
+
+/**
+ * A contest with no winner (owner, 2026-11-06): whether its judging is over (the team decides now), and what was shared
+ * among the designers when it ended with no result.
+ */
+export async function noWinnerState(contestId: string, judgingEndsAt: Date | null, now = new Date()): Promise<{ judgingOver: boolean; shared: { designers: number; total: number } }> {
+  const { data } = await createAdminClient().from("wallet_transactions").select("designer_id, amount").eq("contest_id", contestId).eq("type", "split_share");
+  const rows = data ?? [];
+  return {
+    judgingOver: Boolean(judgingEndsAt && judgingEndsAt.getTime() <= now.getTime()),
+    shared: { designers: new Set(rows.map((r) => r.designer_id as string)).size, total: rows.reduce((a, r) => a + (r.amount as number), 0) },
+  };
+}

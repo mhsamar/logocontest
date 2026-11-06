@@ -74,7 +74,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("handover_updates", "designer", ["handover_revision", "handover_approved", "handover_approved_held"], ["bell"]),
   // Its suspension email is the Account status row's (owner, 2026-10-31), so this row is the bell and the timing only.
   row("late_files", "designer", ["late_files_strike", "files_missed_banned"], ["bell"], { timing: ["timers.files_strike_hours"] }),
-  row("prize_released", "designer", ["prize_released", "no_result_share"], ["bell"], { timing: ["timers.payout_hold_days"] }),
+  row("prize_released", "designer", ["prize_released", "no_result_share", "share_taken_back"], ["bell"], { timing: ["timers.payout_hold_days"] }),
   row("guarantee_designer", "designer", ["guarantee_designers"], ["bell"]),
   row("withdrawals", "designer", ["withdrawal_paid", "withdrawal_rejected"], ["bell"]),
   row("agreements", "designer", ["agreement_photo_requested", "agreement_rejected"], ["bell", "email"], { email: "notification" }),
@@ -145,7 +145,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("admin_followups", "admin", ["followup_due_admin", "followup_overdue_admin"], ["bell", "push", "email"], { email: "notification", timing: ["notify.followup_due_minutes"], alsoIn: "unpaid" }),
   row("admin_refunds", "admin", ["guarantee_claimed_admin", "guarantee_overdue_admin"], ["bell", "email"], { email: "notification" }),
   row("admin_monthly", "admin", ["monthly_review", "monthly_sent", "monthly_no_winner", "monthly_claimed"], ["bell", "email"], { email: "notification" }),
-  row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin"], ["bell"]),
+  row("admin_safety", "admin", ["claim_opened_admin", "late_files_admin", "files_missed_admin", "agreement_photo_added_admin", "no_winner_admin"], ["bell"]),
 ];
 
 export type NoticeId = string;

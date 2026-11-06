@@ -56,6 +56,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   handover_approved_held: "approved",
   prize_released: "money",
   no_result_share: "money",
+  share_taken_back: "money",
   withdrawal_paid: "money",
   withdrawal_rejected: "money",
   // Clients
@@ -127,6 +128,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   monthly_claimed: "admin",
   gift_address_given: "admin",
   late_files_admin: "admin",
+  no_winner_admin: "admin",
   files_missed_admin: "admin",
   withdrawal_requested_admin: "admin",
   agreement_photo_added_admin: "admin",
