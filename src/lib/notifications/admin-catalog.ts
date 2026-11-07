@@ -69,6 +69,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("entry_approved", "designer", ["entry_approved"], ["bell"]),
   row("winner_picked", "designer", ["winner_picked"], ["bell", "email"], { email: "contest-won", alsoIn: "user" }),
   row("contest_closed", "designer", ["contest_closed"], ["bell"]),
+  row("winner_copy", "designer", ["win_removed_copy", "winner_copy_removed"], ["bell"]),
   row("win_card_ready", "designer", ["win_card_ready"], ["bell", "email"], { email: "notification", alsoIn: "user" }),
   row("files_due", "designer", ["files_due"], ["bell"], { timing: ["timers.files_due_notice_hours"] }),
   row("handover_updates", "designer", ["handover_revision", "handover_approved", "handover_approved_held"], ["bell"]),
@@ -106,7 +107,7 @@ export const NOTICE_ROWS: NoticeRow[] = [
   row("judging_reminder", "client", ["judging_reminder"], ["bell"], { timing: ["timers.judging_reminder_days"] }),
   row("handover_submitted", "client", ["handover_submitted"], ["bell"]),
   row("handover_download", "client", ["handover_download"], ["bell", "push"]),
-  row("winner_changes", "client", ["repick_winner", "winner_picked_by_admin", "no_result_client"], ["bell"]),
+  row("winner_changes", "client", ["repick_winner", "repick_copied", "winner_picked_by_admin", "no_result_client"], ["bell"]),
   // Money-back guarantee (owner, 2026-10-21): too few designers, the claim, the decision and the money back.
   // Unpaid contests, phase 3 (owner, 2026-10-26): emails to a client who saved a contest but didn't pay; each also
   // switched on or off in Admin › Unpaid contests, and each client can unsubscribe from them alone.

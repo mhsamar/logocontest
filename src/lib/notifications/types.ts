@@ -21,6 +21,10 @@ export const NOTIFICATION_TYPES = [
   "judging_reminder",
   "win_cancelled",
   "repick_winner",
+  // A winner whose logo was copied (owner, 2026-11-07): the copier, the other designers and the client.
+  "win_removed_copy",
+  "winner_copy_removed",
+  "repick_copied",
   "no_result_client",
   "no_result_share",
   // The team picked a winner after a no-result share (owner, 2026-11-06): the share was taken back from the wallet.

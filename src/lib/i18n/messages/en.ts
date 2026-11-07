@@ -1458,6 +1458,9 @@ const en = {
       judging_reminder: "Pick a winner for {brand}: {days} days left",
       win_cancelled: "Your win in {brand} was cancelled because the files weren't uploaded in time",
       repick_winner: "The winner of {brand} didn't deliver the files. Pick another winner within {days} days.",
+      win_removed_copy: "Your winning design #{number} in {brand} was found to copy another logo, so the win was taken away. Tap to see the logo it copied.",
+      winner_copy_removed: "The winning logo of {brand} (#{number}) was a copy of another logo (tap to see it), so another design will win.",
+      repick_copied: "The winning logo of {brand} (#{number}) was a copy of another logo, so we took the win away. Pick a new winner within {days} days.",
       no_result_client: "{brand} ended with no result. The prize was shared among the designers.",
       no_result_share: "{brand} ended with no result. Your share, {amount}, was added to your wallet.",
       share_taken_back: "The team picked a winner for {brand}, so your no-result share, {amount}, was taken back from your wallet.",
@@ -3673,6 +3676,22 @@ const en = {
       addonField: "Add-on",
       addonWaiting: "A bKash payment for this add-on is waiting for approval. Decide it first in Payments › Approvals.",
       extendDays: "Days to add",
+      copied: {
+        action: "Change the winner: copied logo",
+        body: "The winning design #{n} copies another logo. Its win is taken away and the designer's designs in this contest are removed; the prize isn't paid. Every designer in the contest hears why, with the link to the logo it copied.",
+        proof: "Link to the logo it copied",
+        proofHint: "Optional. Designers tap the notice to see it.",
+        next: "Then",
+        nextClient: "The client picks a new winner ({days} days)",
+        nextAdmin: "I pick the new winner now",
+        entry: "New winner (if you pick now)",
+        ban: "The designer who copied",
+        banNo: "No ban",
+        banYes: "Ban them",
+        badLink: "That link doesn't look right. Use a full link starting with https://",
+        pickNext: "Choose who picks the new winner, and the design if you pick it now.",
+        paid: "The prize was already paid out, so the winner can't be changed here.",
+      },
       noWinner: {
         decide: "The client picked no winner by the end of judging ({date}). Pick a winner with Force award, or share the prize among the designers.",
         share: "Share among everyone",
@@ -4666,6 +4685,10 @@ const en = {
         winner_picked: {
           label: "You won",
           when: "When their design wins: prize, fee and what they get.",
+        },
+        winner_copy: {
+          label: "Winner changed: copied logo",
+          when: "When the team takes a win away because the logo was copied: to that designer and to the other designers, with the link to the logo it copied.",
         },
         contest_closed: {
           label: "A winner was picked",

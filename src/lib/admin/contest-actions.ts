@@ -91,15 +91,10 @@ export async function cancelContest(contestId: string, f: Fields): Promise<Resul
   return { ok: true };
 }
 
-/** A-02 Force-award: an admin picks the winner for the client (same rules as the client's pick). */
-export async function forceAward(contestId: string, f: Fields): Promise<Result> {
-  const admin = await adminUser("contests.manage");
-  const c = admin ? await loadContest(contestId) : null;
-  if (!admin || !c || !UUID.test(f.entry ?? "")) return fail("auth.errors.generic");
-  const reason = cleanReason(f.reason);
-  if (!reason) return fail("admin.errors.reason");
+/** The team picks this design as the winner (same rules as the client's pick), with the notices; `action` names it in the audit log. */
+async function pickFor(adminId: string, c: { id: string; slug: string; brand_name: string; client_id: string }, entryId: string, reason: string, action: string): Promise<Result> {
   const db = createAdminClient();
-  const { data: entry } = await db.from("entries").select("id, number, status, designer_id").eq("id", f.entry).eq("contest_id", c.id).maybeSingle();
+  const { data: entry } = await db.from("entries").select("id, number, status, designer_id").eq("id", entryId).eq("contest_id", c.id).maybeSingle();
   if (!entry || entry.status !== "active") return fail("manage.winner.notActive");
   const [{ data: designer }, s] = await Promise.all([
     db.from("profiles").select("counted_wins_count").eq("id", entry.designer_id).single(),
@@ -111,13 +106,58 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
   const { error } = await db.rpc("pick_winner", { p_contest_id: c.id, p_entry_id: entry.id, p_fee_rate: feeRate, p_due_at: dueAt });
   if (error) return fail("manage.closed");
   await markPromoUsed(redemptionId, { contestId: c.id });
-  await audit(admin.id, "force_award", "contest", c.id, { entry: entry.number, reason, feeRate });
+  await audit(adminId, action, "contest", c.id, { entry: entry.number, reason, feeRate });
   const n = { brand: c.brand_name, number: entry.number as number };
-  await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, admin.id);
+  await notify([entry.designer_id as string], "winner_picked", n, `/dashboard/handover/${c.slug}`, adminId);
   await emailWon(entry.id as string);
-  await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), admin.id);
-  await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, admin.id);
+  await notify([c.client_id], "winner_picked_by_admin", n, contestHref(c.slug, "payment"), adminId);
+  await notify((await contestDesignerIds(c.id)).filter((id) => id !== entry.designer_id), "contest_closed", n, `/contest/${c.slug}`, adminId);
   await afterWinnerPicked(c.id, entry.id as string);
+  return { ok: true };
+}
+
+/** A-02 Force-award: an admin picks the winner for the client (same rules as the client's pick). */
+export async function forceAward(contestId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c || !UUID.test(f.entry ?? "")) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const res = await pickFor(admin.id, c, f.entry, reason, "force_award");
+  if (res.ok) refresh();
+  return res;
+}
+
+/**
+ * Change a winner whose logo was copied (owner, 2026-11-07): the win is taken away (migration 0086), the copier's
+ * designs in the contest go and they may be banned, and every designer hears why, with the proof's link. Then either
+ * the client picks again (for the re-pick days), or the team picks the new winner now.
+ */
+export async function removeCopiedWinner(contestId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c || !["winner_selected", "handover", "completed"].includes(c.status)) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const proof = (f.proof ?? "").trim();
+  if (proof && !/^https?:\/\/\S{4,}$/i.test(proof)) return fail("admin.contests.copied.badLink");
+  if (f.next !== "client" && !(f.next === "admin" && UUID.test(f.entry ?? ""))) return fail("admin.contests.copied.pickNext");
+  const ban = f.ban === "1";
+  const db = createAdminClient();
+  const days = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
+  const { data: res, error } = await db.rpc("admin_remove_copied_winner", { p_contest_id: c.id, p_repick_days: days, p_ban: ban });
+  if (error) return fail(/already paid/.test(error.message) ? "admin.contests.copied.paid" : "manage.closed");
+  const out = res as { designer_id: string; entry_id: string; number: number };
+  await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason });
+  const n = { brand: c.brand_name, number: out.number };
+  await notify([out.designer_id], "win_removed_copy", n, proof || `/contest/${c.slug}`, admin.id);
+  await notify((await contestDesignerIds(c.id)).filter((id) => id !== out.designer_id), "winner_copy_removed", n, proof || `/contest/${c.slug}`, admin.id);
+  if (f.next === "admin") {
+    const picked = await pickFor(admin.id, c, f.entry, reason, "force_award_after_copy");
+    refresh();
+    return picked;
+  }
+  await notify([c.client_id], "repick_copied", { ...n, days }, contestHref(c.slug, "designs"), admin.id);
   refresh();
   return { ok: true };
 }

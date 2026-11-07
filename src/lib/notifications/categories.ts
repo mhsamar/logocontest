@@ -70,6 +70,9 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   no_result_client: "ending",
   judging_reminder: "winner",
   repick_winner: "winner",
+  win_removed_copy: "winner",
+  winner_copy_removed: "winner",
+  repick_copied: "winner",
   winner_picked_by_admin: "winner",
   // Money-back guarantee (owner, 2026-10-21)
   guarantee_available: "ending",

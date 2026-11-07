@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
-import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, shareNoResult } from "@/lib/admin/contest-actions";
+import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, removeCopiedWinner, shareNoResult } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
 import { adminContestFiles, getAdminContest, getContestClient, noWinnerState } from "@/lib/admin/contests";
@@ -60,6 +60,11 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const noWinner = c.status === "judging" || c.status === "no_result" ? await noWinnerState(c.id, c.judgingEndsAt) : null;
   const decideNow = c.status === "judging" && noWinner?.judgingOver && active.length > 0;
   const canAwardAfter = c.status === "no_result" && !c.handover && active.length > 0;
+  // A copied winner (owner, 2026-11-07): take the win away; the new winner is from the other designers.
+  const winnerEntry = c.entriesList.find((e) => e.status === "winner") ?? null;
+  const canChangeCopied = ["winner_selected", "handover", "completed"].includes(c.status) && Boolean(winnerEntry);
+  const otherOptions = active.filter((e) => e.designer.id !== winnerEntry?.designer.id).map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
+  const repickDays = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
   const entryOptions = active.map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
   const canCancel = !["completed", "no_result", "cancelled", "deleted"].includes(c.status);
 
@@ -186,6 +191,29 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
               { name: "reason", kind: "reason" },
             ]}
             run={forceAward.bind(null, c.id)}
+          />
+        )}
+        {canChangeCopied && winnerEntry && (
+          <AdminAction
+            label={t("admin.contests.copied.action")}
+            body={t("admin.contests.copied.body", { n: String(winnerEntry.number) })}
+            tone="danger"
+            fields={[
+              { name: "proof", kind: "text", label: t("admin.contests.copied.proof"), hint: t("admin.contests.copied.proofHint") },
+              {
+                name: "next",
+                kind: "select",
+                label: t("admin.contests.copied.next"),
+                options: [
+                  { value: "client", label: t("admin.contests.copied.nextClient", { days: String(repickDays) }) },
+                  ...(otherOptions.length ? [{ value: "admin", label: t("admin.contests.copied.nextAdmin") }] : []),
+                ],
+              },
+              ...(otherOptions.length ? [{ name: "entry", kind: "select" as const, label: t("admin.contests.copied.entry"), options: otherOptions }] : []),
+              { name: "ban", kind: "select", label: t("admin.contests.copied.ban"), options: [{ value: "0", label: t("admin.contests.copied.banNo") }, { value: "1", label: t("admin.contests.copied.banYes") }] },
+              { name: "reason", kind: "reason" },
+            ]}
+            run={removeCopiedWinner.bind(null, c.id)}
           />
         )}
         {decideNow && (
