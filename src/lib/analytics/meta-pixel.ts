@@ -121,3 +121,22 @@ function pushDataLayer(key: string, event: PixelEvent, params?: PixelParams): vo
     // Tracking never gets in the way of the site.
   }
 }
+
+/** The new brief's own events (owner, 2026-11-08): counts for the team, nothing personal (a category id, numbers). */
+export type BriefEvent = "wizard_step_2_view" | "brief_suggest_click" | "brief_suggest_ai_fallback" | "wizard_step_2_complete" | "brief_update_sent";
+
+/** Sends a custom event to window.dataLayer and, when the pixel loaded, to Meta as a custom event. Never throws. */
+export function trackCustom(event: BriefEvent, params?: Record<string, string | number>): void {
+  if (typeof window === "undefined") return;
+  try {
+    (window.dataLayer ??= []).push({ event, ...(params ?? {}) });
+  } catch {
+    // Tracking never gets in the way of the site.
+  }
+  try {
+    const fbq = window.fbq as unknown as ((cmd: "trackCustom", name: string, p?: Record<string, string | number>) => void) | undefined;
+    if (typeof fbq === "function") fbq("trackCustom", event, params ?? {});
+  } catch {
+    // Tracking never gets in the way of the site.
+  }
+}

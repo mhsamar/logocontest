@@ -14,6 +14,11 @@ import { V2, V2_STAGE, V2_TOTAL, v2CanGo } from "@/lib/onboarding/v2-steps";
 import { subscribeToPush } from "@/lib/push/client";
 import { recordWizardStep } from "@/lib/wizard-tracking";
 import { logoLiveAnswers } from "@/lib/wizard-live-rules";
+import { BriefStep, type BriefStepActions } from "@/components/brief-v3/brief-step";
+import type { BriefValue } from "@/components/brief-v3/brief-editor";
+import type { BriefPhoto } from "@/components/brief-v3/brief-photos";
+import { cx } from "@/lib/cx";
+import "@/components/brief-v3/brief-v3.css";
 import { AccountV2 } from "./step-account";
 import { BasicsV2 } from "./step-basics";
 import { DoneV2 } from "./success";
@@ -84,6 +89,17 @@ export type WizardV2Props = {
   } | null;
   initialStep: number;
   actions?: Partial<V2Actions>;
+  /**
+   * The new brief (owner, 2026-11-08; Admin › Brief switch): step 2 is the logo name and one text with everything in
+   * it, in a narrow column. Null: the older step 2 (logo name and business type).
+   */
+  briefV3?: {
+    initial: BriefValue;
+    categories: { id: string; label: string }[];
+    photos: BriefPhoto[];
+    photoLimits: { maxFiles: number; maxMb: number };
+    actions?: BriefStepActions;
+  } | null;
 };
 
 /**
@@ -173,13 +189,20 @@ export function WizardV2(props: WizardV2Props) {
     router.push("/");
   };
 
+  const v3 = Boolean(props.briefV3) && step === V2.basics;
   const heading: Record<number, string> = { 1: "account", 2: "basics", 3: "prize", 4: "pay", 5: "done" };
   const key = heading[step];
 
   return (
     <div ref={top} className="flex w-full flex-1 scroll-mt-32 flex-col px-3.5 pb-3.5 max-[720px]:px-2 max-[720px]:pb-2">
-      <div className="flex-1 rounded-[32px] bg-frame px-6 py-8 sm:px-10 sm:py-10 max-[720px]:rounded-[24px] max-[720px]:bg-surface max-[720px]:px-4 max-[720px]:py-5">
-        <div className="mx-auto w-full max-w-[560px] min-[721px]:rounded-2xl min-[721px]:border min-[721px]:border-line min-[721px]:bg-surface min-[721px]:p-8 min-[721px]:shadow-card">
+      <div className={cx("flex-1 rounded-[32px] px-6 py-8 sm:px-10 sm:py-10 max-[720px]:rounded-[24px] max-[720px]:px-4 max-[720px]:py-5", v3 ? "b3-page" : "bg-frame max-[720px]:bg-surface")}>
+        <div
+          className={cx(
+            "mx-auto w-full",
+            // The new brief's step: its own white cards on the page colour, centred in 480px (owner, 2026-11-08).
+            v3 ? "max-w-[480px]" : "max-w-[560px] min-[721px]:rounded-2xl min-[721px]:border min-[721px]:border-line min-[721px]:bg-surface min-[721px]:p-8 min-[721px]:shadow-card",
+          )}
+        >
           {step <= V2.pay ? (
             <div className="mb-6" data-progress={step}>
               <p className="m-0 text-[13px] font-bold text-muted">{t("wizardV2.progress", { n: step, total: V2_TOTAL })}</p>
@@ -193,7 +216,7 @@ export function WizardV2(props: WizardV2Props) {
 
           <div key={step} className="animate-step-in">
             {/* The payment flow writes its own heading on each of its screens (owner, 2026-11-06). */}
-            {step !== V2.done && step !== V2.pay && (
+            {step !== V2.done && step !== V2.pay && !v3 && (
               <>
                 <h1 className="m-0 text-[clamp(26px,3.2vw,34px)] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">{t(`wizardV2.${key as "account"}.heading`)}</h1>
                 {/* The payment step writes its own line, with the amount once the payment is ready. */}
@@ -219,7 +242,34 @@ export function WizardV2(props: WizardV2Props) {
                 }}
               />
             )}
-            {step === V2.basics && (
+            {v3 && props.briefV3 && (
+              <BriefStep
+                contestId={contestId}
+                initial={props.briefV3.initial}
+                categories={props.briefV3.categories}
+                photos={props.briefV3.photos}
+                photoLimits={props.briefV3.photoLimits}
+                actions={props.briefV3.actions}
+                askAgreement={startedSignedIn && !r?.agreed && !agreedHere}
+                agreed={agreed}
+                onAgreed={setAgreed}
+                onBack={back}
+                onBar={setBar}
+                onContest={(saved) => {
+                  setContestId(saved.contestId);
+                  if (saved.slug) setSlug(saved.slug);
+                  setBrandName(saved.logoName);
+                  window.history.replaceState({ step }, "", url(step, saved.contestId));
+                }}
+                onDone={(saved) => {
+                  setContestId(saved.contestId);
+                  if (saved.slug) setSlug(saved.slug);
+                  setBrandName(saved.logoName);
+                  go(V2.prize, saved.contestId);
+                }}
+              />
+            )}
+            {step === V2.basics && !v3 && (
               <BasicsV2
                 actions={actions}
                 contestId={contestId}

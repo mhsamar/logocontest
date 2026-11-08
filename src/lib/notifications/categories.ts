@@ -57,6 +57,8 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   prize_released: "money",
   no_result_share: "money",
   share_taken_back: "money",
+  copy_prize_shared: "money",
+  prize_taken_back: "money",
   withdrawal_paid: "money",
   withdrawal_rejected: "money",
   // Clients
@@ -73,6 +75,7 @@ export const CATEGORY_OF: Record<NotificationType, NotificationCategory> = {
   win_removed_copy: "winner",
   winner_copy_removed: "winner",
   repick_copied: "winner",
+  copy_prize_shared_client: "winner",
   winner_picked_by_admin: "winner",
   // Money-back guarantee (owner, 2026-10-21)
   guarantee_available: "ending",

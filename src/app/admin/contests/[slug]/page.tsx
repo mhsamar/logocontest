@@ -65,6 +65,9 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const canChangeCopied = ["winner_selected", "handover", "completed"].includes(c.status) && Boolean(winnerEntry);
   const otherOptions = active.filter((e) => e.designer.id !== winnerEntry?.designer.id).map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
   const repickDays = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
+  // Owner, 2026-11-08: or share the prize among the other designers; a prize already paid is taken back first.
+  const shareCount = new Set(active.filter((e) => e.designer.id !== winnerEntry?.designer.id).map((e) => e.designer.id)).size;
+  const paidCredit = c.handover?.credited ? c.handover.prize - Math.round((c.handover.prize * c.handover.feeRate) / 100) : 0;
   const entryOptions = active.map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
   const canCancel = !["completed", "no_result", "cancelled", "deleted"].includes(c.status);
 
@@ -196,7 +199,7 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
         {canChangeCopied && winnerEntry && (
           <AdminAction
             label={t("admin.contests.copied.action")}
-            body={t("admin.contests.copied.body", { n: String(winnerEntry.number) })}
+            body={`${t("admin.contests.copied.body", { n: String(winnerEntry.number) })}${paidCredit ? ` ${t("admin.contests.copied.paidNote", { amount: taka(paidCredit) })}` : ""}`}
             tone="danger"
             fields={[
               { name: "proof", kind: "text", label: t("admin.contests.copied.proof"), hint: t("admin.contests.copied.proofHint") },
@@ -207,6 +210,7 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
                 options: [
                   { value: "client", label: t("admin.contests.copied.nextClient", { days: String(repickDays) }) },
                   ...(otherOptions.length ? [{ value: "admin", label: t("admin.contests.copied.nextAdmin") }] : []),
+                  ...(shareCount ? [{ value: "share", label: t("admin.contests.copied.nextShare", { n: formatNumber(shareCount, locale) }) }] : []),
                 ],
               },
               ...(otherOptions.length ? [{ name: "entry", kind: "select" as const, label: t("admin.contests.copied.entry"), options: otherOptions }] : []),

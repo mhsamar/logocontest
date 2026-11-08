@@ -25,6 +25,10 @@ export const NOTIFICATION_TYPES = [
   "win_removed_copy",
   "winner_copy_removed",
   "repick_copied",
+  // The team shared a copied winner's prize among the other designers (owner, 2026-11-08); a paid prize taken back.
+  "copy_prize_shared",
+  "copy_prize_shared_client",
+  "prize_taken_back",
   "no_result_client",
   "no_result_share",
   // The team picked a winner after a no-result share (owner, 2026-11-06): the share was taken back from the wallet.

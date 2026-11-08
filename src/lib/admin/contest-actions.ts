@@ -141,16 +141,29 @@ export async function removeCopiedWinner(contestId: string, f: Fields): Promise<
   if (!reason) return fail("admin.errors.reason");
   const proof = (f.proof ?? "").trim();
   if (proof && !/^https?:\/\/\S{4,}$/i.test(proof)) return fail("admin.contests.copied.badLink");
-  if (f.next !== "client" && !(f.next === "admin" && UUID.test(f.entry ?? ""))) return fail("admin.contests.copied.pickNext");
+  if (f.next !== "client" && f.next !== "share" && !(f.next === "admin" && UUID.test(f.entry ?? ""))) return fail("admin.contests.copied.pickNext");
   const ban = f.ban === "1";
   const db = createAdminClient();
   const days = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
   const { data: res, error } = await db.rpc("admin_remove_copied_winner", { p_contest_id: c.id, p_repick_days: days, p_ban: ban });
   if (error) return fail(/already paid/.test(error.message) ? "admin.contests.copied.paid" : "manage.closed");
-  const out = res as { designer_id: string; entry_id: string; number: number };
-  await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason });
+  // `paid`/`taken`/`short` since 0088 (owner, 2026-11-08): a prize already in the wallet is taken back as far as it's there.
+  const out = res as { designer_id: string; entry_id: string; number: number; paid?: number; taken?: number; short?: number };
   const n = { brand: c.brand_name, number: out.number };
   await notify([out.designer_id], "win_removed_copy", n, proof || `/contest/${c.slug}`, admin.id);
+  if (out.taken) await notify([out.designer_id], "prize_taken_back", { brand: c.brand_name, amount: out.taken }, "/dashboard/wallet", admin.id);
+  const money = { paid: out.paid ?? 0, taken: out.taken ?? 0, short: out.short ?? 0 };
+  if (f.next === "share") {
+    // Owner, 2026-11-08: the prize goes to every other designer who took part, as a no-result share (fees as usual).
+    const [{ data: full }, s] = await Promise.all([db.from("contests").select("id, slug, brand_name, client_id, prize_amount").eq("id", c.id).single(), getSettings(["fees.designer_tiers"])]);
+    const once = async (id: string, kind: string) => !(await db.from("lifecycle_events").insert({ contest_id: id, kind })).error;
+    const shared = full ? await finishNoResult(full as NoResultContest, s["fees.designer_tiers"], new Date(), once, { designer: "copy_prize_shared", client: "copy_prize_shared_client", number: out.number, link: "/dashboard/wallet", actorId: admin.id }).catch(() => false as const) : false;
+    await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason, ...money, shared: shared === false ? null : shared });
+    refresh();
+    // The win is gone either way; if the share failed the contest waits in judging for the team (Share among everyone).
+    return shared === false ? fail("manage.closed") : { ok: true };
+  }
+  await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason, ...money });
   await notify((await contestDesignerIds(c.id)).filter((id) => id !== out.designer_id), "winner_copy_removed", n, proof || `/contest/${c.slug}`, admin.id);
   if (f.next === "admin") {
     const picked = await pickFor(admin.id, c, f.entry, reason, "force_award_after_copy");
@@ -176,8 +189,8 @@ export async function shareNoResult(contestId: string, f: Fields): Promise<Resul
   const [{ data: full }, s] = await Promise.all([db.from("contests").select("id, slug, brand_name, client_id, prize_amount").eq("id", c.id).single(), getSettings(["fees.designer_tiers"])]);
   if (!full) return fail("auth.errors.generic");
   const once = async (id: string, kind: string) => !(await db.from("lifecycle_events").insert({ contest_id: id, kind })).error;
-  const done = await finishNoResult(full as NoResultContest, s["fees.designer_tiers"], new Date(), once).catch(() => false);
-  if (!done) return fail("manage.closed");
+  const done = await finishNoResult(full as NoResultContest, s["fees.designer_tiers"], new Date(), once).catch(() => false as const);
+  if (done === false) return fail("manage.closed");
   await audit(admin.id, "share_no_result", "contest", c.id, { reason });
   refresh();
   return { ok: true };

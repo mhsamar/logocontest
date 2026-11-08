@@ -289,7 +289,7 @@ export async function runLifecycle(now = new Date()): Promise<LifecycleReport> {
             continue;
           }
         }
-        if (await finishNoResult(c, s["fees.designer_tiers"], now, once)) report.noResult++;
+        if ((await finishNoResult(c, s["fees.designer_tiers"], now, once)) !== false) report.noResult++;
       } catch (e) {
         fail("no-result", c.id, e);
       }

@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import { ContestBrief } from "@/components/contests/contest-brief";
+import { BriefText } from "@/components/brief-v3/brief-text";
+import { ContestBriefV3, LatestUpdate } from "@/components/brief-v3/contest-brief-v3";
+import { briefConfig, briefV3On, categoryText, legacyBriefText, listBriefUpdates, readBriefV3 } from "@/lib/brief-v3/store";
 import { ServiceBrief } from "@/components/services/service-brief";
 import { NdaGate } from "@/components/contests/nda-gate";
 import { BrandTile, ContestBadges, ContestNumber, LockIcon, contestTitle } from "@/components/contests/contest-bits";
@@ -156,6 +159,17 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
     isTestAccount(contest.ownerId),
   ]);
   if (!visible) return <EarlyAccessGate startsAt={contest.startsAt!} />;
+  // The new brief (Admin › Brief switch, owner 2026-11-08): one text under the 9 headings (an older contest's brief
+  // written out the same way), the client's updates, and the business category.
+  const v3 =
+    contest.brief && !svc && (await briefV3On())
+      ? await Promise.all([readBriefV3(contest.id), listBriefUpdates(contest.id), briefConfig()]).then(([row, updates, { categories }]) => ({
+          text: row?.text ?? legacyBriefText({ ...contest.brief!, description: contest.brief!.description }, contest.brandName, t),
+          category: categoryText(row, categories, locale),
+          updates,
+          photos: contest.brief!.files.filter((f) => f.isImage && f.url).map((f) => ({ url: f.url!, name: f.name })),
+        }))
+      : null;
   const l = (x: Lang) => (locale === "bn" ? x.bn || x.en : x.en);
   // Its designs keep their real shape (owner, 2026-10-13).
   const ratio = svc && svc.width > 0 && svc.height > 0 ? svc.width / svc.height : 1;
@@ -225,7 +239,7 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
                 {contest.canSeeBrief ? contest.brandName : t("contest.privateTitle")}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{contest.businessType === "other" && contest.brief?.businessTypeOther ? contest.brief.businessTypeOther : t(`wizard.businessTypes.${contest.businessType}`)}</span>
+                <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">{v3?.category ?? (contest.businessType === "other" && contest.brief?.businessTypeOther ? contest.brief.businessTypeOther : t(`wizard.businessTypes.${contest.businessType}`))}</span>
                 <span className="rounded-full bg-chip px-3 py-1 font-semibold text-ink">
                   {svc ? l(svc.name) : t("browse.packageName", { name: t(`wizard.packages.${contest.package}.name`) })}
                 </span>
@@ -281,7 +295,22 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
               <ServiceBrief service={svc} answers={contest.serviceBrief} hidden={contest.hiddenPrivate} />
             </div>
           )}
-          {contest.brief && !svc && (
+          {v3 && (
+            <div className="b3 mt-3.5" style={{ gap: 12 }}>
+              <LatestUpdate update={v3.updates[0]} t={t} locale={locale} />
+              <div className="b3-card">
+                <p className="b3-lbl">{t("briefV3.view.brief")}</p>
+                <div className="line-clamp-[8]">
+                  <BriefText text={v3.text} small links={false} />
+                </div>
+                <Link href={`/contest/${contest.slug}?tab=brief#tabs`} className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-bold text-primary hover:underline">
+                  {t("contest.brief.readFull")}
+                  <span aria-hidden>→</span>
+                </Link>
+              </div>
+            </div>
+          )}
+          {contest.brief && !svc && !v3 && (
             <div className="lc-card mt-3.5 !rounded-[24px] p-5">
               <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
                 <div className="min-w-0">
@@ -495,6 +524,20 @@ export default async function ContestPage({ params, searchParams }: PageProps<"/
             <div className="mx-auto max-w-3xl">
               <ServiceBrief service={svc} answers={contest.serviceBrief} full files={contest.brief?.files ?? []} hidden={contest.hiddenPrivate} />
             </div>
+          ) : contest.brief && v3 ? (
+            <ContestBriefV3
+              brandName={contest.brandName}
+              category={v3.category}
+              prize={contest.prize}
+              endsAt={contest.endsAt}
+              entries={contest.entries}
+              text={v3.text}
+              photos={v3.photos}
+              updates={v3.updates}
+              submitHref={contest.status === "open" && !contest.isOwner ? `/contest/${contest.slug}/submit` : null}
+              t={t}
+              locale={locale}
+            />
           ) : contest.brief ? (
             <ContestBrief brief={contest.brief} extra={extraAnswers ? answerLines(...(await extraAnswers), locale) : []} defaults={contest.brief.defaults} />
           ) : (

@@ -15,6 +15,7 @@ import { getSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { whatsappLink } from "@/lib/site";
 import { cannotStart, ComingSoon } from "../start/start-flow";
+import { briefConfig, briefPhotos, briefV3On, categoryOptions, editorStart } from "@/lib/brief-v3/store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -43,6 +44,7 @@ export default async function StartV2Page({ searchParams }: PageProps<"/start-v2
   ]);
 
   let resume: WizardV2Props["resume"] = null;
+  let resumeBrief: Parameters<typeof editorStart>[2] | null = null;
   if (user && isSupabaseConfigured()) {
     const wanted = typeof params.new === "string" ? null : typeof params.draft === "string" ? params.draft : undefined;
     const mine = (await contestRepository().listByClient(user.id)).filter((c) => c.briefCompletion && (c.status === "draft" || c.status === "pending_payment"));
@@ -64,11 +66,26 @@ export default async function StartV2Page({ searchParams }: PageProps<"/start-v2
         agreed: Boolean(row?.content_rules_agreed_at),
         waiting: waiting.has(draft.id),
       };
+      resumeBrief = { ...draft.brief, description: draft.brief.businessDescription };
     }
+  }
+
+  // The new brief (Admin › Brief switch, owner 2026-11-08): step 2's editor, with a resumed contest's text and pictures.
+  let briefV3: WizardV2Props["briefV3"] = null;
+  if (await briefV3On()) {
+    const { locale } = await getI18n();
+    const [{ categories }, limits] = await Promise.all([briefConfig(), getSettings(["limits.brief_max_files", "limits.brief_file_max_mb"])]);
+    briefV3 = {
+      initial: resume && resumeBrief ? await editorStart(resume.contestId, resume.brandName, resumeBrief, t) : { logoName: "", text: "", category: "", other: "", source: "manual" },
+      categories: categoryOptions(categories, locale),
+      photos: resume ? await briefPhotos(resume.contestId) : [],
+      photoLimits: { maxFiles: limits["limits.brief_max_files"], maxMb: limits["limits.brief_file_max_mb"] },
+    };
   }
 
   return (
     <WizardV2
+      briefV3={briefV3}
       signedIn={Boolean(user)}
       pricing={pricing}
       passwordMin={s["auth.password_min_length"]}

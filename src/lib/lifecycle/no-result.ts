@@ -23,9 +23,12 @@ export async function noResultShares(contestId: string, prize: number, tiers: Ti
 /**
  * Ends a contest with no result: shares the prize (one credit per designer) and tells the client and the designers.
  * Used by the daily run, and since 2026-11-06 by the team's "Share among everyone" (owner). `once` records a notice.
- * False when it was already finished.
+ * False when it was already finished, else the number of designers who got a share.
  */
-export async function finishNoResult(c: NoResultContest, tiers: Tiers, now: Date, once: (contestId: string, kind: string) => Promise<boolean>): Promise<boolean> {
+/** Different notices for a copied winner's prize shared by the team (owner, 2026-11-08). */
+export type ShareNotices = { designer: "copy_prize_shared"; client: "copy_prize_shared_client"; number: number; link: string; actorId: string };
+
+export async function finishNoResult(c: NoResultContest, tiers: Tiers, now: Date, once: (contestId: string, kind: string) => Promise<boolean>, notices?: ShareNotices): Promise<number | false> {
   const db = createAdminClient();
   const shares = await noResultShares(c.id, c.prize_amount, tiers);
   const { data: done, error } = await db.rpc("finish_no_result", {
@@ -34,6 +37,11 @@ export async function finishNoResult(c: NoResultContest, tiers: Tiers, now: Date
   });
   if (error) throw new Error(error.message);
   if (!done || !(done as { id?: string }).id) return false;
+  if (notices) {
+    await notify([c.client_id], notices.client, { brand: c.brand_name, number: notices.number }, contestHref(c.slug), notices.actorId);
+    for (const x of shares) await notify([x.designerId], notices.designer, { brand: c.brand_name, number: notices.number, amount: x.credit }, notices.link, notices.actorId);
+    return shares.length;
+  }
   // Nobody got a share and the guarantee still applies (owner, 2026-10-21): the client hears they can claim, not that
   // the prize was shared.
   const late = shares.length === 0 ? await contestGuarantee(c.id, now) : null;
@@ -41,5 +49,5 @@ export async function finishNoResult(c: NoResultContest, tiers: Tiers, now: Date
     if (await once(c.id, "guarantee_available_late")) await tellClient("available", { clientId: c.client_id, slug: c.slug, brand: c.brand_name }, { min: late.state.min, designers: late.state.designers, until: late.state.until, late: true });
   } else await notify([c.client_id], "no_result_client", { brand: c.brand_name }, contestHref(c.slug));
   for (const x of shares) await notify([x.designerId], "no_result_share", { brand: c.brand_name, amount: x.credit }, "/dashboard/wallet");
-  return true;
+  return shares.length;
 }

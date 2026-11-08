@@ -5,6 +5,8 @@ import payBn from "./pay-bn";
 import proBn from "./pro-bn";
 import guaranteeBn from "./guarantee-bn";
 import onboardingBn from "./onboarding-bn";
+import briefBn from "./brief-bn";
+import adminBriefBn from "./admin-brief-bn";
 import homeCarouselBn from "./home-carousel-bn";
 import homeWallBn from "./home-wall-bn";
 import homePricingBn from "./home-pricing-bn";
@@ -19,6 +21,7 @@ const bn: Messages = {
   share: shareBn,
   guarantee: guaranteeBn,
   wizardV2: onboardingBn,
+  briefV3: briefBn,
   home2: { carousel: homeCarouselBn, wall: homeWallBn, pricing: homePricingBn, winners: homeWinnersBn },
   meta: {
     title: "বাংলাদেশে লোগো ডিজাইন কনটেস্ট | logocontest.bd",
@@ -1454,6 +1457,9 @@ const bn: Messages = {
       win_removed_copy: "{brand}-এ আপনার বিজয়ী ডিজাইন #{number} অন্য একটি লোগোর কপি পাওয়া গেছে, তাই জয়টি বাতিল করা হয়েছে। কোন লোগোর কপি, দেখতে ট্যাপ করুন।",
       winner_copy_removed: "{brand}-এর বিজয়ী লোগো (#{number}) অন্য একটি লোগোর কপি ছিল (দেখতে ট্যাপ করুন), তাই অন্য একটি ডিজাইন বিজয়ী হবে।",
       repick_copied: "{brand}-এর বিজয়ী লোগো (#{number}) অন্য একটি লোগোর কপি ছিল, তাই জয়টি বাতিল করা হয়েছে। {days} দিনের মধ্যে নতুন বিজয়ী বেছে নিন।",
+      copy_prize_shared: "{brand}-এর বিজয়ী লোগো (#{number}) অন্য একটি লোগোর কপি ছিল, তাই জয়টি বাতিল করে প্রাইজ ডিজাইনারদের মধ্যে ভাগ করা হয়েছে। আপনার ভাগ {amount} ওয়ালেটে যোগ হয়েছে।",
+      copy_prize_shared_client: "{brand}-এর বিজয়ী লোগো (#{number}) অন্য একটি লোগোর কপি ছিল, তাই আমরা জয়টি বাতিল করে প্রাইজ অংশ নেওয়া ডিজাইনারদের মধ্যে ভাগ করে দিয়েছি।",
+      prize_taken_back: "আপনার বিজয়ী লোগোটি কপি হওয়ায় {brand}-এর প্রাইজ {amount} আপনার ওয়ালেট থেকে ফেরত নেওয়া হয়েছে।",
       no_result_client: "{brand} কোনো ফলাফল ছাড়া শেষ হয়েছে। পুরস্কার ডিজাইনারদের মধ্যে ভাগ হয়েছে।",
       no_result_share: "{brand} কোনো ফলাফল ছাড়া শেষ হয়েছে। আপনার ভাগ {amount} ওয়ালেটে যোগ হয়েছে।",
       share_taken_back: "টিম {brand}-এর বিজয়ী বেছে দিয়েছে, তাই কোনো ফলাফল না হওয়ার ভাগ {amount} আপনার ওয়ালেট থেকে ফেরত নেওয়া হয়েছে।",
@@ -2141,6 +2147,7 @@ const bn: Messages = {
       settings: "সেটিংস",
       texts: "লেখা",
       onboarding: "অনবোর্ডিং",
+      brief: "ব্রিফ",
       notifications: "নোটিফিকেশন",
       lists: "তালিকা",
       legal: "আইনি পেজ",
@@ -3661,6 +3668,7 @@ const bn: Messages = {
         next: "তারপর",
         nextClient: "ক্লায়েন্ট নতুন বিজয়ী বাছবেন ({days} দিন)",
         nextAdmin: "আমি এখনই নতুন বিজয়ী বাছব",
+        nextShare: "প্রাইজ বাকি সব ডিজাইনারের মধ্যে ভাগ করে দিন ({n} জন)",
         entry: "নতুন বিজয়ী (এখনই বাছলে)",
         ban: "যে ডিজাইনার কপি করেছেন",
         banNo: "ব্যান নয়",
@@ -3668,6 +3676,7 @@ const bn: Messages = {
         badLink: "লিংকটা ঠিক মনে হচ্ছে না। https:// দিয়ে শুরু পুরো লিংক দিন।",
         pickNext: "কে নতুন বিজয়ী বাছবেন বেছে নিন, আর এখনই বাছলে ডিজাইনটা।",
         paid: "প্রাইজ আগেই দেওয়া হয়ে গেছে, তাই এখান থেকে বিজয়ী বদলানো যাবে না।",
+        paidNote: "প্রাইজ ({amount}) আগেই বিজয়ীর ওয়ালেটে চলে গেছে। ওয়ালেটে যতটুকু আছে, ততটুকু ফেরত নেওয়া হবে।",
       },
       noWinner: {
         decide: "ক্লায়েন্ট জাজিং শেষ পর্যন্ত ({date}) বিজয়ী বাছেননি। Force award দিয়ে একজন বিজয়ী বেছে দিন, অথবা ডিজাইনারদের মধ্যে প্রাইজ ভাগ করে দিন।",
@@ -4899,6 +4908,7 @@ const bn: Messages = {
         },
       },
     },
+    brief: adminBriefBn,
     onboarding: {
       title: "অনবোর্ডিং",
       lead: "নতুন ক্লায়েন্ট (লোগো কনটেস্ট শুরু করার সময়) আর নতুন ডিজাইনার (সাইন আপের সময়) যে প্রশ্নগুলোর উত্তর দেন। ঐচ্ছিকগুলো লুকান, যেকোনো লেখা বদলান, আর যেকোনো ধাপে নিজের প্রশ্ন যোগ করুন।",
@@ -4942,6 +4952,7 @@ const bn: Messages = {
       details: "বিস্তারিত",
       actions: {
         update_onboarding: "অনবোর্ডিং প্রশ্ন বদলেছেন",
+        update_brief_settings: "ব্রিফের সেটিংস বদলেছেন",
         update_notifications: "নোটিফিকেশন বদলেছেন",
         support_assign: "সাপোর্ট চ্যাট দায়িত্ব দিয়েছেন",
         payouts_auto_on: "অটোমেটিক উত্তোলন চালু করেছেন",

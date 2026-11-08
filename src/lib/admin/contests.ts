@@ -131,7 +131,7 @@ export type AdminContestDetail = AdminContestRow & {
   extensions: number;
   entriesList: { id: string; number: number; status: string; rating: number | null; designer: { id: string; name: string; username: string | null } }[];
   payments: { id: string; purpose: string; amount: number; status: string; gateway: string; txnId: string | null; paidAt: Date | null; createdAt: Date }[];
-  handover: { status: string; dueAt: Date; designer: string } | null;
+  handover: { status: string; dueAt: Date; designer: string; credited: boolean; prize: number; feeRate: number } | null;
   /** In the Trash (owner, 2026-10-14). */
   trash: { at: Date; reason: string | null; by: string | null } | null;
 };
@@ -152,7 +152,7 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
   const [entries, payments, handover] = await Promise.all([
     db.from("entries").select("id, number, status, rating, designer:profiles!designer_id(id, name, username)").eq("contest_id", r.id as string).order("number"),
     db.from("payments").select("id, purpose, amount, status, gateway, gateway_txn_id, paid_at, created_at").eq("contest_id", r.id as string).order("created_at", { ascending: false }),
-    db.from("handovers").select("status, due_at, designer:profiles!designer_id(name)").eq("contest_id", r.id as string).neq("status", "cancelled").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("handovers").select("status, due_at, credited_at, prize, fee_rate, designer:profiles!designer_id(name)").eq("contest_id", r.id as string).neq("status", "cancelled").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const client = one(r.client as { id: string; name: string } | null);
   const flagKeys = ["is_blind", "is_private", "is_promoted", "is_highlighted", "is_urgent", "is_nda", "logo_scan", "admin_review"] as const;
@@ -191,7 +191,7 @@ export async function getAdminContest(slug: string): Promise<AdminContestDetail 
       createdAt: new Date(p.created_at as string),
     })),
     handover: handover.data
-      ? { status: handover.data.status as string, dueAt: new Date(handover.data.due_at as string), designer: one(handover.data.designer as { name: string } | { name: string }[] | null)?.name ?? "—" }
+      ? { status: handover.data.status as string, dueAt: new Date(handover.data.due_at as string), designer: one(handover.data.designer as { name: string } | { name: string }[] | null)?.name ?? "—", credited: Boolean(handover.data.credited_at), prize: handover.data.prize as number, feeRate: handover.data.fee_rate as number }
       : null,
     trash:
       r.status === "deleted" && r.deleted_at

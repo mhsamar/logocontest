@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { BriefHub } from "@/components/wizard-v2/brief-hub";
+import { briefV3On } from "@/lib/brief-v3/store";
 import { getCurrentUser } from "@/lib/auth/session";
 import { contestRepository } from "@/lib/contests/services";
 import { visibleList } from "@/lib/content/lists";
@@ -33,6 +34,8 @@ export default async function BriefHubPage({ searchParams }: PageProps<"/start-v
   if (!user) redirect(`/login?as=client&next=${encodeURIComponent(`/start-v2/brief?c=${id}${extras ? "&step=extras" : ""}`)}`);
   const contest = user.role === "client" ? await contestRepository().findContest(id) : null;
   if (!contest || contest.clientId !== user.id || !contest.briefCompletion) notFound();
+  // The new brief (owner, 2026-11-08): the one-tap brief and the four "change" screens are replaced by "Your brief".
+  if (await briefV3On()) redirect(`/contest/${contest.slug}/brief`);
   if (!briefOpen(contest.status)) redirect(`/client/contests/${contest.slug}`);
 
   const [types, colours, onboarding, waiting, invites, s, { data: files }] = await Promise.all([

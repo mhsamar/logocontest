@@ -1,0 +1,3 @@
+-- Undo 0088_copied_winner_take_back.sql: put back the 0086 function (it refuses a prize that was already paid).
+-- Prizes already taken back with 0088 stay taken back. Run supabase/migrations/0086_remove_copied_winner.sql Block 1
+-- and Block 2 again in the SQL Editor.

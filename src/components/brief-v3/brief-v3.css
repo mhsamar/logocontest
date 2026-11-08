@@ -1,0 +1,534 @@
+/*
+ * The new brief (owner, 2026-11-08; Design/logocontest-onboarding Brief2, BizType, MyBrief, ContestBrief): the design's
+ * own colours and sizes, kept to these screens. Hind Siliguri is the site's Bangla font already.
+ */
+.b3 {
+  --b3-red: #8b1e2d;
+  --b3-red-dark: #5c0a0c;
+  --b3-bg: #f6f4f0;
+  --b3-ink: #1b1b1f;
+  --b3-text: #25252b;
+  --b3-muted: #6b6b74;
+  --b3-line: #dad6ce;
+  --b3-soft-line: #eeeae3;
+  --b3-track: #e6e2da;
+  --b3-yellow: #fff7e0;
+  --b3-yellow-line: #f3e2a6;
+  --b3-yellow-input: #e8d9a0;
+  --b3-yellow-card: #fffbeb;
+  --b3-yellow-ink: #8a6a00;
+  --b3-green: #1f8a4c;
+  --b3-green-ink: #1f6b3f;
+  --b3-green-bg: #eaf5ee;
+  --b3-green-line: #bfe5cd;
+  --b3-amber: #b45309;
+  color: var(--b3-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.b3-page {
+  background: var(--b3-bg);
+}
+.b3 h1 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.b3-mut {
+  color: var(--b3-muted);
+}
+.b3-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04), 0 8px 24px rgba(20, 20, 30, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.b3-card.yellow {
+  background: var(--b3-yellow-card);
+  box-shadow: none;
+  border: 1px solid var(--b3-yellow-line);
+  gap: 10px;
+}
+.b3-lbl {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--b3-ink);
+  margin: 0;
+}
+.b3-inp {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--b3-line);
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--b3-ink);
+  background: #fff;
+}
+.b3-inp:focus-visible,
+.b3-area:focus-within,
+.b3-select:focus-visible,
+.b3-small-area:focus-visible {
+  outline: none;
+  border-color: var(--b3-red);
+  box-shadow: 0 0 0 4px rgba(139, 30, 45, 0.08);
+}
+.b3-note {
+  font-size: 12.5px;
+  color: var(--b3-muted);
+  margin: 0;
+}
+.b3-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--b3-yellow);
+  border: 1px solid var(--b3-yellow-line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.b3-suggest-row {
+  display: flex;
+  gap: 8px;
+}
+.b3-select {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid var(--b3-yellow-input);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 30px 0 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--b3-ink);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%236B6B74'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.b3-btn-dark {
+  flex: none;
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--b3-ink);
+  color: #ffe27a;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.b3-btn-dark:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.b3-small-area {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--b3-yellow-input);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: inherit;
+  color: var(--b3-ink);
+  resize: none;
+  overflow: hidden;
+  min-height: 64px;
+}
+.b3-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.b3-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--b3-line);
+  background: #fff;
+  color: #3b3b44;
+  font-family: inherit;
+  cursor: pointer;
+}
+.b3-chip.ok {
+  background: var(--b3-green-bg);
+  border-color: var(--b3-green-line);
+  color: var(--b3-green-ink);
+}
+.b3-area {
+  border: 1.5px solid var(--b3-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.b3-edit {
+  position: relative;
+  min-height: 170px;
+}
+.b3-mirror,
+.b3-edit textarea {
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.b3-mirror {
+  color: var(--b3-text);
+  min-height: 170px;
+}
+.b3-edit textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--b3-ink);
+}
+.b3-edit textarea::selection {
+  background: rgba(139, 30, 45, 0.18);
+}
+.b3-h-soft {
+  color: var(--b3-red);
+}
+.b3-tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.b3-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--b3-yellow-ink);
+  background: var(--b3-yellow);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.b3-link {
+  font-size: 12px;
+  color: var(--b3-red);
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+.b3-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--b3-yellow-line);
+  background: var(--b3-yellow-card);
+  border-radius: 12px;
+  padding: 12px;
+}
+.b3-ask-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.b3-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.b3-progress-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.b3-done {
+  color: var(--b3-green-ink);
+}
+.b3-track {
+  height: 6px;
+  background: var(--b3-track);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.b3-bar {
+  height: 6px;
+  background: var(--b3-green);
+  border-radius: 6px;
+  transition: width 0.3s;
+}
+.b3-warn {
+  color: var(--b3-amber);
+  font-weight: 600;
+}
+.b3-stop {
+  color: var(--b3-red);
+  font-weight: 600;
+}
+.b3-btn {
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--b3-red);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+.b3-btn.sm {
+  min-height: 44px;
+  font-size: 14.5px;
+}
+.b3-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.b3-btn2 {
+  min-height: 44px;
+  border: 1px solid var(--b3-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--b3-ink);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.b3-btn2.sm {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.b3-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.b3-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--b3-track);
+  flex: none;
+}
+.b3-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.b3-thumb.lg {
+  width: 72px;
+  height: 72px;
+}
+.b3-thumb.md {
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
+}
+.b3-x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(27, 27, 31, 0.75);
+  color: #fff;
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+  padding: 0;
+  cursor: pointer;
+}
+.b3-plus {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1.5px dashed #d9b3ba;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--b3-red);
+  font-size: 24px;
+  background: #fff;
+  cursor: pointer;
+  flex: none;
+}
+.b3-plus:disabled {
+  opacity: 0.6;
+}
+.b3-txt {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--b3-text);
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.b3-txt.sm {
+  font-size: 14.5px;
+}
+.b3-txt p {
+  margin: 0;
+  min-height: 1.7em;
+}
+.b3-h {
+  font-weight: 700;
+  color: var(--b3-red);
+}
+.b3-txt a {
+  color: var(--b3-red);
+  text-decoration: underline;
+}
+.b3-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--b3-green-ink);
+  background: var(--b3-green-bg);
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.b3-pill.plain {
+  color: var(--b3-muted);
+  background: #f1efea;
+}
+.b3-divider {
+  height: 1px;
+  background: var(--b3-soft-line);
+}
+.b3-updates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.b3-updates li {
+  display: flex;
+  gap: 10px;
+}
+.b3-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--b3-red);
+  margin-top: 8px;
+  flex: none;
+}
+.b3-head {
+  background: var(--b3-red-dark);
+  color: #fff;
+  box-shadow: none;
+  gap: 10px;
+}
+.b3-head-label {
+  font-size: 12px;
+  color: #ffe27a;
+  font-weight: 600;
+}
+.b3-head-name {
+  font-size: 23px;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.b3-stats {
+  display: flex;
+  gap: 8px;
+}
+.b3-stat {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.b3-stat span {
+  display: block;
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+.b3-stat strong {
+  font-size: 17px;
+}
+.b3-stat strong.gold {
+  color: #ffe27a;
+}
+.b3-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(10, 10, 12, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.b3-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.b3-lightbox button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--b3-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.b3-thumb-btn {
+  border: 0;
+  padding: 0;
+  cursor: zoom-in;
+  background: none;
+}

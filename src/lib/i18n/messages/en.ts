@@ -5,6 +5,8 @@ import payEn from "./pay-en";
 import proEn from "./pro-en";
 import guaranteeEn from "./guarantee-en";
 import onboardingEn from "./onboarding-en";
+import briefEn from "./brief-en";
+import adminBriefEn from "./admin-brief-en";
 import homeCarouselEn from "./home-carousel-en";
 import homeWallEn from "./home-wall-en";
 import homePricingEn from "./home-pricing-en";
@@ -18,6 +20,7 @@ const en = {
   share: shareEn,
   guarantee: guaranteeEn,
   wizardV2: onboardingEn,
+  briefV3: briefEn,
   // The new home page's own sections (owner, 2026-10-29).
   home2: { carousel: homeCarouselEn, wall: homeWallEn, pricing: homePricingEn, winners: homeWinnersEn },
   meta: {
@@ -1461,6 +1464,9 @@ const en = {
       win_removed_copy: "Your winning design #{number} in {brand} was found to copy another logo, so the win was taken away. Tap to see the logo it copied.",
       winner_copy_removed: "The winning logo of {brand} (#{number}) was a copy of another logo (tap to see it), so another design will win.",
       repick_copied: "The winning logo of {brand} (#{number}) was a copy of another logo, so we took the win away. Pick a new winner within {days} days.",
+      copy_prize_shared: "The winning logo of {brand} (#{number}) was a copy of another logo, so the win was taken away and the prize was shared among the designers. Your share, {amount}, was added to your wallet.",
+      copy_prize_shared_client: "The winning logo of {brand} (#{number}) was a copy of another logo, so we took the win away and shared the prize among the designers who took part.",
+      prize_taken_back: "The {brand} prize, {amount}, was taken back from your wallet because your winning logo was a copy.",
       no_result_client: "{brand} ended with no result. The prize was shared among the designers.",
       no_result_share: "{brand} ended with no result. Your share, {amount}, was added to your wallet.",
       share_taken_back: "The team picked a winner for {brand}, so your no-result share, {amount}, was taken back from your wallet.",
@@ -2156,6 +2162,7 @@ const en = {
       settings: "Settings",
       texts: "Texts",
       onboarding: "Onboarding",
+      brief: "Brief",
       notifications: "Notifications",
       lists: "Lists",
       legal: "Legal pages",
@@ -3684,6 +3691,7 @@ const en = {
         next: "Then",
         nextClient: "The client picks a new winner ({days} days)",
         nextAdmin: "I pick the new winner now",
+        nextShare: "Share the prize among all the other designers ({n})",
         entry: "New winner (if you pick now)",
         ban: "The designer who copied",
         banNo: "No ban",
@@ -3691,6 +3699,7 @@ const en = {
         badLink: "That link doesn't look right. Use a full link starting with https://",
         pickNext: "Choose who picks the new winner, and the design if you pick it now.",
         paid: "The prize was already paid out, so the winner can't be changed here.",
+        paidNote: "The prize ({amount}) is already in the winner's wallet. It is taken back as far as the wallet still holds it.",
       },
       noWinner: {
         decide: "The client picked no winner by the end of judging ({date}). Pick a winner with Force award, or share the prize among the designers.",
@@ -4928,6 +4937,7 @@ const en = {
         },
       },
     },
+    brief: adminBriefEn,
     onboarding: {
       title: "Onboarding",
       lead: "The questions a new client (starting a logo contest) and a new designer (signing up) answer. Hide the optional ones, change any wording, and add your own questions to any step.",
@@ -4971,6 +4981,7 @@ const en = {
       details: "Details",
       actions: {
         update_onboarding: "Changed the onboarding questions",
+        update_brief_settings: "Changed the brief settings",
         update_notifications: "Changed the notifications",
         support_assign: "Assigned a support chat",
         payouts_auto_on: "Turned automatic withdrawals on",

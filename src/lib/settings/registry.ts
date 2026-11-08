@@ -3,6 +3,8 @@ import { DEFAULT_CAPTION, DEFAULT_HASHTAGS } from "@/lib/cards/rules";
 import { howVideoSchema, NO_VIDEO } from "@/lib/home/how-video";
 import { alertsSchema, DEFAULT_ALERTS, DEFAULT_REMINDERS, remindersSchema } from "@/lib/admin/unpaid-alert-rules";
 import { BRIEF_DEFAULTS_SCHEMA, SEED } from "@/lib/onboarding/brief-defaults";
+import { BRIEF_CATEGORY_SCHEMA } from "@/lib/brief-v3/schema";
+import { DEFAULT_CATEGORIES, DEFAULT_TEMPLATES } from "@/lib/brief-v3/rules";
 
 const int = (min = 0, max = Number.MAX_SAFE_INTEGER) => z.number().int().min(min).max(max);
 const intList = z.array(z.number().int().positive()).min(1);
@@ -1053,6 +1055,19 @@ export const SETTINGS = {
   "onboarding.approval_minutes": {
     group: "onboarding", type: "int", schema: int(1, 1440), default: 30,
     description: "\"Usually within … minutes\": how soon a bKash payment is checked, shown on the payment step and after paying.",
+  },
+  // ---- The new brief (owner, 2026-11-08; Admin › Brief) ----------------------------------------------------------------
+  "brief.v3_on": {
+    group: "onboarding", type: "bool", schema: z.boolean(), default: false,
+    description: "The new brief: step 2 is the logo name and one text with everything in it, \"Your brief\" after paying, and the designers' new brief view. Off: everything stays as before.",
+  },
+  "brief.categories": {
+    group: "onboarding", type: "json", schema: z.array(BRIEF_CATEGORY_SCHEMA).max(40), default: DEFAULT_CATEGORIES,
+    description: "Business categories in the brief's suggest box, in order (\"Other\" is always added last). Each stands for one of the older business types.",
+  },
+  "brief.templates": {
+    group: "onboarding", type: "json", schema: z.record(z.string(), z.string().max(8000)), default: DEFAULT_TEMPLATES,
+    description: "The suggested draft per category, and \"general\" for Other. {logo_name} is the logo name, {business} what the client wrote under Other.",
   },
 } as const satisfies Record<string, SettingDefinition>;
 
