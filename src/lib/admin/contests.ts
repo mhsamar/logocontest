@@ -290,3 +290,9 @@ export async function noWinnerState(contestId: string, judgingEndsAt: Date | nul
     shared: { designers: new Set(rows.map((r) => r.designer_id as string)).size, total: rows.reduce((a, r) => a + (r.amount as number), 0) },
   };
 }
+
+/** Whether a copied winner's prize was already shared among the designers (owner, 2026-11-08; migration 0089). */
+export async function copyPrizeShared(contestId: string): Promise<boolean> {
+  const { data } = await createAdminClient().from("lifecycle_events").select("kind").eq("contest_id", contestId).eq("kind", "copy_prize_shared").maybeSingle();
+  return Boolean(data);
+}

@@ -6,10 +6,10 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
-import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, removeCopiedWinner, shareNoResult } from "@/lib/admin/contest-actions";
+import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, shareCopiedPrize, shareNoResult } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
-import { adminContestFiles, getAdminContest, getContestClient, noWinnerState } from "@/lib/admin/contests";
+import { adminContestFiles, copyPrizeShared, getAdminContest, getContestClient, noWinnerState } from "@/lib/admin/contests";
 import { briefFileLimits } from "@/lib/contests/brief-files";
 import { contestServiceInfo } from "@/lib/services/contest-service";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -62,11 +62,9 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
   const canAwardAfter = c.status === "no_result" && !c.handover && active.length > 0;
   // A copied winner (owner, 2026-11-07): take the win away; the new winner is from the other designers.
   const winnerEntry = c.entriesList.find((e) => e.status === "winner") ?? null;
-  const canChangeCopied = ["winner_selected", "handover", "completed"].includes(c.status) && Boolean(winnerEntry);
-  const otherOptions = active.filter((e) => e.designer.id !== winnerEntry?.designer.id).map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
-  const repickDays = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
-  // Owner, 2026-11-08: or share the prize among the other designers; a prize already paid is taken back first.
-  const shareCount = new Set(active.filter((e) => e.designer.id !== winnerEntry?.designer.id).map((e) => e.designer.id)).size;
+  // A copied winning logo (owner, 2026-11-08): the winner stays, the prize is shared among everyone who took part.
+  const canChangeCopied = ["winner_selected", "handover", "completed"].includes(c.status) && Boolean(winnerEntry) && !(await copyPrizeShared(c.id));
+  const shareCount = new Set(c.entriesList.filter((e) => e.status === "active" || e.status === "winner").map((e) => e.designer.id)).size;
   const paidCredit = c.handover?.credited ? c.handover.prize - Math.round((c.handover.prize * c.handover.feeRate) / 100) : 0;
   const entryOptions = active.map((e) => ({ value: e.id, label: `#${e.number} · ${e.designer.username ? `@${e.designer.username}` : e.designer.name}${e.rating ? ` · ${"★".repeat(e.rating)}` : ""}` }));
   const canCancel = !["completed", "no_result", "cancelled", "deleted"].includes(c.status);
@@ -199,25 +197,14 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
         {canChangeCopied && winnerEntry && (
           <AdminAction
             label={t("admin.contests.copied.action")}
-            body={`${t("admin.contests.copied.body", { n: String(winnerEntry.number) })}${paidCredit ? ` ${t("admin.contests.copied.paidNote", { amount: taka(paidCredit) })}` : ""}`}
+            body={`${t("admin.contests.copied.body", { n: String(winnerEntry.number), prize: taka(c.prize), count: formatNumber(shareCount, locale) })}${paidCredit ? ` ${t("admin.contests.copied.paidNote", { amount: taka(paidCredit) })}` : ""}`}
             tone="danger"
             fields={[
               { name: "proof", kind: "text", label: t("admin.contests.copied.proof"), hint: t("admin.contests.copied.proofHint") },
-              {
-                name: "next",
-                kind: "select",
-                label: t("admin.contests.copied.next"),
-                options: [
-                  { value: "client", label: t("admin.contests.copied.nextClient", { days: String(repickDays) }) },
-                  ...(otherOptions.length ? [{ value: "admin", label: t("admin.contests.copied.nextAdmin") }] : []),
-                  ...(shareCount ? [{ value: "share", label: t("admin.contests.copied.nextShare", { n: formatNumber(shareCount, locale) }) }] : []),
-                ],
-              },
-              ...(otherOptions.length ? [{ name: "entry", kind: "select" as const, label: t("admin.contests.copied.entry"), options: otherOptions }] : []),
               { name: "ban", kind: "select", label: t("admin.contests.copied.ban"), options: [{ value: "0", label: t("admin.contests.copied.banNo") }, { value: "1", label: t("admin.contests.copied.banYes") }] },
               { name: "reason", kind: "reason" },
             ]}
-            run={removeCopiedWinner.bind(null, c.id)}
+            run={shareCopiedPrize.bind(null, c.id)}
           />
         )}
         {decideNow && (

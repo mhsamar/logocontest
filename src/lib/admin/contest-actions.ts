@@ -16,7 +16,7 @@ import { switchOnAddon } from "@/lib/contests/addon-payments";
 import { notifyWithPush } from "@/lib/notifications/broadcast";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { emailWon } from "@/lib/email/events";
-import { finishNoResult, type NoResultContest } from "@/lib/lifecycle/no-result";
+import { finishNoResult, noResultShares, type NoResultContest } from "@/lib/lifecycle/no-result";
 
 type Result = { ok: true } | { ok: false; error: MessageKey };
 type Fields = Record<string, string>;
@@ -129,11 +129,11 @@ export async function forceAward(contestId: string, f: Fields): Promise<Result> 
 }
 
 /**
- * Change a winner whose logo was copied (owner, 2026-11-07): the win is taken away (migration 0086), the copier's
- * designs in the contest go and they may be banned, and every designer hears why, with the proof's link. Then either
- * the client picks again (for the re-pick days), or the team picks the new winner now.
+ * A copied winning logo (owner, 2026-11-08, replacing the 2026-11-07 "change the winner"): the winner stays the winner,
+ * but the prize is shared equally among every designer who took part, the winner too (migration 0089). A prize already
+ * in the winner's wallet is taken back first, as far as it's there; the copier may be banned. Once per contest.
  */
-export async function removeCopiedWinner(contestId: string, f: Fields): Promise<Result> {
+export async function shareCopiedPrize(contestId: string, f: Fields): Promise<Result> {
   const admin = await adminUser("contests.manage");
   const c = admin ? await loadContest(contestId) : null;
   if (!admin || !c || !["winner_selected", "handover", "completed"].includes(c.status)) return fail("auth.errors.generic");
@@ -141,36 +141,24 @@ export async function removeCopiedWinner(contestId: string, f: Fields): Promise<
   if (!reason) return fail("admin.errors.reason");
   const proof = (f.proof ?? "").trim();
   if (proof && !/^https?:\/\/\S{4,}$/i.test(proof)) return fail("admin.contests.copied.badLink");
-  if (f.next !== "client" && f.next !== "share" && !(f.next === "admin" && UUID.test(f.entry ?? ""))) return fail("admin.contests.copied.pickNext");
   const ban = f.ban === "1";
   const db = createAdminClient();
-  const days = (await getSettings(["timers.repick_window_days"]))["timers.repick_window_days"];
-  const { data: res, error } = await db.rpc("admin_remove_copied_winner", { p_contest_id: c.id, p_repick_days: days, p_ban: ban });
-  if (error) return fail(/already paid/.test(error.message) ? "admin.contests.copied.paid" : "manage.closed");
-  // `paid`/`taken`/`short` since 0088 (owner, 2026-11-08): a prize already in the wallet is taken back as far as it's there.
-  const out = res as { designer_id: string; entry_id: string; number: number; paid?: number; taken?: number; short?: number };
-  const n = { brand: c.brand_name, number: out.number };
-  await notify([out.designer_id], "win_removed_copy", n, proof || `/contest/${c.slug}`, admin.id);
+  const [{ data: full }, s] = await Promise.all([db.from("contests").select("prize_amount").eq("id", c.id).single(), getSettings(["fees.designer_tiers"])]);
+  const shares = full ? await noResultShares(c.id, full.prize_amount as number, s["fees.designer_tiers"]) : [];
+  if (shares.length === 0) return fail("manage.closed");
+  const { data: res, error } = await db.rpc("admin_share_copied_prize", {
+    p_contest_id: c.id,
+    p_shares: shares.map((x) => ({ designer_id: x.designerId, share: x.share, fee_rate: x.feeRate })),
+  });
+  if (error) return fail(/already shared/.test(error.message) ? "admin.contests.copied.already" : "manage.closed");
+  const out = res as { designer_id: string; paid: number; taken: number; short: number; shared: number };
+  if (ban) await db.from("profiles").update({ status: "banned", suspended_until: null }).eq("id", out.designer_id);
+  const { data: win } = await db.from("entries").select("number").eq("contest_id", c.id).eq("status", "winner").maybeSingle();
+  const number = (win?.number as number | undefined) ?? 0;
+  await audit(admin.id, "share_copied_prize", "contest", c.id, { entry: number, designer: out.designer_id, proof: proof || null, ban, reason, paid: out.paid, taken: out.taken, short: out.short, shared: out.shared });
   if (out.taken) await notify([out.designer_id], "prize_taken_back", { brand: c.brand_name, amount: out.taken }, "/dashboard/wallet", admin.id);
-  const money = { paid: out.paid ?? 0, taken: out.taken ?? 0, short: out.short ?? 0 };
-  if (f.next === "share") {
-    // Owner, 2026-11-08: the prize goes to every other designer who took part, as a no-result share (fees as usual).
-    const [{ data: full }, s] = await Promise.all([db.from("contests").select("id, slug, brand_name, client_id, prize_amount").eq("id", c.id).single(), getSettings(["fees.designer_tiers"])]);
-    const once = async (id: string, kind: string) => !(await db.from("lifecycle_events").insert({ contest_id: id, kind })).error;
-    const shared = full ? await finishNoResult(full as NoResultContest, s["fees.designer_tiers"], new Date(), once, { designer: "copy_prize_shared", client: "copy_prize_shared_client", number: out.number, link: "/dashboard/wallet", actorId: admin.id }).catch(() => false as const) : false;
-    await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason, ...money, shared: shared === false ? null : shared });
-    refresh();
-    // The win is gone either way; if the share failed the contest waits in judging for the team (Share among everyone).
-    return shared === false ? fail("manage.closed") : { ok: true };
-  }
-  await audit(admin.id, "remove_copied_winner", "contest", c.id, { entry: out.number, designer: out.designer_id, proof: proof || null, ban, next: f.next, reason, ...money });
-  await notify((await contestDesignerIds(c.id)).filter((id) => id !== out.designer_id), "winner_copy_removed", n, proof || `/contest/${c.slug}`, admin.id);
-  if (f.next === "admin") {
-    const picked = await pickFor(admin.id, c, f.entry, reason, "force_award_after_copy");
-    refresh();
-    return picked;
-  }
-  await notify([c.client_id], "repick_copied", { ...n, days }, contestHref(c.slug, "designs"), admin.id);
+  for (const x of shares) await notify([x.designerId], "copy_prize_shared", { brand: c.brand_name, number, amount: x.credit }, proof || "/dashboard/wallet", admin.id);
+  await notify([c.client_id], "copy_prize_shared_client", { brand: c.brand_name, number }, contestHref(c.slug), admin.id);
   refresh();
   return { ok: true };
 }

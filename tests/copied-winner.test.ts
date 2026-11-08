@@ -14,12 +14,9 @@ describe("copied winner", () => {
     expect(sql).toContain("revoke all on function public.admin_remove_copied_winner");
   });
 
-  it("every designer hears why, with the proof's link; then the client picks again or the team picks now", () => {
+  it("since 2026-11-08 the team no longer changes the winner: it shares the prize (see copied-winner-share)", () => {
     const a = read("src/lib/admin/contest-actions.ts");
-    expect(a).toContain('"winner_copy_removed", n, proof || `/contest/${c.slug}`');
-    expect(a).toContain('"win_removed_copy", n, proof || `/contest/${c.slug}`');
-    expect(a).toContain('"repick_copied", { ...n, days }, contestHref(c.slug, "designs")');
-    expect(a).toContain('await pickFor(admin.id, c, f.entry, reason, "force_award_after_copy")');
+    expect(a).not.toContain("removeCopiedWinner");
     expect(a).toContain('if (proof && !/^https?:\\/\\/\\S{4,}$/i.test(proof)) return fail("admin.contests.copied.badLink");');
   });
 });
