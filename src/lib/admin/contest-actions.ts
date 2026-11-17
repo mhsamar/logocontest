@@ -13,7 +13,8 @@ import { designerFeeWithCode, markPromoUsed } from "@/lib/promos/promos";
 import { feeRateFor } from "@/lib/wallet/fees";
 import { adminUser, audit, cleanReason, superAdmin, UUID } from "./core";
 import { switchOnAddon } from "@/lib/contests/addon-payments";
-import { notifyWithPush } from "@/lib/notifications/broadcast";
+import { broadcastToDesigners, notifyWithPush } from "@/lib/notifications/broadcast";
+import { isTestAccount } from "@/lib/seo/test-accounts";
 import { afterWinnerPicked } from "@/lib/rewards/win-card-hook";
 import { emailWon } from "@/lib/email/events";
 import { finishNoResult, noResultShares, type NoResultContest } from "@/lib/lifecycle/no-result";
@@ -41,6 +42,30 @@ export async function extendContest(contestId: string, f: Fields): Promise<Resul
   if (error) return fail("admin.contests.notOpen");
   await audit(admin.id, "extend_contest", "contest", c.id, { days, reason });
   await notify([c.client_id, ...(await contestDesignerIds(c.id))], "contest_extended", { brand: c.brand_name, days }, `/contest/${c.slug}`, admin.id);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Reopen a contest in judging (owner, 2026-11-17): the client likes none of the designs, so it opens again for more
+ * days. Every designer hears it (bell + phone) and is asked for new designs; the client is told too.
+ */
+export async function reopenContest(contestId: string, f: Fields): Promise<Result> {
+  const admin = await adminUser("contests.manage");
+  const c = admin ? await loadContest(contestId) : null;
+  if (!admin || !c) return fail("auth.errors.generic");
+  const reason = cleanReason(f.reason);
+  if (!reason) return fail("admin.errors.reason");
+  const days = Math.floor(Number(f.days));
+  if (!(days >= 1 && days <= 30)) return fail("admin.errors.days");
+  const { data: opened, error } = await createAdminClient().rpc("admin_reopen_contest", { p_contest_id: c.id, p_days: days });
+  if (error || !opened) return fail("admin.contests.reopenNot");
+  const o = opened as { prize_amount: number; is_private: boolean; is_nda: boolean };
+  await audit(admin.id, "reopen_contest", "contest", c.id, { days, reason });
+  // Private and NDA contests keep the brand hidden, as in the new-contest notice; a test client's contest reaches test designers only.
+  const brand = o.is_private || o.is_nda ? undefined : c.brand_name;
+  await broadcastToDesigners(brand ? "contest_reopened" : "contest_reopened_private", { brand, days, amount: o.prize_amount }, `/contest/${c.slug}`, [], { onlyTest: await isTestAccount(c.client_id) });
+  await notifyWithPush([c.client_id], "contest_reopened_client", { brand: c.brand_name, days }, contestHref(c.slug), admin.id);
   refresh();
   return { ok: true };
 }
