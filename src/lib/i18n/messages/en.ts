@@ -1421,6 +1421,9 @@ const en = {
       contest_comment: "New comment on the {brand} contest",
       brief_updated: "The client updated the brief for {brand}",
       contest_extended: "{brand} got {days} more days",
+      contest_reopened: "{brand} is open again for {days} days: the client wants new ideas. Send a fresh design and win {amount}!",
+      contest_reopened_private: "A private contest is open again for {days} days: the client wants new ideas. Send a fresh design and win {amount}!",
+      contest_reopened_client: "{brand} is open again for {days} more days. Designers were asked for new designs.",
       entry_rated: "Your design #{number} for {brand} got {stars} stars",
       entry_rejected: "Your design #{number} for {brand} was rejected",
       winner_picked: "You won the {brand} contest with design #{number}!",
@@ -3683,6 +3686,9 @@ const en = {
       addonField: "Add-on",
       addonWaiting: "A bKash payment for this add-on is waiting for approval. Decide it first in Payments › Approvals.",
       extendDays: "Days to add",
+      reopen: "Reopen for new designs",
+      reopenBody: "The client likes none of the designs. The contest opens again for these days, from now; the old designs stay. Every designer gets a bell and phone notice asking for new designs, and the client is told.",
+      reopenDays: "Days open",
       copied: {
         action: "Copied logo: share the prize among everyone",
         body: "The winning design #{n} copies another logo. The winner stays the winner, but the prize ({prize}) is shared equally among all {count} designers who took part, the winner too (fees as usual). Every designer and the client hear why. This can be done once.",
@@ -3713,6 +3719,7 @@ const en = {
       cancelBody: "The contest is cancelled and hidden from public pages. No refund (no-refund policy). The client and designers are told.",
       adult: { label: "Nude or sexual contest?", no: "No, just cancel it (no refund)", yes: "Yes: remove it, keep the payment, ban the client forever" },
       notOpen: "Only open contests can be extended.",
+      reopenNot: "Only a contest in judging, with no winner and no money-back claim waiting, can be reopened.",
       cannotCancel: "This contest can't be cancelled now.",
       paid: "Paid",
       feeAddons: "fee {fee}, add-ons {addons}",
@@ -4665,6 +4672,10 @@ const en = {
           label: "Contest extended",
           when: "When a contest they entered gets a new end date.",
         },
+        contest_reopened: {
+          label: "Contest reopened",
+          when: "When the team reopens a contest in judging because the client wants new designs. Every designer.",
+        },
         entry_rated: {
           label: "Design rated",
           when: "When the client gives their design stars.",
@@ -4804,6 +4815,10 @@ const en = {
         judging_started: {
           label: "Pick a winner",
           when: "When their contest ends and judging starts.",
+        },
+        contest_reopened_client: {
+          label: "Contest reopened",
+          when: "When the team reopens their contest in judging for new designs.",
         },
         judging_reminder: {
           label: "Pick-a-winner reminders",

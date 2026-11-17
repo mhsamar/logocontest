@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { AdminAction } from "@/components/admin/admin-action";
 import { AdminContestFiles } from "@/components/admin/contest-files";
 import { contestTone, StatusPill } from "@/components/admin/table-bits";
-import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, shareCopiedPrize, shareNoResult } from "@/lib/admin/contest-actions";
+import { awardAfterNoResult, cancelContest, extendContest, forceAward, grantAddon, reopenContest, shareCopiedPrize, shareNoResult } from "@/lib/admin/contest-actions";
 import { deleteContest, eraseContestNow, restoreContestFromTrash } from "@/lib/admin/trash-actions";
 import { getSettings } from "@/lib/settings";
 import { adminContestFiles, copyPrizeShared, getAdminContest, getContestClient, noWinnerState } from "@/lib/admin/contests";
@@ -163,6 +163,18 @@ export default async function AdminContestPage({ params }: PageProps<"/admin/con
               { name: "reason", kind: "reason" },
             ]}
             run={extendContest.bind(null, c.id)}
+          />
+        )}
+        {/* The client likes none of the designs (owner, 2026-11-17): open it again and ask every designer for new ones. */}
+        {c.status === "judging" && !winnerEntry && (
+          <AdminAction
+            label={t("admin.contests.reopen")}
+            body={t("admin.contests.reopenBody")}
+            fields={[
+              { name: "days", kind: "number", label: t("admin.contests.reopenDays"), min: 1, max: 30, defaultValue: "3" },
+              { name: "reason", kind: "reason" },
+            ]}
+            run={reopenContest.bind(null, c.id)}
           />
         )}
         {/* Super admin: an add-on for the client, free (owner, 2026-10-26). */}

@@ -5,6 +5,10 @@ export const NOTIFICATION_TYPES = [
   "contest_comment",
   "brief_updated",
   "contest_extended",
+  // The team reopened a contest in judging for new designs (owner, 2026-11-17): every designer, and the client.
+  "contest_reopened",
+  "contest_reopened_private",
+  "contest_reopened_client",
   "entry_rated",
   "entry_rejected",
   "winner_picked",
