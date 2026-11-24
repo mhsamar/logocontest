@@ -11,6 +11,7 @@ import homeCarouselEn from "./home-carousel-en";
 import homeWallEn from "./home-wall-en";
 import homePricingEn from "./home-pricing-en";
 import homeWinnersEn from "./home-winners-en";
+import homeShowcaseEn from "./home-showcase-en";
 
 const en = {
   pro: proEn,
@@ -22,7 +23,7 @@ const en = {
   wizardV2: onboardingEn,
   briefV3: briefEn,
   // The new home page's own sections (owner, 2026-10-29).
-  home2: { carousel: homeCarouselEn, wall: homeWallEn, pricing: homePricingEn, winners: homeWinnersEn },
+  home2: { carousel: homeCarouselEn, wall: homeWallEn, pricing: homePricingEn, winners: homeWinnersEn, showcase: homeShowcaseEn },
   meta: {
     title: "Logo Design Contests in Bangladesh | logocontest.bd",
     description: "Get logo ideas from many Bangladeshi designers for one fixed prize. Pay in taka by bKash; the winner hands over every file and the full copyright.",
@@ -4223,6 +4224,37 @@ const en = {
       },
     },
     homepage: {
+      showcase: {
+        title: "Home showcase",
+        lead: "The real contests section under the home hero: logo wall, live contests and finished contests. Blind, private and NDA contests never show, whatever is set here.",
+        runSql: "Run migration 0091_home_showcase.sql in Supabase first. Until then the section stays hidden.",
+        isOn: "On",
+        isOff: "Off",
+        turnOn: "Turn on",
+        turnOff: "Turn off",
+        refresh: "Refresh now",
+        refreshHint: "Build the wall and the cards again (they are kept for up to an hour).",
+        refreshed: "Refreshed. The home page shows the new list.",
+        auto: "Automatic",
+        pins: "Pinned contests",
+        pinsNow: "Live: {live} · Finished: {finished}",
+        choosePins: "Choose pinned contests",
+        pinsHint: "Up to 3 live contests shown first, and the finished contest shown large. Automatic picks the ones with the most designs.",
+        livePin: "Live contest {n}",
+        finishedPin: "Finished contest (large)",
+        contests: "Contests (হোমে দেখাবে)",
+        contestsHint: "Public contests the showcase may use, newest first. Switch one off to keep it off the home page.",
+        noContests: "No public contests yet.",
+        shown: "On home",
+        notShown: "Off home",
+        hideContest: "Take off home",
+        showContest: "Show on home",
+        showing: "Designs showing now",
+        nothing: "Nothing is showing now (the section is off, or no design qualifies yet).",
+        hideDesign: "Hide from home",
+        hidden: "Hidden from home",
+        showDesign: "Show again",
+      },
       heroVideo: {
         title: "Home hero video",
         lead: "The explainer video at the top of the home page, next to the Start a contest button. Paste a YouTube link (unlisted is fine; keep embedding on and ads off for this video). Without a link the built-in animation shows.",
@@ -5049,6 +5081,9 @@ const en = {
         cancel_contest: "Cancelled a contest",
         extend_contest: "Extended a contest",
         grant_addon: "Added an add-on for free",
+        contest_home_show: "Changed a contest's home showcase switch",
+        entry_home_hidden: "Hid or showed a design on the home showcase",
+        reopen_contest: "Reopened a contest for new designs",
         force_award: "Picked a winner",
         edit_brief: "Edited a brief",
         add_contest_files: "Added reference photos",

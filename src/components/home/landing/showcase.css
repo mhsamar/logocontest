@@ -1,0 +1,188 @@
+/*
+ * Home showcase (owner, 2026-11-20; Design/logocontest-home-showcase/design/HomeContestShowcase.html). Scoped to
+ * .lc-landing, every class starts with lcs-. The wall is pure CSS: each row runs twice and moves by half its width (one
+ * list plus its gap), so it loops without a jump; hover pauses it, reduced motion stops it and drops the copy. Under
+ * 720px landing.css gives the section 16px sides, as every home section.
+ */
+.lc-landing .lcs { --lcs-red: #8b0000; --lcs-ink: #111216; --lcs-soft: #4b4d57; --lcs-pad: 24px; padding: 72px var(--lcs-pad) 80px; border-radius: 32px; background: #ecedf0; color: var(--lcs-ink); }
+.lc-landing .lcs-in { max-width: 1160px; margin: 0 auto; }
+.lc-landing .lcs a:hover { opacity: 1; }
+.lc-landing .lcs-badge i,
+.lc-landing .lcs-live i,
+.lc-landing .lcs-fresh i { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: lcs-pl 1.6s infinite; }
+@keyframes lcs-pl {
+  0% { box-shadow: 0 0 0 0 rgb(22 163 74 / 0.5); }
+  100% { box-shadow: 0 0 0 8px rgb(22 163 74 / 0); }
+}
+
+/* Heading: badge, title, sub line and the three steps. */
+.lc-landing .lcs-hd { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; }
+.lc-landing .lcs-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: #fff; color: var(--lcs-red); font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
+.lc-landing .lcs-title { margin: 14px 0 8px; font-size: 40px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+.lc-landing .lcs-title em { font-style: normal; color: var(--lcs-red); }
+.lc-landing .lcs-sub { max-width: 640px; margin: 0; font-size: 18px; line-height: 1.6; color: var(--lcs-soft); }
+.lc-landing .lcs-how { display: flex; flex: none; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lc-landing .lcs-how li { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #fff; font-size: 14px; font-weight: 600; }
+.lc-landing .lcs-how b { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--lcs-red); color: #fff; font-size: 13px; }
+
+/* The logo wall. */
+.lc-landing .lcs-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 36px calc(-1 * var(--lcs-pad)) 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+/* The padding leaves room for a card growing on hover. */
+.lc-landing .lcs-wr { padding: 6px 0; overflow: hidden; overflow: clip; }
+.lc-landing .lcs-wtrack { display: flex; width: max-content; }
+.lc-landing .lcs-run { animation: lcs-mq 60s linear infinite; }
+.lc-landing .lcs-run2 { animation-direction: reverse; animation-duration: 70s; }
+.lc-landing .lcs-run3 { animation-duration: 80s; }
+.lc-landing .lcs-wall:hover .lcs-run { animation-play-state: paused; }
+.lc-landing .lcs-wr:has(:focus-visible) .lcs-run { animation-play-state: paused; }
+@keyframes lcs-mq { to { transform: translateX(-50%); } }
+.lc-landing .lcs-wlist { display: flex; gap: 14px; margin: 0; padding: 0 14px 0 0; list-style: none; }
+.lc-landing .lcs-still .lcs-wtrack { margin: 0 auto; }
+.lc-landing .lcs-still .lcs-wlist { padding: 0; }
+.lc-landing .lcs-wl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 150px;
+  height: 110px;
+  padding: 10px 10px 8px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 18px rgb(17 18 22 / 0.05);
+  transition: transform 0.2s;
+}
+.lc-landing .lcs-wl:hover { transform: scale(1.06); }
+.lc-landing .lcs-wimg { display: block; flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+.lc-landing .lcs-wname { max-width: 100%; overflow: hidden; font-size: 13px; font-weight: 700; line-height: 1.2; color: #2a2b31; text-overflow: ellipsis; white-space: nowrap; }
+
+.lc-landing .lcs-stat { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 22px; font-size: 16px; color: var(--lcs-soft); }
+.lc-landing .lcs-stat b { font: 800 22px var(--font-heading); color: var(--lcs-red); }
+.lc-landing .lcs-dot { width: 4px; height: 4px; border-radius: 50%; background: #b9bac2; }
+.lc-landing .lcs-stat a { font-weight: 700; color: var(--lcs-red); }
+
+/* Tabs. */
+.lc-landing .lcs-tabs { display: flex; gap: 8px; margin: 36px 0 20px; }
+.lc-landing .lcs-tab { padding: 10px 18px; border: 0; border-radius: 999px; background: #fff; color: var(--lcs-soft); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.lc-landing .lcs-tab.lcs-on { background: var(--lcs-ink); color: #fff; }
+
+/* Live cards. */
+.lc-landing .lcs-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.lc-landing .lcs-lc { display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 20px; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px rgb(17 18 22 / 0.06); transition: transform 0.2s; }
+.lc-landing .lcs-lc:hover { transform: translateY(-4px); }
+.lc-landing .lcs-lch { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.lc-landing .lcs-cat { font-size: 13px; font-weight: 600; color: var(--lcs-red); }
+.lc-landing .lcs-h3 { margin: 2px 0 0; font-size: 21px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.lc-landing .lcs-h3-big { font-size: 26px; }
+.lc-landing .lcs-live { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #eaf7ef; color: #15803d; font-size: 13px; font-weight: 700; }
+.lc-landing .lcs-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.lc-landing .lcs-meta span { padding: 4px 10px; border-radius: 8px; background: #f4f4f6; font-size: 13.5px; color: var(--lcs-soft); }
+.lc-landing .lcs-meta b { color: var(--lcs-ink); }
+.lc-landing .lcs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.lc-landing .lcs-lt { display: flex; align-items: center; justify-content: center; box-sizing: border-box; aspect-ratio: 1; padding: 6px; overflow: hidden; border: 1px solid #ededf0; border-radius: 12px; background: #fff; }
+.lc-landing .lcs-lt img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.lc-landing .lcs-lt.lcs-more { border: 0; background: var(--lcs-ink); color: #ffe27a; font: 700 20px var(--font-heading); }
+.lc-landing .lcs-fresh { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--lcs-soft); }
+.lc-landing .lcs-lk { margin-top: auto; font-size: 15px; font-weight: 700; color: var(--lcs-red); }
+
+/* The finished contest: the winner card on the left, every logo on the right. */
+.lc-landing .lcs-fin { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 32px; padding: 28px; border-radius: 24px; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px rgb(17 18 22 / 0.06); }
+.lc-landing .lcs-win { display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; background: linear-gradient(160deg, #5c0a0c, #8b0000); color: #fff; }
+.lc-landing .lcs-crown { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: #ffe27a; color: #5c0a0c; font-size: 13px; font-weight: 700; }
+.lc-landing .lcs-wbig { display: flex; align-items: center; justify-content: center; height: 190px; padding: 16px; box-sizing: border-box; border-radius: 14px; background: #fff; box-shadow: 0 0 0 4px #ffe27a; }
+.lc-landing .lcs-wbig img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.lc-landing .lcs-dz { display: flex; align-items: center; gap: 10px; }
+.lc-landing .lcs-dz b { display: block; font-size: 16px; }
+.lc-landing .lcs-dz span { font-size: 13px; opacity: 0.8; }
+.lc-landing .lcs-av { flex: none; width: 40px; height: 40px; overflow: hidden; border-radius: 50%; background: linear-gradient(135deg, #d9a52b, #ffe27a); }
+.lc-landing .lcs-av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lc-landing .lcs-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: auto; }
+.lc-landing .lcs-facts span { padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / 0.1); font-size: 12.5px; opacity: 0.95; }
+.lc-landing .lcs-facts b { display: block; font: 700 17px var(--font-heading); color: #ffe27a; }
+.lc-landing .lcs-wlk { padding: 12px; border-radius: 12px; background: #fff; color: var(--lcs-red); font-weight: 700; text-align: center; }
+.lc-landing .lcs-fh { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.lc-landing .lcs-done { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: #f4f4f6; color: var(--lcs-soft); font-size: 13px; font-weight: 700; }
+.lc-landing .lcs-eg { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.lc-landing .lcs-eg .lcs-w { border-color: #d9a52b; box-shadow: 0 0 0 3px #d9a52b; }
+.lc-landing .lcs-note { margin-top: 14px; padding: 10px 14px; border-radius: 12px; background: #fff8e1; font-size: 15px; color: var(--lcs-soft); }
+
+/* Other finished contests. */
+.lc-landing .lcs-mrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.lc-landing .lcs-fin + .lcs-mrow { margin-top: 20px; }
+.lc-landing .lcs-mc { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: #fff; color: var(--lcs-ink); }
+.lc-landing .lcs-mimg { display: flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; width: 72px; height: 72px; padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 2px #ffe27a; }
+.lc-landing .lcs-mimg img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.lc-landing .lcs-mc b { display: block; font: 700 15px var(--font-heading); overflow-wrap: anywhere; }
+.lc-landing .lcs-mc span span { font-size: 13px; color: var(--lcs-soft); }
+
+/* The call to start. */
+.lc-landing .lcs-cta { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 40px; padding: 28px 32px; border-radius: 24px; background: var(--lcs-ink); color: #fff; }
+.lc-landing .lcs-cta-h { margin: 0; font-size: 26px; font-weight: 700; }
+.lc-landing .lcs-cta p { margin: 4px 0 0; font-size: 16px; color: #b9bac2; }
+.lc-landing .lcs-cta-b { display: flex; gap: 12px; }
+.lc-landing .lcs-btn,
+.lc-landing .lcs-btn2 { display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; color: #fff; white-space: nowrap; }
+.lc-landing .lcs-btn { padding: 16px 26px; background: var(--lcs-red); font-size: 17px; font-weight: 700; }
+.lc-landing .lcs-btn2 { padding: 15px 22px; border: 1px solid #3a3b42; font-size: 16px; font-weight: 600; }
+
+@media (max-width: 1000px) {
+  .lc-landing .lcs-hd { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .lc-landing .lcs-fin { grid-template-columns: minmax(0, 1fr); }
+  .lc-landing .lcs-mrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* The "+N" tile: the phone count shows only on phones (the featured grid shows fewer pictures there). */
+.lc-landing .lcs-m-only { display: none; }
+
+@media (max-width: 720px) {
+  .lc-landing .lcs { --lcs-pad: 16px; }
+  .lc-landing .lcs-title { font-size: 27px; }
+  .lc-landing .lcs-sub { font-size: 15.5px; }
+  .lc-landing .lcs-how { flex-wrap: wrap; }
+  .lc-landing .lcs-how li { padding: 8px 10px; font-size: 13px; }
+  .lc-landing .lcs-wall { gap: 10px; margin-top: 24px; }
+  .lc-landing .lcs-wlist { gap: 10px; padding-right: 10px; }
+  .lc-landing .lcs-wl { width: 112px; height: 84px; padding: 8px 8px 6px; border-radius: 14px; }
+  .lc-landing .lcs-wname { font-size: 11px; }
+  .lc-landing .lcs-stat { gap: 8px; font-size: 14px; }
+  .lc-landing .lcs-stat b { font-size: 19px; }
+  .lc-landing .lcs-tabs { margin: 24px 0 14px; overflow-x: auto; }
+  .lc-landing .lcs-tab { padding: 9px 14px; font-size: 14px; white-space: nowrap; }
+  .lc-landing .lcs-row { display: flex; gap: 12px; margin: 0 -16px; padding: 0 16px 8px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 16px; }
+  .lc-landing .lcs-lc { flex: 0 0 86%; padding: 16px; scroll-snap-align: start; }
+  .lc-landing .lcs-lc:hover { transform: none; }
+  .lc-landing .lcs-fin { gap: 18px; padding: 16px; }
+  .lc-landing .lcs-wbig { height: 150px; }
+  .lc-landing .lcs-fh { flex-direction: column; gap: 8px; }
+  .lc-landing .lcs-eg { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lc-landing .lcs-eg .lcs-lt:nth-child(n + 16):not(.lcs-more) { display: none; }
+  .lc-landing .lcs-d-only { display: none; }
+  .lc-landing .lcs-more .lcs-m-only { display: inline; }
+  .lc-landing .lcs-lt.lcs-more.lcs-m-only { display: flex; }
+  .lc-landing .lcs-mrow { gap: 10px; }
+  .lc-landing .lcs-mc { flex-direction: column; align-items: flex-start; padding: 12px; }
+  .lc-landing .lcs-cta { flex-direction: column; align-items: stretch; margin-top: 28px; padding: 22px; }
+  .lc-landing .lcs-cta-h { font-size: 21px; }
+  .lc-landing .lcs-cta-b { flex-direction: column; gap: 10px; }
+}
+
+/* Reduce motion: nothing moves; one copy of each row, which scrolls by hand. */
+@media (prefers-reduced-motion: reduce) {
+  .lc-landing .lcs-run { animation: none; }
+  .lc-landing .lcs-copy { display: none; }
+  .lc-landing .lcs-wr { overflow-x: auto; scrollbar-width: none; }
+  .lc-landing .lcs-wall { -webkit-mask-image: none; mask-image: none; }
+  .lc-landing .lcs-wl,
+  .lc-landing .lcs-lc { transition: none; }
+  .lc-landing .lcs-badge i,
+  .lc-landing .lcs-live i,
+  .lc-landing .lcs-fresh i { animation: none; }
+}

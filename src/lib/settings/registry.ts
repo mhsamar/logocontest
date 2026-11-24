@@ -908,6 +908,19 @@ export const SETTINGS = {
     group: "home", type: "bool", schema: z.boolean(), default: true,
     description: "Show the \"Sample artwork\" pill under the home hero slides. Turn it off once the slides are real contest winners.",
   },
+  // Home showcase (owner, 2026-11-20; migration 0091): edited in Admin → Homepage, "Home showcase".
+  "home.showcase_on": {
+    group: "home", type: "bool", schema: z.boolean(), default: true,
+    description: "Show the real contests showcase (logo wall, live and finished contests) under the home hero.",
+  },
+  "home.showcase_live_pins": {
+    group: "home", type: "json", schema: z.array(z.string().uuid()).max(3), default: [] as string[],
+    description: "Home showcase: up to 3 live contests shown first (contest IDs). Empty = the live contests with the most designs.",
+  },
+  "home.showcase_finished_pin": {
+    group: "home", type: "string", schema: z.union([z.literal(""), z.string().uuid()]), default: "",
+    description: "Home showcase: the finished contest shown large (a contest ID). Empty = a recent finished contest with many designs.",
+  },
   // "How it works" tutorial videos (owner, 2026-10-11): edited in Admin → Homepage, not on the Settings page.
   "how.video_client": {
     group: "how", type: "json", schema: howVideoSchema, default: NO_VIDEO,

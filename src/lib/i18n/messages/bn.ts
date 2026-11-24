@@ -11,6 +11,7 @@ import homeCarouselBn from "./home-carousel-bn";
 import homeWallBn from "./home-wall-bn";
 import homePricingBn from "./home-pricing-bn";
 import homeWinnersBn from "./home-winners-bn";
+import homeShowcaseBn from "./home-showcase-bn";
 import shareBn from "./share-bn";
 
 const bn: Messages = {
@@ -22,7 +23,7 @@ const bn: Messages = {
   guarantee: guaranteeBn,
   wizardV2: onboardingBn,
   briefV3: briefBn,
-  home2: { carousel: homeCarouselBn, wall: homeWallBn, pricing: homePricingBn, winners: homeWinnersBn },
+  home2: { carousel: homeCarouselBn, wall: homeWallBn, pricing: homePricingBn, winners: homeWinnersBn, showcase: homeShowcaseBn },
   meta: {
     title: "বাংলাদেশে লোগো ডিজাইন কনটেস্ট | logocontest.bd",
     description: "এক নির্দিষ্ট পুরস্কারে অনেক বাংলাদেশি ডিজাইনারের লোগো আইডিয়া পান। বিকাশে টাকায় পেমেন্ট; বিজয়ী সব ফাইল আর পূর্ণ কপিরাইট দেন।",
@@ -4197,6 +4198,37 @@ const bn: Messages = {
       },
     },
     homepage: {
+      showcase: {
+        title: "হোম শোকেস",
+        lead: "হোমের হিরোর নিচে আসল কনটেস্টের অংশ: লোগো ওয়াল, চলমান ও শেষ হওয়া কনটেস্ট। ব্লাইন্ড, প্রাইভেট ও NDA কনটেস্ট এখানে যা-ই সেট থাকুক কখনো দেখায় না।",
+        runSql: "আগে Supabase-এ 0091_home_showcase.sql চালান। ততক্ষণ অংশটা লুকানো থাকবে।",
+        isOn: "চালু",
+        isOff: "বন্ধ",
+        turnOn: "চালু করুন",
+        turnOff: "বন্ধ করুন",
+        refresh: "এখনই রিফ্রেশ",
+        refreshHint: "ওয়াল আর কার্ড আবার বানান (এগুলো সর্বোচ্চ এক ঘণ্টা রাখা থাকে)।",
+        refreshed: "রিফ্রেশ হয়েছে। হোম পেজে নতুন তালিকা দেখাবে।",
+        auto: "অটোমেটিক",
+        pins: "পিন করা কনটেস্ট",
+        pinsNow: "চলমান: {live} · শেষ হওয়া: {finished}",
+        choosePins: "পিন করা কনটেস্ট বাছুন",
+        pinsHint: "সর্বোচ্চ ৩টা চলমান কনটেস্ট আগে দেখাবে, আর একটা শেষ হওয়া কনটেস্ট বড় করে। অটোমেটিক হলে সবচেয়ে বেশি ডিজাইনের গুলো আসে।",
+        livePin: "চলমান কনটেস্ট {n}",
+        finishedPin: "শেষ হওয়া কনটেস্ট (বড়)",
+        contests: "কনটেস্ট (হোমে দেখাবে)",
+        contestsHint: "শোকেসে যেসব পাবলিক কনটেস্ট আসতে পারে, নতুনগুলো আগে। হোম থেকে সরাতে বন্ধ করুন।",
+        noContests: "এখনো কোনো পাবলিক কনটেস্ট নেই।",
+        shown: "হোমে আছে",
+        notShown: "হোমে নেই",
+        hideContest: "হোম থেকে সরান",
+        showContest: "হোমে দেখান",
+        showing: "এখন যেসব ডিজাইন দেখাচ্ছে",
+        nothing: "এখন কিছু দেখাচ্ছে না (অংশটা বন্ধ, বা কোনো ডিজাইন এখনো যোগ্য নয়)।",
+        hideDesign: "হোম থেকে লুকান",
+        hidden: "হোম থেকে লুকানো",
+        showDesign: "আবার দেখান",
+      },
       heroVideo: {
         title: "হোম হিরো ভিডিও",
         lead: "হোম পেজের একদম উপরে, কনটেস্ট শুরু করুন বাটনের পাশের ব্যাখ্যা ভিডিও। একটি ইউটিউব লিংক দিন (Unlisted হলেও চলবে; এই ভিডিওতে embedding চালু আর বিজ্ঞাপন বন্ধ রাখুন)। লিংক না থাকলে আগের অ্যানিমেশন দেখায়।",
@@ -5020,6 +5052,9 @@ const bn: Messages = {
         cancel_contest: "কনটেস্ট বাতিল",
         extend_contest: "কনটেস্টের সময় বাড়ানো",
         grant_addon: "ফ্রিতে অ্যাড-অন যোগ করেছেন",
+        contest_home_show: "কনটেস্টের হোম শোকেস সুইচ বদলেছেন",
+        entry_home_hidden: "হোম শোকেসে ডিজাইন লুকিয়েছেন বা দেখিয়েছেন",
+        reopen_contest: "নতুন ডিজাইনের জন্য কনটেস্ট আবার খুলেছেন",
         force_award: "বিজয়ী বাছাই",
         edit_brief: "ব্রিফ এডিট",
         add_contest_files: "রেফারেন্স ছবি যোগ",

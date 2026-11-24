@@ -1,0 +1,42 @@
+import type { Messages } from "./en";
+
+/** Home showcase in Bangla, word for word from the design (owner, 2026-11-20); same keys as home-showcase-en.ts. */
+const homeShowcaseBn: Messages["home2"]["showcase"] = {
+  badge: "আসল কনটেস্ট · লাইভ ডেমো",
+  titleLead: "লোগো কনটেস্ট দেখতে কেমন?",
+  titleAccent: "নিজের চোখে দেখুন",
+  sub: "একটা কনটেস্টে অনেক ডিজাইনার আলাদা আলাদা লোগো পাঠায়। ক্লায়েন্ট সব দেখে সেরাটা বেছে নেয়, আর সেই ডিজাইনার প্রাইজ পায়।",
+  steps: { one: "কনটেস্ট দিন", two: "১০–৪০টা লোগো পান", three: "সেরাটা বাছুন" },
+  count: "লোগো জমা পড়েছে",
+  real: "সবই আসল কনটেস্ট থেকে",
+  seeAll: "সব লোগো দেখুন →",
+  tabsLabel: "কনটেস্ট",
+  tabLive: "চলমান কনটেস্ট · {n}",
+  tabFinished: "শেষ হওয়া কনটেস্ট · {n}",
+  live: "লাইভ",
+  prize: "প্রাইজ",
+  daysLeft: "{n} দিন বাকি",
+  oneDayLeft: "১ দিন বাকি",
+  hoursLeft: "{n} ঘণ্টা বাকি",
+  logosN: "{n}টি",
+  logos: "লোগো",
+  more: "+{n}",
+  moreLabel: "আরও {n}টি লোগো",
+  fresh: { minutes: "{n} মিনিট আগে নতুন লোগো", hours: "{n} ঘণ্টা আগে নতুন লোগো", days: "{n} দিন আগে নতুন লোগো" },
+  winnerBadge: "👑 বিজয়ী লোগো",
+  winnerAlt: "{brand}-এর বিজয়ী লোগো",
+  designer: "ডিজাইনার",
+  designerWon: "ডিজাইনার · পেয়েছেন {prize}",
+  facts: { prize: "প্রাইজ", time: "সময়", days: "{n} দিন", logos: "লোগো", logosN: "{n}টি" },
+  fullContest: "পুরো কনটেস্ট দেখুন →",
+  finishedOn: "{category} · শেষ হয়েছে {date}",
+  done: "✓ {n}টি লোগো · {m} জন ডিজাইনার",
+  note: "ক্লায়েন্ট {n}টা আলাদা আইডিয়া থেকে বেছেছেন। একজন ডিজাইনার দিয়ে করালে সাধারণত ১–৩টা অপশন পাওয়া যায়।",
+  smallWon: "{n}টি লোগো থেকে বিজয়ী",
+  ctaTitle: "আপনার কনটেস্টেও এভাবে অনেক লোগো আসবে",
+  ctaSub: "৫ মিনিটে কনটেস্ট দিন, প্রথম লোগো সাধারণত কয়েক ঘণ্টার মধ্যে আসে",
+  ctaBrowse: "সব কনটেস্ট দেখুন",
+  ctaStart: "কনটেস্ট শুরু করুন →",
+};
+
+export default homeShowcaseBn;
