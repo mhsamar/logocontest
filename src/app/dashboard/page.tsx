@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { countSaved } from "@/lib/contests/community";
 import { designerById, designerContests } from "@/lib/designers/profile";
 import { openHandovers } from "@/lib/handover/queries";
+import { getSetting } from "@/lib/settings";
 import { myUnclaimedRewards } from "@/lib/rewards/claims";
 import { designerWinCards, winCardThumb } from "@/lib/rewards/win-cards";
 import { getWallet } from "@/lib/wallet/queries";
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
     // Share buttons follow Backup links; the QR code always prints the main address (owner, 2026-10-21).
     const [shareOrigin, here] = await Promise.all([linkOrigin(), requestOrigin()]);
     const profileUrl = `${shareOrigin}/d/${designer.username}`;
-    const [contests, savedCount, qr, handovers, wallet, cards, prizes, langs] = await Promise.all([
+    const [contests, savedCount, qr, handovers, wallet, cards, prizes, langs, strikeHours] = await Promise.all([
       designerContests(user.id),
       countSaved(user.id),
       qrSvg(`${printedOrigin(here)}/d/${designer.username}`),
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
       myUnclaimedRewards(user.id),
       // Languages (migration 0042); null when that column can't be read, then it isn't asked for.
       createAdminClient().from("profiles").select("languages").eq("id", user.id).maybeSingle(),
+      getSetting("timers.files_strike_hours"),
     ]);
     // "Complete your profile" (owner, 2026-10-13): sign-up has only four steps.
     const profileStepsList = profileSteps({
@@ -58,7 +60,7 @@ export default async function DashboardPage() {
       emailVerified: Boolean(user.emailVerifiedAt),
     });
     const winCards = cards.map((c) => ({ slug: c.slug, brand: c.hiddenLogo ? null : c.contest.brand, image: winCardThumb(c.slug, "square") }));
-    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} wallet={wallet} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} />;
+    return <DesignerDashboard designer={designer} contests={contests} savedCount={savedCount} profileUrl={profileUrl} qrSvg={qr} handovers={handovers} wallet={wallet} winCards={winCards} prizes={prizes} profileSteps={profileStepsList} strikeHours={strikeHours} />;
   }
   if (can(user, "admin.access")) redirect("/admin");
   if (user.role !== "client") notFound();
