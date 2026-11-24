@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ClientHome } from "@/components/home/client-home";
 import { DesignerHome } from "@/components/home/designer-home";
 import { AiChecker } from "@/components/home/landing/ai-checker";
@@ -7,6 +8,7 @@ import { DesignerWall } from "@/components/home/landing/designer-wall";
 import { LandingFaq } from "@/components/home/landing/faq";
 import { LandingHero } from "@/components/home/landing/hero";
 import { LandingPricing } from "@/components/home/landing/pricing";
+import { HomeShowcase } from "@/components/home/landing/showcase";
 import { Winners } from "@/components/home/landing/winners";
 import { SiteNav } from "@/components/layout/site-nav";
 import { DesignTypesSection } from "@/components/services/design-types";
@@ -64,6 +66,10 @@ export default async function HomePage() {
       {/* JSON is escaped for "<" so nothing in it can close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
       <LandingHero nav={<SiteNav user={user} />} />
+      {/* Real contests and logos (owner, 2026-11-20): streamed after the hero, never holding it up. */}
+      <Suspense fallback={null}>
+        <HomeShowcase />
+      </Suspense>
       <LiveContests contests={contests} />
       <AskBand />
       <DesignerWall />

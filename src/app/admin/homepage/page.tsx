@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AdminAction } from "@/components/admin/admin-action";
 import { EntryThumb } from "@/components/admin/entry-thumb";
 import { HeroVideoCard } from "@/components/admin/hero-video-card";
+import { HomeShowcaseCard } from "@/components/admin/home-showcase-card";
 import { HowVideosCard, type HowVideoTabData } from "@/components/admin/how-videos";
 import { PictureField } from "@/components/admin/picture-field";
 import { pictureUrl } from "@/lib/content/pictures";
@@ -57,6 +58,8 @@ export default async function AdminHomepagePage() {
   return (
     <div className="space-y-6">
       <AdminHead title={t("admin.homepage.title")} lead={t("admin.homepage.lead")} />
+      {/* The real contests showcase under the hero (owner, 2026-11-20). */}
+      <HomeShowcaseCard />
       {/* The home hero's explainer video (owner, 2026-11-06). */}
       <HeroVideoCard
         video={s["hero.video"]}
