@@ -1,5 +1,7 @@
 import Link from "@/components/ui/link";
 import { MyContestDesigns } from "@/components/dashboard/my-designs";
+import { DeliveryCountdown } from "@/components/handover/delivery-countdown";
+import { firstFilesDeadline } from "@/lib/handover/countdown";
 import { ShareProfile } from "@/components/designers/share-profile";
 import { ProfileProgress } from "@/components/settings/profile-progress";
 import { PhoneNotifications } from "@/components/push/phone-notifications";
@@ -54,6 +56,7 @@ export async function DesignerDashboard({
   winCards = [],
   prizes = [],
   profileSteps = [],
+  strikeHours,
 }: {
   designer: DesignerProfile;
   contests: DesignerContest[];
@@ -61,7 +64,9 @@ export async function DesignerDashboard({
   profileUrl: string;
   qrSvg: string;
   /** Wins whose files are still to be delivered or approved (owner, 2026-10-08). */
-  handovers: { slug: string; brand: string; status: string; dueAt: Date; credit: number }[];
+  handovers: { slug: string; brand: string; status: string; dueAt: Date; credit: number; pickedAt: Date; submittedAt: Date | null }[];
+  /** Hours the winner has for the first files (timers.files_strike_hours), for the stopwatch on the card. */
+  strikeHours: number;
   /** The whole wallet (owner, 2026-10-16): every detail on the dashboard. */
   wallet: Wallet;
   /** Win cards (owner, 2026-10-11), newest first. */
@@ -145,6 +150,12 @@ export async function DesignerDashboard({
                   <span className="block text-[15px] text-white/80">
                     {h.status === "submitted" ? t("designerDash.won.waiting") : t("designerDash.won.due", { date: formatDate(h.dueAt, locale, "short") })}
                   </span>
+                  {/* The delivery stopwatch (owner, 2026-11-24) until the first files are sent. */}
+                  {h.status === "awaiting_files" && !h.submittedAt && (
+                    <span className="mt-1 block text-[22px]">
+                      <DeliveryCountdown deadline={firstFilesDeadline(h.pickedAt, strikeHours).toISOString()} totalHours={strikeHours} serverNow={new Date().toISOString()} size="compact" />
+                    </span>
+                  )}
                 </span>
                 <span className="lc-d shrink-0 text-2xl font-semibold tabular-nums text-gold">{formatTaka(h.credit, locale)}</span>
               </Link>

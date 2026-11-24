@@ -7018,6 +7018,19 @@ const en = {
     fees: { title: "What you keep", body: "The prize goes to your wallet minus a small fee that gets smaller as you win more. Withdraw to bKash or bank from {min}.", tier: "{rate}% fee", from: "from win {n}", first: "your first wins" },
   },
   handover: {
+    countdown: {
+      title: "Delivery time: {hours} hours",
+      overTitle: "Delivery time is over",
+      hours: "hours",
+      minutes: "minutes",
+      seconds: "seconds",
+      aria: "{h} hours {m} minutes left to send the final files",
+      over: "⏱ Time is over: send the files now",
+      calmLine: "The clock started when you won. Send the final files before it reaches zero.",
+      soonLine: "Less than 6 hours left. Send the final files soon.",
+      urgentLine: "Less than 1 hour left! Send the final files now.",
+      overLine: "The time is over. Send the final files right now: the longer you wait, the bigger the penalty.",
+    },
     // The delivery chat (owner, 2026-10-12)
     chat: {
       title: "Messages about the files",

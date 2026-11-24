@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
 import { DeliverFiles } from "@/components/handover/deliver-files";
+import { DeliveryCountdown } from "@/components/handover/delivery-countdown";
 import { HandoverChat } from "@/components/handover/handover-chat";
 import { HandoverTracker } from "@/components/handover/tracker";
 import { BackLink } from "@/components/ui/back-link";
@@ -12,6 +13,7 @@ import { formatDate } from "@/lib/dates";
 import { latestClaim } from "@/lib/claims/queries";
 import { CHAT_STATUSES } from "@/lib/handover/options";
 import { HANDOVER_TYPES, type RequiredFileType } from "@/lib/handover/options";
+import { firstFilesDeadline } from "@/lib/handover/countdown";
 import { getDesignerHandover, handoverMessages } from "@/lib/handover/queries";
 import { contestServiceInfo } from "@/lib/services/contest-service";
 import { getI18n } from "@/lib/i18n/server";
@@ -67,6 +69,10 @@ export default async function DesignerHandoverPage({ params }: PageProps<"/dashb
               </div>
             ))}
           </dl>
+          {/* The delivery stopwatch (owner, 2026-11-24): big, from the pick to the first-files deadline, until files are sent. */}
+          {h.status === "awaiting_files" && !h.submittedAt && (
+            <DeliveryCountdown deadline={firstFilesDeadline(h.pickedAt, strikeHours).toISOString()} totalHours={strikeHours} serverNow={new Date().toISOString()} />
+          )}
           {h.status !== "approved" && <p className="m-0 mt-4 text-sm text-white/80">{t("handover.won.after", { amount: taka(h.credit) })}</p>}
           {/* Only the first delivery has a deadline (owner, 2026-10-12): a 48-hour suspension after 24 hours, a ban after 3 days. */}
           {h.status === "awaiting_files" && <p className="m-0 mt-1 text-sm font-semibold text-gold">{t("handover.won.dueWarn", { hours: strikeHours, suspend: suspendHours, date: formatDate(h.dueAt, locale, "long") })}</p>}

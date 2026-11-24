@@ -129,17 +129,17 @@ export async function getDesignerHandover(slug: string, designerId: string): Pro
 }
 
 /** Handovers this designer still has to finish (for the dashboard "You won" card). */
-export async function openHandovers(designerId: string): Promise<{ slug: string; brand: string; status: HandoverStatus; dueAt: Date; credit: number }[]> {
+export async function openHandovers(designerId: string): Promise<{ slug: string; brand: string; status: HandoverStatus; dueAt: Date; credit: number; pickedAt: Date; submittedAt: Date | null }[]> {
   if (!isSupabaseConfigured()) return [];
   const { data } = await createAdminClient()
     .from("handovers")
-    .select("status, due_at, prize, fee_rate, contest:contests!contest_id(slug, brand_name)")
+    .select("status, due_at, prize, fee_rate, created_at, submitted_at, contest:contests!contest_id(slug, brand_name)")
     .eq("designer_id", designerId)
     .in("status", ["awaiting_files", "submitted", "revision_requested"])
     .order("created_at", { ascending: false });
   return (data ?? []).map((r) => {
     const c = one(r.contest as { slug: string; brand_name: string } | { slug: string; brand_name: string }[] | null);
-    return { slug: c?.slug ?? "", brand: c?.brand_name ?? "", status: r.status as HandoverStatus, dueAt: new Date(r.due_at as string), credit: payoutFor(r.prize as number, r.fee_rate as number).credit };
+    return { slug: c?.slug ?? "", brand: c?.brand_name ?? "", status: r.status as HandoverStatus, dueAt: new Date(r.due_at as string), credit: payoutFor(r.prize as number, r.fee_rate as number).credit, pickedAt: new Date(r.created_at as string), submittedAt: r.submitted_at ? new Date(r.submitted_at as string) : null };
   });
 }
 
